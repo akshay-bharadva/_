@@ -9,6 +9,7 @@ import {
 import { normalizeSiteContent } from "@/lib/site-identity";
 import type {
   BlogPost,
+  GitHubRepo,
   LifeUpdate,
   PortfolioSection,
   SiteContent,
@@ -92,6 +93,59 @@ export const publicApi = createApi({
       },
       providesTags: (result, error, path) => [{ type: "Portfolio", id: path }],
     }),
+
+    getGitHubRepos: builder.query<
+      GitHubRepo[],
+      {
+        username: string;
+        sort_by: string;
+        projects_per_page: number;
+        page: number;
+        exclude_forks: boolean;
+        exclude_archived: boolean;
+        exclude_profile_repo: boolean;
+        min_stars: number;
+      }
+    >({
+      queryFn: async (args) => {
+        const {
+          username,
+          sort_by,
+          projects_per_page,
+          page,
+          exclude_forks,
+          exclude_archived,
+          exclude_profile_repo,
+          min_stars,
+        } = args;
+        const url = `https://api.github.com/users/${username}/repos?sort=${sort_by}&per_page=${projects_per_page}&type=owner&page=${page}`;
+        try {
+          const response = await fetch(url);
+          if (!response.ok)
+            throw new Error(
+              `GitHub API request failed: ${response.statusText}`,
+            );
+          const data: GitHubRepo[] = await response.json();
+          const filtered = data.filter((p) => {
+            if (exclude_forks && p.fork) return false;
+            if (exclude_archived && p.archived) return false;
+            if (exclude_profile_repo && p.name === username) return false;
+            if (p.stargazers_count < min_stars) return false;
+            return !p.private;
+          });
+          return { data: filtered };
+        } catch (error: unknown) {
+          return {
+            error: {
+              message: error instanceof Error ? error.message : "Unknown error",
+              details: "",
+              hint: "",
+              code: "FETCH_ERROR",
+            },
+          };
+        }
+      },
+    }),
   }),
 });
 
@@ -102,4 +156,5 @@ export const {
   useGetBlogPostBySlugQuery,
   useGetPublishedLifeUpdatesQuery,
   useGetSectionsByPathQuery,
+  useGetGitHubReposQuery,
 } = publicApi;
