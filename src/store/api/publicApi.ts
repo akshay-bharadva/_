@@ -146,6 +146,62 @@ export const publicApi = createApi({
         }
       },
     }),
+    /**
+     * Static mode: no server to deliver messages, so the browser posts to a
+     * Discord webhook URL. The URL is unavoidably public in a static
+     * deployment; when a database enters the picture this moves behind it.
+     */
+    submitContactForm: builder.mutation<
+      void,
+      { name: string; email: string; subject: string; message: string }
+    >({
+      queryFn: async (formData) => {
+        const webhookUrl = process.env.NEXT_PUBLIC_CONTACT_WEBHOOK_URL || "";
+        if (!webhookUrl) {
+          return {
+            error: {
+              message:
+                "This site has no message delivery configured. Please use one of the direct links instead.",
+            },
+          };
+        }
+
+        try {
+          const response = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: "Portfolio Contact",
+              embeds: [
+                {
+                  title: "New contact form submission",
+                  color: 5814783,
+                  fields: [
+                    { name: "Name", value: formData.name, inline: true },
+                    { name: "Email", value: formData.email, inline: true },
+                    { name: "Subject", value: formData.subject },
+                    // Discord drops the whole embed rather than truncating a
+                    // field over 1024 characters.
+                    { name: "Message", value: formData.message.slice(0, 1000) },
+                  ],
+                  timestamp: new Date().toISOString(),
+                  footer: { text: "Contact Form" },
+                },
+              ],
+            }),
+          });
+          if (!response.ok) {
+            return {
+              error: { message: "The message could not be delivered." },
+            };
+          }
+        } catch {
+          return { error: { message: "The message could not be delivered." } };
+        }
+
+        return { data: undefined };
+      },
+    }),
   }),
 });
 
@@ -157,4 +213,5 @@ export const {
   useGetPublishedLifeUpdatesQuery,
   useGetSectionsByPathQuery,
   useGetGitHubReposQuery,
+  useSubmitContactFormMutation,
 } = publicApi;
