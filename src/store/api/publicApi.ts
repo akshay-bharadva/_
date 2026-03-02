@@ -202,6 +202,17 @@ export const publicApi = createApi({
         return { data: undefined };
       },
     }),
+    incrementPostView: builder.mutation<void, string>({
+      queryFn: async (postId) => {
+        // No database yet — view counts only exist in dynamic mode.
+        return { data: undefined };
+      },
+      invalidatesTags: (result, error, postId) => [
+        { type: "Post", id: postId },
+        { type: "Posts", id: "LIST" },
+      ],
+    }),
+
   }),
 });
 
@@ -214,4 +225,5 @@ export const {
   useGetSectionsByPathQuery,
   useGetGitHubReposQuery,
   useSubmitContactFormMutation,
+  useIncrementPostViewMutation,
 } = publicApi;
