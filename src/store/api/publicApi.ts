@@ -1,4 +1,5 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
+import { supabase } from "@/supabase/client";
 import {
   MOCK_SITE_IDENTITY,
   MOCK_BLOG_POSTS,
@@ -35,14 +36,55 @@ export const publicApi = createApi({
   endpoints: (builder) => ({
     getSiteIdentity: builder.query<SiteContent, void>({
       queryFn: async () => {
-        return { data: normalizeSiteContent(MOCK_SITE_IDENTITY) };
+        // --- MOCK FALLBACK ---
+        if (!supabase) {
+          return { data: normalizeSiteContent(MOCK_SITE_IDENTITY) };
+        }
+        // ---------------------
+
+        const { data, error } = await supabase
+          .from("site_identity")
+          .select("*")
+          .single();
+        if (error) return { error };
+        // profile_data is unconstrained JSONB; normalising here means the
+        // public renderers can rely on the shape SiteContent promises.
+        return { data: normalizeSiteContent(data as Partial<SiteContent>) };
       },
       providesTags: ["SiteContent"],
     }),
 
     getNavLinks: builder.query<NavLink[], void>({
       queryFn: async () => {
-        return { data: MOCK_NAV_LINKS };
+        // --- MOCK FALLBACK ---
+        if (!supabase) {
+          return { data: MOCK_NAV_LINKS };
+        }
+        // ---------------------
+
+        const [identityRes, linksRes] = await Promise.all([
+          supabase.from("site_identity").select("portfolio_mode").single(),
+          supabase
+            .from("navigation_links")
+            .select("label, href")
+            .eq("is_visible", true)
+            .order("display_order"),
+        ]);
+
+        if (linksRes.error) return { error: linksRes.error };
+
+        const portfolioMode = identityRes.data?.portfolio_mode || "multi-page";
+        let finalLinks = linksRes.data || [];
+
+        if (portfolioMode === "single-page") {
+          finalLinks = finalLinks.filter(
+            (link) =>
+              link.href === "/" ||
+              link.href === "/contact" ||
+              link.href === "/blog",
+          );
+        }
+        return { data: finalLinks };
       },
       providesTags: ["Navigation", "SiteContent"],
     }),
