@@ -91,7 +91,24 @@ export const publicApi = createApi({
 
     getPublishedBlogPosts: builder.query<BlogPost[], void>({
       queryFn: async () => {
-        return { data: MOCK_BLOG_POSTS };
+        // --- MOCK FALLBACK ---
+        if (!supabase) {
+          return { data: MOCK_BLOG_POSTS };
+        }
+        // ---------------------
+
+        // List view: everything except `content` — read time comes from the
+        // word_count generated column, so full post bodies stay out of the
+        // list payload. Requires the current db/schema.sql to be applied.
+        const { data, error } = await supabase
+          .from("blog_posts")
+          .select(
+            "id, user_id, title, slug, excerpt, cover_image_url, published, published_at, show_toc, tags, views, word_count, created_at, updated_at",
+          )
+          .eq("published", true)
+          .order("published_at", { ascending: false });
+        if (error) return { error };
+        return { data };
       },
       providesTags: (result) =>
         result
@@ -104,17 +121,34 @@ export const publicApi = createApi({
 
     getBlogPostBySlug: builder.query<BlogPost, string>({
       queryFn: async (slug) => {
-        const post = MOCK_BLOG_POSTS.find((p) => p.slug === slug);
-        if (!post)
+        // --- MOCK FALLBACK ---
+        if (!supabase) {
+          const post = MOCK_BLOG_POSTS.find((p) => p.slug === slug);
+          if (!post)
+            return {
+              error: {
+                message: "Not Found",
+                details: "Mock",
+                hint: "",
+                code: "404",
+              },
+            };
+          return { data: post };
+        }
+        // ---------------------
+
+        const { data, error } = await supabase
+          .from("blog_posts")
+          .select("*")
+          .eq("slug", slug)
+          .eq("published", true)
+          .single();
+        if (error && error.code !== "PGRST116") return { error };
+        if (!data)
           return {
-            error: {
-              message: "Not Found",
-              details: "",
-              hint: "",
-              code: "404",
-            },
+            error: { message: "Not Found", details: "", hint: "", code: "404" },
           };
-        return { data: post };
+        return { data };
       },
       providesTags: (result) =>
         result ? [{ type: "Post", id: result.id }] : [],
@@ -122,16 +156,40 @@ export const publicApi = createApi({
 
     getPublishedLifeUpdates: builder.query<LifeUpdate[], void>({
       queryFn: async () => {
-        return { data: MOCK_LIFE_UPDATES };
+        if (!supabase) {
+          return { data: MOCK_LIFE_UPDATES };
+        }
+        const { data, error } = await supabase
+          .from("public_notes")
+          .select("*")
+          .eq("is_published", true)
+          .order("is_pinned", { ascending: false })
+          .order("created_at", { ascending: false });
+        if (error) return { error };
+        return { data };
       },
       providesTags: ["LifeUpdates"],
     }),
 
     getSectionsByPath: builder.query<PortfolioSection[], string>({
       queryFn: async (pagePath) => {
-        return {
-          data: MOCK_SECTIONS.filter((s) => s.page_path === pagePath),
-        };
+        // --- MOCK FALLBACK ---
+        if (!supabase) {
+          return {
+            data: MOCK_SECTIONS.filter((s) => s.page_path === pagePath),
+          };
+        }
+        // ---------------------
+
+        const { data, error } = await supabase
+          .from("portfolio_sections")
+          .select("*, portfolio_items(*)")
+          .eq("page_path", pagePath)
+          .eq("is_visible", true)
+          .order("display_order")
+          .order("display_order", { foreignTable: "portfolio_items" });
+        if (error) return { error };
+        return { data };
       },
       providesTags: (result, error, path) => [{ type: "Portfolio", id: path }],
     }),
@@ -246,7 +304,12 @@ export const publicApi = createApi({
     }),
     incrementPostView: builder.mutation<void, string>({
       queryFn: async (postId) => {
-        // No database yet — view counts only exist in dynamic mode.
+        if (!supabase) return { data: undefined };
+
+        const { error } = await supabase.rpc("increment_blog_post_view", {
+          post_id_to_increment: postId,
+        });
+        if (error) return { error };
         return { data: undefined };
       },
       invalidatesTags: (result, error, postId) => [
