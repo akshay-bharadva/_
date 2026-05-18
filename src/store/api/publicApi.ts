@@ -247,15 +247,40 @@ export const publicApi = createApi({
       },
     }),
     /**
-     * Static mode: no server to deliver messages, so the browser posts to a
-     * Discord webhook URL. The URL is unavoidably public in a static
-     * deployment; when a database enters the picture this moves behind it.
+     * The only public write path in the app.
+     *
+     * **Dynamic mode** inserts the row and stops. The Discord notification is
+     * sent by an AFTER INSERT trigger reading the webhook URL from an
+     * admin-only table (`db/migrations/007-contact-inbox.sql`). It used to be
+     * sent from here, from the browser, using
+     * `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` — which is compiled into the client
+     * bundle, so anyone could read the URL out of the JS and post arbitrary
+     * embeds into the channel. Moving it into the database also ties the ping
+     * to a row that exists rather than to a caller's word, and applies it to
+     * inserts that never went through this form.
+     *
+     * **Static mode** has no database to trigger from, so the browser call
+     * remains the only way a message can reach anyone. The URL is unavoidably
+     * public in a static deployment; that is a property of having no server,
+     * not a choice made here.
+     *
+     * Length bounds and the rate limit behind them are enforced by the
+     * database. `contactFormSchema` is the courtesy copy that produces a
+     * useful message before the round trip.
      */
     submitContactForm: builder.mutation<
       void,
       { name: string; email: string; subject: string; message: string }
     >({
       queryFn: async (formData) => {
+        if (supabase) {
+          const { error } = await supabase
+            .from("contact_submissions")
+            .insert(formData);
+          if (error) return { error };
+          return { data: undefined };
+        }
+
         const webhookUrl = process.env.NEXT_PUBLIC_CONTACT_WEBHOOK_URL || "";
         if (!webhookUrl) {
           return {
