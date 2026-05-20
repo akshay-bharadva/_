@@ -18,9 +18,6 @@ import type {
 
 type NavLink = { label: string; href: string };
 
-// Static mode: every endpoint resolves from portfolio.config.ts. When a
-// database enters the picture these bodies gain live queries and this
-// fallback shape becomes the no-credentials path.
 export const publicApi = createApi({
   reducerPath: "publicApi",
   baseQuery: fakeBaseQuery(),
@@ -154,6 +151,24 @@ export const publicApi = createApi({
         result ? [{ type: "Post", id: result.id }] : [],
     }),
 
+    incrementPostView: builder.mutation<void, string>({
+      queryFn: async (postId) => {
+        // --- MOCK FALLBACK ---
+        if (!supabase) return { data: undefined };
+        // ---------------------
+
+        const { error } = await supabase.rpc("increment_blog_post_view", {
+          post_id_to_increment: postId,
+        });
+        if (error) return { error };
+        return { data: undefined };
+      },
+      invalidatesTags: (result, error, postId) => [
+        { type: "Post", id: postId },
+        { type: "Posts", id: "LIST" },
+      ],
+    }),
+
     getPublishedLifeUpdates: builder.query<LifeUpdate[], void>({
       queryFn: async () => {
         if (!supabase) {
@@ -246,6 +261,7 @@ export const publicApi = createApi({
         }
       },
     }),
+
     /**
      * The only public write path in the app.
      *
@@ -283,6 +299,8 @@ export const publicApi = createApi({
 
         const webhookUrl = process.env.NEXT_PUBLIC_CONTACT_WEBHOOK_URL || "";
         if (!webhookUrl) {
+          // Nowhere to put it. A success message for a message that went
+          // nowhere is worse than an honest failure.
           return {
             error: {
               message:
@@ -327,22 +345,6 @@ export const publicApi = createApi({
         return { data: undefined };
       },
     }),
-    incrementPostView: builder.mutation<void, string>({
-      queryFn: async (postId) => {
-        if (!supabase) return { data: undefined };
-
-        const { error } = await supabase.rpc("increment_blog_post_view", {
-          post_id_to_increment: postId,
-        });
-        if (error) return { error };
-        return { data: undefined };
-      },
-      invalidatesTags: (result, error, postId) => [
-        { type: "Post", id: postId },
-        { type: "Posts", id: "LIST" },
-      ],
-    }),
-
   }),
 });
 
@@ -351,9 +353,9 @@ export const {
   useGetNavLinksQuery,
   useGetPublishedBlogPostsQuery,
   useGetBlogPostBySlugQuery,
+  useIncrementPostViewMutation,
+  useSubmitContactFormMutation,
   useGetPublishedLifeUpdatesQuery,
   useGetSectionsByPathQuery,
   useGetGitHubReposQuery,
-  useSubmitContactFormMutation,
-  useIncrementPostViewMutation,
 } = publicApi;
