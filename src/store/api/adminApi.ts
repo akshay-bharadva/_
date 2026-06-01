@@ -1,0 +1,12 @@
+/**
+ * Admin API barrel. The actual endpoints live in per-feature slices under
+ * `./admin/` and are injected into the base slice on import. Always import
+ * from THIS file (not from a feature file directly) — loading the barrel is
+ * what registers every endpoint before the store is used.
+ *
+ * `adminApi` itself (reducer, middleware, `util.invalidateTags`) comes from
+ * the base slice and is shared by all features.
+ */
+export { adminApi } from "./admin/baseApi";
+
+export * from "./admin/authApi";
