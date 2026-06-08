@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, ShieldCheck, X } from "lucide-react";
 import {
   useGetNavLinksQuery,
   useGetSiteIdentityQuery,
 } from "@/store/api/publicApi";
+import { useSupabaseSession } from "@/hooks/use-auth-guard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 
@@ -40,6 +41,7 @@ export default function SiteHeader() {
   const { data: identity, isLoading: isIdentityLoading } =
     useGetSiteIdentityQuery();
   const { data: navLinks, isLoading: isNavLoading } = useGetNavLinksQuery();
+  const { session } = useSupabaseSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isLoading = isIdentityLoading || isNavLoading;
@@ -100,7 +102,17 @@ export default function SiteHeader() {
                 );
               })
             )}
-
+            {session && (
+              <li>
+                <Link
+                  href="/admin"
+                  className="ml-1 flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ShieldCheck className="size-3.5" aria-hidden />
+                  Admin
+                </Link>
+              </li>
+            )}
           </ul>
 
           <button
@@ -147,6 +159,17 @@ export default function SiteHeader() {
                 </li>
               );
             })}
+            {session && (
+              <li>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 rounded-control px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <ShieldCheck className="size-4" aria-hidden />
+                  Admin
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       )}
