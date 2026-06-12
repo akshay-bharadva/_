@@ -10,3 +10,4 @@
 export { adminApi } from "./admin/baseApi";
 
 export * from "./admin/authApi";
+export * from "./admin/learningApi";
