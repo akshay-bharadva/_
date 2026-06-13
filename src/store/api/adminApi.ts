@@ -11,3 +11,5 @@ export { adminApi } from "./admin/baseApi";
 
 export * from "./admin/authApi";
 export * from "./admin/learningApi";
+export * from "./admin/tasksApi";
+export * from "./admin/habitsApi";
