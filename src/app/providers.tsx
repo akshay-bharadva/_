@@ -10,6 +10,7 @@ import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { VALID_THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/themes";
 import { useThemeSync } from "@/hooks/use-theme-sync";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import GlobalCommandPalette from "@/components/GlobalCommandPalette";
 
 const tahuFont = localFont({
   src: "./fonts/Tahu.woff2",
@@ -40,6 +41,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             {/* Font-variable carrier only — page landmarks live in the route layouts. */}
             <div className={tahuFont.variable}>
               {children}
+              <GlobalCommandPalette />
               <SonnerToaster />
             </div>
           </ThemeSync>
