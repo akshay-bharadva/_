@@ -11,6 +11,7 @@ import { VALID_THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/themes";
 import { useThemeSync } from "@/hooks/use-theme-sync";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import GlobalCommandPalette from "@/components/GlobalCommandPalette";
+import { ConfirmDialogProvider } from "@/components/providers/ConfirmDialogProvider";
 
 const tahuFont = localFont({
   src: "./fonts/Tahu.woff2",
@@ -37,6 +38,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         {/* Honors the OS "reduce motion" setting for every framer-motion animation. */}
         <MotionConfig reducedMotion="user">
+          <ConfirmDialogProvider>
           <ThemeSync>
             {/* Font-variable carrier only — page landmarks live in the route layouts. */}
             <div className={tahuFont.variable}>
@@ -45,6 +47,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <SonnerToaster />
             </div>
           </ThemeSync>
+          </ConfirmDialogProvider>
         </MotionConfig>
       </ThemeProvider>
     </Provider>
