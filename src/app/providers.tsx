@@ -6,12 +6,13 @@ import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import { Provider } from "react-redux";
 import { store } from "@/store/store";
+import { LearningSessionManager } from "@/components/LearningSessionManager";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { VALID_THEMES, DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/themes";
 import { useThemeSync } from "@/hooks/use-theme-sync";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
-import GlobalCommandPalette from "@/components/GlobalCommandPalette";
 import { ConfirmDialogProvider } from "@/components/providers/ConfirmDialogProvider";
+import GlobalCommandPalette from "@/components/GlobalCommandPalette";
 
 const tahuFont = localFont({
   src: "./fonts/Tahu.woff2",
@@ -39,14 +40,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
         {/* Honors the OS "reduce motion" setting for every framer-motion animation. */}
         <MotionConfig reducedMotion="user">
           <ConfirmDialogProvider>
-          <ThemeSync>
-            {/* Font-variable carrier only — page landmarks live in the route layouts. */}
-            <div className={tahuFont.variable}>
-              {children}
-              <GlobalCommandPalette />
-              <SonnerToaster />
-            </div>
-          </ThemeSync>
+            <ThemeSync>
+              {/* Font-variable carrier only — page landmarks live in the route layouts. */}
+              <div className={tahuFont.variable}>
+                <LearningSessionManager />
+                {children}
+                <GlobalCommandPalette />
+                <SonnerToaster />
+              </div>
+            </ThemeSync>
           </ConfirmDialogProvider>
         </MotionConfig>
       </ThemeProvider>
