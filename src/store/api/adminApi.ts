@@ -14,3 +14,4 @@ export * from "./admin/learningApi";
 export * from "./admin/tasksApi";
 export * from "./admin/habitsApi";
 export * from "./admin/portfolioApi";
+export * from "./admin/blogAdminApi";
