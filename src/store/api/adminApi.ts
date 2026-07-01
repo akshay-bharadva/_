@@ -15,3 +15,4 @@ export * from "./admin/tasksApi";
 export * from "./admin/habitsApi";
 export * from "./admin/portfolioApi";
 export * from "./admin/blogAdminApi";
+export * from "./admin/lifeUpdatesApi";
