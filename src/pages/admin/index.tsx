@@ -1,9 +1,7 @@
-import { useAuthGuard } from "@/hooks/useAuthGuard";
 import DashboardOverview from "@/components/admin/DashboardOverview";
-import AdminLayout from "@/components/admin/AdminLayout";
 import LoadingSpinner from "@/components/admin/LoadingSpinner";
+import { withAdminPage } from "@/components/admin/withAdminPage";
 import { useGetDashboardDataQuery } from "@/store/api/adminApi";
-import type { DashboardData } from "@/types";
 import { useRouter } from "next/router";
 import {
   DropdownMenu,
@@ -15,66 +13,56 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/admin/shared";
 
-export default function AdminIndexPage() {
-  const { isLoading, session } = useAuthGuard();
+function AdminDashboardContent() {
   const router = useRouter();
 
+  // withAdminPage only renders this after auth resolves, so no `skip` needed.
   const { data: dashboardData, isLoading: isDataLoading } =
-    useGetDashboardDataQuery(undefined, {
-      skip: !session,
-    });
+    useGetDashboardDataQuery();
 
   const handleNavigate = (path: string) => {
     router.push(path);
   };
 
-  if (isLoading || !session) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary/30">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   return (
-    <AdminLayout title="Dashboard">
-      <div className="space-y-6">
-        <PageHeader
-          title="Dashboard"
-          description="Welcome back! Here's your portfolio's command center."
-          actions={
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 size-4" /> Quick Add
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => router.push("/admin/blog")}>
-                  New Blog Post
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/tasks")}>
-                  New Task
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/notes")}>
-                  New Note
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/finance")}>
-                  New Transaction
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description="Welcome back! Here's your portfolio's command center."
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                <Plus className="mr-2 size-4" /> Quick Add
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push("/admin/blog")}>
+                New Blog Post
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/admin/tasks")}>
+                New Task
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/admin/notes")}>
+                New Note
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/admin/finance")}>
+                New Transaction
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      />
+      {isDataLoading || !dashboardData ? (
+        <LoadingSpinner />
+      ) : (
+        <DashboardOverview
+          dashboardData={dashboardData}
+          onNavigate={handleNavigate}
         />
-        {isDataLoading || !dashboardData ? (
-          <LoadingSpinner />
-        ) : (
-          <DashboardOverview
-            dashboardData={dashboardData}
-            onNavigate={handleNavigate}
-          />
-        )}
-      </div>
-    </AdminLayout>
+      )}
+    </div>
   );
 }
+
+export default withAdminPage(AdminDashboardContent, { title: "Dashboard" });

@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { useSignOutMutation } from "@/store/api/adminApi";
 import {
   Accordion,

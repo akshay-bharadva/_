@@ -1,7 +1,7 @@
 import { ComponentType } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import LoadingSpinner from "@/components/admin/LoadingSpinner";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 
 interface AdminPageConfig {
   title: string;

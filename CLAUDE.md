@@ -15,6 +15,7 @@ Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 
 | `npm run dev` | Dev server on port 8889 |
 | `npm run build` | Production build + static export to `./out/` |
 | `npm run lint` | ESLint |
+| `npm run test` | Vitest (run once); `npm run test:watch` for watch mode |
 | `npm run format` | Prettier |
 
 ## Architecture
@@ -26,16 +27,16 @@ All API calls check if Supabase is configured. If not, mock data from `src/lib/f
 ### State Management (Redux Toolkit + RTK Query)
 
 - **`src/store/api/publicApi.ts`** — 6 queries for public content (no auth). Uses `fakeBaseQuery()` with direct Supabase calls.
-- **`src/store/api/adminApi.ts`** — 50+ endpoints for admin CRUD. Tag-based cache invalidation.
-- **`src/store/api/mutation-factory.ts`** — DRY helper for generating RTK Query mutations.
+- **`src/store/api/adminApi.ts`** — barrel for the admin API. Endpoints live in per-feature slices under `src/store/api/admin/` (tasks, finance, learning, etc.) injected into a shared base via `injectEndpoints`. Always import hooks from the barrel, never from a feature file. Tag-based cache invalidation.
+- **`src/store/api/admin/query-helpers.ts`** — typed `queryFn` factories for standard Supabase CRUD (getAll/insert/update/save/delete); bespoke endpoints (joins, storage side-effects, RPCs) keep hand-written queryFns.
 - **`src/store/slices/`** — Local state for focus timer and learning sessions.
 
 ### Routing
 
-- **Pages Router** (`src/pages/`): 32 pages total.
+- **Pages Router** (`src/pages/`): 29 pages total.
 - **Public pages**: `/`, `/about`, `/projects`, `/contact`, `/blog`, `/blog/view/[slug]`, `/[...slug]` (catch-all).
-- **Admin pages** (`src/pages/admin/`): 18 protected pages — dashboard, tasks, finance, habits, learning, calendar, notes, content CMS, blog editor, settings, security.
-- **Auth guard**: `src/hooks/useAuthGuard.ts` protects admin routes.
+- **Admin pages** (`src/pages/admin/`): protected pages — dashboard, tasks, finance, habits, learning, calendar, notes, content CMS, blog editor, settings, security — plus auth screens (login, signup, MFA setup/challenge).
+- **Auth guard**: `src/hooks/use-auth-guard.ts` (via the `withAdminPage` HOC, used by every admin page) protects admin routes.
 
 ### Validation
 
@@ -43,7 +44,7 @@ Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form 
 
 ### Styling
 
-- Tailwind CSS with class-based dark mode. 50+ theme presets defined as CSS variables in `src/styles/globals.css`.
+- Tailwind CSS with class-based dark mode. 30+ theme presets defined as CSS variables in `src/styles/globals.css`; the labeled registry lives in `src/lib/constants.ts` (`THEME_PRESETS`), and theme application logic in `src/lib/themes.ts` + `src/hooks/use-theme-sync.ts`. Toasts use sonner exclusively.
 - UI primitives from Shadcn/Radix in `src/components/ui/`.
 - Animations via Framer Motion.
 
@@ -60,6 +61,12 @@ Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form 
 ### Auth & Security
 
 Supabase Auth with mandatory MFA/TOTP. Row Level Security on all tables — public read for published content, admin-only write. Session max age: 24 hours.
+
+MFA and single-admin are enforced **at the database level**, not just in the client: write policies require `public.is_admin()` (first registered user + AAL2 session) or `auth.uid() = user_id AND public.is_aal2()`, and a `block_additional_signups` trigger on `auth.users` rejects account creation once an admin exists. The client-side `useAuthGuard` checks are UX, not the security boundary. Blog markdown is sanitized with `rehype-sanitize` (after `rehype-raw`, before prism/slug).
+
+### Testing
+
+Vitest + React Testing Library (jsdom). Tests live next to source as `*.test.ts(x)`; shared setup in `src/test/setup.ts`, config in `vitest.config.ts`. CI runs tests before the build in `.github/workflows/next-deploy.yml`.
 
 ### Environment Variables
 

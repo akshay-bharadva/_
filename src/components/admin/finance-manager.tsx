@@ -1,14 +1,7 @@
 import { useState, useMemo, FormEvent } from "react";
 import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
 import { DateRange } from "react-day-picker";
-import {
-  addDays,
-  format,
-  startOfMonth,
-  isBefore,
-  isAfter,
-  isSameDay,
-} from "date-fns";
+import { addDays, format, startOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionForm from "@/components/admin/transaction-form";
@@ -26,13 +19,9 @@ import {
   Plus,
   Repeat,
   ArrowRightLeft,
-  Home,
-  LayoutDashboard,
-  Menu,
   Target,
   X,
   Loader2,
-  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -42,8 +31,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import dynamic from "next/dynamic";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
-import { CHART_COLORS } from "@/lib/constants";
+import { parseLocalDate, getErrorMessage } from "@/lib/utils";
 import {
   Sheet,
   SheetClose,
@@ -51,12 +39,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import {
   useGetFinancialDataQuery,
   useDeleteTransactionMutation,
@@ -69,10 +51,15 @@ import {
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { ManagerWrapper, PageHeader } from "./shared";
 import { GoalCard, AnalyticsTab } from "./finance";
-import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
+import { buildForecastData } from "@/lib/finance-utils";
 import DashboardTab from "./finance/dashboard-tab";
 import TransactionsTab from "./finance/transactions-tab";
 import RecurringTab from "./finance/recurring-tab";
+import {
+  MobileBottomNav,
+  AddNewDrawer,
+  MoreDrawer,
+} from "./finance/mobile-nav";
 
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((mod) => mod.Calendar),
@@ -83,29 +70,6 @@ type DialogState = {
   type: "transaction" | "recurring" | "goal" | "addFunds" | null;
   data?: Transaction | RecurringTransaction | FinancialGoal;
 };
-
-const BottomNavButton = ({
-  icon: Icon,
-  label,
-  isActive,
-  onClick,
-}: {
-  icon: LucideIcon;
-  label: string;
-  isActive?: boolean;
-  onClick?: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className={cn(
-      "flex flex-col items-center justify-center gap-1 w-full h-full transition-colors",
-      isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
-    )}
-  >
-    <Icon className="size-5" />
-    <span className="text-[10px] font-medium">{label}</span>
-  </button>
-);
 
 export default function FinanceManager() {
   const confirm = useConfirm();
@@ -176,53 +140,7 @@ export default function FinanceManager() {
     return Array.from(years).sort((a, b) => b - a);
   }, [transactions]);
 
-  const forecastData = useMemo(() => {
-    const today = new Date();
-    const forecastDays = 30;
-    const endDate = addDays(today, forecastDays);
-    const dailyChanges: Record<string, { change: number; events: string[] }> =
-      {};
-
-    recurring.forEach((rule) => {
-      let nextDate = rule.last_processed_date
-        ? getNextOccurrence(parseLocalDate(rule.last_processed_date), rule)
-        : getFirstOccurrence(parseLocalDate(rule.start_date), rule);
-      while (isBefore(nextDate, today) && !isSameDay(nextDate, today)) {
-        nextDate = getNextOccurrence(nextDate, rule);
-      }
-
-      while (isBefore(nextDate, endDate)) {
-        const ruleEndDate = rule.end_date
-          ? parseLocalDate(rule.end_date)
-          : null;
-        if (ruleEndDate && isAfter(nextDate, ruleEndDate)) break;
-        if (isAfter(nextDate, today) || isSameDay(nextDate, today)) {
-          const dayStr = format(nextDate, "yyyy-MM-dd");
-          if (!dailyChanges[dayStr]) {
-            dailyChanges[dayStr] = { change: 0, events: [] };
-          }
-          const amount = rule.type === "earning" ? rule.amount : -rule.amount;
-          dailyChanges[dayStr].change += amount;
-          dailyChanges[dayStr].events.push(
-            `${rule.type === "earning" ? "+" : "-"}$${rule.amount.toFixed(2)}: ${rule.description}`,
-          );
-        }
-        nextDate = getNextOccurrence(nextDate, rule);
-      }
-    });
-
-    let cumulativeBalance = 0;
-    return Array.from({ length: forecastDays + 1 }, (_, i) => {
-      const currentDate = addDays(today, i);
-      const dayStr = format(currentDate, "yyyy-MM-dd");
-      cumulativeBalance += dailyChanges[dayStr]?.change || 0;
-      return {
-        date: format(currentDate, "MMM d"),
-        balance: cumulativeBalance,
-        events: dailyChanges[dayStr]?.events || [],
-      };
-    });
-  }, [recurring]);
+  const forecastData = useMemo(() => buildForecastData(recurring), [recurring]);
 
   const handleOpenSheet = (
     type: NonNullable<DialogState["type"]>,
@@ -531,136 +449,6 @@ export default function FinanceManager() {
         </SheetContent>
       </Sheet>
     </ManagerWrapper>
-  );
-}
-
-function MobileBottomNav({
-  activeTab,
-  onTabChange,
-  onAddNew,
-  onMore,
-}: {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  onAddNew: () => void;
-  onMore: () => void;
-}) {
-  return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background/95 backdrop-blur border-t grid grid-cols-5 items-center px-1 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-      <BottomNavButton
-        icon={Home}
-        label="Home"
-        isActive={activeTab === "dashboard"}
-        onClick={() => onTabChange("dashboard")}
-      />
-      <BottomNavButton
-        icon={ArrowRightLeft}
-        label="Trans."
-        isActive={activeTab === "transactions"}
-        onClick={() => onTabChange("transactions")}
-      />
-      <div className="relative -top-5 flex justify-center">
-        <Button
-          className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 border-4 border-background"
-          onClick={onAddNew}
-        >
-          <Plus className="size-6 text-primary-foreground" />
-        </Button>
-      </div>
-      <BottomNavButton
-        icon={Repeat}
-        label="Recurring"
-        isActive={activeTab === "recurring"}
-        onClick={() => onTabChange("recurring")}
-      />
-      <BottomNavButton
-        icon={Menu}
-        label="More"
-        isActive={activeTab === "goals" || activeTab === "analytics"}
-        onClick={onMore}
-      />
-    </div>
-  );
-}
-
-function AddNewDrawer({
-  open,
-  onOpenChange,
-  onSelect,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSelect: (type: "transaction" | "recurring" | "goal") => void;
-}) {
-  return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Add New</DrawerTitle>
-        </DrawerHeader>
-        <div className="p-4 pb-8 space-y-2">
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 text-base"
-            onClick={() => onSelect("transaction")}
-          >
-            <ArrowRightLeft className="mr-3 size-5 text-primary" /> Transaction
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 text-base"
-            onClick={() => onSelect("recurring")}
-          >
-            <Repeat className="mr-3 size-5 text-blue-500" /> Recurring Rule
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start h-12 text-base"
-            onClick={() => onSelect("goal")}
-          >
-            <Target className="mr-3 size-5 text-orange-500" /> Goal
-          </Button>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-function MoreDrawer({
-  open,
-  onOpenChange,
-  activeTab,
-  onTabChange,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-}) {
-  return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>More</DrawerTitle>
-        </DrawerHeader>
-        <div className="p-4 pb-8 space-y-2">
-          <Button
-            variant={activeTab === "goals" ? "secondary" : "ghost"}
-            className="w-full justify-start h-12"
-            onClick={() => onTabChange("goals")}
-          >
-            <Target className="mr-3 size-5" /> Goals
-          </Button>
-          <Button
-            variant={activeTab === "analytics" ? "secondary" : "ghost"}
-            className="w-full justify-start h-12"
-            onClick={() => onTabChange("analytics")}
-          >
-            <LayoutDashboard className="mr-3 size-5" /> Analytics
-          </Button>
-        </div>
-      </DrawerContent>
-    </Drawer>
   );
 }
 

@@ -5,6 +5,7 @@ import {
   addMonths,
   addWeeks,
   addYears,
+  format,
   setDate,
   startOfDay,
   getDay,
@@ -271,4 +272,58 @@ export function projectRecurringOccurrences(
   });
 
   return occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+/** One day of the cash-flow forecast chart. */
+export type ForecastPoint = {
+  /** Display label, e.g. "Jul 15" */
+  date: string;
+  /** Cumulative projected balance up to this day */
+  balance: number;
+  /** Human-readable descriptions of the rule occurrences on this day */
+  events: string[];
+};
+
+/**
+ * Build a cumulative cash-flow forecast from recurring transaction rules.
+ * Projects each rule's occurrences over the window (via
+ * projectRecurringOccurrences) and folds them into one balance line with
+ * per-day event annotations for tooltips.
+ *
+ * @param rules - Recurring transaction rules to project
+ * @param forecastDays - Days to look ahead (default 30); result has forecastDays + 1 points
+ * @param from - Start of the window (default now)
+ */
+export function buildForecastData(
+  rules: RecurringTransaction[],
+  forecastDays = 30,
+  from: Date = new Date(),
+): ForecastPoint[] {
+  const endDate = addDays(from, forecastDays);
+  const occurrences = projectRecurringOccurrences(rules, from, endDate);
+
+  const dailyChanges: Record<string, { change: number; events: string[] }> =
+    {};
+  for (const { rule, date } of occurrences) {
+    const dayStr = format(date, "yyyy-MM-dd");
+    if (!dailyChanges[dayStr]) {
+      dailyChanges[dayStr] = { change: 0, events: [] };
+    }
+    const amount = rule.type === "earning" ? rule.amount : -rule.amount;
+    dailyChanges[dayStr].change += amount;
+    dailyChanges[dayStr].events.push(
+      `${rule.type === "earning" ? "+" : "-"}$${rule.amount.toFixed(2)}: ${rule.description}`,
+    );
+  }
+
+  let cumulativeBalance = 0;
+  return Array.from({ length: forecastDays + 1 }, (_, i) => {
+    const currentDate = addDays(from, i);
+    const dayStr = format(currentDate, "yyyy-MM-dd");
+    cumulativeBalance += dailyChanges[dayStr]?.change || 0;
+    return {
+      date: format(currentDate, "MMM d"),
+      balance: cumulativeBalance,
+      events: dailyChanges[dayStr]?.events || [],
+    };
+  });
 }

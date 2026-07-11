@@ -23,7 +23,7 @@ import {
   useGetLearningDataQuery,
   useSignOutMutation,
 } from "@/store/api/adminApi";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useAuthGuard } from "@/hooks/use-auth-guard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,

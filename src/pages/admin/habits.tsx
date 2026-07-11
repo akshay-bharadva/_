@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import AdminLayout from "@/components/admin/AdminLayout";
 import LoadingSpinner from "@/components/admin/LoadingSpinner";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { withAdminPage } from "@/components/admin/withAdminPage";
 import {
   useGetHabitsQuery,
   useDeleteHabitMutation,
@@ -25,8 +24,7 @@ import { Habit } from "@/types";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { PerfectDayBadge } from "@/components/admin/habits/PerfectDayBadge";
 
-export default function AdminHabitsPage() {
-  const { isLoading } = useAuthGuard();
+function AdminHabitsContent() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [selectedHabitForStats, setSelectedHabitForStats] =
@@ -71,16 +69,8 @@ export default function AdminHabitsPage() {
     setIsSheetOpen(true);
   };
 
-  if (isLoading)
-    return (
-      <AdminLayout>
-        <LoadingSpinner />
-      </AdminLayout>
-    );
-
   return (
-    <AdminLayout title="Habit Tracker">
-      <div className="space-y-4 sm:space-y-8">
+    <div className="space-y-4 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
@@ -140,12 +130,13 @@ export default function AdminHabitsPage() {
           </SheetContent>
         </Sheet>
 
-        <HabitHeatmapModal
-          habit={selectedHabitForStats}
-          isOpen={!!selectedHabitForStats}
-          onClose={() => setSelectedHabitForStats(null)}
-        />
-      </div>
-    </AdminLayout>
+      <HabitHeatmapModal
+        habit={selectedHabitForStats}
+        isOpen={!!selectedHabitForStats}
+        onClose={() => setSelectedHabitForStats(null)}
+      />
+    </div>
   );
 }
+
+export default withAdminPage(AdminHabitsContent, { title: "Habit Tracker" });

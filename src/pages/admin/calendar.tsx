@@ -1,28 +1,23 @@
-import AdminLayout from "@/components/admin/AdminLayout";
-import CommandCalendar from "@/components/admin/CommandCalendar";
+import dynamic from "next/dynamic";
 import LoadingSpinner from "@/components/admin/LoadingSpinner";
-import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { withAdminPage } from "@/components/admin/withAdminPage";
 import { useRouter } from "next/router";
 
-export default function AdminCalendarPage() {
-  const { isLoading } = useAuthGuard();
+// FullCalendar (5 plugins) is the heaviest admin dependency — split it out
+// of the page chunk and load it after the layout paints.
+const CommandCalendar = dynamic(
+  () => import("@/components/admin/CommandCalendar"),
+  { ssr: false, loading: () => <LoadingSpinner /> },
+);
+
+function AdminCalendarContent() {
   const router = useRouter();
 
   const handleNavigate = (tab: string) => {
     router.push(`/admin/${tab}`);
   };
 
-  if (isLoading) {
-    return (
-      <AdminLayout>
-        <LoadingSpinner />
-      </AdminLayout>
-    );
-  }
-
-  return (
-    <AdminLayout title="Calendar">
-      <CommandCalendar onNavigate={handleNavigate} />
-    </AdminLayout>
-  );
+  return <CommandCalendar onNavigate={handleNavigate} />;
 }
+
+export default withAdminPage(AdminCalendarContent, { title: "Calendar" });

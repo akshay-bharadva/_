@@ -1,7 +1,18 @@
 import { useState, useMemo, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import type { BlogPost } from "@/types";
-import BlogEditor from "./blog-editor";
+
+// The editor pulls in the full TipTap/Novel suite — load it only when a post
+// is actually opened for editing, so the list view stays light.
+const BlogEditor = dynamic(() => import("./blog-editor"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-96 items-center justify-center">
+      <Loader2 className="size-8 animate-spin text-muted-foreground" />
+    </div>
+  ),
+});
 import {
   useGetAdminBlogPostsQuery,
   useAddBlogPostMutation,
