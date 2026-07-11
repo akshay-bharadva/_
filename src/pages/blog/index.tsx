@@ -4,7 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import Layout from "@/components/layout";
 import { config as appConfig } from "@/lib/config";
 import PageSEO from "@/components/public/PageSEO";
-import { formatDate, calculateReadTime } from "@/lib/utils";
+import {
+  formatDate,
+  calculateReadTime,
+  readTimeFromWordCount,
+} from "@/lib/utils";
 import {
   Eye,
   Clock,
@@ -165,7 +169,12 @@ export default function BlogIndexPage() {
           >
             <AnimatePresence>
               {filteredPosts.map((post) => {
-                const readTime = calculateReadTime(post.content || "");
+                // Dynamic mode provides word_count (list query omits content);
+                // mock posts still carry content.
+                const readTime =
+                  post.word_count != null
+                    ? readTimeFromWordCount(post.word_count)
+                    : calculateReadTime(post.content || "");
                 const hasImage = !!post.cover_image_url;
 
                 return (

@@ -94,6 +94,8 @@ export interface BlogPost {
   tags?: string[] | null;
   views?: number;
   internal_notes?: string | null;
+  /** Maintained by the database (generated column); absent in mock data. */
+  word_count?: number;
   created_at?: string;
   updated_at?: string;
 }

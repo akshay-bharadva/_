@@ -45,9 +45,12 @@ export { hexToHsl } from "./color-utils";
 
 const WORDS_PER_MINUTE = 225;
 
-export function calculateReadTime(content: string = ""): number {
-  const wordCount = content.split(/\s+/).filter(Boolean).length;
+export function readTimeFromWordCount(wordCount: number): number {
   return Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE));
+}
+
+export function calculateReadTime(content: string = ""): number {
+  return readTimeFromWordCount(content.split(/\s+/).filter(Boolean).length);
 }
 
 export function getErrorMessage(error: unknown): string {

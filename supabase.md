@@ -92,7 +92,7 @@ As defense in depth, also disable signups at the platform level:
 1.  Navigate to **Authentication** > **Sign In / Up** (or **Providers** on older dashboards).
 2.  Turn **off** "Allow new users to sign up" once your admin account exists.
 
-> **Upgrading an existing project?** `db/schema.sql` is idempotent — re-run the whole script in the SQL Editor to replace the older, weaker policies (`auth.role() = 'authenticated'`) with the hardened ones.
+> **Upgrading an existing project?** `db/schema.sql` is idempotent — re-run the whole script in the SQL Editor to replace the older, weaker policies (`auth.role() = 'authenticated'`) with the hardened ones. Re-running is **required** for this version: it also adds the `blog_posts.word_count` generated column that the public blog list now selects.
 
 > **Webhook note:** `NEXT_PUBLIC_VISIT_NOTIFIER_URL` and `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` are embedded in the public JS bundle — anyone can extract and abuse them. Prefer a **Database Webhook** (Dashboard > Database > Webhooks) on `contact_submissions` inserts, which keeps the Discord URL server-side.
 

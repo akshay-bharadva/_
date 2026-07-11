@@ -221,6 +221,12 @@ CREATE TABLE IF NOT EXISTS blog_posts (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+-- Denormalized word count (kept by Postgres) so list views can compute read
+-- time without fetching full post bodies.
+ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS word_count INT
+  GENERATED ALWAYS AS (
+    COALESCE(array_length(regexp_split_to_array(trim(content), '\s+'), 1), 0)
+  ) STORED;
 ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read posts" ON blog_posts;
 CREATE POLICY "Public read posts" ON blog_posts FOR SELECT USING (published = true);

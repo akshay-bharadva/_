@@ -91,9 +91,14 @@ export const publicApi = createApi({
         }
         // ---------------------
 
+        // List view: everything except `content` — read time comes from the
+        // word_count generated column, so full post bodies stay out of the
+        // list payload. Requires the current db/schema.sql to be applied.
         const { data, error } = await supabase
           .from("blog_posts")
-          .select("*")
+          .select(
+            "id, user_id, title, slug, excerpt, cover_image_url, published, published_at, show_toc, tags, views, word_count, created_at, updated_at",
+          )
           .eq("published", true)
           .order("published_at", { ascending: false });
         if (error) return { error };
