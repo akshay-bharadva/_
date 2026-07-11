@@ -54,7 +54,10 @@ export default function Header() {
             )}
           </Link>
 
-          <nav className="flex items-center gap-1 rounded-full bg-secondary p-1 border border-border/50 shadow-sm">
+          <nav
+            aria-label="Main"
+            className="flex items-center gap-1 rounded-full bg-secondary p-1 border border-border/50 shadow-sm"
+          >
             {isLoading ? (
               <div className="flex gap-4 px-4">
                 <Skeleton className="h-4 w-16" />
@@ -73,6 +76,7 @@ export default function Header() {
                     <Link
                       key={link.href}
                       href={link.href}
+                      aria-current={isActive ? "page" : undefined}
                       className={cn(
                         "relative z-0 px-4 py-1.5 text-sm font-medium transition-colors duration-300",
                         isActive

@@ -2,7 +2,7 @@ import "@/styles/globals.css";
 import "prism-themes/themes/prism-one-dark.css";
 import type { AppProps } from "next/app";
 import localFont from "next/font/local";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { useRouter } from "next/router";
 import { ThemeProvider } from "next-themes";
 import { Provider } from "react-redux";
@@ -80,9 +80,13 @@ export default function App(props: AppProps) {
         storageKey={THEME_STORAGE_KEY}
         themes={VALID_THEMES}
       >
-        <ConfirmDialogProvider>
-          <ThemedApp {...props} />
-        </ConfirmDialogProvider>
+        {/* Honors the OS "reduce motion" setting for every framer-motion
+            animation (page fades, nav pill, list transitions). */}
+        <MotionConfig reducedMotion="user">
+          <ConfirmDialogProvider>
+            <ThemedApp {...props} />
+          </ConfirmDialogProvider>
+        </MotionConfig>
       </ThemeProvider>
     </Provider>
   );

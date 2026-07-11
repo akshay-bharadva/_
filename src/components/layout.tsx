@@ -117,6 +117,14 @@ export default function Layout({ children, isAdmin = false }: LayoutProps) {
       </Head>
 
       <div className="relative flex min-h-[100dvh] flex-col justify-between font-sans bg-background">
+        {/* Keyboard users can jump past the fixed header/nav */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-lg"
+        >
+          Skip to content
+        </a>
+
         {/* Grid Background */}
         <div className="fixed inset-0 bg-grid-pattern" />
 
@@ -140,7 +148,10 @@ export default function Layout({ children, isAdmin = false }: LayoutProps) {
         <Header />
         <MobileHeader />
 
-        <main className="mt-20 w-full grow md:mt-24 relative z-10 flex flex-col">
+        <main
+          id="main-content"
+          className="mt-20 w-full grow md:mt-24 relative z-10 flex flex-col"
+        >
           <Container className="flex-grow">{children}</Container>
         </main>
 

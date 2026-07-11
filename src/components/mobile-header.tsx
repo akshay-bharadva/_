@@ -63,7 +63,7 @@ export default function MobileHeader() {
               </SheetClose>
             </SheetHeader>
             <div className="mt-6 flex h-full flex-col pb-12">
-              <nav className="flex flex-col gap-2">
+              <nav aria-label="Main" className="flex flex-col gap-2">
                 {navLinks?.map((link) => {
                   const isActive =
                     router.pathname === link.href ||
@@ -74,6 +74,7 @@ export default function MobileHeader() {
                       key={link.href}
                       href={link.href}
                       onClick={() => setIsOpen(false)}
+                      aria-current={isActive ? "page" : undefined}
                       className={`-mx-3 flex items-center gap-3 rounded-xl px-4 py-3 text-base font-medium transition-all ${
                         isActive
                           ? "bg-primary text-primary-foreground shadow-sm"
