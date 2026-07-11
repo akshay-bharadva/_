@@ -23,7 +23,7 @@ import {
   useGetLearningDataQuery,
   useSignOutMutation,
 } from "@/store/api/adminApi";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useSupabaseSession } from "@/hooks/use-auth-guard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -118,7 +118,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSidebarInitialized, setIsSidebarInitialized] = useState(false);
 
-  const { session, isLoading } = useAuthGuard();
+  const { session, isLoading } = useSupabaseSession();
 
   const pageTitle = title ? `${title} | Admin Panel` : "Admin Panel";
 

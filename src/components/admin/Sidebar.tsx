@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useAuthGuard } from "@/hooks/use-auth-guard";
+import { useSupabaseSession } from "@/hooks/use-auth-guard";
 import { useSignOutMutation } from "@/store/api/adminApi";
 import {
   Accordion,
@@ -87,7 +87,7 @@ export default function Sidebar({
   toggleCollapse,
 }: SidebarProps) {
   const router = useRouter();
-  const { session } = useAuthGuard();
+  const { session } = useSupabaseSession();
   const [signOut] = useSignOutMutation();
   const isMobile = useIsMobile();
 

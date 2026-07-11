@@ -1,44 +1,20 @@
-import type React from "react";
-import { useState, useEffect, FormEvent, useRef } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { motion } from "framer-motion";
 import type { BlogPost } from "@/types";
 import NovelEditor from "@/components/admin/novel-editor";
 import { supabase } from "@/supabase/client";
-import imageCompression from "browser-image-compression";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Switch } from "../ui/switch";
-import { Textarea } from "../ui/textarea";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Loader2,
-  ArrowLeft,
-  Save,
-  Settings,
-  Image as ImageIcon,
-  Upload,
-  Globe,
-  FileText,
-  Link as LinkIcon,
-  X,
-} from "lucide-react";
+import { Loader2, ArrowLeft, Save } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  PostSettingsSheet,
+  type BlogPostFormValues,
+} from "./blog/post-settings-sheet";
+import { useBlogImageUpload } from "./blog/use-blog-image-upload";
 
 interface BlogEditorProps {
   post: BlogPost | null;
@@ -46,32 +22,29 @@ interface BlogEditorProps {
   onCancel: () => void;
 }
 
-const bucketName = process.env.NEXT_PUBLIC_BUCKET_NAME || "assets";
+const INITIAL_FORM: BlogPostFormValues = {
+  title: "",
+  slug: "",
+  excerpt: "",
+  content: "",
+  tags: "",
+  published: false,
+  show_toc: true,
+  cover_image_url: "",
+  internal_notes: "",
+};
 
 export default function BlogEditor({
   post,
   onSave,
   onCancel,
 }: BlogEditorProps) {
-  const isMobile = useIsMobile();
-  const initialFormData = {
-    title: "",
-    slug: "",
-    excerpt: "",
-    content: "",
-    tags: "",
-    published: false,
-    show_toc: true,
-    cover_image_url: "",
-    internal_notes: "",
-  };
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState<BlogPostFormValues>(INITIAL_FORM);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const coverImageInputRef = useRef<HTMLInputElement>(null);
+  const { isUploading, uploadImage } = useBlogImageUpload();
 
   useEffect(() => {
     if (post) {
@@ -87,9 +60,12 @@ export default function BlogEditor({
         internal_notes: post.internal_notes || "",
       });
     } else {
-      setFormData(initialFormData);
+      setFormData(INITIAL_FORM);
     }
   }, [post]);
+
+  const patchForm = (patch: Partial<BlogPostFormValues>) =>
+    setFormData((prev) => ({ ...prev, ...patch }));
 
   const generateSlug = (title: string) => {
     return title
@@ -156,75 +132,18 @@ export default function BlogEditor({
     setIsSaving(false);
   };
 
-  const handleImageUpload = async (
-    file: File,
-    forCoverImage: boolean = false,
-  ): Promise<string> => {
-    if (!file) return "";
-    if (!supabase) {
-      toast.error("DB connection missing. Cannot upload images.");
-      return "";
-    }
-
-    setIsUploading(true);
-    setErrors((prev) => ({ ...prev, image_upload: "" }));
-
-    const options = {
-      maxSizeMB: 0.8,
-      maxWidthOrHeight: 1600,
-      useWebWorker: true,
-      fileType: "image/webp",
-      initialQuality: 0.8,
-    };
-
-    let compressedFile = file;
-    try {
-      if (file.type.startsWith("image/")) {
-        compressedFile = await imageCompression(file, options);
-      }
-    } catch (error) {
-      console.error("Image compression error:", error);
-      toast.warning("Compression failed, uploading original.");
-    }
-
-    const sanitizedName = compressedFile.name
-      .replace(/[^a-zA-Z0-9._-]/g, "_")
-      .replace(/__+/g, "_");
-    const fileName = `${Date.now()}_${sanitizedName}`;
-    const filePath = `blog_images/${fileName}`;
-
-    const { data, error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, compressedFile);
-
-    setIsUploading(false);
-
-    if (uploadError) {
-      toast.error(`Upload failed: ${uploadError.message}`);
-      return "";
-    }
-
-    const { data: urlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(data.path);
-    const imageUrl = urlData.publicUrl;
-
-    if (forCoverImage) {
-      setFormData((prev) => ({ ...prev, cover_image_url: imageUrl }));
-      toast.success("Cover image uploaded");
-    } else {
-      toast.success("Image uploaded");
-    }
-
-    return imageUrl;
+  const handleContentImageUpload = async (file: File): Promise<string> => {
+    const url = await uploadImage(file);
+    if (url) toast.success("Image uploaded");
+    return url;
   };
 
-  const onCoverImageSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleImageUpload(file, true);
+  const handleCoverFileSelected = async (file: File) => {
+    const url = await uploadImage(file);
+    if (url) {
+      patchForm({ cover_image_url: url });
+      toast.success("Cover image uploaded");
     }
-    if (event.target) event.target.value = "";
   };
 
   return (
@@ -264,246 +183,14 @@ export default function BlogEditor({
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Sheet open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1 sm:flex-none"
-              >
-                <Settings className="mr-2 size-4" /> Settings
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-lg flex flex-col">
-              <div className="flex justify-between items-center">
-                <SheetHeader>
-                  <SheetTitle>Post Settings</SheetTitle>
-                  <SheetDescription>
-                    Manage metadata, SEO, and publication details.
-                  </SheetDescription>
-                </SheetHeader>
-                <SheetClose asChild>
-                  <Button type="button" variant="ghost">
-                    <X />
-                  </Button>
-                </SheetClose>
-              </div>
-              <ScrollArea className="h-[calc(100vh-8rem)] pr-4 mt-6">
-                <div className="space-y-6">
-                  {/* Publication Toggle */}
-                  <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-secondary/10">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Publish Post</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Make this post visible to the public.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.published}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, published: checked }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-secondary/10">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">
-                        Show Table of Contents
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Display a sticky sidebar with content headings.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={formData.show_toc}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({ ...prev, show_toc: checked }))
-                      }
-                    />
-                  </div>
-
-                  {/* Slug */}
-                  <div className="space-y-2">
-                    <Label htmlFor="slug" className="flex items-center gap-2">
-                      <Globe className="size-3.5" /> Slug URL
-                    </Label>
-                    <div className="flex rounded-md shadow-sm">
-                      <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-xs text-muted-foreground">
-                        /blog/
-                      </span>
-                      <Input
-                        id="slug"
-                        value={formData.slug}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            slug: e.target.value,
-                          }))
-                        }
-                        className={cn(
-                          "rounded-l-none font-mono text-sm",
-                          errors.slug &&
-                            "border-destructive focus-visible:ring-destructive",
-                        )}
-                      />
-                    </div>
-                    {errors.slug && (
-                      <p className="text-xs text-destructive">{errors.slug}</p>
-                    )}
-                  </div>
-
-                  {/* Excerpt */}
-                  <div className="space-y-2">
-                    <Label htmlFor="excerpt">Excerpt</Label>
-                    <Textarea
-                      id="excerpt"
-                      rows={3}
-                      value={formData.excerpt}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          excerpt: e.target.value,
-                        }))
-                      }
-                      placeholder="Brief summary for SEO and previews..."
-                      className="resize-none"
-                    />
-                  </div>
-
-                  {/* Tags */}
-                  <div className="space-y-2">
-                    <Label htmlFor="tags">Tags</Label>
-                    <Input
-                      id="tags"
-                      value={formData.tags}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          tags: e.target.value,
-                        }))
-                      }
-                      placeholder="react, typescript, tutorial"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Comma separated values.
-                    </p>
-                  </div>
-
-                  {/* Cover Image */}
-                  <div className="space-y-2">
-                    <Label>Cover Image</Label>
-                    <Tabs defaultValue="url" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 mb-2">
-                        <TabsTrigger value="url">Image URL</TabsTrigger>
-                        <TabsTrigger value="upload">Upload New</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="url">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="https://example.com/image.jpg"
-                            value={formData.cover_image_url}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                cover_image_url: e.target.value,
-                              }))
-                            }
-                          />
-                          {formData.cover_image_url && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  cover_image_url: "",
-                                }))
-                              }
-                              title="Clear"
-                            >
-                              <X className="size-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Paste a URL from Unsplash or your Asset Manager.
-                        </p>
-                      </TabsContent>
-
-                      <TabsContent value="upload">
-                        <div
-                          className="rounded-lg border border-dashed p-4 text-center hover:bg-muted/50 transition-colors cursor-pointer"
-                          onClick={() => coverImageInputRef.current?.click()}
-                        >
-                          <div className="flex flex-col items-center justify-center py-2">
-                            <Upload className="size-6 text-muted-foreground mb-2" />
-                            <p className="text-sm font-medium">
-                              Click to upload
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              SVG, PNG, JPG or GIF
-                            </p>
-                          </div>
-                          <input
-                            type="file"
-                            ref={coverImageInputRef}
-                            accept="image/*"
-                            className="hidden"
-                            onChange={onCoverImageSelected}
-                          />
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-
-                    {/* Image Preview */}
-                    {formData.cover_image_url && (
-                      <div className="mt-3 relative aspect-video w-full overflow-hidden rounded-md border bg-secondary/30">
-                        <img
-                          src={formData.cover_image_url}
-                          alt="Cover Preview"
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                              "none";
-                          }}
-                        />
-                        <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
-                          Preview
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <Separator />
-
-                  {/* Internal Notes */}
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="internal_notes"
-                      className="flex items-center gap-2"
-                    >
-                      <FileText className="size-3.5" /> Internal Notes
-                    </Label>
-                    <Textarea
-                      id="internal_notes"
-                      rows={4}
-                      value={formData.internal_notes}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          internal_notes: e.target.value,
-                        }))
-                      }
-                      placeholder="Ideas, todos, or references..."
-                      className="bg-secondary/30"
-                    />
-                  </div>
-                </div>
-              </ScrollArea>
-            </SheetContent>
-          </Sheet>
+          <PostSettingsSheet
+            open={isSettingsOpen}
+            onOpenChange={setIsSettingsOpen}
+            values={formData}
+            slugError={errors.slug}
+            onChange={patchForm}
+            onCoverFileSelected={handleCoverFileSelected}
+          />
 
           <Button
             onClick={() => handleSubmit()}
@@ -523,7 +210,7 @@ export default function BlogEditor({
         </div>
       </div>
 
-    <div className="flex-1 flex flex-col min-h-0 max-w-5xl mx-auto w-full mt-2 sm:mt-6 space-y-4 sm:space-y-6 px-4">
+      <div className="flex-1 flex flex-col min-h-0 max-w-5xl mx-auto w-full mt-2 sm:mt-6 space-y-4 sm:space-y-6 px-4">
         <div className="shrink-0 px-1">
           <Input
             id="title"
@@ -543,7 +230,7 @@ export default function BlogEditor({
           )}
         </div>
 
-      <div className="flex-1 min-h-0 flex flex-col rounded-lg border bg-card shadow-sm overflow-hidden relative mb-6">
+        <div className="flex-1 min-h-0 flex flex-col rounded-lg border bg-card shadow-sm overflow-hidden relative mb-6">
           {isUploading && (
             <div className="absolute top-2 right-2 z-20 bg-background/80 backdrop-blur px-3 py-1 rounded-full text-xs font-medium flex items-center border shadow-sm">
               <Loader2 className="size-3 animate-spin mr-2" /> Uploading
@@ -553,11 +240,9 @@ export default function BlogEditor({
 
           <NovelEditor
             value={formData.content}
-            onChange={(newContent) =>
-              setFormData((prev) => ({ ...prev, content: newContent }))
-            }
-            onImageUpload={(file) => handleImageUpload(file, false)}
-            minHeight="100%" 
+            onChange={(newContent) => patchForm({ content: newContent })}
+            onImageUpload={handleContentImageUpload}
+            minHeight="100%"
             className="h-full border-none" // Remove border here since parent has it
             isRounded={false} // Remove internal rounding to fit parent
           />

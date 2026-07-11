@@ -1,4 +1,29 @@
 import "@testing-library/jest-dom/vitest";
+import { vi } from "vitest";
+
+// jsdom lacks these browser APIs that Radix primitives and responsive hooks
+// rely on; provide inert stand-ins.
+if (typeof window !== "undefined") {
+  if (!window.matchMedia) {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  }
+  if (!window.ResizeObserver) {
+    window.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
+}
 
 // jsdom under recent Node versions can lack window.localStorage (Node's own
 // experimental localStorage global interferes). Provide a minimal in-memory

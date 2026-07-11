@@ -4,6 +4,41 @@ import { supabase, Session } from "@/supabase/client";
 import { isSupabaseConfigured } from "@/lib/config";
 import { toast } from "sonner";
 
+/**
+ * Read-only session state for display purposes (user email, avatar).
+ * No redirects and no MFA check — route protection is `useAuthGuard`,
+ * which `withAdminPage` runs exactly once per page. Use this in layout
+ * chrome (AdminLayout, Sidebar) so the guard isn't duplicated per mount.
+ */
+export function useSupabaseSession() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setIsLoading(false);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+      },
+    );
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  return { session, isLoading };
+}
+
 export function useAuthGuard() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
