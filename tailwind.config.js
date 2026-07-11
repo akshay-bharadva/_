@@ -4,6 +4,11 @@ module.exports = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    // lib + hooks hold runtime-applied class names (VALID_THEMES,
+    // THEME_PRESETS, typography presets) — without scanning them Tailwind
+    // tree-shakes the corresponding custom styles out of the bundle.
+    "./src/lib/**/*.{js,ts,jsx,tsx}",
+    "./src/hooks/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     container: {

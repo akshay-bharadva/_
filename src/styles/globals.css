@@ -137,9 +137,11 @@ nav, button, input, textarea, select {
 }
 
 /* =========================================
-   LAYER: BASE (Themes & Typography)
+   THEME TOKENS (deliberately OUTSIDE @layer)
+   Tailwind tree-shakes custom layered styles whose class names it can't
+   find in scanned content, and .theme-* classes are applied at runtime
+   from JS (src/lib/themes.ts). Unlayered rules always ship.
    ========================================= */
-@layer base {
   :root,
   .theme-blueprint {
     --background: 220 20% 5%;
@@ -157,7 +159,7 @@ nav, button, input, textarea, select {
     --accent: 200 80% 55%;
     --accent-foreground: 220 20% 5%;
     --destructive: 0 73% 55%;
-    --destructive-foreground: 210 20% 90%;
+    --destructive-foreground: 210 20% 4%;
     --border: 220 12% 18%;
     --input: 220 15% 13%;
     --ring: 200 100% 50%;
@@ -183,8 +185,8 @@ nav, button, input, textarea, select {
     --secondary-foreground: 212 12% 15%;
     --muted: 210 17% 95%;
     --muted-foreground: 213 10% 40%;
-    --accent: 137 55% 35%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 137 55% 33%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 73% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 210 17% 90%;
@@ -206,7 +208,7 @@ nav, button, input, textarea, select {
     --popover: 210 11% 7%;
     --popover-foreground: 213 15% 78%;
     --primary: 212 92% 45%;
-    --primary-foreground: 210 11% 7%;
+    --primary-foreground: 210 11% 95.5%;
     --secondary: 210 10% 15%;
     --secondary-foreground: 213 15% 78%;
     --muted: 210 10% 15%;
@@ -214,7 +216,7 @@ nav, button, input, textarea, select {
     --accent: 137 55% 55%;
     --accent-foreground: 210 11% 7%;
     --destructive: 0 73% 60%;
-    --destructive-foreground: 213 15% 78%;
+    --destructive-foreground: 213 15% 10.5%;
     --border: 210 10% 19%;
     --input: 210 10% 15%;
     --ring: 212 92% 45%;
@@ -239,11 +241,11 @@ nav, button, input, textarea, select {
     --secondary: 230 14% 25%;
     --secondary-foreground: 60 30% 96%;
     --muted: 230 14% 25%;
-    --muted-foreground: 228 8% 60%;
+    --muted-foreground: 228 8% 66%;
     --accent: 135 94% 65%;
     --accent-foreground: 231 15% 18%;
     --destructive: 0 100% 67%;
-    --destructive-foreground: 60 30% 96%;
+    --destructive-foreground: 60 30% 13.5%;
     --border: 230 12% 28%;
     --input: 230 14% 25%;
     --ring: 265 89% 78%;
@@ -265,15 +267,15 @@ nav, button, input, textarea, select {
     --popover: 220 17% 25%;
     --popover-foreground: 219 28% 88%;
     --primary: 213 32% 52%;
-    --primary-foreground: 220 16% 22%;
+    --primary-foreground: 220 16% 8.5%;
     --secondary: 220 16% 28%;
     --secondary-foreground: 219 28% 88%;
     --muted: 220 16% 28%;
-    --muted-foreground: 219 15% 58%;
+    --muted-foreground: 219 15% 70.5%;
     --accent: 179 25% 65%;
     --accent-foreground: 220 16% 22%;
     --destructive: 354 42% 56%;
-    --destructive-foreground: 219 28% 88%;
+    --destructive-foreground: 219 28% 7.5%;
     --border: 220 16% 32%;
     --input: 220 16% 28%;
     --ring: 213 32% 52%;
@@ -299,11 +301,11 @@ nav, button, input, textarea, select {
     --secondary: 234 17% 19%;
     --secondary-foreground: 224 20% 78%;
     --muted: 234 17% 19%;
-    --muted-foreground: 227 12% 50%;
+    --muted-foreground: 227 12% 59.5%;
     --accent: 266 60% 68%;
     --accent-foreground: 235 21% 13%;
     --destructive: 348 70% 60%;
-    --destructive-foreground: 224 20% 78%;
+    --destructive-foreground: 224 20% 12%;
     --border: 234 15% 23%;
     --input: 234 17% 19%;
     --ring: 218 67% 65%;
@@ -329,7 +331,7 @@ nav, button, input, textarea, select {
     --secondary: 240 18% 19%;
     --secondary-foreground: 227 68% 88%;
     --muted: 240 18% 19%;
-    --muted-foreground: 228 24% 55%;
+    --muted-foreground: 228 24% 61.5%;
     --accent: 189 71% 73%;
     --accent-foreground: 240 21% 12%;
     --destructive: 343 81% 75%;
@@ -359,11 +361,11 @@ nav, button, input, textarea, select {
     --secondary: 220 13% 24%;
     --secondary-foreground: 219 14% 76%;
     --muted: 220 13% 24%;
-    --muted-foreground: 219 10% 52%;
+    --muted-foreground: 219 10% 65.5%;
     --accent: 95 38% 62%;
     --accent-foreground: 220 13% 18%;
     --destructive: 355 65% 65%;
-    --destructive-foreground: 219 14% 76%;
+    --destructive-foreground: 219 14% 17%;
     --border: 220 13% 28%;
     --input: 220 13% 24%;
     --ring: 207 82% 66%;
@@ -389,11 +391,11 @@ nav, button, input, textarea, select {
     --secondary: 248 18% 19%;
     --secondary-foreground: 245 50% 91%;
     --muted: 248 18% 19%;
-    --muted-foreground: 249 12% 52%;
+    --muted-foreground: 249 12% 60.5%;
     --accent: 190 30% 70%;
     --accent-foreground: 249 22% 12%;
     --destructive: 343 76% 68%;
-    --destructive-foreground: 245 50% 91%;
+    --destructive-foreground: 245 50% 29%;
     --border: 248 16% 24%;
     --input: 248 18% 19%;
     --ring: 2 55% 83%;
@@ -419,11 +421,11 @@ nav, button, input, textarea, select {
     --secondary: 70 8% 22%;
     --secondary-foreground: 60 12% 82%;
     --muted: 70 8% 22%;
-    --muted-foreground: 60 5% 52%;
+    --muted-foreground: 60 5% 63.5%;
     --accent: 190 81% 67%;
     --accent-foreground: 70 8% 15%;
     --destructive: 338 95% 56%;
-    --destructive-foreground: 60 12% 82%;
+    --destructive-foreground: 60 12% 9.5%;
     --border: 70 6% 26%;
     --input: 70 8% 22%;
     --ring: 80 76% 53%;
@@ -449,11 +451,11 @@ nav, button, input, textarea, select {
     --secondary: 220 18% 18%;
     --secondary-foreground: 40 14% 78%;
     --muted: 220 18% 18%;
-    --muted-foreground: 220 10% 48%;
+    --muted-foreground: 220 10% 58.5%;
     --accent: 200 60% 55%;
     --accent-foreground: 220 22% 11%;
     --destructive: 356 70% 58%;
-    --destructive-foreground: 40 14% 78%;
+    --destructive-foreground: 40 14% 8%;
     --border: 220 16% 22%;
     --input: 220 18% 18%;
     --ring: 36 100% 50%;
@@ -475,15 +477,15 @@ nav, button, input, textarea, select {
     --popover: 44 87% 94%;
     --popover-foreground: 194 14% 40%;
     --primary: 205 69% 49%;
-    --primary-foreground: 44 87% 94%;
+    --primary-foreground: 44 87% 8%;
     --secondary: 46 42% 88%;
-    --secondary-foreground: 194 14% 40%;
+    --secondary-foreground: 194 14% 39%;
     --muted: 46 42% 88%;
-    --muted-foreground: 195 10% 52%;
+    --muted-foreground: 195 10% 39.5%;
     --accent: 175 59% 40%;
-    --accent-foreground: 44 87% 94%;
+    --accent-foreground: 44 87% 11.5%;
     --destructive: 1 71% 52%;
-    --destructive-foreground: 44 87% 94%;
+    --destructive-foreground: 44 87% 97.5%;
     --border: 44 30% 82%;
     --input: 46 42% 88%;
     --ring: 205 69% 49%;
@@ -509,9 +511,9 @@ nav, button, input, textarea, select {
     --secondary: 220 20% 88%;
     --secondary-foreground: 234 16% 35%;
     --muted: 220 20% 88%;
-    --muted-foreground: 233 10% 50%;
+    --muted-foreground: 233 10% 41%;
     --accent: 197 57% 48%;
-    --accent-foreground: 220 23% 95%;
+    --accent-foreground: 220 23% 17%;
     --destructive: 347 87% 44%;
     --destructive-foreground: 220 23% 95%;
     --border: 220 18% 84%;
@@ -534,14 +536,14 @@ nav, button, input, textarea, select {
     --card-foreground: 214 22% 22%;
     --popover: 210 40% 96%;
     --popover-foreground: 214 22% 22%;
-    --primary: 210 100% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 210 100% 44%;
+    --primary-foreground: 0 0% 98%;
     --secondary: 210 28% 88%;
     --secondary-foreground: 214 22% 22%;
     --muted: 210 28% 88%;
-    --muted-foreground: 215 14% 45%;
-    --accent: 190 70% 48%;
-    --accent-foreground: 0 0% 100%;
+    --muted-foreground: 215 14% 40%;
+    --accent: 190 70% 33.5%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 210 24% 84%;
@@ -569,9 +571,9 @@ nav, button, input, textarea, select {
     --secondary: 40 20% 90%;
     --secondary-foreground: 20 10% 20%;
     --muted: 40 20% 90%;
-    --muted-foreground: 20 6% 50%;
+    --muted-foreground: 20 6% 41%;
     --accent: 24 60% 50%;
-    --accent-foreground: 40 33% 97%;
+    --accent-foreground: 40 33% 11.5%;
     --destructive: 0 65% 48%;
     --destructive-foreground: 40 33% 97%;
     --border: 40 16% 85%;
@@ -599,11 +601,11 @@ nav, button, input, textarea, select {
     --secondary: 270 15% 14%;
     --secondary-foreground: 180 100% 70%;
     --muted: 270 15% 14%;
-    --muted-foreground: 270 10% 50%;
+    --muted-foreground: 270 10% 56%;
     --accent: 180 100% 50%;
     --accent-foreground: 270 20% 6%;
     --destructive: 0 90% 55%;
-    --destructive-foreground: 180 100% 70%;
+    --destructive-foreground: 180 100% 4.5%;
     --border: 270 12% 20%;
     --input: 270 15% 14%;
     --ring: 320 100% 60%;
@@ -629,11 +631,11 @@ nav, button, input, textarea, select {
     --secondary: 210 35% 15%;
     --secondary-foreground: 200 25% 82%;
     --muted: 210 35% 15%;
-    --muted-foreground: 210 15% 50%;
+    --muted-foreground: 210 15% 55.5%;
     --accent: 165 60% 50%;
     --accent-foreground: 210 50% 7%;
     --destructive: 5 72% 56%;
-    --destructive-foreground: 200 25% 82%;
+    --destructive-foreground: 200 25% 8.5%;
     --border: 210 30% 20%;
     --input: 210 35% 15%;
     --ring: 190 80% 50%;
@@ -659,11 +661,11 @@ nav, button, input, textarea, select {
     --secondary: 120 8% 11%;
     --secondary-foreground: 120 80% 60%;
     --muted: 120 8% 11%;
-    --muted-foreground: 120 20% 38%;
+    --muted-foreground: 120 20% 47%;
     --accent: 120 60% 35%;
-    --accent-foreground: 120 100% 80%;
+    --accent-foreground: 120 100% 4%;
     --destructive: 0 80% 50%;
-    --destructive-foreground: 120 80% 60%;
+    --destructive-foreground: 120 80% 98%;
     --border: 120 10% 16%;
     --input: 120 8% 11%;
     --ring: 120 100% 45%;
@@ -692,8 +694,8 @@ nav, button, input, textarea, select {
     --muted-foreground: 0 0% 65%;
     --accent: 200 100% 55%;
     --accent-foreground: 0 0% 0%;
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 100% 45.5%;
+    --destructive-foreground: 0 0% 98%;
     --border: 0 0% 30%;
     --input: 0 0% 12%;
     --ring: 50 100% 50%;
@@ -720,8 +722,8 @@ nav, button, input, textarea, select {
     --secondary-foreground: 0 0% 0%;
     --muted: 0 0% 92%;
     --muted-foreground: 0 0% 35%;
-    --accent: 160 80% 30%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 160 80% 28.5%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 90% 40%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 70%;
@@ -752,10 +754,10 @@ nav, button, input, textarea, select {
     --secondary-foreground: 0 0% 8%;
     --muted: 60 20% 92%;
     --muted-foreground: 0 0% 35%;
-    --accent: 150 80% 44%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --accent: 150 80% 28.5%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 84% 48.5%;
+    --destructive-foreground: 0 0% 98%;
     --border: 0 0% 8%;
     --input: 60 20% 92%;
     --ring: 262 83% 58%;
@@ -781,11 +783,11 @@ nav, button, input, textarea, select {
     --secondary: 262 83% 58%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 4% 20%;
-    --muted-foreground: 240 5% 55%;
+    --muted-foreground: 240 5% 61.5%;
     --accent: 150 80% 44%;
     --accent-foreground: 0 0% 8%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 60 50% 97%;
+    --destructive-foreground: 60 50% 7.5%;
     --border: 60 50% 97%;
     --input: 240 4% 20%;
     --ring: 48 96% 53%;
@@ -806,16 +808,16 @@ nav, button, input, textarea, select {
     --card-foreground: 60 100% 70%;
     --popover: 330 8% 11%;
     --popover-foreground: 60 100% 70%;
-    --primary: 340 100% 55%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 340 100% 45%;
+    --primary-foreground: 0 0% 98%;
     --secondary: 60 100% 50%;
     --secondary-foreground: 0 0% 8%;
     --muted: 330 6% 16%;
-    --muted-foreground: 330 5% 50%;
-    --accent: 280 100% 65%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 25 100% 55%;
-    --destructive-foreground: 0 0% 100%;
+    --muted-foreground: 330 5% 57%;
+    --accent: 280 100% 54.5%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 25 100% 38%;
+    --destructive-foreground: 0 0% 98%;
     --border: 60 100% 70%;
     --input: 330 6% 16%;
     --ring: 340 100% 55%;
@@ -838,16 +840,16 @@ nav, button, input, textarea, select {
     --card-foreground: 220 15% 88%;
     --popover: 230 18% 12%;
     --popover-foreground: 220 15% 88%;
-    --primary: 220 90% 62%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 220 90% 55%;
+    --primary-foreground: 0 0% 98%;
     --secondary: 230 15% 18%;
     --secondary-foreground: 220 15% 88%;
     --muted: 230 15% 18%;
-    --muted-foreground: 225 10% 52%;
-    --accent: 260 75% 65%;
-    --accent-foreground: 0 0% 100%;
+    --muted-foreground: 225 10% 58.5%;
+    --accent: 260 75% 61.5%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 72% 55%;
-    --destructive-foreground: 220 15% 88%;
+    --destructive-foreground: 220 15% 4%;
     --border: 230 12% 24%;
     --input: 230 15% 18%;
     --ring: 220 90% 62%;
@@ -873,9 +875,9 @@ nav, button, input, textarea, select {
     --secondary: 220 20% 90%;
     --secondary-foreground: 225 20% 18%;
     --muted: 220 20% 90%;
-    --muted-foreground: 225 12% 46%;
-    --accent: 190 70% 45%;
-    --accent-foreground: 0 0% 100%;
+    --muted-foreground: 225 12% 42%;
+    --accent: 190 70% 33.5%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
     --border: 220 18% 84%;
@@ -903,11 +905,11 @@ nav, button, input, textarea, select {
     --secondary: 250 18% 17%;
     --secondary-foreground: 240 15% 88%;
     --muted: 250 18% 17%;
-    --muted-foreground: 245 10% 50%;
+    --muted-foreground: 245 10% 58.5%;
     --accent: 280 75% 65%;
     --accent-foreground: 250 25% 8%;
     --destructive: 350 80% 58%;
-    --destructive-foreground: 240 15% 88%;
+    --destructive-foreground: 240 15% 10.5%;
     --border: 250 14% 22%;
     --input: 250 18% 17%;
     --ring: 160 80% 55%;
@@ -933,11 +935,11 @@ nav, button, input, textarea, select {
     --secondary: 205 30% 16%;
     --secondary-foreground: 200 20% 85%;
     --muted: 205 30% 16%;
-    --muted-foreground: 205 15% 48%;
+    --muted-foreground: 205 15% 56.5%;
     --accent: 155 65% 50%;
     --accent-foreground: 205 45% 8%;
     --destructive: 5 75% 55%;
-    --destructive-foreground: 200 20% 85%;
+    --destructive-foreground: 200 20% 7.5%;
     --border: 205 25% 22%;
     --input: 205 30% 16%;
     --ring: 185 75% 50%;
@@ -965,11 +967,11 @@ nav, button, input, textarea, select {
     --secondary: 270 20% 15%;
     --secondary-foreground: 300 20% 88%;
     --muted: 270 20% 15%;
-    --muted-foreground: 270 12% 48%;
+    --muted-foreground: 270 12% 57%;
     --accent: 190 100% 55%;
     --accent-foreground: 270 30% 6%;
     --destructive: 0 85% 55%;
-    --destructive-foreground: 300 20% 88%;
+    --destructive-foreground: 300 20% 7%;
     --border: 270 18% 22%;
     --input: 270 20% 15%;
     --ring: 320 100% 65%;
@@ -995,11 +997,11 @@ nav, button, input, textarea, select {
     --secondary: 30 10% 14%;
     --secondary-foreground: 38 90% 75%;
     --muted: 30 10% 14%;
-    --muted-foreground: 30 15% 42%;
+    --muted-foreground: 30 15% 53.5%;
     --accent: 16 85% 55%;
     --accent-foreground: 30 15% 6%;
-    --destructive: 0 80% 52%;
-    --destructive-foreground: 38 90% 75%;
+    --destructive: 0 80% 50%;
+    --destructive-foreground: 38 90% 98%;
     --border: 30 10% 20%;
     --input: 30 10% 14%;
     --ring: 38 100% 55%;
@@ -1025,11 +1027,11 @@ nav, button, input, textarea, select {
     --secondary: 160 10% 11%;
     --secondary-foreground: 120 60% 70%;
     --muted: 160 10% 11%;
-    --muted-foreground: 150 15% 38%;
+    --muted-foreground: 150 15% 48%;
     --accent: 80 70% 55%;
     --accent-foreground: 160 15% 4%;
     --destructive: 0 75% 50%;
-    --destructive-foreground: 120 60% 70%;
+    --destructive-foreground: 120 60% 96%;
     --border: 150 10% 16%;
     --input: 160 10% 11%;
     --ring: 120 80% 55%;
@@ -1042,6 +1044,10 @@ nav, button, input, textarea, select {
     --chart-5: 0 75% 50%;
   }
 
+/* =========================================
+   LAYER: BASE (Typography & element defaults)
+   ========================================= */
+@layer base {
   article p,
   .markdown p,
   .prose p {
