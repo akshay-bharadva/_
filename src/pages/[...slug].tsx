@@ -18,7 +18,6 @@ const HARDCODED_PAGES = [
   "showcase",
   "experience",
   "updates",
-  "ui",
   "404",
   "500",
 ];

@@ -54,7 +54,7 @@ The application uses Supabase Storage for image uploads. The SQL script automati
 2.  Confirm the `assets` bucket exists and is set to **Public**.
 3.  If it doesn't exist, create it manually: click **Create a new bucket**, name it `assets`, and toggle **Public bucket** to **ON**.
 
-> The RLS policies from the SQL script secure access — public reads are allowed, but writes are restricted to authenticated users.
+> The RLS policies from the SQL script secure access — public reads are allowed, but writes are restricted to the MFA-verified admin account.
 
 ---
 
@@ -79,15 +79,37 @@ The admin panel does not have a public sign-up page. You must create your first 
 
 ---
 
+### Step 7: Lock Down Signups (Important)
+
+This is a **single-admin** application. The schema enforces this at the database level in three ways:
+
+- A `block_additional_signups` trigger on `auth.users` rejects any account creation after the first user exists — including direct calls to the Supabase auth API. The `/admin/signup` page's "does an admin exist?" check is UX only; this trigger is the real enforcement.
+- All write policies on shared content (site identity, blog posts, portfolio, navigation, security settings, storage) use the `public.is_admin()` helper, which only passes for the **first registered user**. A stray extra account — however created — cannot modify public content.
+- Every admin-write policy also requires an **AAL2 session** (`public.is_aal2()`), meaning MFA/TOTP has been completed. A stolen password alone cannot write data, even through direct REST API calls that bypass the app's UI.
+
+As defense in depth, also disable signups at the platform level:
+
+1.  Navigate to **Authentication** > **Sign In / Up** (or **Providers** on older dashboards).
+2.  Turn **off** "Allow new users to sign up" once your admin account exists.
+
+> **Upgrading an existing project?** `db/schema.sql` is idempotent — re-run the whole script in the SQL Editor to replace the older, weaker policies (`auth.role() = 'authenticated'`) with the hardened ones.
+
+> **Webhook note:** `NEXT_PUBLIC_VISIT_NOTIFIER_URL` and `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` are embedded in the public JS bundle — anyone can extract and abuse them. Prefer a **Database Webhook** (Dashboard > Database > Webhooks) on `contact_submissions` inserts, which keeps the Discord URL server-side.
+
+---
+
 ### Troubleshooting
 
 **Site settings not saving?**
-If you previously ran an older version of the schema, the RLS policy for `site_identity` may use `auth.uid() = user_id` which fails because the seed row has no `user_id`. Run this fix in the SQL Editor:
+If you previously ran an older version of the schema, the RLS policy for `site_identity` may be outdated (older versions used `auth.uid() = user_id`, which fails because the seed row has no `user_id`, or `auth.role() = 'authenticated'`, which is insecure). Re-run the full `db/schema.sql` (it is idempotent), or apply just this policy:
 
 ```sql
 DROP POLICY IF EXISTS "Admin can manage site identity" ON site_identity;
 DROP POLICY IF EXISTS "Admin manage site identity" ON site_identity;
 CREATE POLICY "Admin manage site identity" ON site_identity
-  FOR ALL USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+  FOR ALL USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 ```
+
+**Locked out after applying the hardened policies?**
+Admin writes now require an MFA-verified (AAL2) session. If you have enrolled TOTP but writes still fail, sign out and back in so your session upgrades to AAL2, and confirm TOTP is enabled under **Authentication** > **Multi-Factor Authentication**.

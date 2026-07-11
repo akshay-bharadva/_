@@ -24,5 +24,14 @@
     ]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // Test files are excluded from Next's build type-check because Vitest 4's
+  // type declarations require TypeScript >= 5.5 syntax; Vitest transforms and
+  // runs them itself (`npm run test`).
+  "exclude": [
+    "node_modules",
+    "vitest.config.ts",
+    "src/test",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
 }

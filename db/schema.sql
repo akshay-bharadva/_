@@ -33,6 +33,57 @@ $$;
 GRANT EXECUTE ON FUNCTION check_admin_exists() TO anon;
 GRANT EXECUTE ON FUNCTION check_admin_exists() TO authenticated;
 
+-- True when the current session has completed MFA/TOTP verification (AAL2).
+-- Admin-write policies require this so a password-only (AAL1) session can
+-- never write data, even when calling PostgREST directly.
+CREATE OR REPLACE FUNCTION public.is_aal2()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT COALESCE(auth.jwt()->>'aal', '') = 'aal2';
+$$;
+GRANT EXECUTE ON FUNCTION public.is_aal2() TO anon, authenticated;
+
+-- True when the current session belongs to the admin — defined as the FIRST
+-- registered user — and has completed MFA. Shared-content tables (site
+-- identity, blog, portfolio, navigation) use this instead of the old
+-- "any authenticated user" predicate so that a stray extra account can
+-- never modify public content.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+  SELECT auth.uid() IS NOT NULL
+    AND public.is_aal2()
+    AND auth.uid() = (SELECT id FROM auth.users ORDER BY created_at ASC LIMIT 1);
+$$;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO anon, authenticated;
+
+-- Server-side signup guard: only the first account can ever be created.
+-- The signup page's check_admin_exists() gate is client-side UX only;
+-- this trigger is the actual enforcement against direct auth API calls.
+CREATE OR REPLACE FUNCTION public.block_additional_signups()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+BEGIN
+  IF (SELECT count(*) FROM auth.users) > 0 THEN
+    RAISE EXCEPTION 'Signups are disabled: an admin account already exists.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS block_additional_signups ON auth.users;
+CREATE TRIGGER block_additional_signups
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.block_additional_signups();
+
 
 -- =========================================================
 -- 2. CUSTOM ENUM TYPES (idempotent)
@@ -50,7 +101,8 @@ DO $$ BEGIN CREATE TYPE learning_status AS ENUM ('To Learn', 'Learning', 'Practi
 -- =========================================================
 
 -- Single-row table for global site identity.
--- Uses auth.role() RLS because the seed row has no user_id (inserted from SQL editor).
+-- Writes use is_admin() (not user_id ownership) because the seed row has no
+-- user_id (inserted from SQL editor).
 CREATE TABLE IF NOT EXISTS site_identity (
   id INT PRIMARY KEY DEFAULT 1,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -65,7 +117,7 @@ ALTER TABLE site_identity ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read site identity" ON site_identity;
 CREATE POLICY "Public read site identity" ON site_identity FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Admin manage site identity" ON site_identity;
-CREATE POLICY "Admin manage site identity" ON site_identity FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage site identity" ON site_identity FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 DROP TRIGGER IF EXISTS update_site_identity_updated_at ON site_identity;
 CREATE TRIGGER update_site_identity_updated_at BEFORE UPDATE ON site_identity FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -83,7 +135,7 @@ ALTER TABLE navigation_links ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read visible navigation" ON navigation_links;
 CREATE POLICY "Public read visible navigation" ON navigation_links FOR SELECT USING (is_visible = true);
 DROP POLICY IF EXISTS "Admin manage navigation" ON navigation_links;
-CREATE POLICY "Admin manage navigation" ON navigation_links FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage navigation" ON navigation_links FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- Security Settings (single-row, lockdown/kill-switch)
 CREATE TABLE IF NOT EXISTS security_settings (
@@ -96,7 +148,7 @@ ALTER TABLE security_settings ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read security" ON security_settings;
 CREATE POLICY "Public read security" ON security_settings FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Admin manage security" ON security_settings;
-CREATE POLICY "Admin manage security" ON security_settings FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage security" ON security_settings FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 
 -- =========================================================
@@ -121,7 +173,7 @@ ALTER TABLE portfolio_sections ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read sections" ON portfolio_sections;
 CREATE POLICY "Public read sections" ON portfolio_sections FOR SELECT USING (is_visible = true);
 DROP POLICY IF EXISTS "Admin manage sections" ON portfolio_sections;
-CREATE POLICY "Admin manage sections" ON portfolio_sections FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage sections" ON portfolio_sections FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 DROP TRIGGER IF EXISTS update_portfolio_sections_updated_at ON portfolio_sections;
 CREATE TRIGGER update_portfolio_sections_updated_at BEFORE UPDATE ON portfolio_sections FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -147,7 +199,7 @@ ALTER TABLE portfolio_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read items" ON portfolio_items;
 CREATE POLICY "Public read items" ON portfolio_items FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Admin manage items" ON portfolio_items;
-CREATE POLICY "Admin manage items" ON portfolio_items FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage items" ON portfolio_items FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 DROP TRIGGER IF EXISTS update_portfolio_items_updated_at ON portfolio_items;
 CREATE TRIGGER update_portfolio_items_updated_at BEFORE UPDATE ON portfolio_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -173,7 +225,7 @@ ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read posts" ON blog_posts;
 CREATE POLICY "Public read posts" ON blog_posts FOR SELECT USING (published = true);
 DROP POLICY IF EXISTS "Admin manage posts" ON blog_posts;
-CREATE POLICY "Admin manage posts" ON blog_posts FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage posts" ON blog_posts FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 DROP TRIGGER IF EXISTS update_blog_posts_updated_at ON blog_posts;
 CREATE TRIGGER update_blog_posts_updated_at BEFORE UPDATE ON blog_posts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -194,7 +246,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 );
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage tasks" ON tasks;
-CREATE POLICY "Admin manage tasks" ON tasks FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage tasks" ON tasks FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
 CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -208,7 +260,7 @@ CREATE TABLE IF NOT EXISTS sub_tasks (
 );
 ALTER TABLE sub_tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage subtasks" ON sub_tasks;
-CREATE POLICY "Admin manage subtasks" ON sub_tasks FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage subtasks" ON sub_tasks FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 
 CREATE TABLE IF NOT EXISTS notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -223,7 +275,7 @@ CREATE TABLE IF NOT EXISTS notes (
 );
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage notes" ON notes;
-CREATE POLICY "Admin manage notes" ON notes FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage notes" ON notes FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_notes_updated_at ON notes;
 CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -240,7 +292,7 @@ CREATE TABLE IF NOT EXISTS events (
 );
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage events" ON events;
-CREATE POLICY "Admin manage events" ON events FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage events" ON events FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -266,7 +318,7 @@ CREATE TABLE IF NOT EXISTS recurring_transactions (
 );
 ALTER TABLE recurring_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage recurring" ON recurring_transactions;
-CREATE POLICY "Admin manage recurring" ON recurring_transactions FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage recurring" ON recurring_transactions FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_recurring_transactions_updated_at ON recurring_transactions;
 CREATE TRIGGER update_recurring_transactions_updated_at BEFORE UPDATE ON recurring_transactions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -284,7 +336,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage transactions" ON transactions;
-CREATE POLICY "Admin manage transactions" ON transactions FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage transactions" ON transactions FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_transactions_updated_at ON transactions;
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -301,7 +353,7 @@ CREATE TABLE IF NOT EXISTS financial_goals (
 );
 ALTER TABLE financial_goals ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage goals" ON financial_goals;
-CREATE POLICY "Admin manage goals" ON financial_goals FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage goals" ON financial_goals FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_financial_goals_updated_at ON financial_goals;
 CREATE TRIGGER update_financial_goals_updated_at BEFORE UPDATE ON financial_goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -320,7 +372,7 @@ CREATE TABLE IF NOT EXISTS learning_subjects (
 );
 ALTER TABLE learning_subjects ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage subjects" ON learning_subjects;
-CREATE POLICY "Admin manage subjects" ON learning_subjects FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage subjects" ON learning_subjects FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_learning_subjects_updated_at ON learning_subjects;
 CREATE TRIGGER update_learning_subjects_updated_at BEFORE UPDATE ON learning_subjects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -338,7 +390,7 @@ CREATE TABLE IF NOT EXISTS learning_topics (
 );
 ALTER TABLE learning_topics ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage topics" ON learning_topics;
-CREATE POLICY "Admin manage topics" ON learning_topics FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage topics" ON learning_topics FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_learning_topics_updated_at ON learning_topics;
 CREATE TRIGGER update_learning_topics_updated_at BEFORE UPDATE ON learning_topics FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -354,7 +406,7 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
 );
 ALTER TABLE learning_sessions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage sessions" ON learning_sessions;
-CREATE POLICY "Admin manage sessions" ON learning_sessions FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage sessions" ON learning_sessions FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 
 
 -- =========================================================
@@ -373,7 +425,7 @@ CREATE TABLE IF NOT EXISTS habits (
 );
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage habits" ON habits;
-CREATE POLICY "Admin manage habits" ON habits FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage habits" ON habits FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_habits_updated_at ON habits;
 CREATE TRIGGER update_habits_updated_at BEFORE UPDATE ON habits FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -387,7 +439,8 @@ CREATE TABLE IF NOT EXISTS habit_logs (
 ALTER TABLE habit_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage habit logs" ON habit_logs;
 CREATE POLICY "Admin manage habit logs" ON habit_logs FOR ALL USING (
-  EXISTS (SELECT 1 FROM habits WHERE id = habit_logs.habit_id AND user_id = auth.uid())
+  public.is_aal2()
+  AND EXISTS (SELECT 1 FROM habits WHERE id = habit_logs.habit_id AND user_id = auth.uid())
 );
 
 CREATE TABLE IF NOT EXISTS focus_logs (
@@ -402,7 +455,7 @@ CREATE TABLE IF NOT EXISTS focus_logs (
 );
 ALTER TABLE focus_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage focus" ON focus_logs;
-CREATE POLICY "Admin manage focus" ON focus_logs FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage focus" ON focus_logs FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 
 CREATE TABLE IF NOT EXISTS inventory_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -422,7 +475,7 @@ CREATE TABLE IF NOT EXISTS inventory_items (
 );
 ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage inventory" ON inventory_items;
-CREATE POLICY "Admin manage inventory" ON inventory_items FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage inventory" ON inventory_items FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 DROP TRIGGER IF EXISTS update_inventory_updated_at ON inventory_items;
 CREATE TRIGGER update_inventory_updated_at BEFORE UPDATE ON inventory_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -440,7 +493,7 @@ CREATE TABLE IF NOT EXISTS storage_assets (
 );
 ALTER TABLE storage_assets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage assets" ON storage_assets;
-CREATE POLICY "Admin manage assets" ON storage_assets FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Admin manage assets" ON storage_assets FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
 
 
 -- =========================================================
@@ -464,7 +517,7 @@ ALTER TABLE public_notes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read published notes" ON public_notes;
 CREATE POLICY "Public read published notes" ON public_notes FOR SELECT USING (is_published = true);
 DROP POLICY IF EXISTS "Admin manage public notes" ON public_notes;
-CREATE POLICY "Admin manage public notes" ON public_notes FOR ALL USING (auth.role() = 'authenticated') WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage public notes" ON public_notes FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 DROP TRIGGER IF EXISTS update_public_notes_updated_at ON public_notes;
 CREATE TRIGGER update_public_notes_updated_at BEFORE UPDATE ON public_notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -485,9 +538,9 @@ ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public insert contact" ON contact_submissions;
 CREATE POLICY "Public insert contact" ON contact_submissions FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Admin read contact" ON contact_submissions;
-CREATE POLICY "Admin read contact" ON contact_submissions FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin read contact" ON contact_submissions FOR SELECT USING (public.is_admin());
 DROP POLICY IF EXISTS "Admin delete contact" ON contact_submissions;
-CREATE POLICY "Admin delete contact" ON contact_submissions FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin delete contact" ON contact_submissions FOR DELETE USING (public.is_admin());
 
 
 -- =========================================================
@@ -684,15 +737,15 @@ CREATE POLICY "Public read access assets" ON storage.objects
 
 DROP POLICY IF EXISTS "Admin upload access assets" ON storage.objects;
 CREATE POLICY "Admin upload access assets" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'assets' AND auth.role() = 'authenticated');
+  FOR INSERT WITH CHECK (bucket_id = 'assets' AND public.is_admin());
 
 DROP POLICY IF EXISTS "Admin update access assets" ON storage.objects;
 CREATE POLICY "Admin update access assets" ON storage.objects
-  FOR UPDATE USING (bucket_id = 'assets' AND auth.role() = 'authenticated');
+  FOR UPDATE USING (bucket_id = 'assets' AND public.is_admin());
 
 DROP POLICY IF EXISTS "Admin delete access assets" ON storage.objects;
 CREATE POLICY "Admin delete access assets" ON storage.objects
-  FOR DELETE USING (bucket_id = 'assets' AND auth.role() = 'authenticated');
+  FOR DELETE USING (bucket_id = 'assets' AND public.is_admin());
 
 
 -- =========================================================

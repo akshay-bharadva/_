@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypePrism from "rehype-prism-plus";
 import rehypeSlug from "rehype-slug";
 import NotFoundComponent from "@/components/not-found";
@@ -104,6 +105,20 @@ const PostMeta = ({
   );
 };
 
+// Strips scripts/event handlers from raw HTML embedded in post markdown
+// (rehype-raw passes it through untouched). Extends the default GitHub-style
+// schema with the checkbox inputs that remark-gfm task lists produce.
+// Prism (code highlighting) and slug (heading ids) run AFTER sanitization so
+// the classes/ids they add are preserved.
+const sanitizeSchema = {
+  ...defaultSchema,
+  tagNames: [...(defaultSchema.tagNames || []), "input"],
+  attributes: {
+    ...defaultSchema.attributes,
+    input: ["type", "checked", "disabled"],
+  },
+};
+
 const PostContent = ({ content }: { content: string }) => (
   <div
     className="prose max-w-none dark:prose-invert
@@ -114,7 +129,12 @@ const PostContent = ({ content }: { content: string }) => (
   >
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw, rehypePrism, rehypeSlug]}
+      rehypePlugins={[
+        rehypeRaw,
+        [rehypeSanitize, sanitizeSchema],
+        rehypePrism,
+        rehypeSlug,
+      ]}
       components={{
         a: (props) => (
           <a {...props} target="_blank" rel="noopener noreferrer" />
