@@ -72,7 +72,7 @@ export default function BlogIndexPage() {
         ogImage={siteConfig.defaultOgImage}
       />
 
-      <main className="mx-auto max-w-5xl px-4 py-12 md:py-20">
+      <div className="mx-auto max-w-5xl px-4 py-12 md:py-20">
         <div className="flex flex-col items-center text-center mb-12 space-y-4">
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
@@ -256,7 +256,7 @@ export default function BlogIndexPage() {
             </AnimatePresence>
           </motion.div>
         )}
-      </main>
+      </div>
     </Layout>
   );
 }

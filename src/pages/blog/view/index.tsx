@@ -305,7 +305,7 @@ export default function BlogPostViewPage() {
         twitterDescription={metaDescription}
         twitterImage={post.cover_image_url || siteConfig.defaultOgImage}
       />
-      <main className="py-8 md:py-16">
+      <div className="py-8 md:py-16">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -404,7 +404,7 @@ export default function BlogPostViewPage() {
             )}
           </div>
         </motion.div>
-      </main>
+      </div>
     </Layout>
   );
 }

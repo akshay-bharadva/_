@@ -23,6 +23,19 @@ if (typeof window !== "undefined") {
       disconnect() {}
     };
   }
+  if (!window.IntersectionObserver) {
+    window.IntersectionObserver = class IntersectionObserver {
+      root = null;
+      rootMargin = "";
+      thresholds = [];
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+      takeRecords() {
+        return [];
+      }
+    } as unknown as typeof IntersectionObserver;
+  }
 }
 
 // jsdom under recent Node versions can lack window.localStorage (Node's own

@@ -47,7 +47,8 @@ function ThemedApp({ Component, pageProps }: AppProps) {
     : appConfig.site.title;
 
   return (
-    <main className={`${tahuFont.variable}`}>
+    // Font-variable carrier only — the page <main> landmark lives in Layout.
+    <div className={`${tahuFont.variable}`}>
       <Head>
         <title key="title">{defaultTitle}</title>
       </Head>
@@ -66,7 +67,7 @@ function ThemedApp({ Component, pageProps }: AppProps) {
       </AnimatePresence>
       <GlobalCommandPalette />
       <SonnerToaster />
-    </main>
+    </div>
   );
 }
 

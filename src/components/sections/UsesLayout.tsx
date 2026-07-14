@@ -2,7 +2,13 @@ import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { PortfolioItem } from "@/types";
-import { SectionLayoutProps, cardItemVariants, staggerVariants } from "./shared";
+import {
+  SectionLayoutProps,
+  cardItemVariants,
+  staggerVariants,
+  CARD,
+} from "./shared";
+import { cn } from "@/lib/utils";
 
 export default function UsesLayout({ items }: SectionLayoutProps) {
   const grouped = items.reduce<Record<string, PortfolioItem[]>>((acc, item) => {
@@ -19,7 +25,7 @@ export default function UsesLayout({ items }: SectionLayoutProps) {
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest font-mono mb-4">{category}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {categoryItems.map(item => (
-              <div key={item.id} className="group flex items-center gap-4 p-4 rounded-xl border border-border/50 bg-card hover:border-border hover:shadow-sm transition-all duration-300">
+              <div key={item.id} className={cn(CARD, "flex items-center gap-4 p-4 hover:border-border hover:shadow-sm")}>
                 <div className="size-9 rounded-lg bg-secondary/60 border border-border/50 flex items-center justify-center shrink-0 text-sm font-bold text-muted-foreground">
                   {item.title.charAt(0)}
                 </div>

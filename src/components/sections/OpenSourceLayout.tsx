@@ -1,15 +1,23 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, GitPullRequest, Star } from "lucide-react";
 import Link from "next/link";
-import { SectionLayoutProps, cardItemVariants, staggerVariants } from "./shared";
+import {
+  SectionLayoutProps,
+  cardItemVariants,
+  staggerVariants,
+  CARD,
+  CARD_HOVER,
+  HoverGlow,
+} from "./shared";
+import { cn } from "@/lib/utils";
 
 export default function OpenSourceLayout({ items }: SectionLayoutProps) {
   return (
     <motion.div className="space-y-3" initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.1 }} variants={staggerVariants}>
       {items.map(item => (
         <motion.div key={item.id} variants={cardItemVariants} className="group relative">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300 hover:-translate-y-0.5">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/4 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl" />
+          <div className={cn(CARD, CARD_HOVER, "flex flex-col sm:flex-row sm:items-center gap-4 p-5")}>
+            <HoverGlow direction="r" />
             <div className="relative flex items-center gap-3 flex-1 min-w-0">
               <div className="size-8 rounded-lg bg-secondary/60 border border-border/50 flex items-center justify-center shrink-0">
                 <GitPullRequest className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />

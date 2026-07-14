@@ -1,7 +1,7 @@
 import { GetStaticPaths, GetStaticProps } from "next";
-import Head from "next/head";
 import { useRouter } from "next/router";
 import Layout from "@/components/layout";
+import PageSEO from "@/components/public/PageSEO";
 import DynamicPageContent from "@/components/DynamicPageContent";
 import { config as appConfig, isSupabaseConfigured } from "@/lib/config";
 import { supabase } from "@/supabase/client";
@@ -46,12 +46,14 @@ export default function DynamicPage({ pageTitle, pagePath }: DynamicPageProps) {
 
   return (
     <Layout>
-      <Head>
-        <title>{title}</title>
-        <meta name="robots" content="index, follow" />
-      </Head>
+      <PageSEO
+        title={title}
+        description={`${pageTitle} — ${siteConfig.description}`}
+        url={`${siteConfig.url}${pagePath}/`}
+        ogImage={siteConfig.defaultOgImage}
+      />
 
-      <main className="py-12 md:py-16">
+      <div className="py-12 md:py-16">
         <div className="mx-auto max-w-7xl">
           <header className="mb-12 text-center">
             <h1 className="text-4xl font-black tracking-tighter text-foreground md:text-5xl">
@@ -61,7 +63,7 @@ export default function DynamicPage({ pageTitle, pagePath }: DynamicPageProps) {
 
           <DynamicPageContent pagePath={pagePath} />
         </div>
-      </main>
+      </div>
     </Layout>
   );
 }

@@ -1,5 +1,10 @@
 import { motion } from "framer-motion";
-import { SectionLayoutProps, cardItemVariants, staggerVariants } from "./shared";
+import {
+  SectionLayoutProps,
+  cardItemVariants,
+  staggerVariants,
+  HoverGlow,
+} from "./shared";
 
 export default function ImpactNumbersLayout({ items }: SectionLayoutProps) {
   return (
@@ -13,7 +18,7 @@ export default function ImpactNumbersLayout({ items }: SectionLayoutProps) {
           variants={cardItemVariants}
           className="group relative bg-card p-8 flex flex-col items-center justify-center text-center gap-2 hover:bg-secondary/30 transition-colors duration-300"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <HoverGlow />
           <div className="relative">
             <div className="text-4xl md:text-5xl font-black tracking-tighter text-foreground leading-none mb-2 group-hover:text-primary transition-colors duration-300">
               {item.title}

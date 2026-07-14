@@ -1,5 +1,7 @@
 import { useState, FormEvent } from "react";
 import type { PortfolioItem } from "@/types";
+import { portfolioItemSchema } from "@/lib/schemas";
+import { toast } from "sonner";
 import { X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -265,21 +267,31 @@ export default function ItemEditorSheet({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    onSave(
-      {
-        id:             item?.id,
-        title:          formData.title,
-        subtitle:       formData.subtitle       || null,
-        date_from:      formData.date_from      || null,
-        date_to:        formData.date_to        || null,
-        description:    formData.description    || null,
-        link_url:       formData.link_url       || null,
-        image_url:      formData.image_url      || null,
-        tags:           formData.tags.split(",").map(t => t.trim()).filter(Boolean) || null,
-        internal_notes: formData.internal_notes || null,
-      },
-      sectionId,
-    );
+
+    const candidate = {
+      section_id:     sectionId,
+      title:          formData.title,
+      subtitle:       formData.subtitle       || null,
+      date_from:      formData.date_from      || null,
+      date_to:        formData.date_to        || null,
+      description:    formData.description    || null,
+      link_url:       formData.link_url       || null,
+      image_url:      formData.image_url      || null,
+      tags:           formData.tags.split(",").map(t => t.trim()).filter(Boolean),
+      internal_notes: formData.internal_notes || null,
+    };
+
+    const parsed = portfolioItemSchema.safeParse(candidate);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      toast.error("Please fix the form", {
+        description: `${first.path.join(".")}: ${first.message}`,
+      });
+      return;
+    }
+
+    const { section_id: _sectionId, ...itemData } = parsed.data;
+    onSave({ id: item?.id, ...itemData }, sectionId);
     onClose();
   };
 

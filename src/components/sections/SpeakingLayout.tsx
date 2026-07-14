@@ -2,7 +2,15 @@ import type { ElementType } from "react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Mic, Newspaper, Wrench } from "lucide-react";
 import Link from "next/link";
-import { SectionLayoutProps, cardItemVariants, staggerVariants } from "./shared";
+import {
+  SectionLayoutProps,
+  cardItemVariants,
+  staggerVariants,
+  CARD,
+  CARD_HOVER,
+  HoverGlow,
+} from "./shared";
+import { cn } from "@/lib/utils";
 
 const TYPE_STYLES: Record<string, string> = {
   talk:      "bg-rose-500/10 text-rose-600 dark:text-rose-400",
@@ -25,8 +33,8 @@ export default function SpeakingLayout({ items }: SectionLayoutProps) {
         const Icon = TYPE_ICONS[typeTag] || Mic;
         return (
           <motion.div key={item.id} variants={cardItemVariants} className="group relative">
-            <div className="flex items-center gap-5 p-5 rounded-xl border border-border/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/4 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl" />
+            <div className={cn(CARD, CARD_HOVER, "flex items-center gap-5 p-5")}>
+              <HoverGlow direction="r" />
               <div className={`relative size-10 rounded-xl flex items-center justify-center shrink-0 ${style}`}>
                 <Icon className="size-4" />
               </div>
