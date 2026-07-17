@@ -1,4 +1,5 @@
 import "@/styles/globals.css";
+import "@/styles/themes.css";
 import "prism-themes/themes/prism-one-dark.css";
 import type { AppProps } from "next/app";
 import localFont from "next/font/local";

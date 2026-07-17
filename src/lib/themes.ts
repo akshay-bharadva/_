@@ -18,7 +18,7 @@ export const VALID_THEMES = [
 
 export const TYPOGRAPHY_CLASSES = TYPOGRAPHY_PRESETS.map((t) => t.value);
 
-export const DEFAULT_THEME = "theme-blueprint";
+export const DEFAULT_THEME = "theme-ink-light";
 export const THEME_STORAGE_KEY = "site-theme";
 
 type CustomThemeColors = NonNullable<

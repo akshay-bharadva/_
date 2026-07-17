@@ -273,6 +273,8 @@ export const TYPOGRAPHY_PRESETS = [
 export type TypographyPresetValue = (typeof TYPOGRAPHY_PRESETS)[number]["value"];
 
 export const THEME_PRESETS = [
+  { value: "theme-ink-light", label: "Ink" },
+  { value: "theme-ink-dark", label: "Ink Noir" },
   { value: "theme-blueprint", label: "Blueprint" },
   { value: "theme-dracula", label: "Dracula" },
   { value: "theme-nord", label: "Nord" },

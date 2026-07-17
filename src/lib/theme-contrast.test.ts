@@ -3,13 +3,13 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 /**
- * WCAG AA contrast regression test for every theme preset in globals.css.
+ * WCAG AA contrast regression test for every theme preset in themes.css.
  * Parses the HSL design tokens of each .theme-* block and asserts the
  * critical foreground/background pairs meet 4.5:1 (normal text).
  */
 
 const css = readFileSync(
-  resolve(__dirname, "../styles/globals.css"),
+  resolve(__dirname, "../styles/themes.css"),
   "utf-8",
 );
 
@@ -74,8 +74,8 @@ const PAIRS: Array<[string, string]> = [
 const themes = parseThemes(css);
 
 describe("theme presets meet WCAG AA contrast", () => {
-  it("parses all theme presets from globals.css", () => {
-    expect(themes.size).toBeGreaterThanOrEqual(30);
+  it("parses all theme presets from themes.css", () => {
+    expect(themes.size).toBeGreaterThanOrEqual(32);
   });
 
   for (const [name, tokens] of Array.from(themes.entries())) {

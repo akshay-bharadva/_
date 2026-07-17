@@ -12,7 +12,7 @@ describe("theme registry", () => {
   it("derives all preset themes plus the custom theme", () => {
     expect(VALID_THEMES).toContain(DEFAULT_THEME);
     expect(VALID_THEMES).toContain(CUSTOM_THEME);
-    expect(VALID_THEMES.length).toBe(31);
+    expect(VALID_THEMES.length).toBe(33);
     expect(TYPOGRAPHY_CLASSES).toContain("typo-default");
     expect(TYPOGRAPHY_CLASSES.length).toBe(8);
   });
