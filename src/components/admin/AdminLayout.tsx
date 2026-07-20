@@ -1,5 +1,5 @@
 import React, { useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/router";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/admin/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import FocusTimer from "./focus/FocusTimer";
-import Head from "next/head";
 import { isSupabaseConfigured } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -52,8 +51,7 @@ const formatTime = (seconds: number) => {
 };
 
 const Breadcrumbs = () => {
-  const router = useRouter();
-  const cleanPath = router.asPath.split("?")[0];
+  const cleanPath = usePathname() ?? "/admin";
   const pathSegments = cleanPath.split("/").filter((segment) => segment);
 
   if (pathSegments.length <= 1) {
@@ -122,6 +120,11 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   const pageTitle = title ? `${title} | Admin Panel` : "Admin Panel";
 
+  // App Router client components can't use next/head — set the tab title directly.
+  useEffect(() => {
+    document.title = pageTitle;
+  }, [pageTitle]);
+
   const { activeSession, elapsedTime } = useAppSelector(
     (state) => state.learningSession,
   );
@@ -175,14 +178,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
   return (
     <div className="min-h-[100dvh] bg-secondary/30 flex flex-col">
-      <Head>
-        <title>{pageTitle}</title>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
-        />
-      </Head>
-      {/* GlobalCommandPalette is rendered in _app.tsx to avoid duplicates during page transitions */}
+      {/* GlobalCommandPalette is rendered by the root providers to avoid duplicates during page transitions */}
       <FocusTimer />
 
       <div

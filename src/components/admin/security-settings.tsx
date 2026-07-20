@@ -2,7 +2,7 @@ import type React from "react";
 import { useState, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/supabase/client";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";

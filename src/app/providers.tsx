@@ -15,7 +15,7 @@ import { ConfirmDialogProvider } from "@/components/providers/ConfirmDialogProvi
 import GlobalCommandPalette from "@/components/GlobalCommandPalette";
 
 const tahuFont = localFont({
-  src: "../pages/fonts/Tahu.woff2",
+  src: "./fonts/Tahu.woff2",
   variable: "--font-tahu",
   display: "swap",
 });

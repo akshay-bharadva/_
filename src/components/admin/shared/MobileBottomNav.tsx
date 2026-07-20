@@ -1,4 +1,4 @@
-import { useRouter } from "next/router";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Search, Plus, Menu, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,8 @@ export default function MobileBottomNav({
   customItems,
 }: MobileBottomNavProps) {
   const router = useRouter();
-  const isHome = router.pathname === "/admin";
+  const pathname = usePathname() ?? "";
+  const isHome = pathname === "/admin";
 
   const defaultItems: NavItem[] = [
     {

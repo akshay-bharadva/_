@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   BookText,
@@ -87,6 +87,7 @@ export default function Sidebar({
   toggleCollapse,
 }: SidebarProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? "";
   const { session } = useSupabaseSession();
   const [signOut] = useSignOutMutation();
   const isMobile = useIsMobile();
@@ -102,8 +103,8 @@ export default function Sidebar({
     item: { name: string; href: string; icon: React.ElementType };
   }) => {
     const isActive =
-      router.pathname === item.href ||
-      (item.href !== "/admin" && router.pathname.startsWith(item.href));
+      pathname === item.href ||
+      (item.href !== "/admin" && pathname.startsWith(item.href));
 
     // Close the sidebar if on mobile when a link is clicked
     const handleClick = () => {

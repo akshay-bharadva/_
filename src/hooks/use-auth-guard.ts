@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase, Session } from "@/supabase/client";
 import { isSupabaseConfigured } from "@/lib/config";
 import { toast } from "sonner";
@@ -41,6 +41,7 @@ export function useSupabaseSession() {
 
 export function useAuthGuard() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
@@ -48,14 +49,11 @@ export function useAuthGuard() {
     // 1. Check if Supabase is even configured (Mock Mode)
     if (!isSupabaseConfigured || !supabase) {
       // If we are on an admin page, kick them out
-      if (router.pathname.startsWith("/admin")) {
-        // Prevent toast spam on initial load if redirecting immediately
-        if (router.isReady) {
-          toast.error("Admin Unavailable", {
-            description: "Portfolio is running in Static Mode (No Database).",
-          });
-          router.replace("/");
-        }
+      if (pathname?.startsWith("/admin")) {
+        toast.error("Admin Unavailable", {
+          description: "Portfolio is running in Static Mode (No Database).",
+        });
+        router.replace("/");
       }
       setIsLoading(false);
       return;
@@ -98,7 +96,7 @@ export function useAuthGuard() {
     return () => {
       authListener?.subscription?.unsubscribe();
     };
-  }, [router]);
+  }, [router, pathname]);
 
   return { isLoading, session };
 }
