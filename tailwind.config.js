@@ -3,6 +3,8 @@ module.exports = {
   darkMode: ["class"],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     // lib + hooks hold runtime-applied class names (VALID_THEMES,
     // THEME_PRESETS, typography presets) — without scanning them Tailwind
