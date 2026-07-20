@@ -62,8 +62,8 @@ export default function EmptyState({
 
   const variantClasses = {
     default: "",
-    bordered: "border-2 border-dashed border-border rounded-xl bg-muted/10",
-    card: "bg-card border border-border rounded-xl shadow-sm",
+    bordered: "border border-dashed border-border rounded-lg bg-graph-paper",
+    card: "bg-card border border-border rounded-lg shadow-sm",
   };
 
   return (
@@ -85,7 +85,12 @@ export default function EmptyState({
           className={cn("text-muted-foreground/70", iconSizes[size])}
         />
       </div>
-      <h3 className={cn("font-semibold text-foreground", titleSizes[size])}>
+      <h3
+        className={cn(
+          "font-heading font-semibold tracking-tight text-foreground",
+          titleSizes[size],
+        )}
+      >
         {title}
       </h3>
       {description && (

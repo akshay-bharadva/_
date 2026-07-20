@@ -122,7 +122,7 @@ export default function DashboardOverview({
           title="Primary Goal"
           value={`${goalProgress.toFixed(0)}%`}
           icon={Target}
-          subValue={primaryGoal?.name || "No goal set"}
+          helpText={primaryGoal?.name || "No goal set"}
         />
       </div>
 
@@ -142,11 +142,13 @@ export default function DashboardOverview({
               {overdueTasks.length === 0 &&
               tasksDueToday.length === 0 &&
               pinnedNotes.length === 0 ? (
-                <div className="flex flex-col h-full items-center justify-center text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg bg-muted/10">
-                  <CheckCircle className="mx-auto size-12 mb-4 text-green-500 opacity-80" />
-                  <p className="font-semibold">Inbox Zero</p>
+                <div className="flex flex-col h-full items-center justify-center text-center text-muted-foreground p-8 border border-dashed rounded-lg bg-graph-paper">
+                  <CheckCircle className="mx-auto size-12 mb-4 text-primary opacity-80" />
+                  <p className="font-heading font-semibold tracking-tight text-foreground">
+                    Inbox Zero
+                  </p>
                   <p className="text-sm">
-                    All clear! No immediate actions required.
+                    All clear — no immediate actions required.
                   </p>
                 </div>
               ) : (
@@ -308,7 +310,7 @@ export default function DashboardOverview({
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <h4 className="section-label mb-3 flex items-center gap-2">
                   <CalendarClock className="size-3" /> Upcoming Tasks
                 </h4>
                 {tasksDueSoon.length > 0 ? (
@@ -337,7 +339,7 @@ export default function DashboardOverview({
               <Separator />
 
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <h4 className="section-label mb-3 flex items-center gap-2">
                   <Repeat className="size-3" /> Projected Finance
                 </h4>
                 {upcomingRecurring.length > 0 ? (

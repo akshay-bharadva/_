@@ -4,6 +4,8 @@ import SearchInput from "./SearchInput";
 
 interface PageHeaderProps {
   title: string;
+  /** Optional mono kicker above the title ("01 / …"). */
+  kicker?: string;
   description?: string | ReactNode;
   actions?: ReactNode;
   searchValue?: string;
@@ -16,6 +18,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({
   title,
+  kicker,
   description,
   actions,
   searchValue,
@@ -38,7 +41,8 @@ export default function PageHeader({
       {/* Title Row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+          {kicker && <p className="section-label text-primary">{kicker}</p>}
+          <h1 className="font-heading text-2xl font-bold tracking-tight">{title}</h1>
           {description && (
             <div className="text-sm text-muted-foreground">
               {typeof description === "string" ? <p>{description}</p> : description}
