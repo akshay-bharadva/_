@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import LoadingSpinner from "@/components/admin/LoadingSpinner";
-import { withAdminPage } from "@/components/admin/withAdminPage";
 import {
   useGetHabitsQuery,
   useDeleteHabitMutation,
@@ -13,7 +12,7 @@ import HabitForm from "@/components/admin/habits/HabitForm";
 import HabitStats from "@/components/admin/habits/HabitStats";
 import HabitHeatmapModal from "@/components/admin/habits/HabitHeatmapModal";
 import { Button } from "@/components/ui/button";
-import { Plus, CheckSquare, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -26,7 +25,7 @@ import { Habit } from "@/types";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { PerfectDayBadge } from "@/components/admin/habits/PerfectDayBadge";
 
-function AdminHabitsContent() {
+export default function Page() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [selectedHabitForStats, setSelectedHabitForStats] =
@@ -139,11 +138,4 @@ function AdminHabitsContent() {
       />
     </div>
   );
-}
-
-const Wrapped = withAdminPage(AdminHabitsContent, { title: "Habit Tracker" });
-
-// App Router pages must not declare custom props — wrap at zero arity.
-export default function Page() {
-  return <Wrapped />;
 }

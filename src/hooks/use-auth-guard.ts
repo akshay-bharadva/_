@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { supabase, Session } from "@/supabase/client";
-import { isSupabaseConfigured } from "@/lib/config";
-import { toast } from "sonner";
 
 /**
  * Read-only session state for display purposes (user email, avatar).
- * No redirects and no MFA check — route protection is `useAuthGuard`,
- * which `withAdminPage` runs exactly once per page. Use this in layout
- * chrome (AdminLayout, Sidebar) so the guard isn't duplicated per mount.
+ * No redirects and no MFA check — route protection is `useAdminGuard`
+ * (src/features/admin-shell), which the (protected) layout runs once. Use
+ * this in shell chrome (sidebar, topbar) so the guard isn't duplicated.
  */
 export function useSupabaseSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,66 +34,4 @@ export function useSupabaseSession() {
   }, []);
 
   return { session, isLoading };
-}
-
-export function useAuthGuard() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [isLoading, setIsLoading] = useState(true);
-  const [session, setSession] = useState<Session | null>(null);
-
-  useEffect(() => {
-    // 1. Check if Supabase is even configured (Mock Mode)
-    if (!isSupabaseConfigured || !supabase) {
-      // If we are on an admin page, kick them out
-      if (pathname?.startsWith("/admin")) {
-        toast.error("Admin Unavailable", {
-          description: "Portfolio is running in Static Mode (No Database).",
-        });
-        router.replace("/");
-      }
-      setIsLoading(false);
-      return;
-    }
-
-    // 2. Standard Auth Check
-    const checkAuth = async () => {
-      const {
-        data: { session: currentSession },
-      } = await supabase!.auth.getSession();
-
-      if (!currentSession) {
-        router.replace("/admin/login");
-        return;
-      }
-
-      // Check MFA
-      const { data: aalData } =
-        await supabase!.auth.mfa.getAuthenticatorAssuranceLevel();
-
-      if (aalData?.currentLevel !== "aal2") {
-        router.replace("/admin/login");
-        return;
-      }
-
-      setSession(currentSession);
-      setIsLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event: string) => {
-        if (event === "SIGNED_OUT") {
-          router.replace("/admin/login");
-        }
-      },
-    );
-
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
-  }, [router, pathname]);
-
-  return { isLoading, session };
 }
