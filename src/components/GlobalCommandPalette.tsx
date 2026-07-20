@@ -1,6 +1,8 @@
 
 import * as React from "react";
-import { useRouter } from "next/router";
+// next/navigation works in both routers (Next ≥13.4) — required because this
+// palette is mounted by the App Router providers as well as pages/_app.
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { supabase } from "@/supabase/client";
 import { useAppDispatch } from "@/store/hooks";

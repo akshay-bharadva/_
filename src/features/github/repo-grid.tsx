@@ -69,8 +69,6 @@ export function RepoGrid() {
   const [visibleCount, setVisibleCount] = useState<number | null>(null);
   const shown = visibleCount ?? perPage;
 
-  if (identity && (!config?.show || !config.username)) return null;
-
   if (isLoading || isIdentityLoading || !identity) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -80,6 +78,8 @@ export function RepoGrid() {
       </div>
     );
   }
+
+  if (!config?.show || !config.username) return null;
 
   if (isError || !repos?.length) {
     return (

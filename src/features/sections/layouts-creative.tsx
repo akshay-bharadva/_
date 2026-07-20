@@ -170,7 +170,7 @@ export function UsesLayout({ items }: LayoutProps) {
   }
   return (
     <div className="space-y-8">
-      {[...groups.entries()].map(([category, groupItems]) => (
+      {Array.from(groups.entries()).map(([category, groupItems]) => (
         <div key={category}>
           <h3 className="section-label mb-3">{category}</h3>
           <ul className="grid gap-3 sm:grid-cols-2">
