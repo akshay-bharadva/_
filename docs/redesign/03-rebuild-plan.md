@@ -55,16 +55,25 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   screens (AAL routing contract preserved verbatim); all 15 admin routes ported to the
   App Router `(protected)` group; Pages Router fully deleted; admin chrome converted
   next/router→next/navigation; build workarounds reverted (App-Router-only, clean).
-- [ ] **Phase 3b admin shell + modules** — REMAINING. The `(protected)` routes currently
-  reuse the v1 `AdminLayout`/`Sidebar` and the v1 module managers (tasks, finance, etc.)
-  via `withAdminPage`. These still carry v1 design. Next: build `src/features/admin-shell/`
-  (new sidebar/topbar per design-vision §4), a new dashboard composition, then restyle
-  module internals. This is the largest remaining chunk (~80 components).
-- [ ] **Phase 4 cleanup & polish** — a11y sweep, dynamic-import heavy editors/charts,
-  README/CLAUDE.md, port remaining admin tests.
+- [x] **Phase 3b-shell admin shell** — DONE. New `src/features/admin-shell/`: grouped
+  collapsible sidebar (Overview/Content/Life/System), topbar (breadcrumb, command-palette
+  trigger, live learning pill, quick-add, account menu), `use-admin-guard` (App Router
+  successor to `withAdminPage`), `admin-shell` composition. `(protected)/layout.tsx` guards
+  once + wraps all 15 routes; pages simplified to render managers directly. Deleted the v1
+  `withAdminPage`/`AdminLayout`/`Sidebar` and the dead `/admin/test` nav link. CLAUDE.md
+  updated for the App Router. Runtime-verified: all public routes + admin/login boot 200
+  with no runtime errors.
+- [ ] **Phase 3b-modules module internals** — REMAINING. The ~15 module managers
+  (`src/components/admin/*`) still carry v1 internal design. They are token-styled, so they
+  inherit the new Ink theme and read coherently inside the new shell, but their layouts
+  (dashboard widgets, kanban, finance tabs, editors) haven't been bespoke-redesigned. This
+  is the long tail: restyle per-module using the shared patterns.
+- [ ] **Phase 4 cleanup & polish** — a11y sweep, dynamic-import remaining heavy deps
+  (Recharts on dashboard/finance, TipTap suites — calendar + blog editor already dynamic),
+  port/expand admin tests, README.
 
 ## Current build/test state (as of latest commit)
 - `npm run build` (static export) green, cold + warm; 29 routes, public shared JS ~88 kB
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
 - `npm run test` 176 passing; `npx tsc --noEmit` clean.
-- Old Pages Router public component tree fully removed.
+- Pages Router fully removed; app is App-Router-only; dev server boots, pages render 200.
