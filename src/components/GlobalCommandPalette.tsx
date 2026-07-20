@@ -206,11 +206,11 @@ export default function GlobalCommandPalette() {
                 </CommandItem>
                 <CommandItem
                   onSelect={() =>
-                    runCommand(() => router.push("/admin/analytics"))
+                    runCommand(() => router.push("/admin/learning"))
                   }
                 >
                   <Calculator className="mr-2 h-4 w-4" />
-                  <span>Analytics</span>
+                  <span>Learning</span>
                 </CommandItem>
                 <CommandItem
                   onSelect={() =>

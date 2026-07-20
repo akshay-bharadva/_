@@ -3,7 +3,9 @@ import { config as appConfig } from "@/lib/config";
 import { HomePage } from "@/features/home/home-page";
 
 export const metadata: Metadata = {
-  title: appConfig.site.title,
+  // site.title already reads "{name} | Portfolio" — bypass the "%s | {author}"
+  // root template so the home tab isn't doubled.
+  title: { absolute: appConfig.site.title },
   description: appConfig.site.description,
   openGraph: {
     title: appConfig.site.title,
