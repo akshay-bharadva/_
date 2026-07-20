@@ -44,7 +44,27 @@ New section-renderer with the same `layout_style` contract (21 layouts).
 ## Status log
 - [x] Functional specs extracted (00a public, 00b admin, 00c data)
 - [x] Design vision + architecture docs
-- [ ] Phase 1 foundation
-- [ ] Phase 2 public site
-- [ ] Phase 3 admin
-- [ ] Phase 4 cleanup & polish
+- [x] **Phase 1 foundation** — themes.css split (32 presets, contrast-gated), Ink/Ink-Noir
+  default identity, App Router root layout + provider stack, Space Grotesk headings.
+- [x] **Phase 2 public site** — new chrome (site-header, footer, maintenance gate),
+  home (hero + 3 status-panel designs), about, showcase, projects (+ GitHub grid),
+  contact (validated form), updates (scrapbook + timeline), blog list + post view
+  (preserved markdown/sanitize pipeline, new TOC + reading progress), `[...slug]` CMS
+  pages, App Router 404. New 21-layout section renderer with registry-coverage test.
+- [x] **Phase 3a admin auth + router migration** — new login/signup/setup-mfa/mfa-challenge
+  screens (AAL routing contract preserved verbatim); all 15 admin routes ported to the
+  App Router `(protected)` group; Pages Router fully deleted; admin chrome converted
+  next/router→next/navigation; build workarounds reverted (App-Router-only, clean).
+- [ ] **Phase 3b admin shell + modules** — REMAINING. The `(protected)` routes currently
+  reuse the v1 `AdminLayout`/`Sidebar` and the v1 module managers (tasks, finance, etc.)
+  via `withAdminPage`. These still carry v1 design. Next: build `src/features/admin-shell/`
+  (new sidebar/topbar per design-vision §4), a new dashboard composition, then restyle
+  module internals. This is the largest remaining chunk (~80 components).
+- [ ] **Phase 4 cleanup & polish** — a11y sweep, dynamic-import heavy editors/charts,
+  README/CLAUDE.md, port remaining admin tests.
+
+## Current build/test state (as of latest commit)
+- `npm run build` (static export) green, cold + warm; 29 routes, public shared JS ~88 kB
+  (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
+- `npm run test` 176 passing; `npx tsc --noEmit` clean.
+- Old Pages Router public component tree fully removed.
