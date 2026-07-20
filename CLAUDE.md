@@ -6,7 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 (Pages Router). Supports two modes: static portfolio (zero-config with mock data) and dynamic CMS with Supabase backend. Deployed as a static export to GitHub Pages.
+Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 (App Router). Supports two modes: static portfolio (zero-config with mock data) and dynamic CMS with Supabase backend. Deployed as a static export (`output: "export"`) to GitHub Pages.
+
+> **v2 redesign (branch `redesign/v2`):** the app was rebuilt from scratch with a new
+> visual identity ("Precision Instrument" — Ink theme) and migrated Pages Router → App
+> Router. The data layer, Zod schemas, DB schema, and RTK store were preserved as business
+> logic. See `docs/redesign/` for the functional specs, design vision, architecture, and
+> phase plan. Every route is a static-export client experience; Supabase is called from the
+> client, so interactive pages are client components under thin server `page.tsx` wrappers.
 
 ## Commands
 
@@ -33,10 +40,11 @@ All API calls check if Supabase is configured. If not, mock data from `src/lib/f
 
 ### Routing
 
-- **Pages Router** (`src/pages/`): 29 pages total.
-- **Public pages**: `/`, `/about`, `/projects`, `/contact`, `/blog`, `/blog/view/[slug]`, `/[...slug]` (catch-all).
-- **Admin pages** (`src/pages/admin/`): protected pages — dashboard, tasks, finance, habits, learning, calendar, notes, content CMS, blog editor, settings, security — plus auth screens (login, signup, MFA setup/challenge).
-- **Auth guard**: `src/hooks/use-auth-guard.ts` (via the `withAdminPage` HOC, used by every admin page) protects admin routes.
+- **App Router** (`src/app/`), static export.
+- **Public** — route group `src/app/(public)/` with shared chrome (`components/layout/public-chrome`): `/`, `/about`, `/projects`, `/showcase`, `/contact`, `/updates`, `/blog`, `/blog/view` (`?slug=`, static-export-friendly), `/[...slug]` (CMS catch-all via `generateStaticParams`). Plus `src/app/not-found.tsx`.
+- **Admin** — `src/app/admin/`: `(auth)` group (login, signup, setup-mfa, mfa-challenge) with no guard; `(protected)` group whose `layout.tsx` runs the guard + Personal OS shell and wraps dashboard + 14 modules (tasks, habits, learning, calendar, notes, finance, inventory, content, blog, updates/life-updates, navigation, assets, settings, security).
+- **Auth guard**: `src/features/admin-shell/use-admin-guard.ts`, invoked once by the `(protected)` layout (replaces the old per-page `withAdminPage` HOC). `src/hooks/use-auth-guard.ts` now only exports the read-only `useSupabaseSession` for chrome.
+- **Feature-first UI**: page-specific logic lives in `src/features/<domain>/` (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell); `src/components/layout/` holds shared chrome; `src/components/ui/` the primitives. Admin *module internals* still live in `src/components/admin/` (v1 components, token-styled so they inherit the new theme).
 
 ### Validation
 
@@ -44,15 +52,17 @@ Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form 
 
 ### Styling
 
-- Tailwind CSS with class-based dark mode. 30+ theme presets defined as CSS variables in `src/styles/globals.css`; the labeled registry lives in `src/lib/constants.ts` (`THEME_PRESETS`), and theme application logic in `src/lib/themes.ts` + `src/hooks/use-theme-sync.ts`. Toasts use sonner exclusively.
+- Tailwind CSS with token-based theming. The base token scale + prose/motif styles live in `src/styles/globals.css`; the **32 theme presets** (v2 default `theme-ink-light`/`theme-ink-dark`) + 8 typography presets live in `src/styles/themes.css` (raw CSS, deliberately unlayered so Tailwind can't tree-shake runtime-applied classes). Labeled registry in `src/lib/constants.ts` (`THEME_PRESETS`); application logic in `src/lib/themes.ts` + `src/hooks/use-theme-sync.ts`; WCAG AA contrast gate in `src/lib/theme-contrast.test.ts` (parses `themes.css`). Toasts use sonner exclusively.
+- Design language: Space Grotesk headings (`font-heading`), Inter body, JetBrains Mono metadata (`font-mono`); motif helper classes `bg-graph-paper`, `rule-dotted`, `status-line`, `section-label`. Style with token classes only (`bg-card`, `text-primary`, `border-border`…) so all presets keep working.
 - UI primitives from Shadcn/Radix in `src/components/ui/`.
-- Animations via Framer Motion.
+- Animations via Framer Motion (`MotionConfig reducedMotion="user"` globally; use `whileInView` + `viewport={{ once: true }}`, never hide content behind JS-only animation).
 
 ### Key Directories
 
-- `src/components/admin/` — Admin dashboard components (~80 files), organized by feature (tasks/, finance/, habits/, learning/, etc.)
-- `src/components/public/` — Public-facing page components
-- `src/components/ui/` — Shadcn UI primitives (40+ components)
+- `src/app/` — App Router route tree (`(public)`, `admin/(auth)`, `admin/(protected)`), root `layout.tsx` + `providers.tsx`.
+- `src/features/` — feature-first UI (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell).
+- `src/components/layout/` — shared public/admin chrome. `src/components/ui/` — Shadcn UI primitives (40+ components).
+- `src/components/admin/` — Admin module internals (~80 files), organized by feature (tasks/, finance/, habits/, learning/, etc.); rendered inside the new admin shell.
 - `src/lib/` — Config, constants, utilities, Zod schemas, fallback data
 - `src/types/index.ts` — Central TypeScript interfaces (150+ types)
 - `src/supabase/client.ts` — Supabase client initialization
@@ -62,7 +72,7 @@ Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form 
 
 Supabase Auth with mandatory MFA/TOTP. Row Level Security on all tables — public read for published content, admin-only write. Session max age: 24 hours.
 
-MFA and single-admin are enforced **at the database level**, not just in the client: write policies require `public.is_admin()` (first registered user + AAL2 session) or `auth.uid() = user_id AND public.is_aal2()`, and a `block_additional_signups` trigger on `auth.users` rejects account creation once an admin exists. The client-side `useAuthGuard` checks are UX, not the security boundary. Blog markdown is sanitized with `rehype-sanitize` (after `rehype-raw`, before prism/slug).
+MFA and single-admin are enforced **at the database level**, not just in the client: write policies require `public.is_admin()` (first registered user + AAL2 session) or `auth.uid() = user_id AND public.is_aal2()`, and a `block_additional_signups` trigger on `auth.users` rejects account creation once an admin exists. The client-side `useAdminGuard` checks are UX, not the security boundary. Blog markdown is sanitized with `rehype-sanitize` (after `rehype-raw`, before prism/slug).
 
 ### Testing
 
