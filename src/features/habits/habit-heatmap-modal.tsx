@@ -1,19 +1,19 @@
+"use client";
+
+import {
+  eachDayOfInterval,
+  endOfYear,
+  format,
+  startOfYear,
+} from "date-fns";
+import type { Habit } from "@/types";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { Habit } from "@/types";
-import {
-  eachDayOfInterval,
-  subDays,
-  format,
-  isSameDay,
-  startOfYear,
-  endOfYear,
-} from "date-fns";
 import {
   Tooltip,
   TooltipContent,
@@ -28,14 +28,13 @@ interface HabitHeatmapModalProps {
   onClose: () => void;
 }
 
-export default function HabitHeatmapModal({
+export function HabitHeatmapModal({
   habit,
   isOpen,
   onClose,
 }: HabitHeatmapModalProps) {
   if (!habit) return null;
 
-  // Generate days for the current year
   const today = new Date();
   const days = eachDayOfInterval({
     start: startOfYear(today),
@@ -59,7 +58,7 @@ export default function HabitHeatmapModal({
         </DialogHeader>
 
         <div className="mt-4">
-          <div className="flex flex-wrap gap-1 justify-center">
+          <div className="flex flex-wrap justify-center gap-1">
             {days.map((day) => {
               const dateStr = format(day, "yyyy-MM-dd");
               const isDone = logsSet.has(dateStr);

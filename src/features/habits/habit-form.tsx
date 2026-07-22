@@ -1,7 +1,12 @@
+"use client";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Habit } from "@/types";
+import { Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import type { Habit } from "@/types";
+import { useSaveHabitMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,9 +17,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Check, Loader2 } from "lucide-react";
-import { useSaveHabitMutation } from "@/store/api/adminApi";
-import { toast } from "sonner";
 import {
   Popover,
   PopoverContent,
@@ -30,6 +32,7 @@ const habitSchema = z.object({
 
 type FormValues = z.infer<typeof habitSchema>;
 
+// Per-habit accent colors, stored on the habit row — user data, not theme tokens
 const COLORS = [
   "#ef4444", // red
   "#f97316", // orange
@@ -41,7 +44,7 @@ const COLORS = [
   "#ec4899", // pink
 ];
 
-export default function HabitForm({
+export function HabitForm({
   habit,
   onSuccess,
 }: {
@@ -64,7 +67,7 @@ export default function HabitForm({
       await saveHabit({ id: habit?.id, ...values, is_active: true }).unwrap();
       toast.success("Habit saved successfully");
       onSuccess();
-    } catch (error) {
+    } catch {
       toast.error("Failed to save habit");
     }
   };
@@ -96,12 +99,12 @@ export default function HabitForm({
             <FormItem>
               <FormLabel>Color Code</FormLabel>
               <FormControl>
-                <div className="flex gap-3 items-center">
+                <div className="flex items-center gap-3">
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="size-10 rounded-full border-2 shadow-sm transition-transform hover:scale-105 focus:outline-none focus:ring-2 ring-offset-2 ring-primary"
+                        className="size-10 rounded-full border-2 shadow-sm ring-primary transition-transform hover:scale-105 focus:outline-none focus:ring-2 ring-offset-2"
                         style={{
                           backgroundColor: field.value,
                           borderColor: field.value,
@@ -115,7 +118,7 @@ export default function HabitForm({
                             key={c}
                             onClick={() => field.onChange(c)}
                             className={cn(
-                              "size-10 rounded-full cursor-pointer flex items-center justify-center border-2 transition-all hover:scale-110",
+                              "flex size-10 cursor-pointer items-center justify-center rounded-full border-2 transition-all hover:scale-110",
                               field.value === c
                                 ? "border-foreground"
                                 : "border-transparent",

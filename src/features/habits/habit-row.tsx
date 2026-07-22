@@ -1,8 +1,10 @@
+"use client";
+
 import React, { useMemo } from "react";
 import { format } from "date-fns";
-import { Habit } from "@/types";
-import { cn } from "@/lib/utils";
-import { Flame, MoreVertical, Edit2, Trash2, BarChart2 } from "lucide-react";
+import confetti from "canvas-confetti";
+import { BarChart2, Edit2, Flame, MoreVertical, Trash2 } from "lucide-react";
+import type { Habit } from "@/types";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -12,8 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { calculateHabitStats } from "@/lib/habit-utils";
-import confetti from "canvas-confetti";
-import HabitCell from "./HabitCell";
+import { cn } from "@/lib/utils";
+import { HabitCell } from "./habit-cell";
 
 interface HabitRowProps {
   habit: Habit;
@@ -24,15 +26,8 @@ interface HabitRowProps {
   onViewStats: (habit: Habit) => void;
 }
 
-const HabitRow = React.memo(
-  ({
-    habit,
-    dates,
-    onToggle,
-    onEdit,
-    onDelete,
-    onViewStats,
-  }: HabitRowProps) => {
+export const HabitRow = React.memo(
+  ({ habit, dates, onToggle, onEdit, onDelete, onViewStats }: HabitRowProps) => {
     const { streak, completionRate } = useMemo(
       () => calculateHabitStats(habit),
       [habit],
@@ -59,26 +54,28 @@ const HabitRow = React.memo(
 
     return (
       <TableRow className="hover:bg-muted/20">
-        {/* Sticky Habit Name Column */}
+        {/* Sticky habit-name column */}
         <TableCell
-          className="w-[120px] sm:w-[160px] min-w-[120px] sm:min-w-[160px] sticky left-0 bg-background/95 backdrop-blur z-10 border-r p-3"
+          className="sticky left-0 z-10 w-[120px] min-w-[120px] border-r bg-background/95 p-3 backdrop-blur sm:w-[160px] sm:min-w-[160px]"
           onClick={() => onViewStats(habit)}
         >
-          <div className="flex flex-col justify-center h-full gap-0.5 cursor-pointer">
-            <p className="font-semibold text-sm truncate text-foreground">
+          <div className="flex h-full cursor-pointer flex-col justify-center gap-0.5">
+            <p className="truncate text-sm font-semibold text-foreground">
               {habit.title}
             </p>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="font-mono text-[10px] text-muted-foreground">
               {habit.target_per_week}/wk • {completionRate}%
             </p>
           </div>
         </TableCell>
 
-        {/* Date Cells */}
         {dates.map((date) => {
           const dateStr = format(date, "yyyy-MM-dd");
           return (
-            <TableCell key={dateStr} className="p-0 text-center w-11 min-w-[44px]">
+            <TableCell
+              key={dateStr}
+              className="w-11 min-w-[44px] p-0 text-center"
+            >
               <HabitCell
                 dateStr={dateStr}
                 isCompleted={completedDatesSet.has(dateStr)}
@@ -90,15 +87,15 @@ const HabitRow = React.memo(
           );
         })}
 
-        {/* Sticky Stats Column */}
-        <TableCell className="w-[60px] min-w-[60px] sticky right-0 bg-background/95 backdrop-blur z-10 border-l px-1">
+        {/* Sticky stats column */}
+        <TableCell className="sticky right-0 z-10 w-[60px] min-w-[60px] border-l bg-background/95 px-1 backdrop-blur">
           <div className="flex items-center justify-center gap-1">
             <div
               className={cn(
-                "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold border",
+                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold",
                 streak > 0
-                  ? "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 border-orange-500/20"
-                  : "bg-muted/50 text-muted-foreground border-transparent",
+                  ? "border-chart-3/20 bg-chart-3/15 text-chart-3"
+                  : "border-transparent bg-muted/50 text-muted-foreground",
               )}
             >
               <span>{streak}</span>
@@ -107,7 +104,11 @@ const HabitRow = React.memo(
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 rounded-full text-muted-foreground"
+                >
                   <MoreVertical className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
@@ -118,7 +119,10 @@ const HabitRow = React.memo(
                 <DropdownMenuItem onClick={() => onEdit(habit)}>
                   <Edit2 className="mr-2 size-3.5" /> Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive" onClick={() => onDelete(habit.id)}>
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => onDelete(habit.id)}
+                >
                   <Trash2 className="mr-2 size-3.5" /> Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -131,4 +135,3 @@ const HabitRow = React.memo(
 );
 
 HabitRow.displayName = "HabitRow";
-export default HabitRow;

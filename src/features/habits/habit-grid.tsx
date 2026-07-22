@@ -1,18 +1,22 @@
-import React, { useMemo, useRef, useEffect } from "react";
-import { format, subDays, isSameDay } from "date-fns";
-import { Habit } from "@/types";
-import { cn } from "@/lib/utils";
+"use client";
+
+import { useEffect, useMemo, useRef } from "react";
+import { format, isSameDay, subDays } from "date-fns";
+import { CalendarCheck2 } from "lucide-react";
+import type { Habit } from "@/types";
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
-  TableCell,
 } from "@/components/ui/table";
-import HabitRow from "./HabitRow";
-import { useResponsiveDays } from "@/hooks/use-responsive-days"; // Import our new hook
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { EmptyState } from "@/components/admin/shared";
+import { useResponsiveDays } from "@/hooks/use-responsive-days";
+import { cn } from "@/lib/utils";
+import { HabitRow } from "./habit-row";
 
 interface HabitGridProps {
   habits: Habit[];
@@ -22,14 +26,14 @@ interface HabitGridProps {
   onViewStats: (habit: Habit) => void;
 }
 
-export default function HabitGrid({
+export function HabitGrid({
   habits,
   onToggle,
   onEdit,
   onDelete,
   onViewStats,
 }: HabitGridProps) {
-  const daysToShow = useResponsiveDays(); // Use the hook instead of isMobile
+  const daysToShow = useResponsiveDays();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const dates = useMemo(() => {
@@ -38,7 +42,7 @@ export default function HabitGrid({
     );
   }, [daysToShow]);
 
-  // Auto-scroll to the end (today's date) on load or when days change
+  // Auto-scroll to today (rightmost column) on load or when days change
   useEffect(() => {
     const timer = setTimeout(() => {
       if (scrollAreaRef.current) {
@@ -49,27 +53,27 @@ export default function HabitGrid({
   }, [habits, daysToShow]);
 
   return (
-    <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <ScrollArea className="w-full whitespace-nowrap">
-        <div className="min-w-full inline-block align-middle" ref={scrollAreaRef}>
+        <div className="inline-block min-w-full align-middle" ref={scrollAreaRef}>
           <Table>
             <TableHeader className="bg-muted/30">
-              <TableRow className="hover:bg-transparent border-b">
-                <TableHead className="w-[120px] sm:w-[160px] min-w-[120px] sm:min-w-[160px] pl-4 h-12 sticky left-0 bg-background/95 backdrop-blur z-20 border-r">
+              <TableRow className="border-b hover:bg-transparent">
+                <TableHead className="sticky left-0 z-20 h-12 w-[120px] min-w-[120px] border-r bg-background/95 pl-4 backdrop-blur sm:w-[160px] sm:min-w-[160px]">
                   Habit
                 </TableHead>
                 {dates.map((date) => (
                   <TableHead
                     key={date.toString()}
-                    className="p-0 h-12 w-11 min-w-[44px] text-center align-middle font-normal"
+                    className="h-12 w-11 min-w-[44px] p-0 text-center align-middle font-normal"
                   >
                     <div className="flex flex-col items-center justify-center gap-0.5">
-                      <span className="text-[10px] text-muted-foreground uppercase">
+                      <span className="font-mono text-[10px] uppercase text-muted-foreground">
                         {format(date, "EEE")}
                       </span>
                       <span
                         className={cn(
-                          "text-xs font-semibold h-6 w-6 flex items-center justify-center rounded-full",
+                          "flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
                           isSameDay(date, new Date())
                             ? "bg-primary text-primary-foreground"
                             : "text-foreground/80",
@@ -80,7 +84,7 @@ export default function HabitGrid({
                     </div>
                   </TableHead>
                 ))}
-                <TableHead className="text-center w-[60px] min-w-[60px] sticky right-0 bg-background/95 backdrop-blur z-20 border-l">
+                <TableHead className="sticky right-0 z-20 w-[60px] min-w-[60px] border-l bg-background/95 text-center backdrop-blur">
                   Stats
                 </TableHead>
               </TableRow>
@@ -99,11 +103,13 @@ export default function HabitGrid({
               ))}
               {habits.length === 0 && (
                 <TableRow>
-                  <TableCell
-                    colSpan={daysToShow + 2}
-                    className="h-40 text-center text-muted-foreground"
-                  >
-                    No habits found.
+                  <TableCell colSpan={daysToShow + 2} className="p-0">
+                    <EmptyState
+                      icon={CalendarCheck2}
+                      title="No habits yet"
+                      description="Create a habit to start building streaks."
+                      size="compact"
+                    />
                   </TableCell>
                 </TableRow>
               )}
