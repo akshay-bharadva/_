@@ -347,7 +347,7 @@ export default function FinanceManager() {
               />
             ))}
             {goals.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+              <div className="col-span-full text-center py-12 text-muted-foreground border border-dashed rounded-lg">
                 No goals yet.
               </div>
             )}

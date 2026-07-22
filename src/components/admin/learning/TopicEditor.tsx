@@ -234,7 +234,7 @@ export default function TopicEditor({ topic, onBack, onTopicUpdate }: TopicEdito
                     ))}
                   </AnimatePresence>
                   {resources.length === 0 && (
-                    <div onClick={() => setIsAddResourceOpen(true)} className="border-2 border-dashed border-border/60 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 transition-all">
+                    <div onClick={() => setIsAddResourceOpen(true)} className="border border-dashed border-border/60 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 transition-all">
                       <p className="text-xs font-medium text-foreground">Empty Library</p>
                       <p className="text-[10px] text-muted-foreground mt-1">Add links, videos, or docs.</p>
                     </div>
@@ -278,7 +278,7 @@ export default function TopicEditor({ topic, onBack, onTopicUpdate }: TopicEdito
                     ))}
                   </AnimatePresence>
                   {resources.length === 0 && (
-                    <div onClick={() => setIsAddResourceOpen(true)} className="border-2 border-dashed border-border/60 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 transition-all">
+                    <div onClick={() => setIsAddResourceOpen(true)} className="border border-dashed border-border/60 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/30 transition-all">
                       <p className="text-xs font-medium text-foreground">Empty Library</p>
                       <p className="text-[10px] text-muted-foreground mt-1">Add links, videos, or docs.</p>
                     </div>

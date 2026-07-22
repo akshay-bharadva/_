@@ -310,7 +310,7 @@ export default function SectionDetail({
                 ))}
                 {(!section.portfolio_items ||
                   section.portfolio_items.length === 0) && (
-                  <div className="text-center py-10 border-2 border-dashed rounded-lg bg-muted/10 text-muted-foreground">
+                  <div className="text-center py-10 border border-dashed rounded-lg bg-muted/10 text-muted-foreground">
                     No items yet. Click "Add Item" to create one.
                   </div>
                 )}

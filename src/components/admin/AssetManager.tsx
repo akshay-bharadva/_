@@ -403,7 +403,7 @@ export default function AssetManager() {
 
         <CardContent className="p-4 flex-1 relative overflow-y-auto">
           {isDragging && (
-            <div className="absolute inset-0 z-50 bg-primary/10 border-2 border-dashed border-primary rounded-b-lg flex flex-col items-center justify-center backdrop-blur-sm">
+            <div className="absolute inset-0 z-50 bg-primary/10 border border-dashed border-primary rounded-b-lg flex flex-col items-center justify-center backdrop-blur-sm">
               <Upload className="size-10 text-primary mb-2" />
               <p className="font-semibold text-primary">
                 Drop files to upload to current folder

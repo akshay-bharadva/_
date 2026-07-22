@@ -290,7 +290,7 @@ export default function LifeUpdateEditor({
             </div>
           )}
           {!imageUrl && (
-            <label className="mt-2 flex items-center justify-center h-24 border-2 border-dashed rounded-md cursor-pointer hover:bg-secondary/20 transition-colors">
+            <label className="mt-2 flex items-center justify-center h-24 border border-dashed rounded-md cursor-pointer hover:bg-secondary/20 transition-colors">
               <input
                 type="file"
                 accept="image/*"

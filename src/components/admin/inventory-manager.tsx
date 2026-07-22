@@ -238,7 +238,7 @@ export default function InventoryManager() {
         {isLoading ? (
           <div className="flex justify-center p-20"><Loader2 className="animate-spin size-10 text-muted-foreground" /></div>
         ) : processedData.filtered.length === 0 ? (
-          <div className="text-center py-16 border-2 border-dashed rounded-xl bg-muted/20">
+          <div className="text-center py-16 border border-dashed rounded-xl bg-muted/20">
             <Box className="size-10 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground">No assets found.</p>
           </div>

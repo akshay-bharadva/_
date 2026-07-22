@@ -1,48 +1,44 @@
-import React, { useState, useMemo } from "react";
+"use client";
+
+import React, { useMemo, useState } from "react";
+import { Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import type { Task } from "@/types";
 import {
-  useGetTasksQuery,
-  useAddTaskMutation,
-  useUpdateTaskMutation,
-  useDeleteTaskMutation,
   useAddSubTaskMutation,
-  useUpdateSubTaskMutation,
   useDeleteSubTaskMutation,
+  useDeleteTaskMutation,
+  useGetTasksQuery,
+  useUpdateSubTaskMutation,
+  useUpdateTaskMutation,
 } from "@/store/api/adminApi";
-import { TaskTreeView } from "@/components/admin/tasks/TaskTreeView";
-import { TaskKanbanBoard } from "@/components/admin/tasks/TaskKanbanBoard";
-import TaskForm from "@/components/admin/tasks/TaskForm";
-import { PageHeader, ManagerWrapper } from "@/components/admin/shared";
-import { Plus, X } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
-} from "@/components/ui/sheet";
+import { useAppDispatch } from "@/store/hooks";
+import { startFocus } from "@/store/slices/focusSlice";
+import { FormSheet, ManagerWrapper, PageHeader } from "@/components/admin/shared";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TaskBoard } from "./task-board";
+import { TaskList } from "./task-list";
+import { TaskForm } from "./task-form";
+import type { TaskStatus } from "./task-meta";
 
-export default function TaskManager() {
+export default function TasksPage() {
   const confirm = useConfirm();
   const isMobile = useIsMobile();
+  const dispatch = useAppDispatch();
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -57,7 +53,6 @@ export default function TaskManager() {
   );
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
 
-  // API Hooks
   const { data: tasks = [], isLoading } = useGetTasksQuery();
   const [updateTask] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
@@ -65,7 +60,6 @@ export default function TaskManager() {
   const [updateSubTask] = useUpdateSubTaskMutation();
   const [deleteSubTask] = useDeleteSubTaskMutation();
 
-  // Derived state for editing
   const editingTask = useMemo(() => {
     if (editingTaskId) {
       return tasks.find((t) => t.id === editingTaskId) || null;
@@ -73,21 +67,18 @@ export default function TaskManager() {
     return newTaskDefaults || null;
   }, [tasks, editingTaskId, newTaskDefaults]);
 
-  // Filtering & Sorting
   const filteredTasks = useMemo(() => {
     const filtered = tasks.filter((t) =>
       t.title.toLowerCase().includes(searchTerm.toLowerCase()),
     );
-    return [...filtered].sort((a, b) => {
-      return (
+    return [...filtered].sort(
+      (a, b) =>
         new Date(b.created_at || 0).getTime() -
-        new Date(a.created_at || 0).getTime()
-      );
-    });
+        new Date(a.created_at || 0).getTime(),
+    );
   }, [tasks, searchTerm]);
 
-  // Handlers
-  const handleCreateTask = (initialStatus: "todo" | "inprogress" | "done" = "todo") => {
+  const handleCreateTask = (initialStatus: TaskStatus = "todo") => {
     setEditingTaskId(null);
     setNewTaskDefaults({ status: initialStatus });
     setIsSheetOpen(true);
@@ -112,8 +103,21 @@ export default function TaskManager() {
       toast.success("Task deleted");
       if (editingTaskId === id) setIsSheetOpen(false);
     } catch (err) {
-      toast.error("Failed to delete task", { description: getErrorMessage(err) });
+      toast.error("Failed to delete task", {
+        description: getErrorMessage(err),
+      });
     }
+  };
+
+  const handleStartFocus = (task: Task) => {
+    dispatch(
+      startFocus({
+        durationMinutes: 25,
+        taskTitle: task.title,
+        taskId: task.id,
+      }),
+    );
+    toast.success("Focus timer started for task");
   };
 
   const openSubtaskDialog = (taskId: string) => {
@@ -134,14 +138,22 @@ export default function TaskManager() {
       toast.success("Subtask added");
       setIsSubtaskDialogOpen(false);
     } catch (err) {
-      toast.error("Failed to add subtask", { description: getErrorMessage(err) });
+      toast.error("Failed to add subtask", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
-    <ManagerWrapper className="flex flex-col h-[calc(100vh-4rem)] md:h-auto">
+    <ManagerWrapper className="flex h-[calc(100vh-4rem)] flex-col md:h-auto">
       <PageHeader
         title="Tasks"
         description="Manage projects, track progress, and organize your workflow"
@@ -159,20 +171,21 @@ export default function TaskManager() {
         }
       />
 
-      {/* 
-        MAIN CONTENT AREA 
-        flex-1 min-h-0: Ensures it fills available space but scrolls internally
-        overflow-hidden: Prevents double scrollbars
-      */}
-      <div className={cn("flex-1 min-h-0 flex flex-col bg-secondary/5 rounded-lg border border-border/40 relative mt-4", isMobile ? "overflow-hidden" : "overflow-visible")}>
+      {/* flex-1 min-h-0 keeps the board filling available space with internal scroll */}
+      <div
+        className={cn(
+          "relative mt-4 flex min-h-0 flex-1 flex-col rounded-lg border border-border/40 bg-secondary/5",
+          isMobile ? "overflow-hidden" : "overflow-visible",
+        )}
+      >
         {isMobile ? (
-          // MOBILE VIEW: TABLE / TREE
           <div className="h-full w-full overflow-auto bg-background">
-            <TaskTreeView
+            <TaskList
               tasks={filteredTasks}
               onUpdateTask={(id, updates) => updateTask({ id, ...updates })}
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}
+              onStartFocus={handleStartFocus}
               onAddSubTask={openSubtaskDialog}
               onUpdateSubTask={(id, completed) =>
                 updateSubTask({ id, is_completed: completed })
@@ -181,45 +194,32 @@ export default function TaskManager() {
             />
           </div>
         ) : (
-          // DESKTOP VIEW: KANBAN BOARD
           <div className="h-full w-full p-2">
-            <TaskKanbanBoard
+            <TaskBoard
               tasks={filteredTasks}
               onUpdateTask={(id, updates) => updateTask({ id, ...updates })}
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}
+              onStartFocus={handleStartFocus}
               onNewTask={handleCreateTask}
             />
           </div>
         )}
       </div>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md md:max-w-lg overflow-y-auto">
-          <div className="flex justify-between items-center mb-6">
-            <SheetHeader>
-              <SheetTitle>
-                {editingTask?.id ? "Edit Task" : "Create Task"}
-              </SheetTitle>
-              <SheetDescription>
-                Manage task details and subtasks.
-              </SheetDescription>
-            </SheetHeader>
-            <SheetClose asChild>
-              <Button type="button" variant="ghost" size="icon">
-                <X className="size-4" />
-              </Button>
-            </SheetClose>
-          </div>
-
-          <TaskForm
-            key={editingTask?.id || "new"}
-            task={editingTask}
-            onSuccess={() => setIsSheetOpen(false)}
-            onClose={() => setIsSheetOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
+      <FormSheet
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        title={editingTask?.id ? "Edit Task" : "Create Task"}
+        description="Manage task details and subtasks."
+      >
+        <TaskForm
+          key={editingTask?.id || "new"}
+          task={editingTask}
+          onSuccess={() => setIsSheetOpen(false)}
+          onClose={() => setIsSheetOpen(false)}
+        />
+      </FormSheet>
 
       <Dialog open={isSubtaskDialogOpen} onOpenChange={setIsSubtaskDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -249,13 +249,5 @@ export default function TaskManager() {
         </DialogContent>
       </Dialog>
     </ManagerWrapper>
-  );
-}
-
-function LoadingSpinner() {
-  return (
-    <div className="flex h-96 items-center justify-center">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" />
-    </div>
   );
 }

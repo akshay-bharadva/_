@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { Check, Loader2, Palette, X } from "lucide-react";
+import { toast } from "sonner";
 import type { Note } from "@/types";
 import {
   useAddNoteMutation,
@@ -7,23 +11,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, X, Check, Palette } from "lucide-react";
 import {
   SheetClose,
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import NovelEditor from "@/components/admin/novel-editor";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import NovelEditor from "@/components/admin/novel-editor";
 import { cn, getErrorMessage } from "@/lib/utils";
-import { toast } from "sonner";
 
-// Google Keep-ish Pastel Colors
+// Per-note accent colors, stored on the note row — user data, not theme tokens
 const NOTE_COLORS = [
   "#f87171", // Red
   "#fb923c", // Orange
@@ -41,11 +43,7 @@ interface NoteEditorProps {
   onCancel: () => void;
 }
 
-export default function NoteEditor({
-  note,
-  onCancel,
-  onSuccess,
-}: NoteEditorProps) {
+export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState("");
@@ -55,7 +53,6 @@ export default function NoteEditor({
   const [updateNote, { isLoading: isUpdating }] = useUpdateNoteMutation();
   const isLoading = isAdding || isUpdating;
 
-  // Initialize state when note changes
   useEffect(() => {
     if (note) {
       setTitle(note.title || "");
@@ -63,7 +60,6 @@ export default function NoteEditor({
       setTags(note.tags?.join(", ") || "");
       setColor(note.color || null);
     } else {
-      // Reset for new note
       setTitle("");
       setContent("");
       setTags("");
@@ -99,35 +95,36 @@ export default function NoteEditor({
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
-      {/* Header - Fixed */}
-      <div className="flex shrink-0 justify-between items-center py-4 border-b">
-        <div className="space-y-1">
-          <SheetTitle>{note?.id ? "Edit Note" : "Create New Note"}</SheetTitle>
-          <SheetDescription className="text-xs">
-            Capture your ideas.
-          </SheetDescription>
+    <div className="flex h-full w-full flex-col">
+      {/* Header — fixed */}
+      <SheetHeader className="shrink-0 space-y-0 border-b py-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1 text-left">
+            <SheetTitle>{note?.id ? "Edit Note" : "Create New Note"}</SheetTitle>
+            <SheetDescription className="text-xs">
+              Capture your ideas.
+            </SheetDescription>
+          </div>
+          <SheetClose asChild>
+            <Button type="button" variant="ghost">
+              <X />
+            </Button>
+          </SheetClose>
         </div>
-        <SheetClose asChild>
-          <Button type="button" variant="ghost">
-            <X />
-          </Button>
-        </SheetClose>
-      </div>
+      </SheetHeader>
 
-      {/* Main Form Area - Flex Grow */}
       <form
         onSubmit={handleSubmit}
-        className="flex-1 flex flex-col min-h-0 pt-4"
+        className="flex min-h-0 flex-1 flex-col pt-4"
       >
-        {/* Title & Color Row */}
-        <div className="flex gap-2 items-center mb-4 shrink-0">
+        {/* Title & color row */}
+        <div className="mb-4 flex shrink-0 items-center gap-2">
           <Input
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title"
-            className="font-bold text-lg h-12 border-transparent px-2 shadow-none focus-visible:ring-0 focus-visible:bg-secondary/20 placeholder:text-muted-foreground/50"
+            className="h-12 border-transparent px-2 text-lg font-bold shadow-none placeholder:text-muted-foreground/50 focus-visible:bg-secondary/20 focus-visible:ring-0"
           />
           <Popover>
             <PopoverTrigger asChild>
@@ -153,7 +150,7 @@ export default function NoteEditor({
                 <button
                   type="button"
                   onClick={() => setColor(null)}
-                  className="h-8 w-8 rounded-full border border-dashed flex items-center justify-center hover:bg-muted"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed hover:bg-muted"
                   title="Default"
                 >
                   <X className="size-3 text-muted-foreground" />
@@ -163,7 +160,7 @@ export default function NoteEditor({
                     key={c}
                     type="button"
                     onClick={() => setColor(c)}
-                    className="h-8 w-8 rounded-full flex items-center justify-center transition-transform hover:scale-110 border border-black/5 dark:border-white/10"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-black/5 transition-transform hover:scale-110 dark:border-white/10"
                     style={{ backgroundColor: c }}
                   >
                     {color === c && (
@@ -176,37 +173,37 @@ export default function NoteEditor({
           </Popover>
         </div>
 
-        {/* Editor Container - The Scrolling Part */}
-        <div className="flex-1 min-h-0 border rounded-md bg-card overflow-hidden flex flex-col">
+        {/* Editor — the scrolling region */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border bg-card">
           <NovelEditor
             value={content}
             onChange={setContent}
             placeholder="Start writing..."
             minHeight="100%"
             isRounded={false}
-            className="h-full border-none" // This ensures the editor fills the container
+            className="h-full border-none"
           />
         </div>
 
-        {/* Tags Input - Fixed at bottom */}
+        {/* Tags — fixed at bottom */}
         <div className="shrink-0 pt-4">
-          <Label htmlFor="tags" className="text-xs text-muted-foreground ml-1">
+          <Label htmlFor="tags" className="ml-1 text-xs text-muted-foreground">
             Tags (comma-separated)
           </Label>
-          <div className="flex items-center gap-2 mt-1.5 border rounded-md px-3 bg-background focus-within:ring-1 focus-within:ring-ring">
+          <div className="mt-1.5 flex items-center gap-2 rounded-md border bg-background px-3 focus-within:ring-1 focus-within:ring-ring">
             <span className="text-muted-foreground">#</span>
             <Input
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="work, personal, ideas..."
-              className="border-none shadow-none focus-visible:ring-0 h-9 p-0"
+              className="h-9 border-none p-0 shadow-none focus-visible:ring-0"
             />
           </div>
         </div>
 
-        {/* Footer Actions - Fixed */}
-        <div className="flex shrink-0 justify-end gap-3 pt-6 mt-2 border-t">
+        {/* Footer actions — fixed */}
+        <div className="mt-2 flex shrink-0 justify-end gap-3 border-t pt-6">
           <Button
             type="button"
             variant="ghost"

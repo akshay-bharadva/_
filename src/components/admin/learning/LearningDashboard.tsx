@@ -171,7 +171,7 @@ export default function LearningDashboard({
         </div>
 
         {subjects.length === 0 ? (
-          <div className="p-12 border-2 border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center text-center">
+          <div className="p-12 border border-dashed rounded-2xl bg-muted/5 flex flex-col items-center justify-center text-center">
             <div className="size-16 bg-muted/20 rounded-full flex items-center justify-center mb-4">
               <Layers className="size-8 text-muted-foreground/50" />
             </div>

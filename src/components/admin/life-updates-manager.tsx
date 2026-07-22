@@ -180,7 +180,7 @@ export default function LifeUpdatesManager() {
           />
 
           {!isLoading && filteredUpdates.length === 0 ? (
-            <div className="py-20 text-center text-muted-foreground border-2 border-dashed rounded-lg bg-muted/10">
+            <div className="py-20 text-center text-muted-foreground border border-dashed rounded-lg bg-muted/10">
               <Megaphone className="mx-auto size-12 opacity-20" />
               <h3 className="mt-4 text-lg font-semibold">No Updates Found</h3>
               <p className="mt-1 text-sm text-muted-foreground/80">

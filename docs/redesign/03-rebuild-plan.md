@@ -63,11 +63,24 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   `withAdminPage`/`AdminLayout`/`Sidebar` and the dead `/admin/test` nav link. CLAUDE.md
   updated for the App Router. Runtime-verified: all public routes + admin/login boot 200
   with no runtime errors.
-- [ ] **Phase 3b-modules module internals** — REMAINING. The ~15 module managers
-  (`src/components/admin/*`) still carry v1 internal design. They are token-styled, so they
-  inherit the new Ink theme and read coherently inside the new shell, but their layouts
-  (dashboard widgets, kanban, finance tabs, editors) haven't been bespoke-redesigned. This
-  is the long tail: restyle per-module using the shared patterns.
+- [~] **Phase 3b-modules module internals** — IN PROGRESS. Approach corrected: v1
+  managers in `src/components/admin/` are **rebuilt as new feature-first
+  implementations** (per `02-architecture.md` §2), not restyled in place; the old files
+  are deleted at parity. **Tasks done** — new `src/features/tasks/` (tasks-page,
+  task-board, task-list, task-form, task-pills, task-meta): single `task-meta.ts`
+  source of truth for status/priority labels/icons/colors; all color via tokens
+  (`primary`/`destructive`/`chart-2`/`chart-3`) so the 32 presets apply; Ink grammar
+  (section-label column headers, status dots, mono counts, dotted rules); edit sheet
+  now uses shared `FormSheet` (drawer on mobile); focus-start handler lifted to the
+  page (was duplicated in board + tree). Old `tasks-manager.tsx` + `tasks/` deleted.
+  **Notes done** — new `src/features/notes/` (notes-page, note-card, note-editor):
+  masonry grid + tag rail preserved, Ink touches (heading font, mono metadata,
+  section-label rail, destructive tokens, shared EmptyState); per-note pastel colors
+  kept (user data, not theme). Old `notes-manager.tsx` + `note-editor.tsx` deleted.
+  Also: v1 `border-2 border-dashed` normalized to single-width dashed across
+  remaining modules. Remaining rebuilds: habits, learning, calendar, finance,
+  inventory, blog, content CMS, updates, navigation, assets, settings, security,
+  dashboard.
 - [ ] **Phase 4 cleanup & polish** — a11y sweep, dynamic-import remaining heavy deps
   (Recharts on dashboard/finance, TipTap suites — calendar + blog editor already dynamic),
   port/expand admin tests, README.

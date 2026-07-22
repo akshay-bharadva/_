@@ -1,7 +1,7 @@
 "use client";
 
-import NotesManager from "@/components/admin/notes-manager";
+import NotesPage from "@/features/notes/notes-page";
 
 export default function Page() {
-  return <NotesManager />;
+  return <NotesPage />;
 }

@@ -326,7 +326,7 @@ export default function SubjectTopicTree({
           </Accordion>
 
           {filteredSubjects.length === 0 && (
-            <div className="text-center py-12 px-4 border-2 border-dashed rounded-xl bg-muted/10">
+            <div className="text-center py-12 px-4 border border-dashed rounded-xl bg-muted/10">
               <Book className="size-8 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-xs text-muted-foreground mb-3">
                 No modules found.

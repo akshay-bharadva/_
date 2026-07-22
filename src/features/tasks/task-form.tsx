@@ -1,14 +1,19 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Task, SubTask } from "@/types";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2, X } from "lucide-react";
+import { toast } from "sonner";
+import type { SubTask, Task } from "@/types";
 import {
-  useAddTaskMutation,
-  useUpdateTaskMutation,
   useAddSubTaskMutation,
-  useUpdateSubTaskMutation,
+  useAddTaskMutation,
   useDeleteSubTaskMutation,
+  useUpdateSubTaskMutation,
+  useUpdateTaskMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,16 +35,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Trash2, X, CalendarIcon } from "lucide-react";
-import { toast } from "sonner";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
+import {
+  TASK_PRIORITIES,
+  TASK_PRIORITY_META,
+  TASK_STATUSES,
+  TASK_STATUS_META,
+} from "./task-meta";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -55,7 +63,7 @@ interface TaskFormProps {
   onClose: () => void;
 }
 
-export default function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
+export function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
   const [addTask, { isLoading: isAdding }] = useAddTaskMutation();
   const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
   const [addSubTask, { isLoading: isAddingSubtask }] = useAddSubTaskMutation();
@@ -116,7 +124,7 @@ export default function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6 mt-6">
+      <form onSubmit={form.handleSubmit(handleSave)} className="mt-6 space-y-6">
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -148,9 +156,11 @@ export default function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="todo">To Do</SelectItem>
-                      <SelectItem value="inprogress">In Progress</SelectItem>
-                      <SelectItem value="done">Done</SelectItem>
+                      {TASK_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {TASK_STATUS_META[status].label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -173,9 +183,11 @@ export default function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
+                      {TASK_PRIORITIES.map((priority) => (
+                        <SelectItem key={priority} value={priority}>
+                          {TASK_PRIORITY_META[priority].label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -216,9 +228,7 @@ export default function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
                         field.value ? parseLocalDate(field.value) : undefined
                       }
                       onSelect={(date) =>
-                        field.onChange(
-                          date ? format(date, "yyyy-MM-dd") : null,
-                        )
+                        field.onChange(date ? format(date, "yyyy-MM-dd") : null)
                       }
                       initialFocus
                     />
@@ -270,7 +280,7 @@ export default function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
                   </div>
                 ))}
 
-                {/* Subtask Input - Fixed nested form issue */}
+                {/* Plain div + button, not a nested <form> */}
                 <div className="mt-2 flex gap-2 border-t pt-3">
                   <Input
                     value={newSubtaskTitle}

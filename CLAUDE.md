@@ -23,6 +23,7 @@ Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 
 | `npm run build` | Production build + static export to `./out/` |
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest (run once); `npm run test:watch` for watch mode |
+| `npx vitest run <path>` | Run a single test file, e.g. `npx vitest run src/lib/theme-contrast.test.ts`; add `-t "<name>"` to filter by test name |
 | `npm run format` | Prettier |
 
 ## Architecture

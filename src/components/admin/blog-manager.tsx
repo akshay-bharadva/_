@@ -217,7 +217,7 @@ export default function BlogManager({
                     }
                   : undefined
               }
-              className="h-64 border-2 border-dashed rounded-lg bg-muted/10 mx-0 sm:mx-4 my-4"
+              className="h-64 border border-dashed rounded-lg bg-muted/10 mx-0 sm:mx-4 my-4"
             />
           ) : (
             <>

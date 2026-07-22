@@ -1,7 +1,7 @@
 "use client";
 
-import TaskManager from "@/components/admin/tasks-manager";
+import TasksPage from "@/features/tasks/tasks-page";
 
 export default function Page() {
-  return <TaskManager />;
+  return <TasksPage />;
 }
