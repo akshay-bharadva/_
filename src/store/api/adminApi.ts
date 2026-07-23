@@ -18,3 +18,5 @@ export * from "./admin/blogAdminApi";
 export * from "./admin/lifeUpdatesApi";
 export * from "./admin/siteApi";
 export * from "./admin/assetsApi";
+export * from "./admin/financeApi";
+export * from "./admin/financeSetupApi";
