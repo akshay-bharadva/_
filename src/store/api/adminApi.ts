@@ -20,3 +20,5 @@ export * from "./admin/siteApi";
 export * from "./admin/assetsApi";
 export * from "./admin/financeApi";
 export * from "./admin/financeSetupApi";
+export * from "./admin/calendarApi";
+export * from "./admin/calendarSetupApi";
