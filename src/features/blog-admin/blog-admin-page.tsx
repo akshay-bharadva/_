@@ -1,13 +1,18 @@
-import { useState, useMemo, useEffect } from "react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { FileText, Loader2, Plus } from "lucide-react";
+import { toast } from "sonner";
 import type { BlogPost } from "@/types";
 import {
-  useGetAdminBlogPostsQuery,
   useAddBlogPostMutation,
-  useUpdateBlogPostMutation,
   useDeleteBlogPostMutation,
+  useGetAdminBlogPostsQuery,
+  useUpdateBlogPostMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -15,13 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Plus, FileText } from "lucide-react";
-import { toast } from "sonner";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import {
+  EmptyState,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
-import { useConfirm } from "../providers/ConfirmDialogProvider";
-import { PageHeader, EmptyState, ManagerWrapper } from "./shared";
-import { PostsTable, PostCards } from "./blog/post-list";
+import { PostCards, PostsTable } from "./post-list";
 
 // The editor pulls in the full TipTap/Novel suite — load it only when a post
 // is actually opened for editing, so the list view stays light.
@@ -34,15 +40,15 @@ const BlogEditor = dynamic(() => import("./blog-editor"), {
   ),
 });
 
-interface BlogManagerProps {
+interface BlogAdminPageProps {
   startInCreateMode?: boolean;
   onActionHandled?: () => void;
 }
 
-export default function BlogManager({
+export default function BlogAdminPage({
   startInCreateMode,
   onActionHandled,
-}: BlogManagerProps) {
+}: BlogAdminPageProps) {
   const confirm = useConfirm();
 
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
@@ -158,7 +164,7 @@ export default function BlogManager({
   };
 
   return (
-    <ManagerWrapper className="h-full flex flex-col">
+    <ManagerWrapper className="flex h-full flex-col">
       <PageHeader
         title="Blog Manager"
         description="Manage, create, and publish your content."
@@ -193,8 +199,8 @@ export default function BlogManager({
         }
       />
 
-      <Card className="flex-1 flex flex-col overflow-hidden border-none sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-card">
-        <CardContent className="p-0 flex-1 overflow-auto bg-transparent sm:bg-background/50">
+      <Card className="flex flex-1 flex-col overflow-hidden border-none bg-transparent shadow-none sm:border sm:bg-card sm:shadow-sm">
+        <CardContent className="flex-1 overflow-auto bg-transparent p-0 sm:bg-background/50">
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -217,7 +223,7 @@ export default function BlogManager({
                     }
                   : undefined
               }
-              className="h-64 border border-dashed rounded-lg bg-muted/10 mx-0 sm:mx-4 my-4"
+              className="mx-0 my-4 h-64 rounded-lg border border-dashed bg-muted/10 sm:mx-4"
             />
           ) : (
             <>

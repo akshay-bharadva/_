@@ -1,20 +1,22 @@
-import { useState, useEffect, FormEvent } from "react";
+"use client";
+
+import { useEffect, useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
 import type { BlogPost } from "@/types";
 import NovelEditor from "@/components/admin/novel-editor";
 import { supabase } from "@/supabase/client";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Save } from "lucide-react";
-import { Alert, AlertDescription } from "../ui/alert";
-import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import {
   PostSettingsSheet,
   type BlogPostFormValues,
-} from "./blog/post-settings-sheet";
-import { useBlogImageUpload } from "./blog/use-blog-image-upload";
+} from "./post-settings-sheet";
+import { useBlogImageUpload } from "./use-blog-image-upload";
 
 interface BlogEditorProps {
   post: BlogPost | null;
@@ -150,11 +152,11 @@ export default function BlogEditor({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-6rem)] overflow-hidden"
+      className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden sm:h-[calc(100vh-6rem)]"
     >
       {/* Sticky Header Toolbar */}
-      <div className="shrink-0 sticky top-0 z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b bg-background/95 py-4 gap-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-start">
+      <div className="sticky top-0 z-10 flex shrink-0 flex-col items-start justify-between gap-4 border-b bg-background/95 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:flex-row sm:items-center">
+        <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-start">
           <Button
             variant="ghost"
             size="sm"
@@ -168,21 +170,21 @@ export default function BlogEditor({
               variant={formData.published ? "default" : "secondary"}
               className={
                 formData.published
-                  ? "bg-green-500/15 text-green-600 hover:bg-green-500/25"
+                  ? "bg-chart-2/15 text-chart-2 hover:bg-chart-2/25"
                   : ""
               }
             >
               {formData.published ? "Published" : "Draft"}
             </Badge>
             {isSaving && (
-              <span className="text-xs text-muted-foreground animate-pulse">
+              <span className="animate-pulse text-xs text-muted-foreground">
                 Saving...
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <PostSettingsSheet
             open={isSettingsOpen}
             onOpenChange={setIsSettingsOpen}
@@ -195,7 +197,7 @@ export default function BlogEditor({
           <Button
             onClick={() => handleSubmit()}
             disabled={isSaving || isUploading}
-            className="flex-1 sm:flex-none shadow-sm"
+            className="flex-1 shadow-sm sm:flex-none"
           >
             {isSaving ? (
               <>
@@ -210,7 +212,7 @@ export default function BlogEditor({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0 max-w-5xl mx-auto w-full mt-2 sm:mt-6 space-y-4 sm:space-y-6 px-4">
+      <div className="mx-auto mt-2 flex min-h-0 w-full max-w-5xl flex-1 flex-col space-y-4 px-4 sm:mt-6 sm:space-y-6">
         <div className="shrink-0 px-1">
           <Input
             id="title"
@@ -218,22 +220,22 @@ export default function BlogEditor({
             onChange={(e) => handleTitleChange(e.target.value)}
             placeholder="Post Title"
             className={cn(
-              "text-3xl sm:text-4xl md:text-5xl font-black tracking-tight border-none px-0 h-auto bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/40 leading-tight",
+              "h-auto border-none bg-transparent px-0 font-heading text-3xl font-black leading-tight tracking-tight placeholder:text-muted-foreground/40 focus-visible:ring-0 sm:text-4xl md:text-5xl",
               errors.title && "placeholder:text-destructive/60",
             )}
             autoFocus
           />
           {errors.title && (
-            <p className="text-sm text-destructive mt-1 font-medium">
+            <p className="mt-1 text-sm font-medium text-destructive">
               {errors.title}
             </p>
           )}
         </div>
 
-        <div className="flex-1 min-h-0 flex flex-col rounded-lg border bg-card shadow-sm overflow-hidden relative mb-6">
+        <div className="relative mb-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
           {isUploading && (
-            <div className="absolute top-2 right-2 z-20 bg-background/80 backdrop-blur px-3 py-1 rounded-full text-xs font-medium flex items-center border shadow-sm">
-              <Loader2 className="size-3 animate-spin mr-2" /> Uploading
+            <div className="absolute right-2 top-2 z-20 flex items-center rounded-full border bg-background/80 px-3 py-1 text-xs font-medium shadow-sm backdrop-blur">
+              <Loader2 className="mr-2 size-3 animate-spin" /> Uploading
               image...
             </div>
           )}
@@ -243,7 +245,7 @@ export default function BlogEditor({
             onChange={(newContent) => patchForm({ content: newContent })}
             onImageUpload={handleContentImageUpload}
             minHeight="100%"
-            className="h-full border-none" // Remove border here since parent has it
+            className="h-full border-none" // Parent supplies the border
             isRounded={false} // Remove internal rounding to fit parent
           />
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import BlogManager from "@/components/admin/blog-manager";
+import BlogAdminPage from "@/features/blog-admin/blog-admin-page";
 
 export default function Page() {
-  return <BlogManager />;
+  return <BlogAdminPage />;
 }

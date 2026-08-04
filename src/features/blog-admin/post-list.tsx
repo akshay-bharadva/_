@@ -1,6 +1,21 @@
-import { motion, AnimatePresence } from "framer-motion";
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { format } from "date-fns";
+import {
+  Calendar,
+  Edit,
+  ExternalLink,
+  Eye,
+  FileText,
+  ImageIcon,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
 import type { BlogPost } from "@/types";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -17,19 +32,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Edit,
-  Trash2,
-  Eye,
-  MoreHorizontal,
-  FileText,
-  Calendar,
-  ExternalLink,
-  ImageIcon,
-} from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export interface PostListProps {
@@ -72,7 +74,7 @@ export function PostsTable({
                 className="group hover:bg-secondary/40"
               >
                 <TableCell>
-                  <div className="h-10 w-10 rounded-md border bg-secondary/50 overflow-hidden flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-md border bg-secondary/50">
                     {post.cover_image_url ? (
                       <img
                         src={post.cover_image_url}
@@ -86,10 +88,10 @@ export function PostsTable({
                 </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
-                    <span className="truncate max-w-[200px] lg:max-w-[300px]">
+                    <span className="max-w-[200px] truncate lg:max-w-[300px]">
                       {post.title}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">
+                    <span className="font-mono text-xs text-muted-foreground">
                       /{post.slug}
                     </span>
                   </div>
@@ -99,7 +101,7 @@ export function PostsTable({
                     variant={post.published ? "default" : "secondary"}
                     className={
                       post.published
-                        ? "bg-primary/15 text-primary hover:bg-primary/25 border-primary/20"
+                        ? "border-primary/20 bg-primary/15 text-primary hover:bg-primary/25"
                         : ""
                     }
                   >
@@ -123,7 +125,7 @@ export function PostsTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="h-8 w-8 opacity-0 transition-opacity group-hover:opacity-100"
                       onClick={() => onEdit(post)}
                     >
                       <Edit className="h-4 w-4" />
@@ -193,7 +195,7 @@ export function PostCards({
   onDelete,
 }: PostListProps) {
   return (
-    <div className="md:hidden space-y-3">
+    <div className="space-y-3 md:hidden">
       <AnimatePresence>
         {posts.map((post) => (
           <motion.div
@@ -206,7 +208,7 @@ export function PostCards({
               <CardContent className="p-4">
                 <div className="flex gap-4">
                   {post.cover_image_url && (
-                    <div className="h-16 w-16 shrink-0 rounded-md border bg-secondary/50 overflow-hidden flex items-center justify-center">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-secondary/50">
                       <img
                         src={post.cover_image_url}
                         alt=""
@@ -215,9 +217,9 @@ export function PostCards({
                     </div>
                   )}
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-semibold text-sm truncate pr-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-start justify-between">
+                      <h3 className="truncate pr-2 text-sm font-semibold">
                         {post.title}
                       </h3>
                       <DropdownMenu>
@@ -225,7 +227,7 @@ export function PostCards({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 -mr-2 -mt-1"
+                            className="-mr-2 -mt-1 h-6 w-6"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
@@ -249,24 +251,24 @@ export function PostCards({
                       </DropdownMenu>
                     </div>
 
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <Badge
                         variant={post.published ? "default" : "secondary"}
                         className={cn(
-                          "text-[10px] h-5 px-1.5",
+                          "h-5 px-1.5 text-[10px]",
                           post.published
-                            ? "bg-primary/15 text-primary border-primary/20"
+                            ? "border-primary/20 bg-primary/15 text-primary"
                             : "",
                         )}
                       >
                         {post.published ? "Published" : "Draft"}
                       </Badge>
-                      <span className="text-xs text-muted-foreground font-mono">
+                      <span className="font-mono text-xs text-muted-foreground">
                         /{post.slug}
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-2 border-t pt-2">
+                    <div className="mt-2 flex items-center justify-between border-t pt-2 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Eye className="size-3" />{" "}
                         {post.views?.toLocaleString() || 0}

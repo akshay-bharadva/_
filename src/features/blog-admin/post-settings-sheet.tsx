@@ -1,5 +1,8 @@
+"use client";
+
 import type React from "react";
 import { useRef } from "react";
+import { FileText, Globe, Settings, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +20,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, FileText, Settings, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Editable blog post fields as held in the editor's form state. */
@@ -69,8 +71,8 @@ export function PostSettingsSheet({
           <Settings className="mr-2 size-4" /> Settings
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col">
-        <div className="flex justify-between items-center">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
+        <div className="flex items-center justify-between">
           <SheetHeader>
             <SheetTitle>Post Settings</SheetTitle>
             <SheetDescription>
@@ -83,10 +85,10 @@ export function PostSettingsSheet({
             </Button>
           </SheetClose>
         </div>
-        <ScrollArea className="h-[calc(100vh-8rem)] pr-4 mt-6">
+        <ScrollArea className="mt-6 h-[calc(100vh-8rem)] pr-4">
           <div className="space-y-6">
             {/* Publication Toggle */}
-            <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-secondary/10">
+            <div className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-4 shadow-sm">
               <div className="space-y-0.5">
                 <Label className="text-base">Publish Post</Label>
                 <p className="text-xs text-muted-foreground">
@@ -99,7 +101,7 @@ export function PostSettingsSheet({
               />
             </div>
 
-            <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-secondary/10">
+            <div className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-4 shadow-sm">
               <div className="space-y-0.5">
                 <Label className="text-base">Show Table of Contents</Label>
                 <p className="text-xs text-muted-foreground">
@@ -168,7 +170,7 @@ export function PostSettingsSheet({
             <div className="space-y-2">
               <Label>Cover Image</Label>
               <Tabs defaultValue="url" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-2">
+                <TabsList className="mb-2 grid w-full grid-cols-2">
                   <TabsTrigger value="url">Image URL</TabsTrigger>
                   <TabsTrigger value="upload">Upload New</TabsTrigger>
                 </TabsList>
@@ -193,18 +195,18 @@ export function PostSettingsSheet({
                       </Button>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Paste a URL from Unsplash or your Asset Manager.
                   </p>
                 </TabsContent>
 
                 <TabsContent value="upload">
                   <div
-                    className="rounded-lg border border-dashed p-4 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                    className="cursor-pointer rounded-lg border border-dashed p-4 text-center transition-colors hover:bg-muted/50"
                     onClick={() => coverImageInputRef.current?.click()}
                   >
                     <div className="flex flex-col items-center justify-center py-2">
-                      <Upload className="size-6 text-muted-foreground mb-2" />
+                      <Upload className="mb-2 size-6 text-muted-foreground" />
                       <p className="text-sm font-medium">Click to upload</p>
                       <p className="text-xs text-muted-foreground">
                         SVG, PNG, JPG or GIF
@@ -223,7 +225,7 @@ export function PostSettingsSheet({
 
               {/* Image Preview */}
               {values.cover_image_url && (
-                <div className="mt-3 relative aspect-video w-full overflow-hidden rounded-md border bg-secondary/30">
+                <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-md border bg-secondary/30">
                   <img
                     src={values.cover_image_url}
                     alt="Cover Preview"
@@ -232,7 +234,7 @@ export function PostSettingsSheet({
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
-                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm">
+                  <div className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white backdrop-blur-sm">
                     Preview
                   </div>
                 </div>
