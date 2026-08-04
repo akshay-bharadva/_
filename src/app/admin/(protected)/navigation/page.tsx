@@ -1,7 +1,7 @@
 "use client";
 
-import NavigationManager from "@/components/admin/NavigationManager";
+import NavigationPage from "@/features/navigation/navigation-page";
 
 export default function Page() {
-  return <NavigationManager />;
+  return <NavigationPage />;
 }

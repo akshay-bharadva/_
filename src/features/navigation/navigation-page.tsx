@@ -1,37 +1,35 @@
-import React, { useState, useEffect, DragEvent } from "react";
+"use client";
+
+import { useEffect, useState, type DragEvent } from "react";
+import { Edit, GripVertical, Link2, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  useDeleteNavLinkMutation,
+  useGetNavLinksAdminQuery,
+  useSaveNavLinkMutation,
+} from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Loader2, Plus, Edit, Trash2, GripVertical, X } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
-} from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  useGetNavLinksAdminQuery,
-  useSaveNavLinkMutation,
-  useDeleteNavLinkMutation,
-  useUpdateSectionOrderMutation,
-} from "@/store/api/adminApi";
-import { cn, getErrorMessage } from "@/lib/utils";
-import { useConfirm } from "../providers/ConfirmDialogProvider";
-import { PageHeader, ManagerWrapper } from "./shared";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  EmptyState,
+  FormSheet,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
+import { cn, getErrorMessage } from "@/lib/utils";
+import { NavLinkForm } from "./nav-link-form";
 
-type NavLink = {
+export type NavLink = {
   id: string;
   label: string;
   href: string;
@@ -39,59 +37,7 @@ type NavLink = {
   is_visible: boolean;
 };
 
-const LinkForm = ({
-  link,
-  onSave,
-  onCancel,
-}: {
-  link: Partial<NavLink> | null;
-  onSave: (data: Partial<NavLink>) => void;
-  onCancel: () => void;
-}) => {
-  const [formData, setFormData] = useState({
-    label: link?.label || "",
-    href: link?.href || "",
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({ ...link, ...formData });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-6">
-      <div className="space-y-1">
-        <Label htmlFor="label">Label</Label>
-        <Input
-          id="label"
-          value={formData.label}
-          onChange={(e) =>
-            setFormData((f) => ({ ...f, label: e.target.value }))
-          }
-          required
-          autoFocus
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor="href">Path (e.g., /about)</Label>
-        <Input
-          id="href"
-          value={formData.href}
-          onChange={(e) => setFormData((f) => ({ ...f, href: e.target.value }))}
-          required
-        />
-      </div>
-      <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">Save Link</Button>
-      </div>
-    </form>
-  );
-};
-
-export default function NavigationManager() {
+export default function NavigationPage() {
   const confirm = useConfirm();
   const isMobile = useIsMobile();
 
@@ -103,7 +49,6 @@ export default function NavigationManager() {
   const { data: links = [], isLoading } = useGetNavLinksAdminQuery();
   const [saveNavLink] = useSaveNavLinkMutation();
   const [deleteNavLink] = useDeleteNavLinkMutation();
-  
 
   useEffect(() => {
     setLocalLinks(links);
@@ -134,7 +79,9 @@ export default function NavigationManager() {
       toast.success("Navigation link deleted.");
       if (editingLink?.id === id) setIsSheetOpen(false);
     } catch (err) {
-      toast.error("Failed to delete link", { description: getErrorMessage(err) });
+      toast.error("Failed to delete link", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
@@ -154,7 +101,9 @@ export default function NavigationManager() {
       if (editingLink?.id === link.id) {
         setEditingLink({ ...editingLink, is_visible: link.is_visible });
       }
-      toast.error("Failed to update visibility", { description: getErrorMessage(err) });
+      toast.error("Failed to update visibility", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
@@ -175,9 +124,7 @@ export default function NavigationManager() {
     if (!draggedLinkId || draggedLinkId === targetLinkId) return;
 
     const reorderedLinks = [...localLinks];
-    const draggedIndex = reorderedLinks.findIndex(
-      (l) => l.id === draggedLinkId,
-    );
+    const draggedIndex = reorderedLinks.findIndex((l) => l.id === draggedLinkId);
     const targetIndex = reorderedLinks.findIndex((l) => l.id === targetLinkId);
 
     const [draggedItem] = reorderedLinks.splice(draggedIndex, 1);
@@ -198,19 +145,18 @@ export default function NavigationManager() {
     }
   };
 
+  const openCreate = () => {
+    setEditingLink(null);
+    setIsSheetOpen(true);
+  };
+
   return (
     <ManagerWrapper>
       <PageHeader
         title="Navigation"
         description="Manage and reorder the main navigation links for your site."
         actions={
-          <Button
-            onClick={() => {
-              setEditingLink(null);
-              setIsSheetOpen(true);
-            }}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={openCreate} className="w-full sm:w-auto">
             <Plus className="mr-2 size-4" /> Add Link
           </Button>
         }
@@ -230,6 +176,14 @@ export default function NavigationManager() {
             <div className="flex justify-center p-8">
               <Loader2 className="animate-spin" />
             </div>
+          ) : localLinks.length === 0 ? (
+            <EmptyState
+              icon={Link2}
+              variant="bordered"
+              title="No links found"
+              description="Add one to get started."
+              action={{ label: "Add Link", onClick: openCreate, icon: Plus }}
+            />
           ) : (
             <div className="space-y-2">
               {localLinks.map((link) => (
@@ -240,27 +194,27 @@ export default function NavigationManager() {
                   onDrop={() => handleDrop(link.id)}
                   onDragOver={handleDragOver}
                   className={cn(
-                    "flex items-center gap-3 rounded-md p-3 border bg-card transition-all hover:border-primary/50",
-                    draggedLinkId === link.id && "opacity-50 scale-95",
+                    "flex items-center gap-3 rounded-md border bg-card p-3 transition-all hover:border-primary/50",
+                    draggedLinkId === link.id && "scale-95 opacity-50",
                   )}
                 >
                   {!isMobile && (
-                    <GripVertical className="size-5 text-muted-foreground cursor-grab shrink-0" />
+                    <GripVertical className="size-5 shrink-0 cursor-grab text-muted-foreground" />
                   )}
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="font-medium truncate">{link.label}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-0.5 flex items-center gap-2">
+                      <p className="truncate font-medium">{link.label}</p>
                       {isMobile && (
                         <div
                           className={cn(
                             "h-2 w-2 rounded-full",
-                            link.is_visible ? "bg-green-500" : "bg-muted",
+                            link.is_visible ? "bg-chart-2" : "bg-muted",
                           )}
                         />
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono truncate">
+                    <p className="truncate font-mono text-xs text-muted-foreground">
                       {link.href}
                     </p>
                   </div>
@@ -296,55 +250,37 @@ export default function NavigationManager() {
                   </div>
                 </div>
               ))}
-              {localLinks.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No links found. Add one to get started.
-                </div>
-              )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-lg w-full flex flex-col">
-          <div className="flex justify-between items-center">
-            <SheetHeader>
-              <SheetTitle>
-                {editingLink ? "Edit" : "Add"} Navigation Link
-              </SheetTitle>
-              <SheetDescription>
-                This link will appear in your site's main navigation bar.
-              </SheetDescription>
-            </SheetHeader>
-            <SheetClose asChild>
-              <Button type="button" variant="ghost">
-                <X />
-              </Button>
-            </SheetClose>
-          </div>
-
-          {/* Mobile Visibility Toggle in Edit Sheet */}
-          {isMobile && editingLink && (
-            <div className="flex items-center justify-between border rounded-md p-3 my-4 bg-muted/20">
-              <div className="space-y-0.5">
-                <Label>Visible</Label>
-                <p className="text-xs text-muted-foreground">Show in menu</p>
-              </div>
-              <Switch
-                checked={editingLink.is_visible}
-                onCheckedChange={() => handleToggleVisibility(editingLink)}
-              />
+      <FormSheet
+        open={isSheetOpen}
+        onOpenChange={setIsSheetOpen}
+        title={`${editingLink ? "Edit" : "Add"} Navigation Link`}
+        description="This link will appear in your site's main navigation bar."
+      >
+        {/* Mobile Visibility Toggle in Edit Sheet */}
+        {isMobile && editingLink && (
+          <div className="mb-4 flex items-center justify-between rounded-md border bg-muted/20 p-3">
+            <div className="space-y-0.5">
+              <Label>Visible</Label>
+              <p className="text-xs text-muted-foreground">Show in menu</p>
             </div>
-          )}
+            <Switch
+              checked={editingLink.is_visible}
+              onCheckedChange={() => handleToggleVisibility(editingLink)}
+            />
+          </div>
+        )}
 
-          <LinkForm
-            link={editingLink}
-            onSave={handleSave}
-            onCancel={() => setIsSheetOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
+        <NavLinkForm
+          link={editingLink}
+          onSave={handleSave}
+          onCancel={() => setIsSheetOpen(false)}
+        />
+      </FormSheet>
     </ManagerWrapper>
   );
 }
