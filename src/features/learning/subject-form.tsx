@@ -1,14 +1,15 @@
-import { FormEvent } from "react";
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { LearningSubject } from "@/types";
 import { useSaveSubjectMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -17,7 +18,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils";
 
 const subjectSchema = z.object({
@@ -31,7 +31,7 @@ interface SubjectFormProps {
   onSuccess: () => void;
 }
 
-export default function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
+export function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
   const [saveSubject, { isLoading }] = useSaveSubjectMutation();
   const form = useForm<SubjectFormValues>({
     resolver: zodResolver(subjectSchema),
@@ -47,7 +47,9 @@ export default function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
       toast.success(`Subject "${values.name}" saved successfully.`);
       onSuccess();
     } catch (err: unknown) {
-      toast.error("Failed to save subject", { description: getErrorMessage(err) });
+      toast.error("Failed to save subject", {
+        description: getErrorMessage(err),
+      });
     }
   };
 

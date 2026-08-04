@@ -1,7 +1,7 @@
 "use client";
 
-import LearningManager from "@/components/admin/learning-manager";
+import LearningPage from "@/features/learning/learning-page";
 
 export default function Page() {
-  return <LearningManager />;
+  return <LearningPage />;
 }

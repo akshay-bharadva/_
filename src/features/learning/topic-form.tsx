@@ -1,9 +1,14 @@
-import { FormEvent } from "react";
-import type { LearningTopic, LearningSubject } from "@/types";
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import type { LearningSubject, LearningTopic } from "@/types";
 import { useSaveTopicMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -11,10 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -23,7 +24,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils";
 
 const topicSchema = z.object({
@@ -39,7 +39,7 @@ interface TopicFormProps {
   onSuccess: () => void;
 }
 
-export default function TopicForm({
+export function TopicForm({
   topic,
   subjects,
   defaultSubjectId,
@@ -60,7 +60,9 @@ export default function TopicForm({
       toast.success(`Topic "${values.title}" saved successfully.`);
       onSuccess();
     } catch (err: unknown) {
-      toast.error("Failed to save topic", { description: getErrorMessage(err) });
+      toast.error("Failed to save topic", {
+        description: getErrorMessage(err),
+      });
     }
   };
 

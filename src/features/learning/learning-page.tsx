@@ -1,33 +1,79 @@
-import { useState, useMemo } from "react";
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  BookOpen,
+  ChevronDown,
+  Clock,
+  Layers,
+  Loader2,
+  Plus,
+  X,
+  Zap,
+} from "lucide-react";
+import {
+  eachDayOfInterval,
+  format,
+  startOfDay,
+  startOfWeek,
+  subDays,
+} from "date-fns";
+import { toast } from "sonner";
 import type { LearningSubject, LearningTopic } from "@/types";
-import { Plus, Loader2, X, Clock, BookOpen, Zap, Layers, ChevronDown } from "lucide-react";
+import {
+  useDeleteSubjectMutation,
+  useDeleteTopicMutation,
+  useGetLearningDataQuery,
+} from "@/store/api/adminApi";
+import { useAppSelector } from "@/store/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { toast } from "sonner";
-import { useGetLearningDataQuery, useDeleteSubjectMutation, useDeleteTopicMutation } from "@/store/api/adminApi";
-import { useAppSelector } from "@/store/hooks";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { PageHeader, ManagerWrapper } from "./shared";
-import ModuleCard from "./learning/ModuleCard";
-import TopicEditor from "./learning/TopicEditor";
-import SubjectForm from "./learning/SubjectForm";
-import TopicForm from "./learning/TopicForm";
-import { subDays, startOfWeek, format, eachDayOfInterval, startOfDay } from "date-fns";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn, getErrorMessage } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import StatCard from "@/components/admin/shared/StatCard";
+import {
+  ManagerWrapper,
+  PageHeader,
+  StatCard,
+} from "@/components/admin/shared";
+import { cn, getErrorMessage } from "@/lib/utils";
+import { ModuleCard } from "./module-card";
+import { TopicEditor } from "./topic-editor";
+import { SubjectForm } from "./subject-form";
+import { TopicForm } from "./topic-form";
 
-type SheetState = 
-  | { type: "create-subject" } 
-  | { type: "edit-subject"; data: LearningSubject } 
-  | { type: "create-topic"; subjectId: string } 
-  | { type: "edit-topic"; data: LearningTopic } 
+type SheetState =
+  | { type: "create-subject" }
+  | { type: "edit-subject"; data: LearningSubject }
+  | { type: "create-topic"; subjectId: string }
+  | { type: "edit-topic"; data: LearningTopic }
   | null;
 
-const Heatmap = ({ data, days }: { data: Record<string, number>; days: Date[] }) => {
+const Heatmap = ({
+  data,
+  days,
+}: {
+  data: Record<string, number>;
+  days: Date[];
+}) => {
   const getColor = (m: number) => {
     if (m <= 0) return "bg-muted/50";
     if (m < 30) return "bg-primary/20";
@@ -43,11 +89,18 @@ const Heatmap = ({ data, days }: { data: Record<string, number>; days: Date[] })
           <TooltipProvider key={dateKey} delayDuration={100}>
             <Tooltip>
               <TooltipTrigger>
-                <div className={cn("w-3 h-3 sm:w-4 sm:h-4 rounded-[3px] transition-colors", getColor(minutes))} />
+                <div
+                  className={cn(
+                    "h-3 w-3 rounded-[3px] transition-colors sm:h-4 sm:w-4",
+                    getColor(minutes),
+                  )}
+                />
               </TooltipTrigger>
               <TooltipContent>
-                <p className="font-bold text-sm">{minutes} mins</p>
-                <p className="text-xs text-muted-foreground">{format(day, "MMM do, yyyy")}</p>
+                <p className="text-sm font-bold">{minutes} mins</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(day, "MMM do, yyyy")}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -57,12 +110,14 @@ const Heatmap = ({ data, days }: { data: Record<string, number>; days: Date[] })
   );
 };
 
-export default function LearningManager() {
+export default function LearningPage() {
   const confirm = useConfirm();
   const isMobile = useIsMobile();
   const [sheetState, setSheetState] = useState<SheetState>(null);
   const [isHeatmapOpen, setIsHeatmapOpen] = useState(!isMobile);
-  const [selectedTopic, setSelectedTopic] = useState<LearningTopic | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<LearningTopic | null>(
+    null,
+  );
 
   const { data, isLoading } = useGetLearningDataQuery();
   const { activeSession } = useAppSelector((state) => state.learningSession);
@@ -74,7 +129,10 @@ export default function LearningManager() {
   const sessions = data?.sessions || [];
 
   const stats = useMemo(() => {
-    const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration_minutes || 0), 0);
+    const totalMinutes = sessions.reduce(
+      (acc, s) => acc + (s.duration_minutes || 0),
+      0,
+    );
     return { totalHours: (totalMinutes / 60).toFixed(1) };
   }, [sessions]);
 
@@ -104,7 +162,7 @@ export default function LearningManager() {
       const mutation = type === "subject" ? deleteSubject : deleteTopic;
       await mutation(id).unwrap();
       toast.success(`${type === "subject" ? "Module" : "Topic"} deleted`);
-      if (type === 'topic' && selectedTopic?.id === id) {
+      if (type === "topic" && selectedTopic?.id === id) {
         setSelectedTopic(null);
       }
     } catch (err) {
@@ -122,13 +180,11 @@ export default function LearningManager() {
     );
   }
 
-  // --- FULL SCREEN EDITOR MODE ---
-  // Replaces the entire dashboard when a topic is selected.
-  // This solves the "side by side sucks" issue by focusing purely on content.
+  // Full-screen editor mode replaces the dashboard while a topic is open,
+  // maximizing space for note-taking.
   if (selectedTopic) {
     return (
-      // We pass 0 padding on mobile to maximize space, normal padding on desktop
-      <ManagerWrapper className="p-0 md:p-6 h-[calc(100vh-4rem)]"> 
+      <ManagerWrapper className="h-[calc(100vh-4rem)] p-0 md:p-6">
         <TopicEditor
           topic={selectedTopic}
           onBack={() => setSelectedTopic(null)}
@@ -140,7 +196,6 @@ export default function LearningManager() {
     );
   }
 
-  // --- DASHBOARD MODE ---
   return (
     <ManagerWrapper>
       <PageHeader
@@ -153,9 +208,14 @@ export default function LearningManager() {
         }
       />
 
-      <div className="mt-6 space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Study Time" value={`${stats.totalHours} hrs`} icon={Clock} highlight />
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <StatCard
+            title="Study Time"
+            value={`${stats.totalHours} hrs`}
+            icon={Clock}
+            highlight
+          />
           <StatCard title="Modules" value={subjects.length} icon={Layers} />
           <StatCard title="Topics" value={topics.length} icon={BookOpen} />
           <StatCard title="Sessions" value={sessions.length} icon={Zap} />
@@ -164,15 +224,20 @@ export default function LearningManager() {
         <Collapsible open={isHeatmapOpen} onOpenChange={setIsHeatmapOpen}>
           <Card>
             <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+              <CardHeader className="cursor-pointer py-3 transition-colors hover:bg-muted/50">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Consistency Log</CardTitle>
-                  <ChevronDown className={cn("size-5 text-muted-foreground transition-transform", isHeatmapOpen && "rotate-180")} />
+                  <ChevronDown
+                    className={cn(
+                      "size-5 text-muted-foreground transition-transform",
+                      isHeatmapOpen && "rotate-180",
+                    )}
+                  />
                 </div>
               </CardHeader>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <CardContent className="pt-0 pb-4 overflow-x-auto">
+              <CardContent className="overflow-x-auto pb-4 pt-0">
                 <div className="min-w-[600px] md:min-w-full">
                   <Heatmap data={heatmapData} days={gridDays} />
                 </div>
@@ -180,15 +245,19 @@ export default function LearningManager() {
             </CollapsibleContent>
           </Card>
         </Collapsible>
-        
+
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Modules</h3>
+          <h3 className="font-heading text-lg font-semibold">Modules</h3>
           {subjects.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-12 text-center">
-                <Layers className="size-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-lg font-semibold mb-1">No modules yet</p>
-                <Button onClick={() => setSheetState({ type: "create-subject" })}><Plus className="mr-2 size-4" /> Create First Module</Button>
+                <Layers className="mx-auto mb-4 size-12 text-muted-foreground/30" />
+                <p className="mb-1 text-lg font-semibold">No modules yet</p>
+                <Button
+                  onClick={() => setSheetState({ type: "create-subject" })}
+                >
+                  <Plus className="mr-2 size-4" /> Create First Module
+                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -200,10 +269,16 @@ export default function LearningManager() {
                   topics={topics.filter((t) => t.subject_id === subject.id)}
                   activeSession={activeSession}
                   onTopicClick={(topic) => setSelectedTopic(topic)}
-                  onEditSubject={() => setSheetState({ type: "edit-subject", data: subject })}
+                  onEditSubject={() =>
+                    setSheetState({ type: "edit-subject", data: subject })
+                  }
                   onDeleteSubject={() => handleDelete("subject", subject.id)}
-                  onAddTopic={() => setSheetState({ type: "create-topic", subjectId: subject.id })}
-                  onEditTopic={(topic) => setSheetState({ type: "edit-topic", data: topic })}
+                  onAddTopic={() =>
+                    setSheetState({ type: "create-topic", subjectId: subject.id })
+                  }
+                  onEditTopic={(topic) =>
+                    setSheetState({ type: "edit-topic", data: topic })
+                  }
                   onDeleteTopic={(id) => handleDelete("topic", id)}
                 />
               ))}
@@ -212,23 +287,42 @@ export default function LearningManager() {
         </div>
       </div>
 
-      <Sheet open={!!sheetState} onOpenChange={(open) => !open && setSheetState(null)}>
+      <Sheet
+        open={!!sheetState}
+        onOpenChange={(open) => !open && setSheetState(null)}
+      >
         <SheetContent className="sm:max-w-lg">
-          <div className="flex justify-between items-center mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <SheetHeader>
-              <SheetTitle>{sheetState?.type?.includes("create") ? "Create" : "Edit"} {sheetState?.type?.includes("subject") ? "Module" : "Topic"}</SheetTitle>
+              <SheetTitle>
+                {sheetState?.type?.includes("create") ? "Create" : "Edit"}{" "}
+                {sheetState?.type?.includes("subject") ? "Module" : "Topic"}
+              </SheetTitle>
               <SheetDescription>Configure details.</SheetDescription>
             </SheetHeader>
-            <SheetClose asChild><Button variant="ghost" size="icon"><X className="size-4" /></Button></SheetClose>
+            <SheetClose asChild>
+              <Button variant="ghost" size="icon">
+                <X className="size-4" />
+              </Button>
+            </SheetClose>
           </div>
-          {(sheetState?.type === "create-subject" || sheetState?.type === "edit-subject") && (
-            <SubjectForm subject={sheetState.type === "edit-subject" ? sheetState.data : null} onSuccess={handleSaveSuccess} />
+          {(sheetState?.type === "create-subject" ||
+            sheetState?.type === "edit-subject") && (
+            <SubjectForm
+              subject={sheetState.type === "edit-subject" ? sheetState.data : null}
+              onSuccess={handleSaveSuccess}
+            />
           )}
-          {(sheetState?.type === "create-topic" || sheetState?.type === "edit-topic") && (
+          {(sheetState?.type === "create-topic" ||
+            sheetState?.type === "edit-topic") && (
             <TopicForm
               topic={sheetState.type === "edit-topic" ? sheetState.data : null}
               subjects={subjects}
-              defaultSubjectId={sheetState.type === "create-topic" ? sheetState.subjectId : undefined}
+              defaultSubjectId={
+                sheetState.type === "create-topic"
+                  ? sheetState.subjectId
+                  : undefined
+              }
               onSuccess={handleSaveSuccess}
             />
           )}

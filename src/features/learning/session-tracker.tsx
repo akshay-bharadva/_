@@ -1,10 +1,9 @@
-import React, { useState } from "react";
-import type { LearningTopic } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Timer, Play, Square, Loader2, X } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { Loader2, Play, Square, Timer, X } from "lucide-react";
 import { toast } from "sonner";
+import type { LearningTopic } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   sessionStarted,
@@ -12,9 +11,12 @@ import {
 } from "@/store/slices/learningSessionSlice";
 import {
   useAddLearningSessionMutation,
-  useUpdateLearningSessionMutation,
   useDeleteLearningSessionMutation,
+  useUpdateLearningSessionMutation,
 } from "@/store/api/adminApi";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 
 interface SessionTrackerProps {
@@ -32,7 +34,7 @@ const formatTime = (seconds: number) => {
   return `${h}:${m}:${s}`;
 };
 
-export default function SessionTracker({ topic }: SessionTrackerProps) {
+export function SessionTracker({ topic }: SessionTrackerProps) {
   const confirm = useConfirm();
 
   const [journalNotes, setJournalNotes] = useState("");
@@ -59,13 +61,12 @@ export default function SessionTracker({ topic }: SessionTrackerProps) {
       return;
     }
     try {
-      // 1. Call API
       const newSession = await startSessionMutation({
         topic_id: topic.id,
         start_time: new Date().toISOString(),
       }).unwrap();
 
-      // 2. Update Redux State (This triggers the LearningSessionManager)
+      // Redux state drives the global LearningSessionManager timer
       dispatch(sessionStarted(newSession));
 
       toast.success(`Session started for "${topic.title}"`);
@@ -93,12 +94,11 @@ export default function SessionTracker({ topic }: SessionTrackerProps) {
         journal_notes: journalNotes || null,
       }).unwrap();
 
-      // Stop local timer
       dispatch(sessionStopped());
 
       toast.success(`Session saved! Duration: ${duration_minutes} min.`);
       setJournalNotes("");
-    } catch (err) {
+    } catch {
       toast.error("Failed to stop session");
     }
   };
@@ -119,12 +119,11 @@ export default function SessionTracker({ topic }: SessionTrackerProps) {
     try {
       await cancelSessionMutation(activeSession.id).unwrap();
 
-      // Stop local timer
       dispatch(sessionStopped());
 
       toast.warning("Session cancelled and deleted.");
       setJournalNotes("");
-    } catch (err) {
+    } catch {
       toast.error("Failed to cancel session");
     }
   };
@@ -133,7 +132,7 @@ export default function SessionTracker({ topic }: SessionTrackerProps) {
   const isCurrentTopicSessionActive = activeSession?.topic_id === topic.id;
 
   return (
-    <div className="rounded-lg border bg-secondary/30 p-4 space-y-4">
+    <div className="space-y-4 rounded-lg border bg-secondary/30 p-4">
       <h4 className="flex items-center gap-2 font-semibold text-foreground">
         <Timer className="size-5 text-primary" />
         <span>Learning Session</span>
