@@ -1,3 +1,6 @@
+"use client";
+
+import { Download, Folder, Link as LinkIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -8,9 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, Folder, Link as LinkIcon, Trash2 } from "lucide-react";
 import { cn, getStorageUrl } from "@/lib/utils";
-import { getFileIcon, AssetThumbnail, type StorageAsset } from "./index";
+import { getFileIcon, type StorageAsset } from "./asset-utils";
+import { AssetThumbnail } from "./asset-thumbnail";
 
 export function FolderGrid({
   folders,
@@ -22,18 +25,16 @@ export function FolderGrid({
   if (folders.length === 0) return null;
   return (
     <div className="mb-6">
-      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
-        Folders
-      </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
+      <h3 className="section-label mb-3">Folders</h3>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
         {folders.map((folder) => (
           <div
             key={folder}
             onClick={() => onOpen(folder)}
-            className="group flex flex-col items-center gap-2 cursor-pointer p-4 rounded-xl border bg-card hover:bg-secondary/50 hover:border-primary/30 transition-all"
+            className="group flex cursor-pointer flex-col items-center gap-2 rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:bg-secondary/50"
           >
-            <Folder className="size-10 text-blue-400 fill-blue-400/20 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-medium truncate w-full text-center">
+            <Folder className="size-10 fill-chart-1/20 text-chart-1 transition-transform group-hover:scale-110" />
+            <span className="w-full truncate text-center text-xs font-medium">
               {folder}
             </span>
           </div>
@@ -43,7 +44,7 @@ export function FolderGrid({
   );
 }
 
-interface AssetViewProps {
+export interface AssetViewProps {
   assets: StorageAsset[];
   isBulkSelectMode: boolean;
   bulkSelectedIds: Set<string>;
@@ -61,15 +62,15 @@ export function AssetGrid({
   onDownload,
 }: AssetViewProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {assets.map((asset) => (
         <div
           key={asset.id}
           className={cn(
-            "group relative aspect-square overflow-hidden rounded-md border bg-card cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all",
+            "group relative aspect-square cursor-pointer overflow-hidden rounded-md border bg-card transition-all hover:ring-2 hover:ring-primary/50",
             isBulkSelectMode &&
               bulkSelectedIds.has(asset.id) &&
-              "ring-2 ring-primary bg-primary/10",
+              "bg-primary/10 ring-2 ring-primary",
           )}
           onClick={() => {
             if (isBulkSelectMode) onToggleSelect(asset.id);
@@ -77,10 +78,10 @@ export function AssetGrid({
           }}
         >
           {isBulkSelectMode && (
-            <div className="absolute top-2 left-2 z-10">
+            <div className="absolute left-2 top-2 z-10">
               <Checkbox
                 checked={bulkSelectedIds.has(asset.id)}
-                className="bg-background/80 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                className="border-primary bg-background/80 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
               />
             </div>
           )}
@@ -89,14 +90,14 @@ export function AssetGrid({
 
           <div
             className={cn(
-              "absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 text-white opacity-0 transition-opacity flex flex-col justify-end",
+              "absolute inset-x-0 bottom-0 flex flex-col justify-end bg-gradient-to-t from-black/80 to-transparent p-2 text-white opacity-0 transition-opacity",
               !isBulkSelectMode && "group-hover:opacity-100",
             )}
           >
-            <p className="text-[10px] font-medium truncate">
+            <p className="truncate text-[10px] font-medium">
               {asset.file_name}
             </p>
-            <p className="text-[9px] opacity-80 uppercase">
+            <p className="text-[9px] uppercase opacity-80">
               {asset.mime_type?.split("/")[1] || "File"}
             </p>
           </div>
@@ -105,7 +106,7 @@ export function AssetGrid({
             <Button
               variant="secondary"
               size="icon"
-              className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-md"
+              className="absolute right-1.5 top-1.5 z-20 h-7 w-7 rounded-full opacity-0 shadow-md transition-opacity group-hover:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
                 onDownload(asset);
@@ -117,7 +118,7 @@ export function AssetGrid({
           )}
 
           {asset.used_in && asset.used_in.length > 0 && (
-            <div className="absolute top-1.5 left-1.5 rounded-full bg-primary/90 p-1 shadow-sm z-10">
+            <div className="absolute left-1.5 top-1.5 z-10 rounded-full bg-primary/90 p-1 shadow-sm">
               <LinkIcon className="size-2.5 text-primary-foreground" />
             </div>
           )}
@@ -153,7 +154,7 @@ export function AssetTable({
           {assets.map((asset) => (
             <TableRow
               key={asset.id}
-              className="group hover:bg-muted/30 cursor-pointer"
+              className="group cursor-pointer hover:bg-muted/30"
               onClick={() => {
                 if (isBulkSelectMode) onToggleSelect(asset.id);
                 else onSelect(asset);
@@ -166,7 +167,7 @@ export function AssetTable({
                     onCheckedChange={() => onToggleSelect(asset.id)}
                   />
                 ) : (
-                  <div className="h-8 w-8 rounded-md overflow-hidden bg-secondary flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-md bg-secondary">
                     {asset.mime_type?.startsWith("image/") ? (
                       <img
                         src={getStorageUrl(asset.file_path)}
@@ -179,13 +180,13 @@ export function AssetTable({
                   </div>
                 )}
               </TableCell>
-              <TableCell className="font-medium max-w-[150px] truncate text-xs">
+              <TableCell className="max-w-[150px] truncate text-xs font-medium">
                 {asset.file_name}
               </TableCell>
-              <TableCell className="hidden md:table-cell text-muted-foreground text-xs uppercase">
+              <TableCell className="hidden text-xs uppercase text-muted-foreground md:table-cell">
                 {asset.mime_type?.split("/")[1] || "File"}
               </TableCell>
-              <TableCell className="hidden sm:table-cell text-muted-foreground font-mono text-xs">
+              <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
                 {asset.size_kb ? `${asset.size_kb.toFixed(0)} KB` : "N/A"}
               </TableCell>
               <TableCell>

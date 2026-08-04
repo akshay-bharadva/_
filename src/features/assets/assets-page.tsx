@@ -1,48 +1,49 @@
-import React, { useState, useMemo } from "react";
-import { supabase } from "@/supabase/client";
+"use client";
+
+import React, { useMemo, useState } from "react";
+import {
+  CheckSquare,
+  ChevronRight,
+  FolderPlus,
+  LayoutGrid,
+  List,
+  Loader2,
+  Move,
+  RefreshCw,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/supabase/client";
+import {
+  useAddAssetMutation,
+  useDeleteAssetMutation,
+  useGetAssetsQuery,
+  useMoveAssetMutation,
+  useUpdateAssetMutation,
+} from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Upload,
-  Loader2,
-  Trash2,
-  LayoutGrid,
-  List,
-  RefreshCw,
-  X,
-  CheckSquare,
-  FolderPlus,
-  ChevronRight,
-  Move,
-} from "lucide-react";
-import { getErrorMessage } from "@/lib/utils";
-import { useConfirm } from "../providers/ConfirmDialogProvider";
-import {
-  useGetAssetsQuery,
-  useAddAssetMutation,
-  useUpdateAssetMutation,
-  useDeleteAssetMutation,
-  useMoveAssetMutation,
-} from "@/store/api/adminApi";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { PageHeader, ManagerWrapper } from "./shared";
+import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import { getErrorMessage } from "@/lib/utils";
 import {
   BUCKET_NAME,
   PLACEHOLDER_FILENAME,
   getAllFolderPaths,
   getAssetsForPath,
-  AssetDetailsSheet,
-  CreateFolderDialog,
-  MoveAssetsDialog,
-  AssetBreadcrumbs,
   type StorageAsset,
-} from "./assets";
-import { useAssetOperations } from "./assets/use-asset-operations";
-import { FolderGrid, AssetGrid, AssetTable } from "./assets/asset-views";
+} from "./asset-utils";
+import { useAssetOperations } from "./use-asset-operations";
+import { AssetBreadcrumbs } from "./asset-breadcrumbs";
+import { AssetGrid, AssetTable, FolderGrid } from "./asset-views";
+import { CreateFolderDialog, MoveAssetsDialog } from "./folder-dialogs";
+import { AssetDetailsSheet } from "./asset-details-sheet";
 
-export default function AssetManager() {
+export default function AssetsPage() {
   const isMobile = useIsMobile();
   const confirm = useConfirm();
   const [selectedAsset, setSelectedAsset] = useState<StorageAsset | null>(null);
@@ -259,7 +260,7 @@ export default function AssetManager() {
   };
 
   return (
-    <ManagerWrapper className="h-full flex flex-col">
+    <ManagerWrapper className="flex h-full flex-col">
       <PageHeader
         title="Asset Manager"
         description={
@@ -351,14 +352,14 @@ export default function AssetManager() {
       />
 
       <Card
-        className="flex-1 flex flex-col min-h-[500px]"
+        className="flex min-h-[500px] flex-1 flex-col"
         onDragEnter={(e) => handleDragEvents(e, true)}
         onDragLeave={(e) => handleDragEvents(e, false)}
         onDragOver={(e) => handleDragEvents(e, true)}
         onDrop={handleDrop}
       >
-        <CardHeader className="border-b p-4 shrink-0">
-          <div className="flex justify-between items-center">
+        <CardHeader className="shrink-0 border-b p-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {currentPath.length > 0 && (
                 <Button
@@ -401,10 +402,10 @@ export default function AssetManager() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-4 flex-1 relative overflow-y-auto">
+        <CardContent className="relative flex-1 overflow-y-auto p-4">
           {isDragging && (
-            <div className="absolute inset-0 z-50 bg-primary/10 border border-dashed border-primary rounded-b-lg flex flex-col items-center justify-center backdrop-blur-sm">
-              <Upload className="size-10 text-primary mb-2" />
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-b-lg border border-dashed border-primary bg-primary/10 backdrop-blur-sm">
+              <Upload className="mb-2 size-10 text-primary" />
               <p className="font-semibold text-primary">
                 Drop files to upload to current folder
               </p>
@@ -416,12 +417,12 @@ export default function AssetManager() {
               <Loader2 className="animate-spin text-muted-foreground" />
             </div>
           ) : subFolders.length === 0 && currentFolderAssets.length === 0 ? (
-            <div className="py-20 text-center text-muted-foreground flex flex-col items-center h-full justify-center">
-              <div className="p-4 bg-muted/50 rounded-full mb-4">
+            <div className="flex h-full flex-col items-center justify-center py-20 text-center text-muted-foreground">
+              <div className="mb-4 rounded-full bg-muted/50 p-4">
                 <LayoutGrid className="size-8 opacity-20" />
               </div>
               <h3 className="text-lg font-semibold">Empty Folder</h3>
-              <p className="text-sm mt-1">
+              <p className="mt-1 text-sm">
                 Upload files or create a subfolder.
               </p>
               <Button
@@ -439,9 +440,7 @@ export default function AssetManager() {
               {currentFolderAssets.length > 0 && (
                 <div>
                   {subFolders.length > 0 && (
-                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
-                      Files
-                    </h3>
+                    <h3 className="section-label mb-3">Files</h3>
                   )}
 
                   {effectiveViewMode === "grid" ? (

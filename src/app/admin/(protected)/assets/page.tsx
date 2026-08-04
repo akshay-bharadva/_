@@ -1,7 +1,7 @@
 "use client";
 
-import AssetManager from "@/components/admin/AssetManager";
+import AssetsPage from "@/features/assets/assets-page";
 
 export default function Page() {
-  return <AssetManager />;
+  return <AssetsPage />;
 }

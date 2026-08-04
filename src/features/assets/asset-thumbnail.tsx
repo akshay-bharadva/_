@@ -1,13 +1,13 @@
-import React from "react";
+"use client";
+
 import { getStorageUrl } from "@/lib/utils";
-import { getFileIcon } from "./utils";
-import type { StorageAsset } from "./types";
+import { getFileIcon, type StorageAsset } from "./asset-utils";
 
 export interface AssetThumbnailProps {
   asset: StorageAsset;
 }
 
-export default function AssetThumbnail({ asset }: AssetThumbnailProps) {
+export function AssetThumbnail({ asset }: AssetThumbnailProps) {
   const isImage = asset.mime_type?.startsWith("image/");
 
   if (isImage) {
@@ -24,7 +24,7 @@ export default function AssetThumbnail({ asset }: AssetThumbnailProps) {
   const Icon = getFileIcon(asset.mime_type, "size-8 text-muted-foreground");
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center bg-secondary/30 p-2 text-center group-hover:bg-secondary/50 transition-colors">
+    <div className="flex h-full w-full flex-col items-center justify-center bg-secondary/30 p-2 text-center transition-colors group-hover:bg-secondary/50">
       {Icon}
     </div>
   );

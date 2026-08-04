@@ -1,18 +1,18 @@
-import { useRef, useState, DragEvent, ChangeEvent } from "react";
+import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/supabase/client";
-import { getStorageUrl, getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, getStorageUrl } from "@/lib/utils";
 import {
   useAddAssetMutation,
   useRescanAssetUsageMutation,
 } from "@/store/api/adminApi";
-import { BUCKET_NAME, type StorageAsset } from "./index";
+import { BUCKET_NAME, type StorageAsset } from "./asset-utils";
 
 /**
  * File operations for the asset manager: multi-file upload (with storage
  * rollback when the DB insert fails), drag-and-drop wiring, downloads, and
- * usage rescans. Owns the transient upload/drag state so the manager
- * component only orchestrates.
+ * usage rescans. Owns the transient upload/drag state so the page component
+ * only orchestrates.
  */
 export function useAssetOperations(currentPath: string[]) {
   const [isUploading, setIsUploading] = useState(false);

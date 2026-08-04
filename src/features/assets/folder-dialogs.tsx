@@ -1,13 +1,14 @@
+"use client";
+
 import React from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,10 +42,12 @@ export function CreateFolderDialog({
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Create New Folder</DialogTitle>
-          <SheetDescription>
+          <DialogDescription>
             Create a subfolder in{" "}
-            <strong>{currentPath.length ? currentPath.join("/") : "Root"}</strong>
-          </SheetDescription>
+            <strong>
+              {currentPath.length ? currentPath.join("/") : "Root"}
+            </strong>
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">

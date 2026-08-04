@@ -1,12 +1,23 @@
 import React from "react";
 import {
+  FileArchive,
+  FileAudio,
+  FileCode,
+  File as FileIcon,
   FileText,
   FileVideo,
-  FileAudio,
-  FileArchive,
-  File as FileIcon,
-  FileCode,
 } from "lucide-react";
+
+export type StorageAsset = {
+  id: string;
+  file_name: string;
+  file_path: string;
+  mime_type: string | null;
+  size_kb: number | null;
+  alt_text: string | null;
+  used_in: { type: string; id: string }[] | null;
+  created_at: string;
+};
 
 export const BUCKET_NAME = process.env.NEXT_PUBLIC_BUCKET_NAME || "assets";
 export const PLACEHOLDER_FILENAME = ".emptyFolderPlaceholder";
@@ -36,7 +47,7 @@ export const getFileIcon = (mimeType: string | null, className?: string) => {
 };
 
 export const getAllFolderPaths = (
-  assets: Array<{ file_path: string }>
+  assets: Array<{ file_path: string }>,
 ): string[] => {
   const folders = new Set<string>();
   assets.forEach((asset) => {
@@ -53,7 +64,7 @@ export const getAssetsForPath = <
   T extends { file_path: string; file_name: string },
 >(
   assets: T[],
-  currentPath: string[]
+  currentPath: string[],
 ): { currentFolderAssets: T[]; subFolders: string[] } => {
   const pathPrefix = currentPath.length > 0 ? currentPath.join("/") + "/" : "";
 

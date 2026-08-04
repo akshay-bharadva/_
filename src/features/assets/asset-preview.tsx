@@ -1,16 +1,16 @@
-import React from "react";
+"use client";
+
+import { Download, FileAudio, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileText, FileAudio, Download } from "lucide-react";
 import { getStorageUrl } from "@/lib/utils";
-import { getFileIcon } from "./utils";
-import type { StorageAsset } from "./types";
+import { getFileIcon, type StorageAsset } from "./asset-utils";
 
 export interface AssetPreviewProps {
   asset: StorageAsset;
   onDownload: (asset: StorageAsset) => void;
 }
 
-export default function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
+export function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
   const url = getStorageUrl(asset.file_path);
   const mime = asset.mime_type || "";
 
@@ -19,7 +19,7 @@ export default function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
       <img
         src={url}
         alt={asset.alt_text || asset.file_name}
-        className="max-h-[300px] w-auto object-contain rounded-md shadow-sm"
+        className="max-h-[300px] w-auto rounded-md object-contain shadow-sm"
       />
     );
   }
@@ -29,14 +29,14 @@ export default function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
       <video
         src={url}
         controls
-        className="w-full max-h-[300px] rounded-md shadow-sm bg-black"
+        className="max-h-[300px] w-full rounded-md bg-black shadow-sm"
       />
     );
   }
 
   if (mime.startsWith("audio/")) {
     return (
-      <div className="w-full p-4 bg-secondary rounded-md flex flex-col items-center gap-4">
+      <div className="flex w-full flex-col items-center gap-4 rounded-md bg-secondary p-4">
         <FileAudio className="size-16 text-primary" />
         <audio src={url} controls className="w-full" />
       </div>
@@ -45,7 +45,7 @@ export default function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
 
   if (mime.includes("pdf")) {
     return (
-      <div className="w-full h-[300px] bg-secondary/20 rounded-md border flex flex-col items-center justify-center gap-4">
+      <div className="flex h-[300px] w-full flex-col items-center justify-center gap-4 rounded-md border bg-secondary/20">
         <FileText className="size-16 text-muted-foreground" />
         <Button variant="outline" asChild>
           <a href={url} target="_blank" rel="noopener noreferrer">
