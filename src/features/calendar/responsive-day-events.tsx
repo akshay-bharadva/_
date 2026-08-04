@@ -1,5 +1,7 @@
-import React from "react";
+"use client";
+
 import { format } from "date-fns";
+import { ChevronRight, X } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -14,10 +16,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import BadgeTypeIcon from "./badge-type-icon";
-import type { EventType, DayListState, ViewEventState } from "./types";
+import { BadgeTypeIcon } from "./badge-type-icon";
+import type { DayListState, EventType, ViewEventState } from "./calendar-types";
 
 export interface ResponsiveDayEventsProps {
   state: DayListState;
@@ -25,7 +26,6 @@ export interface ResponsiveDayEventsProps {
   onViewEvent: (state: ViewEventState) => void;
 }
 
-// Shared event list content
 function EventListContent({
   events,
   onEventClick,
@@ -39,13 +39,13 @@ function EventListContent({
         <div
           key={i}
           onClick={() => onEventClick(event)}
-          className="p-3 rounded-lg border bg-card hover:bg-accent cursor-pointer transition-colors"
+          className="cursor-pointer rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
         >
           <div className="flex items-center gap-3">
             <BadgeTypeIcon type={event.type} />
             <div className="flex-1">
-              <div className="font-semibold text-sm">{event.title}</div>
-              <div className="text-xs text-muted-foreground capitalize">
+              <div className="text-sm font-semibold">{event.title}</div>
+              <div className="text-xs capitalize text-muted-foreground">
                 {event.type.replace("_", " ")}
               </div>
             </div>
@@ -57,12 +57,11 @@ function EventListContent({
   );
 }
 
-// Format date header
 function DateHeader({ date }: { date: Date | null }) {
   if (!date) return null;
   return (
     <div className="flex items-center gap-2">
-      <span className="text-muted-foreground font-normal">
+      <span className="font-normal text-muted-foreground">
         {format(date, "EEEE")}
       </span>
       <span>{format(date, "MMM do")}</span>
@@ -70,7 +69,7 @@ function DateHeader({ date }: { date: Date | null }) {
   );
 }
 
-export default function ResponsiveDayEvents({
+export function ResponsiveDayEvents({
   state,
   onClose,
   onViewEvent,
@@ -84,17 +83,17 @@ export default function ResponsiveDayEvents({
     }, 100);
   };
 
-  // Mobile: Use Drawer (bottom sheet)
+  // Mobile: bottom drawer
   if (isMobile) {
     return (
       <Drawer open={state.open} onOpenChange={(open) => !open && onClose()}>
         <DrawerContent className="max-h-[85vh]">
-          <DrawerHeader className="text-left border-b pb-4">
+          <DrawerHeader className="border-b pb-4 text-left">
             <DrawerTitle>
               <DateHeader date={state.date} />
             </DrawerTitle>
           </DrawerHeader>
-          <div className="p-4 overflow-y-auto">
+          <div className="overflow-y-auto p-4">
             <EventListContent
               events={state.events}
               onEventClick={handleEventClick}
@@ -105,11 +104,11 @@ export default function ResponsiveDayEvents({
     );
   }
 
-  // Desktop: Use Sheet (side panel)
+  // Desktop: side sheet
   return (
     <Sheet open={state.open} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-lg w-full flex flex-col">
-        <div className="flex justify-between items-center">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
+        <div className="flex items-center justify-between">
           <SheetHeader>
             <SheetTitle>
               <DateHeader date={state.date} />
@@ -121,7 +120,7 @@ export default function ResponsiveDayEvents({
             </Button>
           </SheetClose>
         </div>
-        <div className="p-4 overflow-y-auto">
+        <div className="overflow-y-auto p-4">
           <EventListContent
             events={state.events}
             onEventClick={handleEventClick}

@@ -1,18 +1,19 @@
-import React from "react";
+"use client";
+
 import {
-  Briefcase,
-  ListTodo,
   Banknote,
-  TrendingUp,
-  CheckSquare,
+  Briefcase,
   Calendar as CalendarIcon,
+  CheckSquare,
+  ListTodo,
+  TrendingUp,
 } from "lucide-react";
 
 export interface BadgeTypeIconProps {
   type: string;
 }
 
-export default function BadgeTypeIcon({ type }: BadgeTypeIconProps) {
+export function BadgeTypeIcon({ type }: BadgeTypeIconProps) {
   switch (type) {
     case "event":
       return <Briefcase className="size-3" />;

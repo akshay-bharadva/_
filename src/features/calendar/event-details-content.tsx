@@ -1,22 +1,23 @@
-import React from "react";
+"use client";
+
 import { format } from "date-fns";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Banknote,
+  CheckSquare,
+  Edit,
+  ListTodo,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Edit,
-  Trash2,
-  CheckSquare,
-  ListTodo,
-  Banknote,
-  Plus,
-  ArrowUpRight,
-  ArrowDownLeft,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import BadgeTypeIcon from "./badge-type-icon";
-import type { EventType } from "./types";
+import { BadgeTypeIcon } from "./badge-type-icon";
+import type { EventType } from "./calendar-types";
 
 export interface EventDetailsContentProps {
   event: EventType;
@@ -25,7 +26,7 @@ export interface EventDetailsContentProps {
   onDelete?: () => void;
 }
 
-export default function EventDetailsContent({
+export function EventDetailsContent({
   event,
   onEdit,
   onNavigate,
@@ -34,13 +35,13 @@ export default function EventDetailsContent({
   const { type, transactionType, amount, status, priority, description } =
     event;
   const isEarning = transactionType === "earning";
-  const amountColor = isEarning ? "text-emerald-500" : "text-rose-500";
+  const amountColor = isEarning ? "text-chart-2" : "text-chart-5";
 
   if (type === "habit_summary") {
     return (
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-lg font-bold">
             <CheckSquare className="size-5 text-primary" /> Daily Habits
           </h3>
           <Badge variant="outline">{event.count} Completed</Badge>
@@ -50,17 +51,17 @@ export default function EventDetailsContent({
             {event.completed_habits?.map((h, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between gap-3 p-2 rounded-lg bg-secondary/50 border border-border/50"
+                className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/50 p-2"
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="size-3 rounded-full ring-2 ring-background shadow-sm"
+                    className="size-3 rounded-full shadow-sm ring-2 ring-background"
                     style={{ backgroundColor: h.color }}
                   />
-                  <span className="font-medium text-sm">{h.title}</span>
+                  <span className="text-sm font-medium">{h.title}</span>
                 </div>
-                <div className="size-6 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Plus className="size-3 text-green-500" />
+                <div className="flex size-6 items-center justify-center rounded-full bg-chart-2/10">
+                  <Plus className="size-3 text-chart-2" />
                 </div>
               </div>
             ))}
@@ -76,50 +77,44 @@ export default function EventDetailsContent({
     return (
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg flex items-center gap-2">
+          <h3 className="flex items-center gap-2 text-lg font-bold">
             <Banknote className="size-5 text-primary" /> Daily Finance
           </h3>
           <Badge variant="outline">{transactions?.length || 0} Records</Badge>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20 text-center">
-            <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
-              Income
-            </span>
-            <div className="text-emerald-500 font-mono font-bold text-xl flex items-center justify-center gap-1">
+          <div className="rounded-lg border border-chart-2/20 bg-chart-2/10 p-3 text-center">
+            <span className="section-label">Income</span>
+            <div className="flex items-center justify-center gap-1 font-mono text-xl font-bold text-chart-2">
               <ArrowUpRight className="size-5" />$
               {total_earning?.toLocaleString()}
             </div>
           </div>
-          <div className="bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 text-center">
-            <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
-              Expenses
-            </span>
-            <div className="text-rose-500 font-mono font-bold text-xl flex items-center justify-center gap-1">
+          <div className="rounded-lg border border-chart-5/20 bg-chart-5/10 p-3 text-center">
+            <span className="section-label">Expenses</span>
+            <div className="flex items-center justify-center gap-1 font-mono text-xl font-bold text-chart-5">
               <ArrowDownLeft className="size-5" />$
               {total_expense?.toLocaleString()}
             </div>
           </div>
         </div>
 
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-2">
-          Breakdown
-        </div>
+        <div className="section-label mt-2">Breakdown</div>
         <ScrollArea className="h-[180px] pr-4">
           <div className="flex flex-col gap-2">
             {transactions?.map((t, i) => (
               <div
                 key={i}
-                className="flex justify-between items-center p-2.5 rounded-lg border bg-card/40 text-sm"
+                className="flex items-center justify-between rounded-lg border bg-card/40 p-2.5 text-sm"
               >
-                <span className="truncate max-w-[180px] font-medium">
+                <span className="max-w-[180px] truncate font-medium">
                   {t.description}
                 </span>
                 <span
                   className={cn(
-                    "font-mono font-bold flex items-center gap-1",
-                    t.type === "earning" ? "text-emerald-500" : "text-rose-500"
+                    "flex items-center gap-1 font-mono font-bold",
+                    t.type === "earning" ? "text-chart-2" : "text-chart-5",
                   )}
                 >
                   {t.type === "earning" ? (
@@ -149,8 +144,8 @@ export default function EventDetailsContent({
   return (
     <div className="space-y-4 pt-2">
       <div className="space-y-1">
-        <h3 className="font-bold text-lg leading-tight">{event.title}</h3>
-        <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+        <h3 className="text-lg font-bold leading-tight">{event.title}</h3>
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">
           <BadgeTypeIcon type={type} />
           <span>{type}</span>
           <span>•</span>
@@ -162,25 +157,21 @@ export default function EventDetailsContent({
 
       <div className="space-y-4 text-sm">
         {type === "event" && description && (
-          <div className="bg-secondary/30 p-3 rounded-md text-muted-foreground italic">
-            "{description}"
+          <div className="rounded-md bg-secondary/30 p-3 italic text-muted-foreground">
+            &quot;{description}&quot;
           </div>
         )}
 
         {type === "task" && (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Status
-              </span>
+              <span className="section-label">Status</span>
               <Badge variant={status === "done" ? "default" : "secondary"}>
                 {status}
               </Badge>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                Priority
-              </span>
+              <span className="section-label">Priority</span>
               <div className="flex items-center gap-2 font-medium">
                 <div
                   className={cn(
@@ -188,8 +179,8 @@ export default function EventDetailsContent({
                     priority === "high"
                       ? "bg-destructive"
                       : priority === "medium"
-                        ? "bg-yellow-500"
-                        : "bg-blue-500"
+                        ? "bg-chart-3"
+                        : "bg-muted-foreground",
                   )}
                 />
                 <span className="capitalize">{priority}</span>
@@ -199,15 +190,13 @@ export default function EventDetailsContent({
         )}
 
         {(type === "transaction" || type === "forecast") && (
-          <div className="flex items-center justify-between p-3 rounded-lg bg-card border shadow-sm">
+          <div className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
             <div>
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">
-                Amount
-              </span>
+              <span className="section-label mb-1 block">Amount</span>
               <div
                 className={cn(
-                  "font-mono text-2xl font-bold flex items-center gap-1",
-                  amountColor
+                  "flex items-center gap-1 font-mono text-2xl font-bold",
+                  amountColor,
                 )}
               >
                 {isEarning ? (
@@ -220,8 +209,8 @@ export default function EventDetailsContent({
             </div>
             <div
               className={cn(
-                "p-2 rounded-full",
-                isEarning ? "bg-emerald-500/10" : "bg-rose-500/10"
+                "rounded-full p-2",
+                isEarning ? "bg-chart-2/10" : "bg-chart-5/10",
               )}
             >
               {isEarning ? (
@@ -253,7 +242,7 @@ export default function EventDetailsContent({
           <Button
             onClick={() => onNavigate("tasks")}
             size="sm"
-            className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent shadow-none"
+            className="border-transparent bg-primary/10 text-primary shadow-none hover:bg-primary/20"
           >
             <ListTodo className="mr-2 size-3.5" /> Go to Board
           </Button>
@@ -262,7 +251,7 @@ export default function EventDetailsContent({
           <Button
             onClick={() => onNavigate("finance")}
             size="sm"
-            className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-transparent shadow-none"
+            className="border-transparent bg-chart-2/10 text-chart-2 shadow-none hover:bg-chart-2/20"
           >
             <Banknote className="mr-2 size-3.5" /> View Finance
           </Button>

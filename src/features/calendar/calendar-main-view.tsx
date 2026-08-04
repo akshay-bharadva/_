@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Loader2 } from "lucide-react";
 import FullCalendar from "@fullcalendar/react";
@@ -5,10 +7,10 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import listPlugin from "@fullcalendar/list";
 import interactionPlugin from "@fullcalendar/interaction";
-import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
-import { CalendarFilters } from ".";
-import { getEventsForDate } from "./utils";
-import type { EventType, DayListState } from "./types";
+import type { DatesSetArg, EventClickArg } from "@fullcalendar/core";
+import { CalendarFilters } from "./calendar-filters";
+import { getEventsForDate } from "./calendar-utils";
+import type { DayListState, EventType } from "./calendar-types";
 
 /** The shape returned by toFcEvent */
 type FcEvent = {
@@ -38,7 +40,7 @@ export interface CalendarMainViewProps {
   onDayListOpen: (state: DayListState) => void;
 }
 
-export default function CalendarMainView({
+export function CalendarMainView({
   calendarRef,
   isMobile,
   isLoading,
@@ -52,13 +54,10 @@ export default function CalendarMainView({
   onDayListOpen,
 }: CalendarMainViewProps) {
   return (
-    <div className="flex-1 min-w-0 min-h-0 relative flex flex-col">
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {isMobile && (
-        <div className="px-3 py-2 border-b border-border bg-card/30 shrink-0">
-          <CalendarFilters
-            filters={filters}
-            onFiltersChange={onFiltersChange}
-          />
+        <div className="shrink-0 border-b border-border bg-card/30 px-3 py-2">
+          <CalendarFilters filters={filters} onFiltersChange={onFiltersChange} />
         </div>
       )}
 
@@ -68,15 +67,10 @@ export default function CalendarMainView({
         </div>
       )}
 
-      <div className="gcal-themed flex-1 min-h-0">
+      <div className="gcal-themed min-h-0 flex-1">
         <FullCalendar
           ref={calendarRef as React.RefObject<FullCalendar>}
-          plugins={[
-            dayGridPlugin,
-            timeGridPlugin,
-            listPlugin,
-            interactionPlugin,
-          ]}
+          plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           headerToolbar={
             isMobile

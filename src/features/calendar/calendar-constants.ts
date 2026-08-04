@@ -1,13 +1,15 @@
 import {
-  Briefcase,
-  ListTodo,
   Banknote,
-  TrendingUp,
+  Briefcase,
   CheckSquare,
+  ListTodo,
+  TrendingUp,
 } from "lucide-react";
-import type { EventType } from "./types";
+import type { EventType } from "./calendar-types";
 
-// Google Calendar-style color palette for event types
+// Google Calendar-style color palette for event types. These feed
+// FullCalendar's per-event style props (which require concrete colors),
+// paired with the `gcal-themed` CSS in globals.
 export const EVENT_COLORS: Record<
   string,
   { bg: string; border: string; text: string }

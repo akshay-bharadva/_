@@ -1,5 +1,5 @@
 import { parseLocalDate } from "@/lib/utils";
-import type { CalendarItem, EventType } from "./types";
+import type { CalendarItem, EventType } from "./calendar-types";
 
 export const mapItemToEvent = (item: CalendarItem): EventType => {
   const { type: transactionType, ...restOfData } = item.data;
@@ -31,42 +31,6 @@ export const mapItemToEvent = (item: CalendarItem): EventType => {
     transactionType: transactionType as string | undefined,
     ...restOfData,
   };
-};
-
-export const getDaysInMonth = (currentDate: Date) => {
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth = lastDay.getDate();
-  const startingDayOfWeek = firstDay.getDay();
-
-  const days: { date: Date; isCurrentMonth: boolean }[] = [];
-
-  const prevMonthLastDay = new Date(year, month, 0).getDate();
-  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-    days.push({
-      date: new Date(year, month - 1, prevMonthLastDay - i),
-      isCurrentMonth: false,
-    });
-  }
-
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push({
-      date: new Date(year, month, i),
-      isCurrentMonth: true,
-    });
-  }
-
-  const remainingDays = 42 - days.length;
-  for (let i = 1; i <= remainingDays; i++) {
-    days.push({
-      date: new Date(year, month + 1, i),
-      isCurrentMonth: false,
-    });
-  }
-
-  return days;
 };
 
 export const getEventsForDate = (events: EventType[], date: Date) => {

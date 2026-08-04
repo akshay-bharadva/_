@@ -1,13 +1,16 @@
+"use client";
+
 import React from "react";
 import { format, setHours, setMinutes, startOfDay } from "date-fns";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
+  SheetHeader,
+  SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +24,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar as CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { EventFormData, SheetState } from "./types";
+import type { EventFormData, SheetState } from "./calendar-types";
 
 export interface EventFormSheetProps {
   sheetState: SheetState;
@@ -34,7 +36,7 @@ export interface EventFormSheetProps {
   onDelete: () => void;
 }
 
-export default function EventFormSheet({
+export function EventFormSheet({
   sheetState,
   formData,
   onFormDataChange,
@@ -45,7 +47,7 @@ export default function EventFormSheet({
   const updateDateTime = (
     field: "start_time" | "end_time",
     newDate: Date | undefined,
-    newTimeStr?: string
+    newTimeStr?: string,
   ) => {
     if (!newDate) return;
 
@@ -60,7 +62,7 @@ export default function EventFormSheet({
       const oldDate = new Date(formData[field]);
       updatedDate = setMinutes(
         setHours(newDate, oldDate.getHours()),
-        oldDate.getMinutes()
+        oldDate.getMinutes(),
       );
     }
 
@@ -70,10 +72,51 @@ export default function EventFormSheet({
     });
   };
 
+  const renderDateTimeField = (field: "start_time" | "end_time") => (
+    <div className="flex gap-2">
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "flex-1 justify-start text-left font-normal",
+              !formData[field] && "text-muted-foreground",
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {formData[field] ? (
+              format(new Date(formData[field]), "PPP")
+            ) : (
+              <span>Pick a date</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={new Date(formData[field])}
+            onSelect={(date) => updateDateTime(field, date)}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+      {!formData.is_all_day && (
+        <Input
+          type="time"
+          className="w-32"
+          value={format(new Date(formData[field]), "HH:mm")}
+          onChange={(e) =>
+            updateDateTime(field, new Date(formData[field]), e.target.value)
+          }
+        />
+      )}
+    </div>
+  );
+
   return (
     <Sheet open={sheetState.open} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-lg w-full flex flex-col">
-        <div className="flex justify-between items-center">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
+        <div className="flex items-center justify-between">
           <SheetHeader>
             <SheetTitle>
               {sheetState.isNew ? "Create New Event" : "Edit Event"}
@@ -90,8 +133,8 @@ export default function EventFormSheet({
             </Button>
           </SheetClose>
         </div>
-        <div className="flex-1 flex flex-col justify-between mt-4">
-          <ScrollArea className="h-full pr-6 -mr-6">
+        <div className="mt-4 flex flex-1 flex-col justify-between">
+          <ScrollArea className="-mr-6 h-full pr-6">
             <div className="space-y-4 pt-4">
               <div className="space-y-1">
                 <Label htmlFor="title">Title</Label>
@@ -119,7 +162,7 @@ export default function EventFormSheet({
                   rows={3}
                 />
               </div>
-              <div className="flex items-center space-x-2 border p-3 rounded-md bg-secondary/20">
+              <div className="flex items-center space-x-2 rounded-md border bg-secondary/20 p-3">
                 <Switch
                   id="is_all_day"
                   checked={formData.is_all_day}
@@ -137,109 +180,27 @@ export default function EventFormSheet({
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <Label>Start</Label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "flex-1 justify-start text-left font-normal",
-                            !formData.start_time && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.start_time ? (
-                            format(new Date(formData.start_time), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={new Date(formData.start_time)}
-                          onSelect={(date) => updateDateTime("start_time", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {!formData.is_all_day && (
-                      <Input
-                        type="time"
-                        className="w-32"
-                        value={format(new Date(formData.start_time), "HH:mm")}
-                        onChange={(e) =>
-                          updateDateTime(
-                            "start_time",
-                            new Date(formData.start_time),
-                            e.target.value
-                          )
-                        }
-                      />
-                    )}
-                  </div>
+                  {renderDateTimeField("start_time")}
                 </div>
                 <div className="space-y-2">
                   <Label>End</Label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "flex-1 justify-start text-left font-normal",
-                            !formData.end_time && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.end_time ? (
-                            format(new Date(formData.end_time), "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={new Date(formData.end_time)}
-                          onSelect={(date) => updateDateTime("end_time", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    {!formData.is_all_day && (
-                      <Input
-                        type="time"
-                        className="w-32"
-                        value={format(new Date(formData.end_time), "HH:mm")}
-                        onChange={(e) =>
-                          updateDateTime(
-                            "end_time",
-                            new Date(formData.end_time),
-                            e.target.value
-                          )
-                        }
-                      />
-                    )}
-                  </div>
+                  {renderDateTimeField("end_time")}
                 </div>
               </div>
             </div>
           </ScrollArea>
-          <SheetFooter className="flex-col sm:flex-row gap-2 pt-4 border-t mt-4">
+          <SheetFooter className="mt-4 flex-col gap-2 border-t pt-4 sm:flex-row">
             {!sheetState.isNew && (
               <Button
                 type="button"
                 variant="destructive"
                 onClick={onDelete}
-                className="w-full sm:w-auto sm:mr-auto"
+                className="w-full sm:mr-auto sm:w-auto"
               >
                 Delete
               </Button>
             )}
-            <div className="flex gap-2 w-full sm:w-auto justify-end">
+            <div className="flex w-full justify-end gap-2 sm:w-auto">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
               </Button>

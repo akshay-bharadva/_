@@ -1,11 +1,12 @@
-import React from "react";
+"use client";
+
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerFooter,
-  DrawerClose,
 } from "@/components/ui/drawer";
 import {
   Sheet,
@@ -15,8 +16,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import EventDetailsContent from "./event-details-content";
-import type { EventType, ViewEventState } from "./types";
+import { EventDetailsContent } from "./event-details-content";
+import type { ViewEventState } from "./calendar-types";
 
 export interface ResponsiveEventDetailsProps {
   state: ViewEventState;
@@ -26,7 +27,7 @@ export interface ResponsiveEventDetailsProps {
   onNavigate: (tab: string) => void;
 }
 
-export default function ResponsiveEventDetails({
+export function ResponsiveEventDetails({
   state,
   onClose,
   onEdit,
@@ -39,7 +40,7 @@ export default function ResponsiveEventDetails({
     if (!open) onClose();
   };
 
-  // Mobile: Use Drawer (bottom sheet)
+  // Mobile: bottom drawer
   if (isMobile) {
     return (
       <Drawer open={state.open} onOpenChange={handleOpenChange}>
@@ -67,7 +68,7 @@ export default function ResponsiveEventDetails({
     );
   }
 
-  // Desktop: Use Sheet (side panel)
+  // Desktop: side sheet
   return (
     <Sheet open={state.open} onOpenChange={handleOpenChange}>
       <SheetContent>

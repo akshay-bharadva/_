@@ -1,16 +1,11 @@
-import React from "react";
+"use client";
+
+import { format } from "date-fns";
+import { ChevronLeft, ChevronRight, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Search,
-  X,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { VIEW_OPTIONS } from "./constants";
+import { VIEW_OPTIONS } from "./calendar-constants";
 
 export interface CalendarTopBarProps {
   currentDate: Date;
@@ -26,7 +21,7 @@ export interface CalendarTopBarProps {
   onAddNewEvent: () => void;
 }
 
-export default function CalendarTopBar({
+export function CalendarTopBar({
   currentDate,
   activeView,
   searchQuery,
@@ -40,46 +35,36 @@ export default function CalendarTopBar({
   onAddNewEvent,
 }: CalendarTopBarProps) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-card/60 backdrop-blur-sm shrink-0">
-      <h1 className="text-lg font-semibold text-foreground shrink-0">
+    <div className="flex shrink-0 items-center gap-3 border-b border-border bg-card/60 px-4 py-2.5 backdrop-blur-sm">
+      <h1 className="shrink-0 font-heading text-lg font-semibold text-foreground">
         Calendar
       </h1>
 
       {/* Today + Nav + Month Title */}
-      <div className="flex items-center gap-1 ml-2">
+      <div className="ml-2 flex items-center gap-1">
         <Button
           variant="outline"
           size="sm"
           onClick={onToday}
-          className="text-sm font-medium px-4 h-8"
+          className="h-8 px-4 text-sm font-medium"
         >
           Today
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={onPrev}
-        >
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
           <ChevronLeft className="size-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={onNext}
-        >
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
           <ChevronRight className="size-4" />
         </Button>
-        <h2 className="text-base font-medium text-foreground ml-2 hidden sm:block whitespace-nowrap">
+        <h2 className="ml-2 hidden whitespace-nowrap text-base font-medium text-foreground sm:block">
           {format(currentDate, "MMM yyyy")}
         </h2>
       </div>
 
       {/* Right: Search + View Switcher + Create */}
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="ml-auto flex items-center gap-2">
         {showSearch ? (
-          <div className="relative hidden sm:flex items-center">
+          <div className="relative hidden items-center sm:flex">
             <Search className="absolute left-2.5 size-3.5 text-muted-foreground" />
             <Input
               placeholder="Search events..."
@@ -102,24 +87,24 @@ export default function CalendarTopBar({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 hidden sm:flex"
+            className="hidden h-8 w-8 sm:flex"
             onClick={() => onShowSearchChange(true)}
           >
             <Search className="size-4" />
           </Button>
         )}
 
-        {/* View Switcher — active state tracked */}
-        <div className="hidden lg:flex items-center bg-secondary/50 rounded-lg p-0.5 gap-0.5">
+        {/* View Switcher */}
+        <div className="hidden items-center gap-0.5 rounded-lg bg-secondary/50 p-0.5 lg:flex">
           {VIEW_OPTIONS.map((view) => (
             <button
               key={view.key}
               onClick={() => onChangeView(view.key)}
               className={cn(
-                "px-3 py-1 text-xs font-medium rounded-md transition-colors",
+                "rounded-md px-3 py-1 text-xs font-medium transition-colors",
                 activeView === view.key
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
               {view.label}

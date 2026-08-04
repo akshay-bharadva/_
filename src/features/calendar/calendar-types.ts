@@ -28,7 +28,12 @@ export type EventType = {
   completed_habits?: Array<{ title: string; color: string }>;
   total_earning?: number;
   total_expense?: number;
-  transactions?: { id: string; description: string; amount: number; type: string }[];
+  transactions?: {
+    id: string;
+    description: string;
+    amount: number;
+    type: string;
+  }[];
 };
 
 export type EventFormData = {

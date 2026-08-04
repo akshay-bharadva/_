@@ -1,43 +1,45 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+"use client";
+
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
-import {
-  isAfter,
-  startOfDay,
-  endOfDay,
-} from "date-fns";
+import { endOfDay, isAfter, startOfDay } from "date-fns";
+import { skipToken } from "@reduxjs/toolkit/query";
+import FullCalendar from "@fullcalendar/react";
+import type { DatesSetArg, EventClickArg } from "@fullcalendar/core";
 import { getErrorMessage } from "@/lib/utils";
 import { projectRecurringOccurrences } from "@/lib/finance-utils";
 import {
-  useGetCalendarDataQuery,
   useAddEventMutation,
-  useUpdateEventMutation,
   useDeleteEventMutation,
+  useGetCalendarDataQuery,
+  useUpdateEventMutation,
 } from "@/store/api/adminApi";
-import { skipToken } from "@reduxjs/toolkit/query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { ManagerWrapper } from "./shared";
+import { ManagerWrapper } from "@/components/admin/shared";
+import { mapItemToEvent } from "./calendar-utils";
+import { toFcEvent } from "./calendar-constants";
+import { CalendarTopBar } from "./calendar-top-bar";
+import { CalendarSidebar } from "./calendar-sidebar";
+import { CalendarMainView } from "./calendar-main-view";
+import { EventFormSheet } from "./event-form-sheet";
+import { ResponsiveDayEvents } from "./responsive-day-events";
+import { ResponsiveEventDetails } from "./responsive-event-details";
+import type {
+  DayListState,
+  EventFormData,
+  EventType,
+  SheetState,
+  ViewEventState,
+} from "./calendar-types";
 
-import FullCalendar from "@fullcalendar/react";
-import type { EventClickArg, DatesSetArg } from "@fullcalendar/core";
-
-import {
-  mapItemToEvent,
-  toFcEvent,
-  CalendarTopBar,
-  CalendarSidebar,
-  CalendarMainView,
-  EventFormSheet,
-  ResponsiveDayEvents,
-  ResponsiveEventDetails,
-  type EventType,
-  type EventFormData,
-  type SheetState,
-  type ViewEventState,
-  type DayListState,
-} from "./calendar";
-
-export default function CommandCalendar({
+export default function CalendarPage({
   onNavigate,
 }: {
   onNavigate: (tab: string) => void;
@@ -48,7 +50,9 @@ export default function CommandCalendar({
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeView, setActiveView] = useState("dayGridMonth");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date(),
+  );
   const [dateRange, setDateRange] = useState<{
     start: string;
     end: string;
@@ -64,7 +68,7 @@ export default function CommandCalendar({
   const [showSearch, setShowSearch] = useState(false);
 
   const { data, isLoading, error } = useGetCalendarDataQuery(
-    dateRange ?? skipToken
+    dateRange ?? skipToken,
   );
   const [addEvent] = useAddEventMutation();
   const [updateEvent] = useUpdateEventMutation();
@@ -95,7 +99,10 @@ export default function CommandCalendar({
   useEffect(() => {
     if (error)
       toast.error("Failed to load calendar data", {
-        description: error && typeof error === "object" && "message" in error ? String((error as { message: unknown }).message) : "Unknown error",
+        description:
+          error && typeof error === "object" && "message" in error
+            ? String((error as { message: unknown }).message)
+            : "Unknown error",
       });
   }, [error]);
 
@@ -108,7 +115,7 @@ export default function CommandCalendar({
     });
   }, []);
 
-  // Forecasting logic
+  // Merge base events with projected recurring-transaction forecasts
   const events = useMemo(() => {
     if (!data) return [];
 
@@ -137,7 +144,7 @@ export default function CommandCalendar({
     }));
 
     let filtered = [...baseEvents, ...forecastEvents].filter((event) =>
-      filters.includes(event.type)
+      filters.includes(event.type),
     );
 
     if (searchQuery.trim()) {
@@ -174,7 +181,7 @@ export default function CommandCalendar({
       });
       setSheetState({ open: true, isNew: true });
     },
-    []
+    [],
   );
 
   const handleAddNewEvent = () => {
@@ -239,7 +246,7 @@ export default function CommandCalendar({
 
   const toggleFilter = (key: string) => {
     setFilters((prev) =>
-      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]
+      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key],
     );
   };
 
@@ -265,11 +272,13 @@ export default function CommandCalendar({
         await updateEvent(dataToSave).unwrap();
       }
       toast.success(
-        `Event ${sheetState.isNew ? "created" : "updated"} successfully.`
+        `Event ${sheetState.isNew ? "created" : "updated"} successfully.`,
       );
       setSheetState({ open: false, isNew: false });
     } catch (err: unknown) {
-      toast.error("Failed to save event", { description: getErrorMessage(err) });
+      toast.error("Failed to save event", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
@@ -292,7 +301,9 @@ export default function CommandCalendar({
       setSheetState({ open: false, isNew: false });
       setViewEventState({ open: false, event: null });
     } catch (err: unknown) {
-      toast.error("Failed to delete event", { description: getErrorMessage(err) });
+      toast.error("Failed to delete event", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
@@ -314,7 +325,7 @@ export default function CommandCalendar({
   };
 
   return (
-    <ManagerWrapper className="!space-y-0 !pb-0 -mx-4 lg:-mx-6 -mt-4 lg:-mt-6 -mb-20 lg:-mb-6 flex flex-col h-[calc(100vh-4rem)]">
+    <ManagerWrapper className="-mx-4 -mb-20 -mt-4 flex h-[calc(100vh-4rem)] flex-col !space-y-0 !pb-0 lg:-mx-6 lg:-mb-6 lg:-mt-6">
       {/* Top Bar */}
       <CalendarTopBar
         currentDate={currentDate}
@@ -331,7 +342,7 @@ export default function CommandCalendar({
       />
 
       {/* Body: Sidebar + Calendar */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {!isMobile && (
           <CalendarSidebar
             currentDate={currentDate}
