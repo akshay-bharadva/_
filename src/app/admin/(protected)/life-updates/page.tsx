@@ -1,7 +1,7 @@
 "use client";
 
-import LifeUpdatesManager from "@/components/admin/life-updates-manager";
+import LifeUpdatesPage from "@/features/life-updates/life-updates-page";
 
 export default function Page() {
-  return <LifeUpdatesManager />;
+  return <LifeUpdatesPage />;
 }

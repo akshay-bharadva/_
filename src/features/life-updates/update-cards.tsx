@@ -1,14 +1,17 @@
+"use client";
+
 import { motion } from "framer-motion";
-import type { LifeUpdate } from "@/types";
+import { formatDistanceToNow } from "date-fns";
 import {
-  Pin,
-  PinOff,
   Edit,
-  Trash2,
   Eye,
   EyeOff,
   MoreHorizontal,
+  Pin,
+  PinOff,
+  Trash2,
 } from "lucide-react";
+import type { LifeUpdate } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,7 +22,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 
@@ -40,12 +42,13 @@ function getRotation(id: string): number {
   return ((hash % 5) - 2) * 0.7;
 }
 
+// Decorative washi tape on board cards — chart tokens so presets restyle it
 const tapeColors = [
-  "bg-amber-300/50 dark:bg-amber-400/25",
-  "bg-sky-300/50 dark:bg-sky-400/25",
-  "bg-rose-300/50 dark:bg-rose-400/25",
-  "bg-emerald-300/50 dark:bg-emerald-400/25",
-  "bg-violet-300/50 dark:bg-violet-400/25",
+  "bg-chart-1/30",
+  "bg-chart-2/30",
+  "bg-chart-3/30",
+  "bg-chart-4/30",
+  "bg-chart-5/30",
 ];
 
 function getTapeColor(id: string): string {
@@ -57,13 +60,13 @@ function getTapeColor(id: string): string {
   return tapeColors[Math.abs(hash) % tapeColors.length];
 }
 
-/* ── Category accent ── */
+/* ── Category accent — one chart token per category ── */
 const categoryBadgeClass: Record<string, string> = {
-  watching: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  activity: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  photo: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  thought: "bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20",
-  milestone: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  watching: "bg-chart-5/15 text-chart-5 border-chart-5/20",
+  activity: "bg-chart-2/15 text-chart-2 border-chart-2/20",
+  photo: "bg-chart-3/15 text-chart-3 border-chart-3/20",
+  thought: "bg-chart-1/15 text-chart-1 border-chart-1/20",
+  milestone: "bg-chart-4/15 text-chart-4 border-chart-4/20",
 };
 
 export interface UpdateCardProps {
@@ -125,6 +128,31 @@ function UpdateActions({
   );
 }
 
+function StatusBadges({ update }: { update: LifeUpdate }) {
+  const cat = getCategoryMeta(update.category);
+  const badgeClass = categoryBadgeClass[update.category] || "";
+
+  return (
+    <>
+      <Badge
+        variant={update.is_published ? "default" : "secondary"}
+        className={cn(
+          "h-4 px-1.5 text-[9px]",
+          update.is_published && "border-primary/20 bg-primary/15 text-primary",
+        )}
+      >
+        {update.is_published ? "Live" : "Draft"}
+      </Badge>
+      <Badge
+        variant="outline"
+        className={cn("h-4 rounded-full px-1.5 text-[9px]", badgeClass)}
+      >
+        {cat.label}
+      </Badge>
+    </>
+  );
+}
+
 /* ── Board Card (Polaroid style) ── */
 export function BoardCard({
   update,
@@ -134,7 +162,6 @@ export function BoardCard({
   onTogglePublish,
 }: UpdateCardProps) {
   const cat = getCategoryMeta(update.category);
-  const badgeClass = categoryBadgeClass[update.category] || "";
   const rotation = getRotation(update.id);
   const tape = getTapeColor(update.id);
 
@@ -152,49 +179,52 @@ export function BoardCard({
         transition: { duration: 0.2 },
       }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="break-inside-avoid mb-4 pt-3 cursor-pointer"
+      className="mb-4 break-inside-avoid cursor-pointer pt-3"
       onClick={onEdit}
     >
-      <div className="relative group">
+      <div className="group relative">
         {/* Tape — straddles card top edge */}
         <div
-          className={`absolute -top-0.5 left-1/2 -translate-x-1/2 h-4 w-12 ${tape} rounded-sm z-10 rotate-[-0.5deg]`}
+          className={cn(
+            "absolute -top-0.5 left-1/2 z-10 h-4 w-12 -translate-x-1/2 rotate-[-0.5deg] rounded-sm",
+            tape,
+          )}
         />
 
         {/* Pinned indicator */}
         {update.is_pinned && (
           <div className="absolute -top-0.5 right-1.5 z-20">
-            <div className="size-5 rounded-full bg-red-500 shadow-md flex items-center justify-center">
-              <Pin className="size-2.5 text-white rotate-45" fill="currentColor" />
+            <div className="flex size-5 items-center justify-center rounded-full bg-destructive shadow-md">
+              <Pin
+                className="size-2.5 rotate-45 text-destructive-foreground"
+                fill="currentColor"
+              />
             </div>
           </div>
         )}
 
         <div
           className={cn(
-            "bg-card border border-border/50 rounded-sm shadow-[0_2px_12px_-3px_rgba(0,0,0,0.12)] dark:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.35)] transition-shadow duration-300 group-hover:shadow-[0_6px_24px_-5px_rgba(0,0,0,0.18)] dark:group-hover:shadow-[0_6px_24px_-5px_rgba(0,0,0,0.45)] overflow-hidden",
+            "overflow-hidden rounded-sm border border-border/50 bg-card shadow-[0_2px_12px_-3px_rgba(0,0,0,0.12)] transition-shadow duration-300 group-hover:shadow-[0_6px_24px_-5px_rgba(0,0,0,0.18)] dark:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.35)] dark:group-hover:shadow-[0_6px_24px_-5px_rgba(0,0,0,0.45)]",
             !update.is_published && "opacity-55",
           )}
         >
-          {/* Image */}
           {update.image_url && (
             <div className="mx-2 mt-2 overflow-hidden rounded-sm bg-secondary/20">
               <img
                 src={update.image_url}
                 alt={update.title || ""}
-                className="w-full h-32 object-cover"
+                className="h-32 w-full object-cover"
                 loading="lazy"
               />
             </div>
           )}
 
-          {/* Content */}
           <div className="p-3 pt-2">
-            {/* Top row: emoji + actions */}
-            <div className="flex items-start justify-between mb-1">
+            <div className="mb-1 flex items-start justify-between">
               <span className="text-base">{cat.emoji}</span>
               <div
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="opacity-0 transition-opacity group-hover:opacity-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <UpdateActions
@@ -207,31 +237,28 @@ export function BoardCard({
               </div>
             </div>
 
-            {/* Title */}
             {update.title ? (
-              <h3 className="font-semibold text-sm text-foreground leading-tight truncate mb-0.5">
+              <h3 className="mb-0.5 truncate font-heading text-sm font-semibold leading-tight tracking-tight text-foreground">
                 {update.title}
               </h3>
             ) : (
-              <span className="text-xs text-muted-foreground italic">
+              <span className="text-xs italic text-muted-foreground">
                 Untitled
               </span>
             )}
 
-            {/* Content preview */}
             {update.content && (
-              <p className="text-xs text-muted-foreground line-clamp-3 mb-2">
+              <p className="mb-2 line-clamp-3 text-xs text-muted-foreground">
                 {update.content}
               </p>
             )}
 
-            {/* Tags */}
             {update.tags && update.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
+              <div className="mb-2 flex flex-wrap gap-1">
                 {update.tags.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="text-[10px] text-muted-foreground/60 font-medium"
+                    className="font-mono text-[10px] font-medium text-muted-foreground/60"
                   >
                     #{tag}
                   </span>
@@ -239,30 +266,11 @@ export function BoardCard({
               </div>
             )}
 
-            {/* Footer */}
-            <div className="flex items-center justify-between pt-1.5 border-t border-border/30">
+            <div className="flex items-center justify-between border-t border-border/30 pt-1.5">
               <div className="flex items-center gap-1.5">
-                <Badge
-                  variant={update.is_published ? "default" : "secondary"}
-                  className={cn(
-                    "text-[9px] h-4 px-1.5",
-                    update.is_published &&
-                      "bg-primary/15 text-primary border-primary/20",
-                  )}
-                >
-                  {update.is_published ? "Live" : "Draft"}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "text-[9px] h-4 px-1.5 rounded-full",
-                    badgeClass,
-                  )}
-                >
-                  {cat.label}
-                </Badge>
+                <StatusBadges update={update} />
               </div>
-              <span className="text-[9px] text-muted-foreground/70">
+              <span className="font-mono text-[9px] text-muted-foreground/70">
                 {update.updated_at
                   ? formatDistanceToNow(new Date(update.updated_at), {
                       addSuffix: true,
@@ -286,7 +294,6 @@ export function ListRow({
   onTogglePublish,
 }: UpdateCardProps) {
   const cat = getCategoryMeta(update.category);
-  const badgeClass = categoryBadgeClass[update.category] || "";
 
   return (
     <motion.div
@@ -296,14 +303,13 @@ export function ListRow({
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        "group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-secondary/40 transition-colors cursor-pointer border border-transparent hover:border-border/40",
+        "group flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors hover:border-border/40 hover:bg-secondary/40",
         !update.is_published && "opacity-55",
       )}
       onClick={onEdit}
     >
-      {/* Thumbnail / Emoji */}
       {update.image_url ? (
-        <div className="h-10 w-10 shrink-0 rounded-md border bg-secondary/50 overflow-hidden">
+        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-secondary/50">
           <img
             src={update.image_url}
             alt=""
@@ -312,59 +318,39 @@ export function ListRow({
           />
         </div>
       ) : (
-        <div className="h-10 w-10 shrink-0 rounded-md border bg-secondary/30 flex items-center justify-center text-lg">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-secondary/30 text-lg">
           {cat.emoji}
         </div>
       )}
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           {update.is_pinned && (
             <Pin
-              className="size-3 text-primary rotate-45 shrink-0"
+              className="size-3 shrink-0 rotate-45 text-primary"
               fill="currentColor"
             />
           )}
-          <span className="font-medium text-sm truncate">
+          <span className="truncate text-sm font-medium">
             {update.title || (
-              <span className="italic text-muted-foreground font-normal">
+              <span className="font-normal italic text-muted-foreground">
                 Untitled
               </span>
             )}
           </span>
         </div>
         {update.content && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {update.content}
           </p>
         )}
       </div>
 
-      {/* Meta */}
-      <div className="hidden sm:flex items-center gap-2 shrink-0">
-        <Badge
-          variant="outline"
-          className={cn(
-            "text-[9px] h-4 px-1.5 rounded-full",
-            badgeClass,
-          )}
-        >
-          {cat.label}
-        </Badge>
-        <Badge
-          variant={update.is_published ? "default" : "secondary"}
-          className={cn(
-            "text-[9px] h-4 px-1.5",
-            update.is_published &&
-              "bg-primary/15 text-primary border-primary/20",
-          )}
-        >
-          {update.is_published ? "Live" : "Draft"}
-        </Badge>
+      <div className="hidden shrink-0 items-center gap-2 sm:flex">
+        <StatusBadges update={update} />
       </div>
 
-      <span className="hidden md:block text-[10px] text-muted-foreground/60 shrink-0 w-20 text-right">
+      <span className="hidden w-20 shrink-0 text-right font-mono text-[10px] text-muted-foreground/60 md:block">
         {update.updated_at
           ? formatDistanceToNow(new Date(update.updated_at), {
               addSuffix: true,
@@ -372,9 +358,8 @@ export function ListRow({
           : ""}
       </span>
 
-      {/* Actions */}
       <div
-        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
         onClick={(e) => e.stopPropagation()}
       >
         <UpdateActions

@@ -1,4 +1,9 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { ImageIcon, Loader2, Upload, X } from "lucide-react";
+import { toast } from "sonner";
+import imageCompression from "browser-image-compression";
 import type { LifeUpdate } from "@/types";
 import {
   useAddLifeUpdateMutation,
@@ -10,10 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, X, Upload, ImageIcon } from "lucide-react";
 import {
   SheetClose,
   SheetDescription,
+  SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
@@ -23,10 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/utils";
-import imageCompression from "browser-image-compression";
 
 const BUCKET_NAME = process.env.NEXT_PUBLIC_BUCKET_NAME || "assets";
 
@@ -36,7 +39,7 @@ interface LifeUpdateEditorProps {
   onCancel: () => void;
 }
 
-export default function LifeUpdateEditor({
+export function LifeUpdateEditor({
   update,
   onCancel,
   onSuccess,
@@ -156,39 +159,41 @@ export default function LifeUpdateEditor({
   };
 
   return (
-    <div className="flex flex-col h-full w-full">
-      <div className="flex shrink-0 justify-between items-center py-4 border-b">
-        <div className="space-y-1">
-          <SheetTitle>
-            {update?.id ? "Edit Update" : "New Life Update"}
-          </SheetTitle>
-          <SheetDescription className="text-xs">
-            Share what you&apos;re up to.
-          </SheetDescription>
+    <div className="flex h-full w-full flex-col">
+      <SheetHeader className="shrink-0 space-y-0 border-b py-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1 text-left">
+            <SheetTitle>
+              {update?.id ? "Edit Update" : "New Life Update"}
+            </SheetTitle>
+            <SheetDescription className="text-xs">
+              Share what you&apos;re up to.
+            </SheetDescription>
+          </div>
+          <SheetClose asChild>
+            <Button type="button" variant="ghost">
+              <X />
+            </Button>
+          </SheetClose>
         </div>
-        <SheetClose asChild>
-          <Button type="button" variant="ghost">
-            <X />
-          </Button>
-        </SheetClose>
-      </div>
+      </SheetHeader>
 
       <form
         onSubmit={handleSubmit}
-        className="flex-1 flex flex-col min-h-0 pt-4 gap-4 overflow-y-auto"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-4"
       >
         <div>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title"
-            className="font-bold text-lg h-12 border-transparent px-2 shadow-none focus-visible:ring-0 focus-visible:bg-secondary/20 placeholder:text-muted-foreground/50"
+            className="h-12 border-transparent px-2 text-lg font-bold shadow-none placeholder:text-muted-foreground/50 focus-visible:bg-secondary/20 focus-visible:ring-0"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">
+            <Label className="mb-1.5 block text-xs text-muted-foreground">
               Category
             </Label>
             <Select value={category} onValueChange={setCategory}>
@@ -211,7 +216,7 @@ export default function LifeUpdateEditor({
                 onCheckedChange={setIsPublished}
                 id="published"
               />
-              <Label htmlFor="published" className="text-sm cursor-pointer">
+              <Label htmlFor="published" className="cursor-pointer text-sm">
                 Published
               </Label>
             </div>
@@ -219,7 +224,7 @@ export default function LifeUpdateEditor({
         </div>
 
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">
+          <Label className="mb-1.5 block text-xs text-muted-foreground">
             Content
           </Label>
           <Textarea
@@ -230,9 +235,9 @@ export default function LifeUpdateEditor({
           />
         </div>
 
-        {/* Image Upload */}
+        {/* Image upload */}
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">
+          <Label className="mb-1.5 block text-xs text-muted-foreground">
             Image
           </Label>
           <div className="flex gap-2">
@@ -278,7 +283,7 @@ export default function LifeUpdateEditor({
             )}
           </div>
           {imageUrl && (
-            <div className="mt-2 relative aspect-video w-full overflow-hidden rounded-md border bg-secondary/30">
+            <div className="relative mt-2 aspect-video w-full overflow-hidden rounded-md border bg-secondary/30">
               <img
                 src={imageUrl}
                 alt="Preview"
@@ -290,15 +295,15 @@ export default function LifeUpdateEditor({
             </div>
           )}
           {!imageUrl && (
-            <label className="mt-2 flex items-center justify-center h-24 border border-dashed rounded-md cursor-pointer hover:bg-secondary/20 transition-colors">
+            <label className="mt-2 flex h-24 cursor-pointer items-center justify-center rounded-md border border-dashed transition-colors hover:bg-secondary/20">
               <input
                 type="file"
                 accept="image/*"
                 onChange={onImageSelected}
                 className="hidden"
               />
-              <div className="flex flex-col items-center text-muted-foreground text-xs">
-                <ImageIcon className="size-5 mb-1" />
+              <div className="flex flex-col items-center text-xs text-muted-foreground">
+                <ImageIcon className="mb-1 size-5" />
                 <span>Drop or click to upload</span>
               </div>
             </label>
@@ -307,22 +312,21 @@ export default function LifeUpdateEditor({
 
         {/* Tags */}
         <div>
-          <Label className="text-xs text-muted-foreground mb-1.5 block">
+          <Label className="mb-1.5 block text-xs text-muted-foreground">
             Tags (comma-separated)
           </Label>
-          <div className="flex items-center gap-2 border rounded-md px-3 bg-background focus-within:ring-1 focus-within:ring-ring">
+          <div className="flex items-center gap-2 rounded-md border bg-background px-3 focus-within:ring-1 focus-within:ring-ring">
             <span className="text-muted-foreground">#</span>
             <Input
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="TV Shows, Friends, Fun..."
-              className="border-none shadow-none focus-visible:ring-0 h-9 p-0"
+              className="h-9 border-none p-0 shadow-none focus-visible:ring-0"
             />
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex shrink-0 justify-end gap-3 pt-4 mt-auto border-t">
+        <div className="mt-auto flex shrink-0 justify-end gap-3 border-t pt-4">
           <Button
             type="button"
             variant="ghost"

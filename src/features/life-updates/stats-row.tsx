@@ -10,17 +10,17 @@ export function StatsRow({ updates }: { updates: LifeUpdate[] }) {
   const stats = [
     { label: "Published", value: published, accent: "text-primary" },
     { label: "Drafts", value: drafts, accent: "text-muted-foreground" },
-    { label: "Pinned", value: pinned, accent: "text-amber-500" },
+    { label: "Pinned", value: pinned, accent: "text-chart-3" },
     { label: "Total", value: updates.length, accent: "text-foreground" },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {stats.map((s) => (
         <Card key={s.label} className="shadow-sm">
-          <CardContent className="p-3 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">{s.label}</span>
-            <span className={cn("text-lg font-bold", s.accent)}>
+          <CardContent className="flex items-center justify-between p-3">
+            <span className="section-label">{s.label}</span>
+            <span className={cn("font-mono text-lg font-bold", s.accent)}>
               {s.value}
             </span>
           </CardContent>

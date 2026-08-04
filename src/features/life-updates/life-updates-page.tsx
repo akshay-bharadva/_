@@ -1,28 +1,27 @@
-import { useState, useMemo } from "react";
+"use client";
+
+import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import { Grid3X3, List, Loader2, Megaphone, Plus } from "lucide-react";
+import { toast } from "sonner";
 import type { LifeUpdate } from "@/types";
-import LifeUpdateEditor from "@/components/admin/life-update-editor";
 import {
+  useDeleteLifeUpdateMutation,
   useGetLifeUpdatesQuery,
   useUpdateLifeUpdateMutation,
-  useDeleteLifeUpdateMutation,
 } from "@/store/api/adminApi";
-import { Plus, Loader2, Megaphone, Grid3X3, List } from "lucide-react";
-import { Button } from "../ui/button";
-import { Card } from "../ui/card";
-import { Sheet, SheetContent } from "../ui/sheet";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import { EmptyState, ManagerWrapper, PageHeader } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
-import { useConfirm } from "../providers/ConfirmDialogProvider";
-import { PageHeader, ManagerWrapper } from "./shared";
-import { BoardCard, ListRow } from "./life-updates/update-cards";
-import { StatsRow } from "./life-updates/stats-row";
-import {
-  CategorySidebar,
-  CategoryScroller,
-} from "./life-updates/category-filter";
+import { BoardCard, ListRow } from "./update-cards";
+import { StatsRow } from "./stats-row";
+import { CategorySidebar, CategoryScroller } from "./category-filter";
+import { LifeUpdateEditor } from "./life-update-editor";
 
-export default function LifeUpdatesManager() {
+export default function LifeUpdatesPage() {
   const confirm = useConfirm();
   const [editingUpdate, setEditingUpdate] = useState<LifeUpdate | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -130,9 +129,9 @@ export default function LifeUpdatesManager() {
         title="Life Updates"
         description="Share what you're watching, doing, and thinking"
         actions={
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             {/* View toggle */}
-            <div className="hidden sm:flex items-center border rounded-lg p-0.5 bg-secondary/30">
+            <div className="hidden items-center rounded-lg border bg-secondary/30 p-0.5 sm:flex">
               <Button
                 variant={viewMode === "board" ? "secondary" : "ghost"}
                 size="icon"
@@ -162,36 +161,40 @@ export default function LifeUpdatesManager() {
         searchPlaceholder="Search updates..."
       />
 
-      {/* Stats */}
       {updates.length > 0 && <StatsRow updates={updates} />}
 
-      <div className="flex flex-col md:flex-row gap-4 items-start">
+      <div className="flex flex-col items-start gap-4 md:flex-row">
         <CategorySidebar
           updates={updates}
           selectedCategory={selectedCategory}
           onSelect={setSelectedCategory}
         />
 
-        {/* Main content */}
-        <main className="flex-1 w-full min-w-0">
+        <main className="w-full min-w-0 flex-1">
           <CategoryScroller
             selectedCategory={selectedCategory}
             onSelect={setSelectedCategory}
           />
 
           {!isLoading && filteredUpdates.length === 0 ? (
-            <div className="py-20 text-center text-muted-foreground border border-dashed rounded-lg bg-muted/10">
-              <Megaphone className="mx-auto size-12 opacity-20" />
-              <h3 className="mt-4 text-lg font-semibold">No Updates Found</h3>
-              <p className="mt-1 text-sm text-muted-foreground/80">
-                {searchTerm
+            <EmptyState
+              icon={Megaphone}
+              variant="bordered"
+              title="No Updates Found"
+              description={
+                searchTerm
                   ? "Try a different search."
-                  : "Share your first life update!"}
-              </p>
-            </div>
+                  : "Share your first life update!"
+              }
+              action={
+                searchTerm
+                  ? undefined
+                  : { label: "New Update", onClick: handleCreate, icon: Plus }
+              }
+            />
           ) : viewMode === "board" ? (
             /* ── Board View (Polaroid Pin-board) ── */
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4">
+            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
               <AnimatePresence>
                 {filteredUpdates.map((update) => (
                   <BoardCard
@@ -222,7 +225,7 @@ export default function LifeUpdatesManager() {
       </div>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl md:max-w-2xl flex flex-col h-full">
+        <SheetContent className="flex h-full w-full flex-col sm:max-w-xl md:max-w-2xl">
           <LifeUpdateEditor
             key={editingUpdate?.id || "new"}
             update={editingUpdate}
