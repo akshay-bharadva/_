@@ -1,10 +1,21 @@
+"use client";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { InventoryItem } from "@/types";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import type { InventoryItem } from "@/types";
+import {
+  useAddInventoryItemMutation,
+  useUpdateInventoryItemMutation,
+} from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Combobox } from "@/components/ui/combobox";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -13,21 +24,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2, CalendarIcon } from "lucide-react";
-import {
-  useAddInventoryItemMutation,
-  useUpdateInventoryItemMutation,
-} from "@/store/api/adminApi";
-import { toast } from "sonner";
-import { Combobox } from "@/components/ui/combobox";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
-import { format } from "date-fns";
+import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
 
 const inventorySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -51,13 +53,51 @@ const CATEGORIES = [
   { label: "Other", value: "Other" },
 ];
 
-export default function InventoryForm({
-  item,
-  onSuccess,
-}: {
+interface InventoryFormProps {
   item: InventoryItem | null;
   onSuccess: () => void;
+}
+
+function DateField({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (value: string) => void;
 }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <FormControl>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !value && "text-muted-foreground",
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {value ? (
+              format(parseLocalDate(value), "PPP")
+            ) : (
+              <span>Pick a date</span>
+            )}
+          </Button>
+        </FormControl>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={value ? parseLocalDate(value) : undefined}
+          onSelect={(date) => onChange(date ? format(date, "yyyy-MM-dd") : "")}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function InventoryForm({ item, onSuccess }: InventoryFormProps) {
   const [addItem, { isLoading: isAdding }] = useAddInventoryItemMutation();
   const [updateItem, { isLoading: isUpdating }] =
     useUpdateInventoryItemMutation();
@@ -96,16 +136,15 @@ export default function InventoryForm({
       }
       onSuccess();
     } catch (error: unknown) {
-      toast.error("Failed to save item", { description: getErrorMessage(error) });
+      toast.error("Failed to save item", {
+        description: getErrorMessage(error),
+      });
     }
   };
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="space-y-4 pt-4"
-      >
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -190,38 +229,7 @@ export default function InventoryForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Purchase Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(parseLocalDate(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value ? parseLocalDate(field.value) : undefined
-                      }
-                      onSelect={(date) =>
-                        field.onChange(date ? format(date, "yyyy-MM-dd") : "")
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DateField value={field.value} onChange={field.onChange} />
                 <FormMessage />
               </FormItem>
             )}
@@ -232,38 +240,7 @@ export default function InventoryForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Warranty Expiry</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(parseLocalDate(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value ? parseLocalDate(field.value) : undefined
-                      }
-                      onSelect={(date) =>
-                        field.onChange(date ? format(date, "yyyy-MM-dd") : "")
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DateField value={field.value} onChange={field.onChange} />
                 <FormMessage />
               </FormItem>
             )}

@@ -1,7 +1,7 @@
 "use client";
 
-import InventoryManager from "@/components/admin/inventory-manager";
+import InventoryPage from "@/features/inventory/inventory-page";
 
 export default function Page() {
-  return <InventoryManager />;
+  return <InventoryPage />;
 }
