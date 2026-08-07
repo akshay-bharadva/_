@@ -345,6 +345,19 @@ export const publicApi = createApi({
         return { data: undefined };
       },
     }),
+
+    getLockdownStatus: builder.query<number, void>({
+      queryFn: async () => {
+        if (!supabase) return { data: 0 }; // Mock: Always normal
+        const { data, error } = await supabase
+          .from("security_settings")
+          .select("lockdown_level")
+          .single();
+        if (error || !data) return { data: 0 };
+        return { data: data.lockdown_level };
+      },
+      keepUnusedDataFor: 60,
+    }),
   }),
 });
 
@@ -358,4 +371,5 @@ export const {
   useGetPublishedLifeUpdatesQuery,
   useGetSectionsByPathQuery,
   useGetGitHubReposQuery,
+  useGetLockdownStatusQuery,
 } = publicApi;
