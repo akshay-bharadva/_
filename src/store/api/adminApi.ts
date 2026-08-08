@@ -25,3 +25,4 @@ export * from "./admin/calendarSetupApi";
 export * from "./admin/notesApi";
 export * from "./admin/inventoryApi";
 export * from "./admin/whiteboardApi";
+export * from "./admin/inboxApi";
