@@ -1,7 +1,7 @@
 "use client";
 
-import ContentManager from "@/components/admin/content-manager";
+import ContentPage from "@/features/content/content-page";
 
 export default function Page() {
-  return <ContentManager />;
+  return <ContentPage />;
 }

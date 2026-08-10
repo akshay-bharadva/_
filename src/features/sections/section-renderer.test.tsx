@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { store } from "@/store/store";
 import SectionRenderer from "./section-renderer";
-import { LAYOUT_OPTIONS } from "@/components/admin/content/layout-registry";
+import { LAYOUT_OPTIONS } from "@/features/content/layout-registry";
 import type { PortfolioSection } from "@/types";
 
 /**

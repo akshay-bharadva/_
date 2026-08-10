@@ -1,4 +1,4 @@
-import type { PortfolioSection, PortfolioItem } from "@/types";
+import type { PortfolioItem, PortfolioSection } from "@/types";
 
 export type SheetState =
   | { type: "new-section" }

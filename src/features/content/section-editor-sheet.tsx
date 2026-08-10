@@ -1,12 +1,14 @@
+"use client";
+
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, X } from "lucide-react";
 import {
   portfolioSectionSchema,
   type PortfolioSectionFormValues,
 } from "@/lib/schemas";
 import type { PortfolioSection } from "@/types";
-import { X, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +21,11 @@ import {
 } from "@/components/ui/select";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
-  SheetClose,
 } from "@/components/ui/sheet";
 import {
   Dialog,
@@ -32,11 +34,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
-import type { PathOption } from "./types";
+import type { PathOption } from "./content-types";
 import {
-  LAYOUT_OPTIONS,
-  LAYOUT_GROUPS,
   GROUP_BADGE,
+  LAYOUT_GROUPS,
+  LAYOUT_OPTIONS,
   LayoutPreview,
 } from "./layout-registry";
 
@@ -47,7 +49,7 @@ export interface SectionEditorSheetProps {
   onClose: () => void;
 }
 
-export default function SectionEditorSheet({
+export function SectionEditorSheet({
   section,
   availablePaths,
   onSave,
@@ -90,8 +92,8 @@ export default function SectionEditorSheet({
   return (
     <>
       <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="sm:max-w-lg w-full flex flex-col">
-          <div className="flex justify-between items-center">
+        <SheetContent className="flex w-full flex-col sm:max-w-lg">
+          <div className="flex items-center justify-between">
             <SheetHeader>
               <SheetTitle>
                 {section?.id ? "Edit Section" : "Create New Section"}
@@ -109,7 +111,7 @@ export default function SectionEditorSheet({
 
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4 pt-6 flex-1 overflow-y-auto"
+            className="flex-1 space-y-4 overflow-y-auto pt-6"
           >
             <div className="space-y-1">
               <Label htmlFor="title">Title *</Label>
@@ -169,7 +171,7 @@ export default function SectionEditorSheet({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 text-xs gap-1.5"
+                  className="h-7 gap-1.5 text-xs"
                   onClick={() => setPreviewOpen(true)}
                 >
                   <Eye className="size-3.5" /> Preview All
@@ -190,7 +192,7 @@ export default function SectionEditorSheet({
                         );
                         return (
                           <div key={group}>
-                            <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest font-mono">
+                            <div className="section-label px-2 py-1.5">
                               {group}
                             </div>
                             {groupItems.map((opt) => (
@@ -211,14 +213,14 @@ export default function SectionEditorSheet({
 
               {/* Inline preview */}
               {selectedOption && (
-                <div className="rounded-lg border border-border/50 bg-secondary/20 p-4 space-y-2">
+                <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/20 p-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                       <selectedOption.icon className="size-3.5 text-primary" />
                       {selectedOption.label}
                     </span>
                     <span
-                      className={`text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded ${GROUP_BADGE[selectedOption.group]}`}
+                      className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold ${GROUP_BADGE[selectedOption.group]}`}
                     >
                       {selectedOption.group}
                     </span>
@@ -226,14 +228,14 @@ export default function SectionEditorSheet({
                   <p className="text-[11px] text-muted-foreground">
                     {selectedOption.description}
                   </p>
-                  <div className="pt-2 border-t border-border/30">
+                  <div className="border-t border-border/30 pt-2">
                     <LayoutPreview layout={selectedLayout} />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end pt-4 gap-2">
+            <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="ghost" onClick={onClose}>
                 Cancel
               </Button>
@@ -245,22 +247,22 @@ export default function SectionEditorSheet({
 
       {/* Preview All dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Layout Previews</DialogTitle>
           </DialogHeader>
           <div className="space-y-8 pt-2">
             {LAYOUT_GROUPS.map((group) => (
               <div key={group}>
-                <div className="flex items-center gap-3 mb-4">
+                <div className="mb-4 flex items-center gap-3">
                   <span
-                    className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded ${GROUP_BADGE[group]}`}
+                    className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold ${GROUP_BADGE[group]}`}
                   >
                     {group}
                   </span>
                   <div className="h-px flex-1 bg-border/40" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {LAYOUT_OPTIONS.filter((o) => o.group === group).map(
                     (opt) => (
                       <button
@@ -272,7 +274,7 @@ export default function SectionEditorSheet({
                           });
                           setPreviewOpen(false);
                         }}
-                        className={`rounded-xl border p-4 text-left space-y-3 transition-all hover:shadow-md hover:-translate-y-0.5 ${
+                        className={`space-y-3 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
                           selectedLayout === opt.value
                             ? "border-primary bg-primary/5 shadow-sm"
                             : "border-border/50 bg-card hover:border-primary/30"
@@ -286,7 +288,7 @@ export default function SectionEditorSheet({
                             {opt.label}
                           </span>
                           {selectedLayout === opt.value && (
-                            <span className="ml-auto text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                            <span className="ml-auto rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] text-primary">
                               Active
                             </span>
                           )}

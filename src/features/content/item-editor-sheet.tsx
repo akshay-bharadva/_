@@ -1,8 +1,10 @@
-import { useState, FormEvent } from "react";
+"use client";
+
+import { useState, type FormEvent } from "react";
+import { Info, X } from "lucide-react";
+import { toast } from "sonner";
 import type { PortfolioItem } from "@/types";
 import { portfolioItemSchema } from "@/lib/schemas";
-import { toast } from "sonner";
-import { X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import NovelEditor from "@/components/admin/novel-editor";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
-  SheetClose,
 } from "@/components/ui/sheet";
 import {
   Tooltip,
@@ -37,13 +39,13 @@ import {
 interface FieldHint {
   label: string;
   placeholder?: string;
-  tip?: string;          // shown in tooltip next to label
-  hide?: boolean;        // field is irrelevant for this layout — collapsed by default
+  tip?: string; // shown in tooltip next to label
+  hide?: boolean; // field is irrelevant for this layout — collapsed by default
   required?: boolean;
 }
 
 interface LayoutHints {
-  _description: string;  // shown at top of form as a quick reminder
+  _description: string; // shown at top of form as a quick reminder
   title: FieldHint;
   subtitle?: FieldHint;
   date_from?: FieldHint;
@@ -208,15 +210,26 @@ function getHints(layoutStyle?: string): LayoutHints {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function FieldLabel({ label, tip, required }: { label: string; tip?: string; required?: boolean }) {
+function FieldLabel({
+  label,
+  tip,
+  required,
+}: {
+  label: string;
+  tip?: string;
+  required?: boolean;
+}) {
   return (
     <div className="flex items-center gap-1.5">
-      <Label>{label}{required && <span className="text-destructive ml-0.5">*</span>}</Label>
+      <Label>
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
       {tip && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="size-3.5 text-muted-foreground cursor-help" />
+              <Info className="size-3.5 cursor-help text-muted-foreground" />
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs text-xs">
               {tip}
@@ -233,12 +246,12 @@ function FieldLabel({ label, tip, required }: { label: string; tip?: string; req
 export interface ItemEditorSheetProps {
   item: Partial<PortfolioItem> | null;
   sectionId: string;
-  layoutStyle?: string;   // pass the parent section's layout_style
+  layoutStyle?: string; // the parent section's layout_style
   onSave: (data: Partial<PortfolioItem>, sectionId: string) => void;
   onClose: () => void;
 }
 
-export default function ItemEditorSheet({
+export function ItemEditorSheet({
   item,
   sectionId,
   layoutStyle,
@@ -261,9 +274,10 @@ export default function ItemEditorSheet({
 
   const [notesOpen, setNotesOpen] = useState(!!item?.internal_notes);
 
-  const set = (key: keyof typeof formData) =>
+  const set =
+    (key: keyof typeof formData) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setFormData(f => ({ ...f, [key]: e.target.value }));
+      setFormData((f) => ({ ...f, [key]: e.target.value }));
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -277,7 +291,7 @@ export default function ItemEditorSheet({
       description:    formData.description    || null,
       link_url:       formData.link_url       || null,
       image_url:      formData.image_url      || null,
-      tags:           formData.tags.split(",").map(t => t.trim()).filter(Boolean),
+      tags:           formData.tags.split(",").map((t) => t.trim()).filter(Boolean),
       internal_notes: formData.internal_notes || null,
     };
 
@@ -295,32 +309,36 @@ export default function ItemEditorSheet({
     onClose();
   };
 
-  // Decide whether to use the rich editor or plain textarea for description
-  // (rich editor for layouts where description is long-form markdown)
+  // Rich editor for layouts where description is long-form markdown
   const useRichDescription = !["impact-numbers", "client-logos", "now-page"].includes(layoutStyle ?? "");
   const descHide = hints.description?.hide;
 
   return (
-    <Sheet open={true} onOpenChange={open => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg flex flex-col p-0 gap-0">
-
+    <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b p-6">
           <SheetHeader className="text-left">
             <SheetTitle>{item?.id ? "Edit Item" : "Create New Item"}</SheetTitle>
             <SheetDescription>
-              {hints._description || "Fill in the details for this portfolio item."}
+              {hints._description ||
+                "Fill in the details for this portfolio item."}
             </SheetDescription>
           </SheetHeader>
           <SheetClose asChild>
-            <Button type="button" variant="ghost" size="icon"><X className="size-4" /></Button>
+            <Button type="button" variant="ghost" size="icon">
+              <X className="size-4" />
+            </Button>
           </SheetClose>
         </div>
 
         {/* Layout badge */}
         {layoutStyle && (
-          <div className="px-6 pt-4 shrink-0">
-            <Badge variant="secondary" className="font-mono text-[10px] bg-primary/10 text-primary border-transparent">
+          <div className="shrink-0 px-6 pt-4">
+            <Badge
+              variant="secondary"
+              className="border-transparent bg-primary/10 font-mono text-[10px] text-primary"
+            >
               {layoutStyle}
             </Badge>
           </div>
@@ -328,11 +346,14 @@ export default function ItemEditorSheet({
 
         {/* Scrollable form */}
         <ScrollArea className="flex-1">
-          <form id="item-form" onSubmit={handleSubmit} className="p-6 space-y-5">
-
+          <form id="item-form" onSubmit={handleSubmit} className="space-y-5 p-6">
             {/* ── Title ── */}
             <div className="space-y-1.5">
-              <FieldLabel label={hints.title.label} tip={hints.title.tip} required={hints.title.required} />
+              <FieldLabel
+                label={hints.title.label}
+                tip={hints.title.tip}
+                required={hints.title.required}
+              />
               <Input
                 value={formData.title}
                 onChange={set("title")}
@@ -345,7 +366,10 @@ export default function ItemEditorSheet({
             {/* ── Subtitle ── */}
             {!hints.subtitle?.hide && (
               <div className="space-y-1.5">
-                <FieldLabel label={hints.subtitle?.label ?? "Subtitle"} tip={hints.subtitle?.tip} />
+                <FieldLabel
+                  label={hints.subtitle?.label ?? "Subtitle"}
+                  tip={hints.subtitle?.tip}
+                />
                 <Input
                   value={formData.subtitle}
                   onChange={set("subtitle")}
@@ -359,7 +383,10 @@ export default function ItemEditorSheet({
               <div className="grid grid-cols-2 gap-4">
                 {!hints.date_from?.hide && (
                   <div className="space-y-1.5">
-                    <FieldLabel label={hints.date_from?.label ?? "From"} tip={hints.date_from?.tip} />
+                    <FieldLabel
+                      label={hints.date_from?.label ?? "From"}
+                      tip={hints.date_from?.tip}
+                    />
                     <Input
                       value={formData.date_from}
                       onChange={set("date_from")}
@@ -369,7 +396,10 @@ export default function ItemEditorSheet({
                 )}
                 {!hints.date_to?.hide && (
                   <div className="space-y-1.5">
-                    <FieldLabel label={hints.date_to?.label ?? "To"} tip={hints.date_to?.tip} />
+                    <FieldLabel
+                      label={hints.date_to?.label ?? "To"}
+                      tip={hints.date_to?.tip}
+                    />
                     <Input
                       value={formData.date_to}
                       onChange={set("date_to")}
@@ -383,19 +413,28 @@ export default function ItemEditorSheet({
             {/* ── Description ── */}
             {!descHide && (
               <div className="space-y-1.5">
-                <FieldLabel label={hints.description?.label ?? "Description"} tip={hints.description?.tip} />
+                <FieldLabel
+                  label={hints.description?.label ?? "Description"}
+                  tip={hints.description?.tip}
+                />
                 {useRichDescription ? (
                   <NovelEditor
                     value={formData.description}
-                    onChange={val => setFormData(f => ({ ...f, description: val }))}
-                    placeholder={hints.description?.placeholder ?? "Describe this item..."}
+                    onChange={(val) =>
+                      setFormData((f) => ({ ...f, description: val }))
+                    }
+                    placeholder={
+                      hints.description?.placeholder ?? "Describe this item..."
+                    }
                     minHeight="180px"
                   />
                 ) : (
                   <Textarea
                     value={formData.description}
                     onChange={set("description")}
-                    placeholder={hints.description?.placeholder ?? "Short description..."}
+                    placeholder={
+                      hints.description?.placeholder ?? "Short description..."
+                    }
                     rows={3}
                     className="resize-none text-sm"
                   />
@@ -406,19 +445,24 @@ export default function ItemEditorSheet({
             {/* ── Image URL ── */}
             {!hints.image_url?.hide && (
               <div className="space-y-1.5">
-                <FieldLabel label={hints.image_url?.label ?? "Image URL"} tip={hints.image_url?.tip} />
+                <FieldLabel
+                  label={hints.image_url?.label ?? "Image URL"}
+                  tip={hints.image_url?.tip}
+                />
                 <Input
                   value={formData.image_url}
                   onChange={set("image_url")}
                   placeholder={hints.image_url?.placeholder ?? "https://..."}
                 />
                 {formData.image_url && (
-                  <div className="mt-2 rounded-lg overflow-hidden border border-border/50 bg-secondary/20 aspect-video">
+                  <div className="mt-2 aspect-video overflow-hidden rounded-lg border border-border/50 bg-secondary/20">
                     <img
                       src={formData.image_url}
                       alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
                     />
                   </div>
                 )}
@@ -428,7 +472,10 @@ export default function ItemEditorSheet({
             {/* ── Link URL ── */}
             {!hints.link_url?.hide && (
               <div className="space-y-1.5">
-                <FieldLabel label={hints.link_url?.label ?? "Link URL"} tip={hints.link_url?.tip} />
+                <FieldLabel
+                  label={hints.link_url?.label ?? "Link URL"}
+                  tip={hints.link_url?.tip}
+                />
                 <Input
                   value={formData.link_url}
                   onChange={set("link_url")}
@@ -440,7 +487,10 @@ export default function ItemEditorSheet({
             {/* ── Tags ── */}
             {!hints.tags?.hide && (
               <div className="space-y-1.5">
-                <FieldLabel label={hints.tags?.label ?? "Tags (comma-separated)"} tip={hints.tags?.tip} />
+                <FieldLabel
+                  label={hints.tags?.label ?? "Tags (comma-separated)"}
+                  tip={hints.tags?.tip}
+                />
                 <Input
                   value={formData.tags}
                   onChange={set("tags")}
@@ -449,11 +499,19 @@ export default function ItemEditorSheet({
                 {/* Live tag preview */}
                 {formData.tags && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {formData.tags.split(",").map(t => t.trim()).filter(Boolean).map((t, i) => (
-                      <Badge key={i} variant="secondary" className="font-mono text-[10px] bg-primary/10 text-primary border-transparent">
-                        {t}
-                      </Badge>
-                    ))}
+                    {formData.tags
+                      .split(",")
+                      .map((t) => t.trim())
+                      .filter(Boolean)
+                      .map((t, i) => (
+                        <Badge
+                          key={i}
+                          variant="secondary"
+                          className="border-transparent bg-primary/10 font-mono text-[10px] text-primary"
+                        >
+                          {t}
+                        </Badge>
+                      ))}
                   </div>
                 )}
               </div>
@@ -462,11 +520,16 @@ export default function ItemEditorSheet({
             {/* ── Internal notes (collapsible) ── */}
             <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
               <CollapsibleTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground gap-1.5 -ml-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="-ml-1 h-7 gap-1.5 text-xs text-muted-foreground"
+                >
                   <span>{notesOpen ? "▾" : "▸"}</span>
                   Internal notes
                   {formData.internal_notes && (
-                    <span className="size-1.5 rounded-full bg-primary inline-block" />
+                    <span className="inline-block size-1.5 rounded-full bg-primary" />
                   )}
                 </Button>
               </CollapsibleTrigger>
@@ -480,17 +543,15 @@ export default function ItemEditorSheet({
                 />
               </CollapsibleContent>
             </Collapsible>
-
           </form>
         </ScrollArea>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-background shrink-0">
+        <div className="shrink-0 border-t bg-background p-4">
           <Button type="submit" form="item-form" className="w-full">
             {item?.id ? "Save changes" : "Create item"}
           </Button>
         </div>
-
       </SheetContent>
     </Sheet>
   );

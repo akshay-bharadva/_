@@ -1,42 +1,44 @@
-import { useState, useEffect } from "react";
-import type { PortfolioSection, PortfolioItem } from "@/types";
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
+
+import { useEffect, useState } from "react";
+import { LayoutTemplate, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
+import type { PortfolioItem, PortfolioSection } from "@/types";
 import {
-  useGetPortfolioContentQuery,
-  useGetNavLinksAdminQuery,
-  useSaveSectionMutation,
-  useDeleteSectionMutation,
-  useSavePortfolioItemMutation,
   useDeletePortfolioItemMutation,
-  useUpdateSectionOrderMutation,
+  useDeleteSectionMutation,
+  useGetNavLinksAdminQuery,
+  useGetPortfolioContentQuery,
   useRescanAssetUsageMutation,
+  useSavePortfolioItemMutation,
+  useSaveSectionMutation,
+  useUpdateSectionOrderMutation,
 } from "@/store/api/adminApi";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { PageHeader, ManagerWrapper } from "./shared";
-import { Plus, LayoutTemplate } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  SheetState,
-  PathOption,
-  SectionEditorSheet,
-  ItemEditorSheet,
-  SectionList,
-  SectionDetail,
-} from "./content";
+import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import { getErrorMessage } from "@/lib/utils";
+import type { PathOption, SheetState } from "./content-types";
+import { SectionList } from "./section-list";
+import { SectionDetail } from "./section-detail";
+import { SectionEditorSheet } from "./section-editor-sheet";
+import { ItemEditorSheet } from "./item-editor-sheet";
 
-export default function ContentManager() {
+export default function ContentPage() {
   const confirm = useConfirm();
   const isMobile = useIsMobile();
 
   const [localSections, setLocalSections] = useState<PortfolioSection[]>([]);
   const [availablePaths, setAvailablePaths] = useState<PathOption[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    null,
+  );
   const [sheetState, setSheetState] = useState<SheetState>(null);
 
-  const { data: sections, isLoading: isLoadingSections } = useGetPortfolioContentQuery();
+  const { data: sections, isLoading: isLoadingSections } =
+    useGetPortfolioContentQuery();
   const { data: navLinks } = useGetNavLinksAdminQuery();
   const [saveSection] = useSaveSectionMutation();
   const [deleteSection] = useDeleteSectionMutation();
@@ -59,20 +61,32 @@ export default function ContentManager() {
     if (navLinks) {
       const paths = new Set<string>(["/"]);
       navLinks.forEach((link) => paths.add(link.href));
-      setAvailablePaths(Array.from(paths).sort().map((path) => ({ label: path, value: path })));
+      setAvailablePaths(
+        Array.from(paths)
+          .sort()
+          .map((path) => ({ label: path, value: path })),
+      );
     }
   }, [navLinks]);
 
-  // Handler functions (handleMoveSection, handleSaveSection, etc.) are unchanged...
-  const handleMoveSection = async (sectionId: string, direction: "up" | "down") => {
+  const handleMoveSection = async (
+    sectionId: string,
+    direction: "up" | "down",
+  ) => {
     const section = localSections.find((s) => s.id === sectionId);
     if (!section) return;
 
-    const samePage = localSections.filter((s) => s.page_path === section.page_path);
+    const samePage = localSections.filter(
+      (s) => s.page_path === section.page_path,
+    );
     const currentIndex = samePage.findIndex((s) => s.id === sectionId);
 
-    if ((direction === "up" && currentIndex === 0) || (direction === "down" && currentIndex === samePage.length - 1)) return;
-    
+    if (
+      (direction === "up" && currentIndex === 0) ||
+      (direction === "down" && currentIndex === samePage.length - 1)
+    )
+      return;
+
     const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
     const reordered = [...samePage];
     const [moved] = reordered.splice(currentIndex, 1);
@@ -94,7 +108,10 @@ export default function ContentManager() {
     }
   };
 
-  const handleSaveSection = async (data: Partial<PortfolioSection>, options?: { silent?: boolean }) => {
+  const handleSaveSection = async (
+    data: Partial<PortfolioSection>,
+    options?: { silent?: boolean },
+  ) => {
     try {
       const saved = await saveSection(data).unwrap();
       if (!options?.silent) {
@@ -103,14 +120,17 @@ export default function ContentManager() {
       }
       setSelectedSectionId(saved.id);
     } catch (err) {
-      toast.error("Failed to save section", { description: getErrorMessage(err) });
+      toast.error("Failed to save section", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
   const handleDeleteSection = async (id: string) => {
     const ok = await confirm({
       title: "Delete Section?",
-      description: "This will permanently delete this section and all items within it.",
+      description:
+        "This will permanently delete this section and all items within it.",
       variant: "destructive",
     });
     if (!ok) return;
@@ -120,11 +140,16 @@ export default function ContentManager() {
       toast.success("Section deleted.");
       setSelectedSectionId(null);
     } catch (err) {
-      toast.error("Failed to delete section", { description: getErrorMessage(err) });
+      toast.error("Failed to delete section", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
-  const handleSaveItem = async (itemData: Partial<PortfolioItem>, sectionId: string) => {
+  const handleSaveItem = async (
+    itemData: Partial<PortfolioItem>,
+    sectionId: string,
+  ) => {
     try {
       await saveItem({ ...itemData, section_id: sectionId }).unwrap();
       toast.success("Item saved.");
@@ -148,7 +173,9 @@ export default function ContentManager() {
       toast.success("Item deleted.");
       await rescanUsage().unwrap();
     } catch (err) {
-      toast.error("Failed to delete item", { description: getErrorMessage(err) });
+      toast.error("Failed to delete item", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
@@ -166,16 +193,26 @@ export default function ContentManager() {
 
   const renderSheet = () => {
     if (sheetState?.type === "new-item" || sheetState?.type === "edit-item") {
+      const sectionId =
+        sheetState.type === "new-item"
+          ? sheetState.sectionId
+          : sheetState.item.section_id;
+      // Owning section's layout drives the contextual field hints
+      const owningSection = localSections.find((s) => s.id === sectionId);
       return (
         <ItemEditorSheet
           item={sheetState.type === "edit-item" ? sheetState.item : null}
-          sectionId={sheetState.type === "new-item" ? sheetState.sectionId : sheetState.item.section_id}
+          sectionId={sectionId}
+          layoutStyle={owningSection?.layout_style}
           onSave={handleSaveItem}
           onClose={() => setSheetState(null)}
         />
       );
     }
-    if (sheetState?.type === "new-section" || sheetState?.type === "edit-section") {
+    if (
+      sheetState?.type === "new-section" ||
+      sheetState?.type === "edit-section"
+    ) {
       return (
         <SectionEditorSheet
           section={sheetState.type === "edit-section" ? sheetState.section : null}
@@ -188,8 +225,7 @@ export default function ContentManager() {
     return null;
   };
 
-  // --- RESPONSIVE LOGIC ---
-  // On mobile, if a section is selected, we render ONLY the detail view.
+  // On mobile, a selected section replaces the list with the detail view.
   if (isMobile && selectedSectionId && selectedSection) {
     return (
       <ManagerWrapper>
@@ -197,7 +233,9 @@ export default function ContentManager() {
           section={selectedSection}
           isMobile={isMobile}
           onBack={() => setSelectedSectionId(null)}
-          onEditSection={(section) => setSheetState({ type: "edit-section", section })}
+          onEditSection={(section) =>
+            setSheetState({ type: "edit-section", section })
+          }
           onDeleteSection={handleDeleteSection}
           onSaveContent={handleSaveSection}
           onNewItem={(sectionId) => setSheetState({ type: "new-item", sectionId })}
@@ -221,13 +259,9 @@ export default function ContentManager() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-        {/*
-          RESPONSIVE FIX: On mobile, the grid becomes 1 column and this list takes full width.
-          The `selectedSectionId` check above handles showing/hiding this view.
-        */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="lg:col-span-4 xl:col-span-3">
-          <Card className="overflow-hidden h-full">
+          <Card className="h-full overflow-hidden">
             <SectionList
               groupedSections={groupedSections}
               selectedSectionId={selectedSectionId}
@@ -241,29 +275,34 @@ export default function ContentManager() {
           </Card>
         </div>
 
-        {/*
-          RESPONSIVE FIX: This detail view is hidden on mobile by default.
-          It only appears on larger screens.
-        */}
-        <div className="hidden lg:block lg:col-span-8 xl:col-span-9">
+        {/* Detail view — desktop only; mobile handled above */}
+        <div className="hidden lg:col-span-8 lg:block xl:col-span-9">
           {selectedSection ? (
             <SectionDetail
               section={selectedSection}
               isMobile={isMobile}
               onBack={() => setSelectedSectionId(null)}
-              onEditSection={(section) => setSheetState({ type: "edit-section", section })}
+              onEditSection={(section) =>
+                setSheetState({ type: "edit-section", section })
+              }
               onDeleteSection={handleDeleteSection}
               onSaveContent={handleSaveSection}
-              onNewItem={(sectionId) => setSheetState({ type: "new-item", sectionId })}
+              onNewItem={(sectionId) =>
+                setSheetState({ type: "new-item", sectionId })
+              }
               onEditItem={(item) => setSheetState({ type: "edit-item", item })}
               onDeleteItem={handleDeleteItem}
             />
           ) : (
-            <Card className="border-dashed h-full flex items-center justify-center">
+            <Card className="flex h-full items-center justify-center border-dashed">
               <CardContent className="py-16 text-center">
-                <LayoutTemplate className="size-12 mx-auto text-muted-foreground/30 mb-4" />
-                <p className="text-lg font-semibold mb-1">No section selected</p>
-                <p className="text-sm text-muted-foreground">Select a section to begin editing.</p>
+                <LayoutTemplate className="mx-auto mb-4 size-12 text-muted-foreground/30" />
+                <p className="mb-1 text-lg font-semibold">
+                  No section selected
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Select a section to begin editing.
+                </p>
               </CardContent>
             </Card>
           )}

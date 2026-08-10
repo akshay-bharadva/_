@@ -1,7 +1,9 @@
+"use client";
+
 import {
-  List, Clock, Grid2X2, Grid3X3, Image, LayoutList,
-  BarChart3, Columns, Star, Github, BookOpen, Quote, Briefcase,
-  TrendingUp, GitPullRequest, Mic, Trophy, Building2, Zap, Wrench,
+  BarChart3, BookOpen, Briefcase, Building2, Clock, Columns, Github,
+  GitPullRequest, Grid2X2, Grid3X3, Image, LayoutList, List, Mic, Quote,
+  Star, TrendingUp, Trophy, Wrench, Zap,
 } from "lucide-react";
 
 // ─── Layout registry ──────────────────────────────────
@@ -84,7 +86,8 @@ export const LAYOUT_OPTIONS = [
     label: "Case Study",
     icon: BookOpen,
     group: "Must-haves",
-    description: "Problem → approach → outcome with hero image and outcome metrics",
+    description:
+      "Problem → approach → outcome with hero image and outcome metrics",
   },
   {
     value: "services",
@@ -160,35 +163,40 @@ export const LAYOUT_OPTIONS = [
   },
 ];
 
-export const LAYOUT_GROUPS = ["Basic", "Must-haves", "High Signal", "Creative"] as const;
+export const LAYOUT_GROUPS = [
+  "Basic",
+  "Must-haves",
+  "High Signal",
+  "Creative",
+] as const;
 
 export const GROUP_BADGE: Record<string, string> = {
-  "Basic":       "bg-secondary text-muted-foreground",
-  "Must-haves":  "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  "High Signal": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  "Creative":    "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  Basic: "bg-secondary text-muted-foreground",
+  "Must-haves": "bg-chart-1/10 text-chart-1",
+  "High Signal": "bg-chart-3/10 text-chart-3",
+  Creative: "bg-chart-4/10 text-chart-4",
 };
 
 // ─── Mini preview renderers ────────────────────────────
 
 export function LayoutPreview({ layout }: { layout: string }) {
   const block = "rounded bg-muted/50 border border-border/50";
-  const bar   = "h-2 rounded-full bg-muted-foreground/20";
-  const sbar  = "h-1.5 rounded-full bg-muted-foreground/15";
-  const tag   = "h-1.5 w-6 rounded-full bg-primary/30";
-  const dot   = "size-2 rounded-full bg-primary";
+  const bar = "h-2 rounded-full bg-muted-foreground/20";
+  const sbar = "h-1.5 rounded-full bg-muted-foreground/15";
+  const tag = "h-1.5 w-6 rounded-full bg-primary/30";
+  const dot = "size-2 rounded-full bg-primary";
 
   switch (layout) {
     // ── existing previews ──
     case "timeline":
       return (
-        <div className="space-y-2.5 pl-3 border-l-2 border-primary/30 py-1">
-          {[0,1,2].map(i => (
+        <div className="space-y-2.5 border-l-2 border-primary/30 py-1 pl-3">
+          {[0, 1, 2].map((i) => (
             <div key={i} className="relative">
               <div className="absolute -left-[17px] top-1.5"><div className={dot} /></div>
-              <div className={`${block} p-2.5 space-y-1`}>
+              <div className={`${block} space-y-1 p-2.5`}>
                 <div className={`${bar} w-2/3`} /><div className={`${sbar} w-full`} />
-                <div className="flex gap-1">{[0,1].map(j => <div key={j} className={tag} />)}</div>
+                <div className="flex gap-1">{[0, 1].map((j) => <div key={j} className={tag} />)}</div>
               </div>
             </div>
           ))}
@@ -197,10 +205,10 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "grid-2-col":
       return (
         <div className="grid grid-cols-2 gap-2">
-          {[0,1,2,3].map(i => (
-            <div key={i} className={`${block} p-2.5 space-y-1`}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={`${block} space-y-1 p-2.5`}>
               <div className={`${bar} w-3/4`} /><div className={`${sbar} w-full`} />
-              <div className="flex gap-1">{[0,1].map(j => <div key={j} className={tag} />)}</div>
+              <div className="flex gap-1">{[0, 1].map((j) => <div key={j} className={tag} />)}</div>
             </div>
           ))}
         </div>
@@ -208,8 +216,8 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "grid-3-col":
       return (
         <div className="grid grid-cols-3 gap-2">
-          {[0,1,2].map(i => (
-            <div key={i} className={`${block} p-2 space-y-1`}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`${block} space-y-1 p-2`}>
               <div className={`${bar} w-3/4`} /><div className={`${sbar} w-full`} /><div className={tag} />
             </div>
           ))}
@@ -218,10 +226,10 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "cards-with-image":
       return (
         <div className="grid grid-cols-2 gap-2">
-          {[0,1].map(i => (
+          {[0, 1].map((i) => (
             <div key={i} className={`${block} overflow-hidden`}>
               <div className="h-9 bg-gradient-to-br from-primary/10 to-accent/10" />
-              <div className="p-2 space-y-1"><div className={`${bar} w-2/3`} /><div className={`${sbar} w-full`} /></div>
+              <div className="space-y-1 p-2"><div className={`${bar} w-2/3`} /><div className={`${sbar} w-full`} /></div>
             </div>
           ))}
         </div>
@@ -229,7 +237,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "compact-cards":
       return (
         <div className="flex flex-wrap gap-1.5">
-          {["Design", "Dev", "Strategy", "API"].map(l => (
+          {["Design", "Dev", "Strategy", "API"].map((l) => (
             <div key={l} className={`${block} px-2.5 py-1 text-[9px] text-muted-foreground`}>{l}</div>
           ))}
         </div>
@@ -237,10 +245,10 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "stats-grid":
       return (
         <div className="grid grid-cols-4 gap-1.5">
-          {["42+","1.2k","5yr","∞"].map(s => (
+          {["42+", "1.2k", "5yr", "∞"].map((s) => (
             <div key={s} className={`${block} p-2 text-center`}>
               <div className="text-xs font-bold text-foreground">{s}</div>
-              <div className={`${sbar} w-full mt-1`} />
+              <div className={`${sbar} mt-1 w-full`} />
             </div>
           ))}
         </div>
@@ -248,7 +256,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "masonry":
       return (
         <div className="columns-3 gap-2">
-          {[40,28,50,32,44,36].map((h,i) => (
+          {[40, 28, 50, 32, 44, 36].map((h, i) => (
             <div key={i} className={`${block} mb-2 break-inside-avoid`} style={{ height: h }}>
               <div className="p-1.5"><div className={`${sbar} w-3/4`} /></div>
             </div>
@@ -258,11 +266,11 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "feature-alternating":
       return (
         <div className="space-y-2.5">
-          {[0,1].map(i => (
+          {[0, 1].map((i) => (
             <div key={i} className={`flex gap-2 ${i % 2 ? "flex-row-reverse" : ""}`}>
-              <div className={`${block} flex-1 h-10 bg-gradient-to-br from-primary/10 to-accent/10`} />
+              <div className={`${block} h-10 flex-1 bg-gradient-to-br from-primary/10 to-accent/10`} />
               <div className="flex-1 space-y-1 py-1">
-                <div className="text-[9px] text-primary font-mono">Featured</div>
+                <div className="font-mono text-[9px] text-primary">Featured</div>
                 <div className={`${bar} w-2/3`} /><div className={`${sbar} w-full`} />
               </div>
             </div>
@@ -272,10 +280,10 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "github-grid":
       return (
         <div className="grid grid-cols-3 gap-2">
-          {[0,1,2].map(i => (
-            <div key={i} className={`${block} p-2 space-y-1`}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`${block} space-y-1 p-2`}>
               <div className={`${bar} w-2/3`} /><div className={`${sbar} w-full`} />
-              <div className="flex gap-1 items-center"><div className={tag} /><span className="text-[8px] text-muted-foreground">★ 0</span></div>
+              <div className="flex items-center gap-1"><div className={tag} /><span className="text-[8px] text-muted-foreground">★ 0</span></div>
             </div>
           ))}
         </div>
@@ -283,10 +291,10 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "default":
       return (
         <div className="space-y-1.5">
-          {[0,1,2].map(i => (
-            <div key={i} className={`${block} p-2.5 flex items-center justify-between`}>
-              <div className="space-y-1 flex-1"><div className={`${bar} w-1/3`} /><div className={`${sbar} w-1/2`} /></div>
-              <div className="flex gap-1">{[0,1].map(j => <div key={j} className={tag} />)}</div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`${block} flex items-center justify-between p-2.5`}>
+              <div className="flex-1 space-y-1"><div className={`${bar} w-1/3`} /><div className={`${sbar} w-1/2`} /></div>
+              <div className="flex gap-1">{[0, 1].map((j) => <div key={j} className={tag} />)}</div>
             </div>
           ))}
         </div>
@@ -296,21 +304,21 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "case-study":
       return (
         <div className="space-y-2">
-          <div className="h-16 rounded bg-gradient-to-br from-primary/10 to-accent/10 border border-border/50" />
+          <div className="h-16 rounded border border-border/50 bg-gradient-to-br from-primary/10 to-accent/10" />
           <div className="grid grid-cols-[1fr_60px] gap-2">
             <div className="space-y-2">
-              {[["01","bg-blue-500/20 text-blue-600"],["02","bg-violet-500/20 text-violet-600"],["03","bg-emerald-500/20 text-emerald-600"]].map(([n, c]) => (
-                <div key={n} className="flex gap-2 items-start">
-                  <span className={`text-[8px] font-mono px-1 py-0.5 rounded ${c}`}>{n}</span>
+              {[["01", "bg-chart-1/20 text-chart-1"], ["02", "bg-chart-4/20 text-chart-4"], ["03", "bg-chart-2/20 text-chart-2"]].map(([n, c]) => (
+                <div key={n} className="flex items-start gap-2">
+                  <span className={`rounded px-1 py-0.5 font-mono text-[8px] ${c}`}>{n}</span>
                   <div className="flex-1 space-y-0.5"><div className={`${sbar} w-full`} /><div className={`${sbar} w-3/4`} /></div>
                 </div>
               ))}
             </div>
             <div className="space-y-1.5">
-              {["60%","12k","2×"].map(v => (
+              {["60%", "12k", "2×"].map((v) => (
                 <div key={v} className={`${block} p-1.5 text-center`}>
                   <div className="text-[10px] font-bold text-foreground">{v}</div>
-                  <div className={`${sbar} w-full mt-0.5`} />
+                  <div className={`${sbar} mt-0.5 w-full`} />
                 </div>
               ))}
             </div>
@@ -320,8 +328,8 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "services":
       return (
         <div className="grid grid-cols-3 gap-2">
-          {[["bg-blue-500/10","text-blue-500"],["bg-violet-500/10","text-violet-500"],["bg-emerald-500/10","text-emerald-500"]].map(([bg, tc], i) => (
-            <div key={i} className={`${block} p-2.5 space-y-2`}>
+          {[["bg-chart-1/10", "bg-chart-1"], ["bg-chart-4/10", "bg-chart-4"], ["bg-chart-2/10", "bg-chart-2"]].map(([bg, tc], i) => (
+            <div key={i} className={`${block} space-y-2 p-2.5`}>
               <div className={`size-6 rounded-md ${bg} flex items-center justify-center`}>
                 <div className={`size-3 rounded-sm ${tc} opacity-60`} />
               </div>
@@ -333,7 +341,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "work-experience":
       return (
         <div className="space-y-3">
-          {[0,1].map(i => (
+          {[0, 1].map((i) => (
             <div key={i} className="grid grid-cols-[48px_1fr] gap-2">
               <div className="space-y-1.5">
                 <div className="size-8 rounded-lg border border-border/50 bg-card" />
@@ -342,7 +350,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
               <div className="space-y-1 pt-0.5">
                 <div className={`${bar} w-1/2`} />
                 <div className={`${sbar} w-full`} /><div className={`${sbar} w-3/4`} />
-                <div className="flex gap-1 mt-1">{[0,1].map(j => <div key={j} className={tag} />)}</div>
+                <div className="mt-1 flex gap-1">{[0, 1].map((j) => <div key={j} className={tag} />)}</div>
               </div>
             </div>
           ))}
@@ -351,12 +359,12 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "testimonials":
       return (
         <div className="grid grid-cols-2 gap-2">
-          {[0,1].map(i => (
-            <div key={i} className={`${block} p-3 space-y-2`}>
+          {[0, 1].map((i) => (
+            <div key={i} className={`${block} space-y-2 p-3`}>
               <div className={`${sbar} w-full`} /><div className={`${sbar} w-5/6`} /><div className={`${sbar} w-3/4`} />
-              <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/30">
+              <div className="flex items-center gap-1.5 border-t border-border/30 pt-1.5">
                 <div className="size-4 rounded-full bg-muted-foreground/20" />
-                <div className="space-y-0.5"><div className={`${sbar} w-12`} /><div className="h-1 rounded-full bg-muted-foreground/10 w-8" /></div>
+                <div className="space-y-0.5"><div className={`${sbar} w-12`} /><div className="h-1 w-8 rounded-full bg-muted-foreground/10" /></div>
               </div>
             </div>
           ))}
@@ -364,11 +372,11 @@ export function LayoutPreview({ layout }: { layout: string }) {
       );
     case "impact-numbers":
       return (
-        <div className="grid grid-cols-4 gap-px bg-border/30 rounded-lg overflow-hidden border border-border/50">
-          {["60%","12k","4yr","30+"].map(v => (
+        <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-border/50 bg-border/30">
+          {["60%", "12k", "4yr", "30+"].map((v) => (
             <div key={v} className="bg-card p-2.5 text-center">
               <div className="text-sm font-bold text-foreground">{v}</div>
-              <div className={`${sbar} w-full mt-1`} />
+              <div className={`${sbar} mt-1 w-full`} />
             </div>
           ))}
         </div>
@@ -376,11 +384,11 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "open-source":
       return (
         <div className="space-y-1.5">
-          {["vercel/next.js","tailwindlabs/tw","shadcn/ui"].map(r => (
-            <div key={r} className={`${block} p-2 flex items-center gap-2`}>
+          {["vercel/next.js", "tailwindlabs/tw", "shadcn/ui"].map((r) => (
+            <div key={r} className={`${block} flex items-center gap-2 p-2`}>
               <div className="size-5 rounded bg-muted-foreground/10" />
               <div className="flex-1 space-y-0.5"><div className="font-mono text-[9px] text-muted-foreground">{r}</div><div className={`${sbar} w-2/3`} /></div>
-              <div className="text-[9px] text-amber-500 font-mono">★ 128k</div>
+              <div className="font-mono text-[9px] text-chart-3">★ 128k</div>
             </div>
           ))}
         </div>
@@ -388,9 +396,9 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "speaking":
       return (
         <div className="space-y-1.5">
-          {[["Talk","bg-rose-500/10 text-rose-500","JSConf 2024"],["Article","bg-blue-500/10 text-blue-500","Smashing Mag"],["Podcast","bg-violet-500/10 text-violet-500","Syntax.fm"]].map(([t,c,v]) => (
-            <div key={t} className={`${block} p-2 flex items-center gap-2`}>
-              <div className={`size-6 rounded-lg flex items-center justify-center ${c} text-[8px] font-bold`}>{t[0]}</div>
+          {[["Talk", "bg-chart-5/10 text-chart-5", "JSConf 2024"], ["Article", "bg-chart-1/10 text-chart-1", "Smashing Mag"], ["Podcast", "bg-chart-4/10 text-chart-4", "Syntax.fm"]].map(([t, c, v]) => (
+            <div key={t} className={`${block} flex items-center gap-2 p-2`}>
+              <div className={`flex size-6 items-center justify-center rounded-lg ${c} text-[8px] font-bold`}>{t[0]}</div>
               <div className="flex-1 space-y-0.5"><div className={`${sbar} w-3/4`} /><div className="text-[8px] text-muted-foreground">{v}</div></div>
             </div>
           ))}
@@ -399,7 +407,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "press-awards":
       return (
         <div className="flex flex-wrap gap-1.5">
-          {["Awwwards SOTD","CSS Awards","Product Hunt #1","Smashing Mag"].map(a => (
+          {["Awwwards SOTD", "CSS Awards", "Product Hunt #1", "Smashing Mag"].map((a) => (
             <div key={a} className={`${block} px-2.5 py-1.5 text-[9px] font-medium text-muted-foreground`}>{a}</div>
           ))}
         </div>
@@ -407,9 +415,9 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "client-logos":
       return (
         <div className="grid grid-cols-4 gap-2">
-          {[0,1,2,3,4,5,6,7].map(i => (
-            <div key={i} className={`${block} aspect-square flex items-center justify-center`}>
-              <div className="size-5 bg-muted-foreground/15 rounded" />
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className={`${block} flex aspect-square items-center justify-center`}>
+              <div className="size-5 rounded bg-muted-foreground/15" />
             </div>
           ))}
         </div>
@@ -417,14 +425,14 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "now-page":
       return (
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 mb-2">
-            <div className="size-1.5 rounded-full bg-emerald-500" />
-            <div className="text-[8px] font-mono text-muted-foreground">Updated March 2026</div>
+          <div className="mb-2 flex items-center gap-1.5">
+            <div className="size-1.5 rounded-full bg-chart-2" />
+            <div className="font-mono text-[8px] text-muted-foreground">Updated March 2026</div>
           </div>
-          {[["bg-emerald-500","Work"],["bg-blue-500","Reading"],["bg-amber-500","Travel"]].map(([c,l]) => (
-            <div key={l} className={`${block} p-2 flex items-start gap-2`}>
-              <div className={`size-2 rounded-full mt-1 shrink-0 ${c}`} />
-              <div className="space-y-0.5"><div className="text-[8px] font-mono text-muted-foreground">{l}</div><div className={`${sbar} w-full`} /></div>
+          {[["bg-chart-2", "Work"], ["bg-chart-1", "Reading"], ["bg-chart-3", "Travel"]].map(([c, l]) => (
+            <div key={l} className={`${block} flex items-start gap-2 p-2`}>
+              <div className={`mt-1 size-2 shrink-0 rounded-full ${c}`} />
+              <div className="space-y-0.5"><div className="font-mono text-[8px] text-muted-foreground">{l}</div><div className={`${sbar} w-full`} /></div>
             </div>
           ))}
         </div>
@@ -432,12 +440,12 @@ export function LayoutPreview({ layout }: { layout: string }) {
     case "uses":
       return (
         <div className="space-y-2.5">
-          {[["Editor","Neovim","tmux"],["Hardware","MacBook","HHKB"]].map(([cat,...tools]) => (
+          {[["Editor", "Neovim", "tmux"], ["Hardware", "MacBook", "HHKB"]].map(([cat, ...tools]) => (
             <div key={cat}>
-              <div className="text-[8px] font-mono text-muted-foreground uppercase tracking-wide mb-1">{cat}</div>
+              <div className="mb-1 font-mono text-[8px] uppercase tracking-wide text-muted-foreground">{cat}</div>
               <div className="grid grid-cols-2 gap-1">
-                {tools.map(t => (
-                  <div key={t} className={`${block} p-2 flex items-center gap-1.5`}>
+                {tools.map((t) => (
+                  <div key={t} className={`${block} flex items-center gap-1.5 p-2`}>
                     <div className="size-4 rounded bg-muted-foreground/15" />
                     <div className={`${sbar} flex-1`} />
                   </div>
@@ -451,4 +459,3 @@ export function LayoutPreview({ layout }: { layout: string }) {
       return null;
   }
 }
-

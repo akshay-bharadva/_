@@ -1,8 +1,21 @@
+"use client";
+
+import {
+  ChevronDown,
+  ChevronUp,
+  LayoutTemplate,
+  Loader2,
+  Plus,
+} from "lucide-react";
 import type { PortfolioSection } from "@/types";
-import { ChevronUp, ChevronDown, Plus, Loader2, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
 export interface SectionListProps {
@@ -16,7 +29,7 @@ export interface SectionListProps {
   onMoveDown: (sectionId: string) => void;
 }
 
-export default function SectionList({
+export function SectionList({
   groupedSections,
   selectedSectionId,
   isLoading,
@@ -29,43 +42,49 @@ export default function SectionList({
   return (
     <div className="flex h-full flex-col bg-card">
       {!isMobile && (
-        <div className="p-3 border-b bg-background/50 backdrop-blur-sm shrink-0">
-          <Button onClick={onNewSection} className="w-full h-9 shadow-sm" variant="outline">
+        <div className="shrink-0 border-b bg-background/50 p-3 backdrop-blur-sm">
+          <Button
+            onClick={onNewSection}
+            className="h-9 w-full shadow-sm"
+            variant="outline"
+          >
             <Plus className="mr-2 size-4" /> New Section
           </Button>
         </div>
       )}
-      
-      <ScrollArea className="flex-1 bg-muted/5 h-full">
+
+      <ScrollArea className="h-full flex-1 bg-muted/5">
         {isLoading ? (
           <div className="flex justify-center p-8">
             <Loader2 className="animate-spin text-muted-foreground" />
           </div>
         ) : Object.keys(groupedSections).length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center h-40">
-            <LayoutTemplate className="size-10 text-muted-foreground/30 mb-3" />
+          <div className="flex h-40 flex-col items-center justify-center p-8 text-center">
+            <LayoutTemplate className="mb-3 size-10 text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">No sections yet</p>
           </div>
         ) : (
           <Accordion
             type="multiple"
             defaultValue={Object.keys(groupedSections)}
-            className="w-full p-2 space-y-2"
+            className="w-full space-y-2 p-2"
           >
             {Object.entries(groupedSections).map(([path, sectionsInGroup]) => (
               <AccordionItem
                 value={path}
                 key={path}
-                className="border rounded-lg bg-background shadow-sm overflow-hidden"
+                className="overflow-hidden rounded-lg border bg-background shadow-sm"
               >
-                <AccordionTrigger className="py-3 px-3 text-sm font-semibold hover:no-underline hover:bg-muted/50 transition-colors">
+                <AccordionTrigger className="px-3 py-3 text-sm font-semibold transition-colors hover:bg-muted/50 hover:no-underline">
                   <span className="flex items-center gap-2 truncate">
-                    <LayoutTemplate className="size-4 text-muted-foreground shrink-0" />
-                    <span className="truncate">{path === "/" ? "Home Page" : path}</span>
+                    <LayoutTemplate className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">
+                      {path === "/" ? "Home Page" : path}
+                    </span>
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="pb-2 pt-0 px-2">
-                  <div className="flex flex-col gap-1 mt-1">
+                <AccordionContent className="px-2 pb-2 pt-0">
+                  <div className="mt-1 flex flex-col gap-1">
                     {sectionsInGroup.map((section, index) => {
                       const isFirst = index === 0;
                       const isLast = index === sectionsInGroup.length - 1;
@@ -74,30 +93,37 @@ export default function SectionList({
                         <div
                           key={section.id}
                           className={cn(
-                            "flex items-center gap-1 rounded-md transition-all group pr-1",
-                            selectedSectionId === section.id ? "bg-secondary" : "hover:bg-muted"
+                            "group flex items-center gap-1 rounded-md pr-1 transition-all",
+                            selectedSectionId === section.id
+                              ? "bg-secondary"
+                              : "hover:bg-muted",
                           )}
                         >
                           <Button
                             variant="ghost"
                             className={cn(
-                              "flex-1 justify-start h-10 md:h-9 cursor-pointer px-2 hover:bg-transparent font-normal",
-                              selectedSectionId === section.id && "font-medium"
+                              "h-10 flex-1 cursor-pointer justify-start px-2 font-normal hover:bg-transparent md:h-9",
+                              selectedSectionId === section.id && "font-medium",
                             )}
                             onClick={() => onSelectSection(section.id)}
                           >
-                            <span className="truncate text-left">{section.title}</span>
+                            <span className="truncate text-left">
+                              {section.title}
+                            </span>
                           </Button>
 
-                          {/* Move buttons - Always visible on mobile, hover on desktop */}
-                          <div className={cn(
-                            "flex gap-0.5",
-                            !isMobile && "opacity-0 group-hover:opacity-100 transition-opacity"
-                          )}>
+                          {/* Move buttons — always visible on mobile, hover on desktop */}
+                          <div
+                            className={cn(
+                              "flex gap-0.5",
+                              !isMobile &&
+                                "opacity-0 transition-opacity group-hover:opacity-100",
+                            )}
+                          >
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 md:size-7 text-muted-foreground hover:text-foreground"
+                              className="size-8 text-muted-foreground hover:text-foreground md:size-7"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onMoveUp(section.id);
@@ -109,7 +135,7 @@ export default function SectionList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="size-8 md:size-7 text-muted-foreground hover:text-foreground"
+                              className="size-8 text-muted-foreground hover:text-foreground md:size-7"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onMoveDown(section.id);
