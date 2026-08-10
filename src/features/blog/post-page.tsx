@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { skipToken } from "@reduxjs/toolkit/query";
@@ -14,12 +15,30 @@ import { isSupabaseConfigured } from "@/lib/config";
 import { Container } from "@/components/layout/container";
 import { Skeleton } from "@/components/ui/skeleton";
 import { readTime } from "./blog-list-page";
-import { PostContent } from "./post-content";
 import { ReadingProgress } from "./reading-progress";
 import { TableOfContents } from "./table-of-contents";
 
 const VIEW_COUNT_DELAY_MS = 5000;
 const ARTICLE_ID = "post-article";
+
+// The markdown pipeline (raw → sanitize → prism/refractor → slug) is by far the
+// heaviest thing on this route, and nothing above the article body needs it.
+// Splitting it lets the breadcrumb, title and cover image paint on the light
+// chunk; the preload below keeps the fetch off the critical path.
+const PostContent = dynamic(
+  () => import("./post-content").then((mod) => mod.PostContent),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy>
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-11/12" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
+      </div>
+    ),
+  },
+);
 
 function NotFoundView() {
   return (
@@ -54,6 +73,12 @@ export function PostPage() {
   } = useGetBlogPostBySlugQuery(slug || skipToken);
   const { data: identity } = useGetSiteIdentityQuery();
   const [incrementView] = useIncrementPostViewMutation();
+
+  // Warm the markdown chunk alongside the post query rather than after it, so
+  // the code split doesn't serialize two round trips before the body appears.
+  useEffect(() => {
+    void import("./post-content");
+  }, []);
 
   // Static-export limitation: the document title is set client-side.
   useEffect(() => {
