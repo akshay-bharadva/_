@@ -13,7 +13,11 @@ export function DynamicPageContent({
   /** Offset for the "01 /" ordinals when the page has sections above these. */
   startIndex?: number;
 }) {
-  const { data: sections, isLoading, isError } = useGetSectionsByPathQuery(pagePath);
+  const {
+    data: sections,
+    isLoading,
+    isError,
+  } = useGetSectionsByPathQuery(pagePath);
 
   if (isLoading) {
     return (

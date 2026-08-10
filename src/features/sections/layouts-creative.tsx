@@ -1,11 +1,5 @@
 import type { PortfolioItem } from "@/types";
-import {
-  ItemDates,
-  ItemImage,
-  ItemTags,
-  Markdown,
-  MaybeLink,
-} from "./shared";
+import { ItemDates, ItemImage, ItemTags, Markdown, MaybeLink } from "./shared";
 
 type LayoutProps = { items: PortfolioItem[] };
 
@@ -65,7 +59,11 @@ export function SpeakingLayout({ items }: LayoutProps) {
               <h3 className="font-heading font-semibold group-hover/link:text-primary">
                 {item.title}
               </h3>
-              <ItemDates from={item.date_from} to={item.date_to} className="ml-auto" />
+              <ItemDates
+                from={item.date_from}
+                to={item.date_to}
+                className="ml-auto"
+              />
             </div>
             {item.description && (
               <Markdown className="mt-2 text-muted-foreground">
@@ -142,19 +140,26 @@ export function NowPageLayout({ items }: LayoutProps) {
           key={item.id}
           className="flex items-start gap-3 rounded-lg border bg-card p-4"
         >
-          <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
+          <span
+            aria-hidden
+            className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
+          />
           <div className="min-w-0">
-            {item.subtitle && (
-              <p className="section-label">{item.subtitle}</p>
-            )}
-            <h3 className="mt-0.5 font-heading text-sm font-semibold">{item.title}</h3>
+            {item.subtitle && <p className="section-label">{item.subtitle}</p>}
+            <h3 className="mt-0.5 font-heading text-sm font-semibold">
+              {item.title}
+            </h3>
             {item.description && (
               <Markdown className="mt-1 text-muted-foreground">
                 {item.description}
               </Markdown>
             )}
           </div>
-          <ItemDates from={item.date_from} to={item.date_to} className="ml-auto shrink-0" />
+          <ItemDates
+            from={item.date_from}
+            to={item.date_to}
+            className="ml-auto shrink-0"
+          />
         </li>
       ))}
     </ul>

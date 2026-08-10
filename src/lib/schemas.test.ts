@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { taskSchema, transactionSchema, urlOrEmpty, dateString } from "./schemas";
+import {
+  taskSchema,
+  transactionSchema,
+  urlOrEmpty,
+  dateString,
+} from "./schemas";
 
 describe("taskSchema", () => {
   it("accepts a valid task", () => {

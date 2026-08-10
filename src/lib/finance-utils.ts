@@ -244,7 +244,11 @@ export function projectRecurringOccurrences(
 
     // Fast-forward past the start of the window
     let safety = 0;
-    while (isBefore(cursor, startDate) && !isSameDay(cursor, startDate) && safety < maxPerRule) {
+    while (
+      isBefore(cursor, startDate) &&
+      !isSameDay(cursor, startDate) &&
+      safety < maxPerRule
+    ) {
       cursor = getNextOccurrence(cursor, rule);
       safety++;
     }
@@ -253,9 +257,7 @@ export function projectRecurringOccurrences(
     safety = 0;
     while (isBefore(cursor, endDate) && safety < maxPerRule) {
       // Respect the rule's own end date
-      const ruleEndDate = rule.end_date
-        ? parseLocalDate(rule.end_date)
-        : null;
+      const ruleEndDate = rule.end_date ? parseLocalDate(rule.end_date) : null;
       if (ruleEndDate && isAfter(cursor, ruleEndDate)) break;
 
       // Only include dates on or after the window start
@@ -301,8 +303,7 @@ export function buildForecastData(
   const endDate = addDays(from, forecastDays);
   const occurrences = projectRecurringOccurrences(rules, from, endDate);
 
-  const dailyChanges: Record<string, { change: number; events: string[] }> =
-    {};
+  const dailyChanges: Record<string, { change: number; events: string[] }> = {};
   for (const { rule, date } of occurrences) {
     const dayStr = format(date, "yyyy-MM-dd");
     if (!dailyChanges[dayStr]) {

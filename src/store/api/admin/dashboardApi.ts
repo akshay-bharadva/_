@@ -127,10 +127,8 @@ export const dashboardApi = adminApi.injectEndpoints({
             monthlyNet: monthlyEarnings - monthlyExpenses,
             totalBlogViews: (totalViewsRes as number) || 0,
           },
-          recentPosts:
-            (recentPostsData as DashboardData["recentPosts"]) || [],
-          pinnedNotes:
-            (pinnedNotesData as DashboardData["pinnedNotes"]) || [],
+          recentPosts: (recentPostsData as DashboardData["recentPosts"]) || [],
+          pinnedNotes: (pinnedNotesData as DashboardData["pinnedNotes"]) || [],
           overdueTasks:
             (overdueTasksData as DashboardData["overdueTasks"]) || [],
           tasksDueToday:

@@ -114,7 +114,8 @@ export default function InventoryPage() {
   const handleDelete = async (id: string) => {
     const ok = await confirm({
       title: "Delete Asset?",
-      description: "This will permanently remove this item from your inventory.",
+      description:
+        "This will permanently remove this item from your inventory.",
       variant: "destructive",
     });
     if (!ok) return;

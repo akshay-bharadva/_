@@ -31,14 +31,17 @@ export interface AppConfig {
 export const config: AppConfig = {
   admin: {},
   mfa: {
-    appName: process.env.NEXT_PUBLIC_APP_NAME || `${portfolioConfig.name} | Portfolio`,
-    issuer: process.env.NEXT_PUBLIC_MFA_ISSUER || `${portfolioConfig.name} | MFA`,
+    appName:
+      process.env.NEXT_PUBLIC_APP_NAME || `${portfolioConfig.name} | Portfolio`,
+    issuer:
+      process.env.NEXT_PUBLIC_MFA_ISSUER || `${portfolioConfig.name} | MFA`,
   },
   site: {
-    title: process.env.NEXT_PUBLIC_SITE_TITLE || `${portfolioConfig.name} | Portfolio`,
+    title:
+      process.env.NEXT_PUBLIC_SITE_TITLE ||
+      `${portfolioConfig.name} | Portfolio`,
     description:
-      process.env.NEXT_PUBLIC_SITE_DESCRIPTION ||
-      portfolioConfig.description,
+      process.env.NEXT_PUBLIC_SITE_DESCRIPTION || portfolioConfig.description,
     url: process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL,
     defaultOgImage: `${process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL}/default-og-image.png`,
     author: portfolioConfig.name,
@@ -56,4 +59,3 @@ export const config: AppConfig = {
 // --- CONFIGURATION VALIDATION ---
 export const isSupabaseConfigured =
   !!config.supabase.url && !!config.supabase.anonKey;
-

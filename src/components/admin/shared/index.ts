@@ -1,5 +1,10 @@
 // Core layout components
-export { default as ManagerLayout, StatsGrid, ContentCard, SectionDivider } from "./ManagerLayout";
+export {
+  default as ManagerLayout,
+  StatsGrid,
+  ContentCard,
+  SectionDivider,
+} from "./ManagerLayout";
 export { default as PageHeader } from "./PageHeader";
 export { default as ManagerWrapper } from "./ManagerWrapper";
 

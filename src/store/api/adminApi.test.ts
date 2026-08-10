@@ -111,9 +111,7 @@ describe("adminApi barrel", () => {
   it("registers every endpoint on the shared api instance", () => {
     const endpointNames = Object.keys(adminApi.endpoints);
     // one endpoint per hook (hooks are 1:1 with endpoints here)
-    expect(endpointNames.length).toBeGreaterThanOrEqual(
-      EXPECTED_HOOKS.length,
-    );
+    expect(endpointNames.length).toBeGreaterThanOrEqual(EXPECTED_HOOKS.length);
     expect(endpointNames).toContain("getTasks");
     expect(endpointNames).toContain("getDashboardData");
     expect(endpointNames).toContain("updateSiteSettings");

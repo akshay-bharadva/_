@@ -21,7 +21,10 @@ function RotatingTitle({ title }: { title: string }) {
 
   useEffect(() => {
     if (parts.length < 2) return;
-    const id = setInterval(() => setIndex((i) => (i + 1) % parts.length), ROTATE_MS);
+    const id = setInterval(
+      () => setIndex((i) => (i + 1) % parts.length),
+      ROTATE_MS,
+    );
     return () => clearInterval(id);
   }, [parts.length]);
 

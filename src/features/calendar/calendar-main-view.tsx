@@ -57,7 +57,10 @@ export function CalendarMainView({
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       {isMobile && (
         <div className="shrink-0 border-b border-border bg-card/30 px-3 py-2">
-          <CalendarFilters filters={filters} onFiltersChange={onFiltersChange} />
+          <CalendarFilters
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+          />
         </div>
       )}
 
@@ -70,7 +73,12 @@ export function CalendarMainView({
       <div className="gcal-themed min-h-0 flex-1">
         <FullCalendar
           ref={calendarRef as React.RefObject<FullCalendar>}
-          plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+          plugins={[
+            dayGridPlugin,
+            timeGridPlugin,
+            listPlugin,
+            interactionPlugin,
+          ]}
           initialView="dayGridMonth"
           headerToolbar={
             isMobile

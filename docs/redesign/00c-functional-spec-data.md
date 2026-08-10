@@ -6,6 +6,7 @@ rebuild. This doc records the contracts the new UI must consume.
 ## 1. Database (db/schema.sql — idempotent)
 
 ### Security functions
+
 - `check_admin_exists()` → bool (SECURITY DEFINER; any auth.users row). Client UX only.
 - `is_aal2()` → jwt aal = 'aal2'.
 - `is_admin()` → uid != null AND aal2 AND uid = first-registered user (SECURITY DEFINER).
@@ -13,17 +14,19 @@ rebuild. This doc records the contracts the new UI must consume.
   enforcement.
 
 ### RLS tiers
+
 - PUBLIC_READ: select using(true) — site_identity, portfolio_items, security_settings.
 - Visibility-scoped public read: navigation_links (is_visible), portfolio_sections
   (is_visible), blog_posts (published), public_notes (is_published).
 - ADMIN_ALL (`is_admin()` USING+CHECK): all shared/public content tables + storage writes.
-- OWNER_AAL2 (`uid = user_id AND is_aal2()`): personal tables — tasks, sub_tasks, notes,
-  events, transactions, recurring_transactions, financial_goals, learning_*, habits,
+- OWNER*AAL2 (`uid = user_id AND is_aal2()`): personal tables — tasks, sub_tasks, notes,
+  events, transactions, recurring_transactions, financial_goals, learning*\*, habits,
   focus_logs, inventory_items, storage_assets.
 - habit_logs: no user_id; policy via EXISTS on parent habit + is_aal2(), USING only.
 - contact_submissions: public INSERT, admin SELECT/DELETE, no UPDATE policy.
 
 ### Tables (columns as in schema.sql; notable constraints)
+
 - `site_identity` id=1 CHECK; profile_data/social_links/footer_data JSONB; portfolio_mode.
 - `security_settings` id=1 CHECK; lockdown_level 0–3.
 - `navigation_links` label, href, display_order, is_visible.
@@ -58,6 +61,7 @@ rebuild. This doc records the contracts the new UI must consume.
   habit_logs, focus_logs, storage_assets, contact_submissions, security_settings.
 
 ### RPCs
+
 `ping()`; `increment_blog_post_view(uuid)` (SECURITY DEFINER, published only);
 `update_section_order(uuid[])`; `get_total_blog_views()`;
 `get_learning_heatmap_data(start,end)` → (day,total_minutes);
@@ -68,6 +72,7 @@ productivity_heatmap, top_blog_posts, learning_time_by_subject);
 `update_asset_usage()`; `rename/merge/delete_transaction_category` (SECURITY DEFINER).
 
 ### Storage
+
 Public bucket `assets`; public read, admin (is_admin) insert/update/delete on storage.objects.
 
 ## 2. Store layer (preserved)
@@ -84,6 +89,7 @@ Public bucket `assets`; public read, admin (is_admin) insert/update/delete on st
   from start_time). LearningSessionManager mounted globally.
 
 ## 3. Zod schemas (src/lib/schemas.ts — preserved)
+
 taskSchema, subTaskSchema, transactionSchema, recurringTransactionSchema,
 financialGoalSchema, habitSchema (target_per_week 1–7), learningSubjectSchema,
 learningTopicSchema, noteSchema, lifeUpdateSchema, eventSchema, inventoryItemSchema,
@@ -92,6 +98,7 @@ contactFormSchema, socialLinkSchema, siteSettingsSchema (+siteSettingsDefaultVal
 Fragments: optionalString, urlOrEmpty, dateString, requiredDateString.
 
 ## 4. Hooks (preserved/adapted)
+
 - use-auth-guard: useSupabaseSession (read-only) + useAuthGuard (static-mode redirect /,
   no session → login, AAL≠aal2 → login, SIGNED_OUT listener). v2: becomes the admin
   route-group layout guard instead of a per-page HOC.
@@ -100,6 +107,7 @@ Fragments: optionalString, urlOrEmpty, dateString, requiredDateString.
   use-mobile.
 
 ## 5. lib (preserved)
+
 constants.ts (SESSION_MAX_AGE_MS 24h, BUCKET_NAME, HABIT_WINDOW_DAYS 14,
 HABIT_LOGS_LOOKBACK_DAYS 30, LEARNING_SESSIONS_LIMIT 100, NOTE_COLORS, HABIT_COLORS,
 CHART_COLORS, enum OPTIONS, TYPOGRAPHY_PRESETS ×8, THEME_PRESETS ×30);
@@ -110,17 +118,19 @@ fallback-data.ts (mocks from portfolio.config.ts); finance-utils
 color/date/storage utils; utils (cn, getErrorMessage).
 
 ## 6. Build / CI (preserved)
+
 - next.config: output export, trailingSlash, images unoptimized (+ github avatars domain).
 - Deploy workflow: Node 18, vitest gate, next build w/ env from secrets, deploy-pages.
 - Heartbeat workflow: daily `ping` RPC (skips in static mode), Discord broadcast.
 - vitest: jsdom, globals, src/test/setup.ts (matchMedia/RO/IO/localStorage polyfills),
-  include src/**/*.test.{ts,tsx}. 11 existing test files (schemas, finance-utils, themes,
+  include src/\*_/_.test.{ts,tsx}. 11 existing test files (schemas, finance-utils, themes,
   theme-contrast, utils, query-helpers, adminApi, SectionRenderer, LoadingSpinner,
   blog post-list, post-settings-sheet).
 - Env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY/BUCKET_NAME/SITE_URL (+ optional
   VISIT_NOTIFIER_URL, CONTACT_WEBHOOK_URL, APP_NAME, MFA_ISSUER).
 
 ## 7. Rebuild gotchas
+
 1. Two RLS tiers (is_admin vs owner+aal2); habit_logs special-cased.
 2. word_count generated — blog list must select explicit columns.
 3. Single-row tables updated with .eq('id',1).

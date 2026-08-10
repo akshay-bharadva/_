@@ -173,8 +173,8 @@ export function MfaSetup() {
               <StepLabel index="01" text="Scan QR code" />
             </div>
             <p className="text-sm text-muted-foreground">
-              Open your authenticator app (Google Authenticator, Authy, 1Password…)
-              and scan this code.
+              Open your authenticator app (Google Authenticator, Authy,
+              1Password…) and scan this code.
             </p>
             {qrCodeUrl ? (
               <div className="flex justify-center rounded-md border border-border bg-white p-3">

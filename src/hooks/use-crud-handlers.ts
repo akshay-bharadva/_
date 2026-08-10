@@ -10,7 +10,7 @@ interface UseCrudHandlersOptions<T> {
   /** RTK Query delete mutation hook result */
   deleteMutation: readonly [
     (id: string) => { unwrap: () => Promise<unknown> },
-    { isLoading: boolean }
+    { isLoading: boolean },
   ];
   /** Optional callback after successful deletion */
   onDeleteSuccess?: () => void;
@@ -80,7 +80,7 @@ export function useCrudHandlers<T extends { id: string }>({
         return false;
       }
     },
-    [confirm, deleteEntity, entityName, onDeleteSuccess]
+    [confirm, deleteEntity, entityName, onDeleteSuccess],
   );
 
   return {

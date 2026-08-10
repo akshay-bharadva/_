@@ -1,4 +1,3 @@
-
 import * as React from "react";
 // next/navigation works in both routers (Next ≥13.4) — required because this
 // palette is mounted by the App Router providers as well as pages/_app.
@@ -137,17 +136,19 @@ export default function GlobalCommandPalette() {
 
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Type a command or search..." />
-        
+
         {/* 
            LAYOUT FIX: 
            On mobile, we use a dynamic height (60vh) so it doesn't get cut off 
            when the keyboard opens, but still leaves room. 
            On desktop, we stick to fixed pixels for a tighter look.
         */}
-        <CommandList className={cn(
-          "overflow-y-auto overflow-x-hidden",
-          "max-h-[55vh] sm:max-h-[300px] lg:max-h-[450px]"
-        )}>
+        <CommandList
+          className={cn(
+            "overflow-y-auto overflow-x-hidden",
+            "max-h-[55vh] sm:max-h-[300px] lg:max-h-[450px]",
+          )}
+        >
           <CommandEmpty>No results found.</CommandEmpty>
 
           {isAdmin && (
@@ -191,7 +192,9 @@ export default function GlobalCommandPalette() {
                   <span>Dashboard</span>
                 </CommandItem>
                 <CommandItem
-                  onSelect={() => runCommand(() => router.push("/admin/finance"))}
+                  onSelect={() =>
+                    runCommand(() => router.push("/admin/finance"))
+                  }
                 >
                   <CreditCard className="mr-2 h-4 w-4" />
                   <span>Finance</span>
@@ -230,11 +233,15 @@ export default function GlobalCommandPalette() {
               <Home className="mr-2 h-4 w-4" />
               <span>Home</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/about"))}>
+            <CommandItem
+              onSelect={() => runCommand(() => router.push("/about"))}
+            >
               <User className="mr-2 h-4 w-4" />
               <span>About</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => router.push("/blog"))}>
+            <CommandItem
+              onSelect={() => runCommand(() => router.push("/blog"))}
+            >
               <FileText className="mr-2 h-4 w-4" />
               <span>Blog</span>
             </CommandItem>

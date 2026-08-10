@@ -60,7 +60,10 @@ export function ContactPage() {
                   >
                     {Icon && <Icon className="size-4" aria-hidden />}
                     {social.label}
-                    <span aria-hidden className="ml-auto font-mono text-xs text-muted-foreground">
+                    <span
+                      aria-hidden
+                      className="ml-auto font-mono text-xs text-muted-foreground"
+                    >
                       →
                     </span>
                   </a>

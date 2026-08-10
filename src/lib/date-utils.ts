@@ -10,7 +10,7 @@ import { parseISO, isValid } from "date-fns";
  * @returns A valid Date object (defaults to current date if invalid)
  */
 export function parseLocalDate(
-  dateInput: string | Date | null | undefined
+  dateInput: string | Date | null | undefined,
 ): Date {
   if (!dateInput) return new Date();
   if (dateInput instanceof Date) return dateInput;
@@ -39,7 +39,7 @@ export function parseLocalDate(
  */
 export function formatDate(
   dateInput: Date | string | number | null | undefined,
-  options?: Intl.DateTimeFormatOptions
+  options?: Intl.DateTimeFormatOptions,
 ): string {
   const date = parseLocalDate(dateInput?.toString());
 

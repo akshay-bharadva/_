@@ -67,7 +67,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           collapsed ? "w-16" : "w-60",
         )}
       >
-        <AdminSidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
+        <AdminSidebar
+          collapsed={collapsed}
+          onToggleCollapse={toggleCollapsed}
+        />
       </aside>
 
       {/* Mobile drawer */}
@@ -78,7 +81,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      <div className={cn("flex min-h-[100dvh] flex-col", collapsed ? "lg:pl-16" : "lg:pl-60")}>
+      <div
+        className={cn(
+          "flex min-h-[100dvh] flex-col",
+          collapsed ? "lg:pl-16" : "lg:pl-60",
+        )}
+      >
         <AdminTopbar onOpenSidebar={() => setMobileOpen(true)} />
         <main className="flex-1 px-4 py-6 sm:px-6">{children}</main>
       </div>

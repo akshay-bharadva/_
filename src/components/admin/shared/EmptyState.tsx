@@ -72,18 +72,16 @@ export default function EmptyState({
         "flex flex-col items-center justify-center text-center",
         sizeClasses[size],
         variantClasses[variant],
-        className
+        className,
       )}
     >
       <div
         className={cn(
           "rounded-full bg-muted/50 mb-4",
-          iconContainerSizes[size]
+          iconContainerSizes[size],
         )}
       >
-        <Icon
-          className={cn("text-muted-foreground/70", iconSizes[size])}
-        />
+        <Icon className={cn("text-muted-foreground/70", iconSizes[size])} />
       </div>
       <h3
         className={cn(

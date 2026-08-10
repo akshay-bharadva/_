@@ -27,7 +27,9 @@ export const EVENT_COLORS: Record<
 export function getEventColor(e: EventType) {
   if (e.type === "task") return EVENT_COLORS[`task-${e.priority || "low"}`];
   if (e.type === "transaction" || e.type === "forecast")
-    return EVENT_COLORS[e.transactionType === "earning" ? "earning" : "expense"];
+    return EVENT_COLORS[
+      e.transactionType === "earning" ? "earning" : "expense"
+    ];
   return EVENT_COLORS[e.type] || EVENT_COLORS.event;
 }
 
@@ -58,10 +60,30 @@ export function toFcEvent(e: EventType) {
 }
 
 export const FILTER_ITEMS = [
-  { key: "event", label: "Events", color: EVENT_COLORS.event.bg, icon: Briefcase },
-  { key: "task", label: "Tasks", color: EVENT_COLORS["task-high"].bg, icon: ListTodo },
-  { key: "habit_summary", label: "Habits", color: EVENT_COLORS.habit_summary.bg, icon: CheckSquare },
-  { key: "transaction_summary", label: "Finance", color: EVENT_COLORS.earning.bg, icon: Banknote },
+  {
+    key: "event",
+    label: "Events",
+    color: EVENT_COLORS.event.bg,
+    icon: Briefcase,
+  },
+  {
+    key: "task",
+    label: "Tasks",
+    color: EVENT_COLORS["task-high"].bg,
+    icon: ListTodo,
+  },
+  {
+    key: "habit_summary",
+    label: "Habits",
+    color: EVENT_COLORS.habit_summary.bg,
+    icon: CheckSquare,
+  },
+  {
+    key: "transaction_summary",
+    label: "Finance",
+    color: EVENT_COLORS.earning.bg,
+    icon: Banknote,
+  },
   { key: "forecast", label: "Forecast", color: "#9e69af", icon: TrendingUp },
 ];
 

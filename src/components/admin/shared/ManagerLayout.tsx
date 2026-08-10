@@ -56,7 +56,7 @@ export default function ManagerLayout({
         "space-y-6 relative",
         hasMobileNav && "pb-20 md:pb-0",
         maxWidthClasses[maxWidth],
-        className
+        className,
       )}
     >
       {/* Loading Overlay */}
@@ -118,7 +118,7 @@ export function ContentCard({
       className={cn(
         "bg-card rounded-xl border border-border shadow-sm",
         !noPadding && "p-4 md:p-6",
-        className
+        className,
       )}
     >
       {children}

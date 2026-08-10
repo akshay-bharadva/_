@@ -37,7 +37,10 @@ export function LearningPill() {
       href="/admin/learning"
       className="flex items-center gap-2 rounded-md bg-primary/10 px-2.5 py-1.5 text-primary transition-colors hover:bg-primary/20"
     >
-      <Timer className="size-4 animate-pulse motion-reduce:animate-none" aria-hidden />
+      <Timer
+        className="size-4 animate-pulse motion-reduce:animate-none"
+        aria-hidden
+      />
       <span className="hidden max-w-[140px] truncate text-sm font-medium sm:inline">
         {topicName}
       </span>

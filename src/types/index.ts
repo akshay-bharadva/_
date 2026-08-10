@@ -1,4 +1,3 @@
-
 // =============================================================================
 // API TYPES
 // =============================================================================
@@ -153,7 +152,12 @@ export interface Note {
   updated_at?: string;
 }
 
-export type LifeUpdateCategory = "watching" | "activity" | "photo" | "thought" | "milestone";
+export type LifeUpdateCategory =
+  | "watching"
+  | "activity"
+  | "photo"
+  | "thought"
+  | "milestone";
 
 export interface LifeUpdate {
   id: string;

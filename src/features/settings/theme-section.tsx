@@ -147,7 +147,9 @@ export function ThemeSection({ form }: ThemeSectionProps) {
                 backgroundColor: form.watch(
                   "profile_data.custom_theme_colors.background",
                 ),
-                color: form.watch("profile_data.custom_theme_colors.foreground"),
+                color: form.watch(
+                  "profile_data.custom_theme_colors.foreground",
+                ),
                 borderColor: form.watch(
                   "profile_data.custom_theme_colors.secondary",
                 ),

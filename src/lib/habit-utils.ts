@@ -1,9 +1,6 @@
 import { Habit } from "@/types";
 import { subDays, format, differenceInCalendarDays, parseISO } from "date-fns";
-import {
-  HABIT_WINDOW_DAYS,
-  STREAK_ALIVE_THRESHOLD_DAYS,
-} from "./constants";
+import { HABIT_WINDOW_DAYS, STREAK_ALIVE_THRESHOLD_DAYS } from "./constants";
 
 export function calculateHabitStats(habit: Habit): {
   streak: number;
@@ -18,21 +15,21 @@ export function calculateHabitStats(habit: Habit): {
   // Completion rate over the rolling window
   const windowStartStr = format(
     subDays(today, HABIT_WINDOW_DAYS - 1),
-    "yyyy-MM-dd"
+    "yyyy-MM-dd",
   );
 
   const logsInWindow = logs.filter(
-    (l) => l.completed_date >= windowStartStr && l.completed_date <= todayStr
+    (l) => l.completed_date >= windowStartStr && l.completed_date <= todayStr,
   ).length;
 
   const completionRate = Math.min(
     Math.round((logsInWindow / HABIT_WINDOW_DAYS) * 100),
-    100
+    100,
   );
 
   // Streak: count consecutive days from most recent log backward
   const sortedLogs = [...logs].sort((a, b) =>
-    b.completed_date.localeCompare(a.completed_date)
+    b.completed_date.localeCompare(a.completed_date),
   );
 
   let streak = 0;

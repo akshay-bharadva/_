@@ -215,7 +215,9 @@ export default function ContentPage() {
     ) {
       return (
         <SectionEditorSheet
-          section={sheetState.type === "edit-section" ? sheetState.section : null}
+          section={
+            sheetState.type === "edit-section" ? sheetState.section : null
+          }
           availablePaths={availablePaths}
           onSave={handleSaveSection}
           onClose={() => setSheetState(null)}
@@ -238,7 +240,9 @@ export default function ContentPage() {
           }
           onDeleteSection={handleDeleteSection}
           onSaveContent={handleSaveSection}
-          onNewItem={(sectionId) => setSheetState({ type: "new-item", sectionId })}
+          onNewItem={(sectionId) =>
+            setSheetState({ type: "new-item", sectionId })
+          }
           onEditItem={(item) => setSheetState({ type: "edit-item", item })}
           onDeleteItem={handleDeleteItem}
         />

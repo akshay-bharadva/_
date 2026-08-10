@@ -30,7 +30,9 @@ export function NavLinkForm({ link, onSave, onCancel }: NavLinkFormProps) {
         <Input
           id="label"
           value={formData.label}
-          onChange={(e) => setFormData((f) => ({ ...f, label: e.target.value }))}
+          onChange={(e) =>
+            setFormData((f) => ({ ...f, label: e.target.value }))
+          }
           required
           autoFocus
         />

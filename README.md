@@ -80,28 +80,28 @@ The public site stays statically exported — all data fetching happens client-s
 
 `portfolio.config.ts` is the single source of truth in static mode, and the initial seed in dynamic mode.
 
-| Section | What it controls |
-|---------|-------------------|
-| `name`, `title`, `description` | Hero identity |
-| `bio` | About-page paragraphs |
-| `logo.{main,highlight}` | Two-tone header logo |
-| `defaultTheme` | One of 32 themes |
-| `typographyPreset` | One of 8 font pairings |
-| `portfolioMode` | `"multi-page"` or `"single-page"` |
-| `statusPanel` | Right-side hero widget — `minimal`, `terminal`, or `bento` variant |
-| `socialLinks` | GitHub, LinkedIn, email, Twitter, etc. |
-| `navLinks` | Header navigation |
-| `experience` | Work timeline |
-| `techStack`, `tools` | Skills grid + tooling |
-| `education` | Education timeline |
-| `projects` | Featured projects |
-| `showcase` | Deep-dive case studies |
-| `services` | `/contact` offerings |
-| `blogPosts` | Static Markdown blog posts |
-| `lifeUpdates` | `/updates` feed entries |
-| `updatesLayout` | `"timeline"` or `"scrapbook"` |
-| `github` | Live GitHub repo fetch (filters, pagination) |
-| `contact` | Availability badge, services panel, contact form toggle |
+| Section                        | What it controls                                                   |
+| ------------------------------ | ------------------------------------------------------------------ |
+| `name`, `title`, `description` | Hero identity                                                      |
+| `bio`                          | About-page paragraphs                                              |
+| `logo.{main,highlight}`        | Two-tone header logo                                               |
+| `defaultTheme`                 | One of 32 themes                                                   |
+| `typographyPreset`             | One of 8 font pairings                                             |
+| `portfolioMode`                | `"multi-page"` or `"single-page"`                                  |
+| `statusPanel`                  | Right-side hero widget — `minimal`, `terminal`, or `bento` variant |
+| `socialLinks`                  | GitHub, LinkedIn, email, Twitter, etc.                             |
+| `navLinks`                     | Header navigation                                                  |
+| `experience`                   | Work timeline                                                      |
+| `techStack`, `tools`           | Skills grid + tooling                                              |
+| `education`                    | Education timeline                                                 |
+| `projects`                     | Featured projects                                                  |
+| `showcase`                     | Deep-dive case studies                                             |
+| `services`                     | `/contact` offerings                                               |
+| `blogPosts`                    | Static Markdown blog posts                                         |
+| `lifeUpdates`                  | `/updates` feed entries                                            |
+| `updatesLayout`                | `"timeline"` or `"scrapbook"`                                      |
+| `github`                       | Live GitHub repo fetch (filters, pagination)                       |
+| `contact`                      | Availability badge, services panel, contact form toggle            |
 
 ---
 
@@ -113,16 +113,16 @@ The public site stays statically exported — all data fetching happens client-s
 defaultTheme: "theme-nord",
 ```
 
-| Category | Themes |
-|----------|--------|
-| **Ink** (default) | `theme-ink-light`, `theme-ink-dark` |
-| **Dark** | `theme-dracula`, `theme-nord`, `theme-tokyo-night`, `theme-catppuccin-mocha`, `theme-github-dark`, `theme-onedark-pro`, `theme-rose-pine`, `theme-monokai`, `theme-ayu-dark` |
-| **Light** | `theme-solarized-light`, `theme-catppuccin-latte`, `theme-github-light`, `theme-arctic`, `theme-paper` |
-| **Special** | `theme-blueprint`, `theme-cyberpunk`, `theme-ocean`, `theme-matrix`, `theme-terminal` |
-| **High contrast** | `theme-hc-dark`, `theme-hc-light` |
-| **Neobrutalism** | `theme-neobrutalism-light`, `theme-neobrutalism-dark`, `theme-neobrutalism-punk` |
-| **Glass** | `theme-glass-dark`, `theme-glass-frost`, `theme-glass-aurora`, `theme-glass-ocean` |
-| **Retro** | `theme-synthwave`, `theme-retrowave` |
+| Category          | Themes                                                                                                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ink** (default) | `theme-ink-light`, `theme-ink-dark`                                                                                                                                          |
+| **Dark**          | `theme-dracula`, `theme-nord`, `theme-tokyo-night`, `theme-catppuccin-mocha`, `theme-github-dark`, `theme-onedark-pro`, `theme-rose-pine`, `theme-monokai`, `theme-ayu-dark` |
+| **Light**         | `theme-solarized-light`, `theme-catppuccin-latte`, `theme-github-light`, `theme-arctic`, `theme-paper`                                                                       |
+| **Special**       | `theme-blueprint`, `theme-cyberpunk`, `theme-ocean`, `theme-matrix`, `theme-terminal`                                                                                        |
+| **High contrast** | `theme-hc-dark`, `theme-hc-light`                                                                                                                                            |
+| **Neobrutalism**  | `theme-neobrutalism-light`, `theme-neobrutalism-dark`, `theme-neobrutalism-punk`                                                                                             |
+| **Glass**         | `theme-glass-dark`, `theme-glass-frost`, `theme-glass-aurora`, `theme-glass-ocean`                                                                                           |
+| **Retro**         | `theme-synthwave`, `theme-retrowave`                                                                                                                                         |
 
 Want custom colors? Dynamic mode ships a `theme-custom` option that takes 6 hex values and converts them to HSL at runtime.
 
@@ -164,9 +164,9 @@ Upload `./out/` to any static host.
 
 ### Included Workflows
 
-| Workflow | Static mode | Dynamic mode |
-|----------|-------------|--------------|
-| `next-deploy.yml` | Optional — builds + deploys on push to `main` | Required — injects Supabase secrets at build |
+| Workflow                   | Static mode                                           | Dynamic mode                                                                                  |
+| -------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `next-deploy.yml`          | Optional — builds + deploys on push to `main`         | Required — injects Supabase secrets at build                                                  |
 | `keep-supabase-active.yml` | Auto-skipped when `NEXT_PUBLIC_SUPABASE_URL` is unset | Required — pings Supabase every 24h so the free tier doesn't pause after 7 days of inactivity |
 
 ---
@@ -193,23 +193,23 @@ admin exists. The client-side guard is UX, not the security boundary.
 15 protected routes. The `(protected)` route group's layout runs the guard once
 (`useAdminGuard`, requires AAL2 / MFA) and wraps every module in the admin shell.
 
-| Route | Feature |
-|-------|---------|
-| `/admin` | Dashboard overview (tasks, finance, habits, learning KPIs) |
-| `/admin/blog` | Blog post editor (Tiptap/Novel) |
-| `/admin/content` | Portfolio CMS — sections + items per page |
-| `/admin/life-updates` | `/updates` feed editor |
-| `/admin/tasks` | Task manager — Kanban / Table / Tree views, sub-tasks |
-| `/admin/finance` | Income, expenses, recurring transactions, goals, monthly analytics |
-| `/admin/habits` | Habit tracker with heatmaps + streaks |
-| `/admin/learning` | Subjects, topics, timed study sessions |
-| `/admin/calendar` | FullCalendar unified view (tasks + events + habits) |
-| `/admin/notes` | Sticky-notes editor |
-| `/admin/inventory` | Personal inventory CRUD |
-| `/admin/assets` | Storage bucket browser + usage scan |
-| `/admin/navigation` | Reorder public nav links |
-| `/admin/settings` | Brand, theme, typography, hero, GitHub, contact, social, footer |
-| `/admin/security` | Lockdown level, password change, MFA unenroll |
+| Route                 | Feature                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| `/admin`              | Dashboard overview (tasks, finance, habits, learning KPIs)         |
+| `/admin/blog`         | Blog post editor (Tiptap/Novel)                                    |
+| `/admin/content`      | Portfolio CMS — sections + items per page                          |
+| `/admin/life-updates` | `/updates` feed editor                                             |
+| `/admin/tasks`        | Task manager — Kanban / Table / Tree views, sub-tasks              |
+| `/admin/finance`      | Income, expenses, recurring transactions, goals, monthly analytics |
+| `/admin/habits`       | Habit tracker with heatmaps + streaks                              |
+| `/admin/learning`     | Subjects, topics, timed study sessions                             |
+| `/admin/calendar`     | FullCalendar unified view (tasks + events + habits)                |
+| `/admin/notes`        | Sticky-notes editor                                                |
+| `/admin/inventory`    | Personal inventory CRUD                                            |
+| `/admin/assets`       | Storage bucket browser + usage scan                                |
+| `/admin/navigation`   | Reorder public nav links                                           |
+| `/admin/settings`     | Brand, theme, typography, hero, GitHub, contact, social, footer    |
+| `/admin/security`     | Lockdown level, password change, MFA unenroll                      |
 
 ---
 
@@ -273,15 +273,15 @@ Tests live next to their source as `*.test.ts(x)`.
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Dev server on port **8889** |
-| `npm run build` | Production build + static export to `./out/` |
-| `npm run start` | Production server |
-| `npm run lint` | ESLint |
-| `npm run test` | Vitest, single run |
-| `npm run test:watch` | Vitest in watch mode |
-| `npm run format` | Prettier |
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `npm run dev`        | Dev server on port **8889**                  |
+| `npm run build`      | Production build + static export to `./out/` |
+| `npm run start`      | Production server                            |
+| `npm run lint`       | ESLint                                       |
+| `npm run test`       | Vitest, single run                           |
+| `npm run test:watch` | Vitest in watch mode                         |
+| `npm run format`     | Prettier                                     |
 
 Run one test file with `npx vitest run <path>`, and filter by name with `-t "<name>"`.
 
@@ -311,16 +311,16 @@ Run one test file with `npx vitest run <path>`, and filter by name with `-t "<na
 
 All variables are `NEXT_PUBLIC_*` (the app is fully client-rendered after export).
 
-| Variable | Required? | Purpose |
-|----------|-----------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Dynamic mode | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Dynamic mode | Anon key (RLS handles authorization) |
-| `NEXT_PUBLIC_BUCKET_NAME` | Optional | Storage bucket name, default `"assets"` |
-| `NEXT_PUBLIC_SITE_URL` | For builds | Canonical URL (OG tags, sitemap) |
-| `NEXT_PUBLIC_VISIT_NOTIFIER_URL` | Optional | Discord webhook — ping on visit |
-| `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` | Optional | Discord webhook — ping on contact form submit |
-| `NEXT_PUBLIC_APP_NAME` | Optional | MFA app name override |
-| `NEXT_PUBLIC_MFA_ISSUER` | Optional | MFA issuer override |
+| Variable                          | Required?    | Purpose                                       |
+| --------------------------------- | ------------ | --------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`        | Dynamic mode | Supabase project URL                          |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Dynamic mode | Anon key (RLS handles authorization)          |
+| `NEXT_PUBLIC_BUCKET_NAME`         | Optional     | Storage bucket name, default `"assets"`       |
+| `NEXT_PUBLIC_SITE_URL`            | For builds   | Canonical URL (OG tags, sitemap)              |
+| `NEXT_PUBLIC_VISIT_NOTIFIER_URL`  | Optional     | Discord webhook — ping on visit               |
+| `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` | Optional     | Discord webhook — ping on contact form submit |
+| `NEXT_PUBLIC_APP_NAME`            | Optional     | MFA app name override                         |
+| `NEXT_PUBLIC_MFA_ISSUER`          | Optional     | MFA issuer override                           |
 
 Static mode requires zero env vars.
 

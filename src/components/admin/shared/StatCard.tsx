@@ -33,9 +33,7 @@ export interface StatCardProps {
  * Returns true when the icon prop is a component reference (function, class,
  * or forwardRef object) rather than an already-rendered ReactNode (JSX element).
  */
-function isIconComponent(
-  icon: StatCardProps["icon"],
-): icon is LucideIcon {
+function isIconComponent(icon: StatCardProps["icon"]): icon is LucideIcon {
   // forwardRef returns an object (not a function), so typeof alone is insufficient.
   // Instead, check if it's NOT an already-rendered JSX element.
   return !isValidElement(icon);
@@ -69,7 +67,7 @@ export default function StatCard({
                 ? "text-red-500 bg-red-500/10"
                 : highlight
                   ? "text-primary bg-primary/10"
-                  : "text-muted-foreground bg-muted"
+                  : "text-muted-foreground bg-muted",
           )}
         >
           {icon}
@@ -89,7 +87,7 @@ export default function StatCard({
               ? "text-red-500 bg-red-500/10"
               : highlight
                 ? "text-primary bg-primary/10"
-                : "text-muted-foreground bg-muted"
+                : "text-muted-foreground bg-muted",
         )}
       >
         <Icon className="size-4" />
@@ -108,7 +106,7 @@ export default function StatCard({
             ? "text-green-600"
             : trend === "down"
               ? "text-red-500"
-              : "text-muted-foreground"
+              : "text-muted-foreground",
         )}
       >
         {trend === "up" && <TrendingUp className="size-3" />}
@@ -122,20 +120,21 @@ export default function StatCard({
     <Card
       className={cn(
         "overflow-hidden transition-all",
-        highlight && "bg-gradient-to-br from-primary/5 to-transparent border-primary/20",
-        className
+        highlight &&
+          "bg-gradient-to-br from-primary/5 to-transparent border-primary/20",
+        className,
       )}
     >
       <CardHeader
         className={cn(
           "flex flex-row items-center justify-between space-y-0",
-          size === "compact" ? "pb-1 pt-3 px-4" : "pb-2"
+          size === "compact" ? "pb-1 pt-3 px-4" : "pb-2",
         )}
       >
         <CardTitle
           className={cn(
             "section-label font-normal",
-            highlight ? "text-primary" : "text-muted-foreground"
+            highlight ? "text-primary" : "text-muted-foreground",
           )}
         >
           {title}
@@ -146,7 +145,7 @@ export default function StatCard({
         <div
           className={cn(
             "font-mono font-bold tabular-nums tracking-tight",
-            size === "compact" ? "text-xl" : "text-2xl"
+            size === "compact" ? "text-xl" : "text-2xl",
           )}
         >
           {value}

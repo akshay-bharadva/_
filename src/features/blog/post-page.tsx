@@ -112,8 +112,7 @@ export function PostPage() {
         year: "numeric",
       })
     : "";
-  const shareUrl =
-    typeof window !== "undefined" ? window.location.href : "";
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const share = (network: "x" | "linkedin") => {
     const url = encodeURIComponent(shareUrl);

@@ -55,7 +55,7 @@ function Calendar({
           // Start cap: round left side only, fill right half of cell
           "[&:has([aria-selected].day-range-start)]:rounded-l-lg",
           "[&:has([aria-selected].day-range-start)]:bg-accent",
-          // End cap: round right side only, fill left half of cell  
+          // End cap: round right side only, fill left half of cell
           "[&:has([aria-selected].day-range-end)]:rounded-r-lg",
           "[&:has([aria-selected].day-range-end)]:bg-accent",
           // Outside days in range

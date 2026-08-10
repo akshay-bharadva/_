@@ -72,7 +72,7 @@ export function useSearchFilter<T>({
         return (
           typeof value === "string" && value.toLowerCase().includes(lowerSearch)
         );
-      })
+      }),
     );
   }, [data, searchTerm, searchFields]);
 

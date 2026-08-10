@@ -1,9 +1,5 @@
 import { supabase } from "@/supabase/client";
-import type {
-  LearningSession,
-  LearningSubject,
-  LearningTopic,
-} from "@/types";
+import type { LearningSession, LearningSubject, LearningTopic } from "@/types";
 import { adminApi } from "./baseApi";
 import {
   NO_DB_ERROR,

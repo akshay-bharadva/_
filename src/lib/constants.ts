@@ -15,39 +15,39 @@ export const LAYOUT = {
 // Public page layout constants
 export const PUBLIC_LAYOUT = {
   PAGE_PADDING_Y: {
-    mobile: 'py-12',
-    tablet: 'md:py-16',
-    desktop: 'lg:py-20',
+    mobile: "py-12",
+    tablet: "md:py-16",
+    desktop: "lg:py-20",
   },
   SECTION_SPACING: {
-    tight: 'space-y-8',
-    default: 'space-y-12',
-    loose: 'space-y-16',
+    tight: "space-y-8",
+    default: "space-y-12",
+    loose: "space-y-16",
   },
   MAX_WIDTH: {
-    narrow: 'max-w-3xl',    // About, single-column content
-    default: 'max-w-5xl',   // Most pages
-    wide: 'max-w-6xl',      // Projects, galleries
-    full: 'max-w-7xl',      // Homepage, wide layouts
+    narrow: "max-w-3xl", // About, single-column content
+    default: "max-w-5xl", // Most pages
+    wide: "max-w-6xl", // Projects, galleries
+    full: "max-w-7xl", // Homepage, wide layouts
   },
 } as const;
 
 // Admin manager layout constants
 export const ADMIN_MANAGER = {
-  HEADER_SPACING: 'space-y-4',
-  CONTENT_SPACING: 'space-y-6',
+  HEADER_SPACING: "space-y-4",
+  CONTENT_SPACING: "space-y-6",
   CARD_PADDING: {
-    mobile: 'p-4',
-    desktop: 'md:p-6',
+    mobile: "p-4",
+    desktop: "md:p-6",
   },
-  MOBILE_BOTTOM_PADDING: 'pb-20 md:pb-0', // Account for mobile nav
+  MOBILE_BOTTOM_PADDING: "pb-20 md:pb-0", // Account for mobile nav
 } as const;
 
 // Component spacing constants
 export const COMPONENT_SPACING = {
-  HERO_SECTION: 'py-16 lg:py-32',
-  SECTION_GAP: 'gap-12 lg:gap-16',
-  CARD_GAP: 'gap-4 md:gap-6',
+  HERO_SECTION: "py-16 lg:py-32",
+  SECTION_GAP: "gap-12 lg:gap-16",
+  CARD_GAP: "gap-4 md:gap-6",
 } as const;
 
 // Breakpoints (align with Tailwind)
@@ -222,7 +222,8 @@ export const TYPOGRAPHY_PRESETS = [
     code: "Fira Code",
     weight: 700,
     serif: true,
-    description: "Dramatic serif headlines with smooth body text — magazine-style",
+    description:
+      "Dramatic serif headlines with smooth body text — magazine-style",
   },
   {
     value: "typo-modern-tech",
@@ -232,7 +233,8 @@ export const TYPOGRAPHY_PRESETS = [
     code: "Fira Code",
     weight: 700,
     serif: false,
-    description: "Geometric techy headings with code ligatures — Vercel/Linear vibe",
+    description:
+      "Geometric techy headings with code ligatures — Vercel/Linear vibe",
   },
   {
     value: "typo-elegant",
@@ -242,7 +244,8 @@ export const TYPOGRAPHY_PRESETS = [
     code: "IBM Plex Mono",
     weight: 400,
     serif: true,
-    description: "Refined italic serif with airy body — Apple-inspired editorial",
+    description:
+      "Refined italic serif with airy body — Apple-inspired editorial",
   },
   {
     value: "typo-bold-quirky",
@@ -252,7 +255,8 @@ export const TYPOGRAPHY_PRESETS = [
     code: "JetBrains Mono",
     weight: 800,
     serif: false,
-    description: "Chunky variable headings with playful body — creative portfolio",
+    description:
+      "Chunky variable headings with playful body — creative portfolio",
   },
   {
     value: "typo-futuristic",
@@ -272,7 +276,8 @@ export const TYPOGRAPHY_PRESETS = [
     code: "IBM Plex Mono",
     weight: 700,
     serif: true,
-    description: "Traditional serif authority with modern body — lawyer/architect",
+    description:
+      "Traditional serif authority with modern body — lawyer/architect",
   },
   {
     value: "typo-geometric",
@@ -286,7 +291,8 @@ export const TYPOGRAPHY_PRESETS = [
   },
 ] as const;
 
-export type TypographyPresetValue = (typeof TYPOGRAPHY_PRESETS)[number]["value"];
+export type TypographyPresetValue =
+  (typeof TYPOGRAPHY_PRESETS)[number]["value"];
 
 export const THEME_PRESETS = [
   { value: "theme-ink-light", label: "Ink" },

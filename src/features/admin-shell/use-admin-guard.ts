@@ -14,7 +14,10 @@ type GuardState = "checking" | "authorized" | "redirecting";
  *   static mode → toast + "/"; no session → login; AAL < aal2 → login;
  *   SIGNED_OUT → login.
  */
-export function useAdminGuard(): { state: GuardState; session: Session | null } {
+export function useAdminGuard(): {
+  state: GuardState;
+  session: Session | null;
+} {
   const router = useRouter();
   const [state, setState] = useState<GuardState>("checking");
   const [session, setSession] = useState<Session | null>(null);

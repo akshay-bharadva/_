@@ -55,7 +55,10 @@ export function HabitGrid({
   return (
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
       <ScrollArea className="w-full whitespace-nowrap">
-        <div className="inline-block min-w-full align-middle" ref={scrollAreaRef}>
+        <div
+          className="inline-block min-w-full align-middle"
+          ref={scrollAreaRef}
+        >
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-b hover:bg-transparent">

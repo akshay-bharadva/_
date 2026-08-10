@@ -49,7 +49,7 @@ export default function SearchInput({
         onChange(newValue);
       }
     },
-    [debounceMs, onChange]
+    [debounceMs, onChange],
   );
 
   const handleClear = useCallback(() => {
@@ -68,7 +68,7 @@ export default function SearchInput({
         className={cn(
           "pl-9",
           localValue && "pr-8",
-          showKeyboardHint && !localValue && "pr-16"
+          showKeyboardHint && !localValue && "pr-16",
         )}
       />
       {localValue && (

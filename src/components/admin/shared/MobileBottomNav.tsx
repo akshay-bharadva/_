@@ -70,7 +70,7 @@ export default function MobileBottomNav({
         "fixed bottom-0 left-0 right-0 z-50 lg:hidden",
         "border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         "safe-area-inset-bottom",
-        className
+        className,
       )}
     >
       <div className="flex items-center justify-around h-14 px-2">
@@ -81,7 +81,7 @@ export default function MobileBottomNav({
             size="sm"
             className={cn(
               "flex-1 flex flex-col items-center gap-0.5 h-12 rounded-lg",
-              item.active && "text-primary"
+              item.active && "text-primary",
             )}
             onClick={() => handleClick(item)}
           >

@@ -8,7 +8,8 @@ type StatusPanelData = SiteContent["profile_data"]["status_panel"];
 function useClock(): string {
   const [now, setNow] = useState<string>("");
   useEffect(() => {
-    const tick = () => setNow(new Date().toLocaleTimeString("en-US", { hour12: false }));
+    const tick = () =>
+      setNow(new Date().toLocaleTimeString("en-US", { hour12: false }));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -52,7 +53,9 @@ function MinimalPanel({ panel }: { panel: StatusPanelData }) {
       )}
       {panel.latestProject.name && (
         <p className="mt-4 border-t border-dashed pt-3 text-sm">
-          <span className="text-muted-foreground">{panel.latestProject.name}</span>{" "}
+          <span className="text-muted-foreground">
+            {panel.latestProject.name}
+          </span>{" "}
           <a
             href={panel.latestProject.href}
             target="_blank"
@@ -73,7 +76,10 @@ function TerminalPanel({ panel }: { panel: StatusPanelData }) {
     <div className="overflow-hidden rounded-lg border bg-card font-mono text-xs">
       <div className="flex items-center gap-1.5 border-b bg-secondary/60 px-3 py-2">
         <span aria-hidden className="size-2.5 rounded-full bg-destructive/70" />
-        <span aria-hidden className="size-2.5 rounded-full bg-muted-foreground/40" />
+        <span
+          aria-hidden
+          className="size-2.5 rounded-full bg-muted-foreground/40"
+        />
         <span aria-hidden className="size-2.5 rounded-full bg-primary/70" />
         <span className="ml-2 text-muted-foreground">status — zsh</span>
       </div>

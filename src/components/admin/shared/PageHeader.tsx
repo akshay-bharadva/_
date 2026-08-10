@@ -34,28 +34,37 @@ export default function PageHeader({
     <div
       className={cn(
         "space-y-4",
-        sticky && "sticky top-0 z-20 bg-secondary/30 backdrop-blur border-b pb-4",
-        className
+        sticky &&
+          "sticky top-0 z-20 bg-secondary/30 backdrop-blur border-b pb-4",
+        className,
       )}
     >
       {/* Title Row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           {kicker && <p className="section-label text-primary">{kicker}</p>}
-          <h1 className="font-heading text-2xl font-bold tracking-tight">{title}</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight">
+            {title}
+          </h1>
           {description && (
             <div className="text-sm text-muted-foreground">
-              {typeof description === "string" ? <p>{description}</p> : description}
+              {typeof description === "string" ? (
+                <p>{description}</p>
+              ) : (
+                description
+              )}
             </div>
           )}
         </div>
-        
+
         {/* Actions */}
         {actions && (
-          <div className={cn(
-            "grid w-full grid-cols-1 gap-2", 
-            "sm:flex sm:w-auto sm:items-center sm:shrink-0" 
-          )}>
+          <div
+            className={cn(
+              "grid w-full grid-cols-1 gap-2",
+              "sm:flex sm:w-auto sm:items-center sm:shrink-0",
+            )}
+          >
             {actions}
           </div>
         )}
@@ -73,12 +82,14 @@ export default function PageHeader({
             />
           )}
           {filters && (
-            <div className={cn(
-               // Mobile: 1 Column Grid (Full Width)
-               "grid w-full grid-cols-1 gap-2", 
-               // Desktop: Auto-width Flex
-               "sm:flex sm:w-auto sm:items-center"
-            )}>
+            <div
+              className={cn(
+                // Mobile: 1 Column Grid (Full Width)
+                "grid w-full grid-cols-1 gap-2",
+                // Desktop: Auto-width Flex
+                "sm:flex sm:w-auto sm:items-center",
+              )}
+            >
               {filters}
             </div>
           )}

@@ -140,6 +140,11 @@ New section-renderer with the same `layout_style` contract (21 layouts).
 
 ## Known follow-ups (not blockers)
 
-- The repo is not Prettier-clean at baseline: `npm run format` rewrites ~103 files,
-  including README.md and themes.css. Worth one dedicated formatting commit, kept
-  separate so it doesn't bury real diffs — deliberately not folded into Phase 4.
+- **Prettier baseline** — done, as its own commit so it doesn't bury real diffs.
+  87 files: all of `src/` and `docs/`, plus README, CLAUDE.md, and the three root
+  configs. Deliberately excluded: `.tokensave/*.json` (machine-written tool state,
+  reformatting it only invites conflicts) and `akshay.md` / `akshay/` (personal
+  persona files). Those two groups still fail `prettier --check` by design.
+- `next build` can fail on a _dirty_ `.next` left over from the Pages Router era
+  (`Cannot find module for page: /_document`). Clearing `.next` fixes it; cold
+  builds are reproducibly green, so CI is unaffected.

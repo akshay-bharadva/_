@@ -24,7 +24,12 @@ module.exports = {
       fontFamily: {
         sans: ["var(--font-body)", "Inter", "sans-serif"],
         heading: ["var(--font-heading)", "Inter", "sans-serif"],
-        mono: ["var(--font-code)", "JetBrains Mono", "IBM Plex Mono", "monospace"],
+        mono: [
+          "var(--font-code)",
+          "JetBrains Mono",
+          "IBM Plex Mono",
+          "monospace",
+        ],
         tahu: ["var(--font-tahu)", "sans-serif"],
         handwriting: ["Caveat", "cursive"],
       },
@@ -79,8 +84,10 @@ module.exports = {
       },
       boxShadow: {
         card: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-        "card-hover": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-        elevated: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "card-hover":
+          "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        elevated:
+          "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
       },
       keyframes: {
         "accordion-down": {

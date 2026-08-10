@@ -13,9 +13,7 @@ import {
 import { NAV_GROUPS, type NavItem } from "./nav-config";
 
 function isActive(pathname: string, href: string): boolean {
-  return (
-    pathname === href || (href !== "/admin" && pathname.startsWith(href))
-  );
+  return pathname === href || (href !== "/admin" && pathname.startsWith(href));
 }
 
 function openCommandPalette() {

@@ -1,4 +1,3 @@
-
 import {
   createClient,
   Session,
@@ -18,6 +17,5 @@ const options: SupabaseClientOptions<"public"> = {};
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(supabaseConfig.url, supabaseConfig.anonKey, options)
   : null;
-
 
 export type { Session, User };

@@ -4,10 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Loader2, Send, TriangleAlert } from "lucide-react";
-import {
-  contactFormSchema,
-  type ContactFormValues,
-} from "@/lib/schemas";
+import { contactFormSchema, type ContactFormValues } from "@/lib/schemas";
 import { useSubmitContactFormMutation } from "@/store/api/publicApi";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,12 +75,21 @@ export function ContactForm() {
   );
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-5">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      noValidate
+      className="space-y-5"
+    >
       <div className="grid gap-5 sm:grid-cols-2">
         {field("name", "Name", { placeholder: "Ada Lovelace" })}
-        {field("email", "Email", { type: "email", placeholder: "you@example.com" })}
+        {field("email", "Email", {
+          type: "email",
+          placeholder: "you@example.com",
+        })}
       </div>
-      {field("subject", "Subject", { placeholder: "Project, role, or question" })}
+      {field("subject", "Subject", {
+        placeholder: "Project, role, or question",
+      })}
       {field("message", "Message", {
         textarea: true,
         placeholder: "What are we building?",
@@ -110,7 +116,9 @@ export function ContactForm() {
         </Button>
         <p aria-live="polite" className="font-mono text-xs">
           {status === "success" && (
-            <span className="text-primary">Message received — I&apos;ll reply soon.</span>
+            <span className="text-primary">
+              Message received — I&apos;ll reply soon.
+            </span>
           )}
           {status === "error" && (
             <span className="flex items-center gap-1.5 text-destructive">

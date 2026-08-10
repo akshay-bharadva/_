@@ -50,7 +50,11 @@ export function RepoGrid() {
     useGetSiteIdentityQuery();
   const config = identity?.profile_data.github_projects_config;
 
-  const { data: repos, isLoading, isError } = useGetGitHubReposQuery(
+  const {
+    data: repos,
+    isLoading,
+    isError,
+  } = useGetGitHubReposQuery(
     config?.show && config.username
       ? {
           username: config.username,

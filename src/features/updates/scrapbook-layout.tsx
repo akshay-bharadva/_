@@ -57,7 +57,9 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
       </div>
 
       {update.title && (
-        <h2 className="mt-2 font-tahu text-2xl leading-tight">{update.title}</h2>
+        <h2 className="mt-2 font-tahu text-2xl leading-tight">
+          {update.title}
+        </h2>
       )}
       {update.content && (
         <div className="markdown mt-1.5 text-sm text-muted-foreground">

@@ -13,20 +13,22 @@ Next.js 14, statically exported (`output: "export"`, `trailingSlash: true`,
 every endpoint has an `if (!supabase)` mock branch.
 
 ### Public RTK Query endpoints
-| Hook | Supabase source | Notes |
-|---|---|---|
-| `useGetSiteIdentityQuery` | `site_identity` single row | identity/theme/hero/footer/status/github/contact config |
-| `useGetNavLinksQuery` | `navigation_links` visible, ordered + `portfolio_mode` | `single-page` mode trims nav to `/`, `/contact`, `/blog` |
-| `useGetPublishedBlogPostsQuery` | `blog_posts` published, desc; all cols **except `content`** (uses `word_count`) | |
-| `useGetBlogPostBySlugQuery(slug)` | `blog_posts` by slug + published, `.single()` | 404 on miss |
-| `useIncrementPostViewMutation(id)` | RPC `increment_blog_post_view(post_id_to_increment)` | fired 5s after view; prod + Supabase only |
-| `useGetPublishedLifeUpdatesQuery` | `public_notes` published, pinned-first then newest | |
-| `useGetSectionsByPathQuery(path)` | `portfolio_sections` + nested `portfolio_items(*)`, visible, ordered both levels | core CMS fetch |
-| `useGetGitHubReposQuery` | GitHub REST (not Supabase) | client-side filtering |
-| `useSubmitContactFormMutation` | insert `contact_submissions` + Discord webhook | webhook best-effort always |
-| `useGetLockdownStatusQuery` | `security_settings.lockdown_level` | maintenance kill-switch |
+
+| Hook                               | Supabase source                                                                  | Notes                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `useGetSiteIdentityQuery`          | `site_identity` single row                                                       | identity/theme/hero/footer/status/github/contact config  |
+| `useGetNavLinksQuery`              | `navigation_links` visible, ordered + `portfolio_mode`                           | `single-page` mode trims nav to `/`, `/contact`, `/blog` |
+| `useGetPublishedBlogPostsQuery`    | `blog_posts` published, desc; all cols **except `content`** (uses `word_count`)  |                                                          |
+| `useGetBlogPostBySlugQuery(slug)`  | `blog_posts` by slug + published, `.single()`                                    | 404 on miss                                              |
+| `useIncrementPostViewMutation(id)` | RPC `increment_blog_post_view(post_id_to_increment)`                             | fired 5s after view; prod + Supabase only                |
+| `useGetPublishedLifeUpdatesQuery`  | `public_notes` published, pinned-first then newest                               |                                                          |
+| `useGetSectionsByPathQuery(path)`  | `portfolio_sections` + nested `portfolio_items(*)`, visible, ordered both levels | core CMS fetch                                           |
+| `useGetGitHubReposQuery`           | GitHub REST (not Supabase)                                                       | client-side filtering                                    |
+| `useSubmitContactFormMutation`     | insert `contact_submissions` + Discord webhook                                   | webhook best-effort always                               |
+| `useGetLockdownStatusQuery`        | `security_settings.lockdown_level`                                               | maintenance kill-switch                                  |
 
 ### Public tables (RLS)
+
 - `site_identity` — id(=1), `profile_data` JSONB, `social_links` JSONB, `footer_data` JSONB, `portfolio_mode`. Public read.
 - `navigation_links` — label, href, display_order, is_visible. Public read where visible.
 - `portfolio_sections` — title, type CHECK(markdown|list_items|gallery), content, display_order, page_path (default `/`), layout_style (default `default`), is_visible. Public read where visible.
@@ -39,6 +41,7 @@ every endpoint has an `if (!supabase)` mock branch.
 ## 1. Pages
 
 ### `_app` / global shell requirements
+
 - Redux Provider; next-themes ThemeProvider (`attribute="class"`, `enableSystem=false`, `storageKey="site-theme"`, themes=VALID_THEMES, default `theme-blueprint`).
 - `MotionConfig reducedMotion="user"`; page transitions keyed on route.
 - `useThemeSync(siteIdentity)` applies DB theme/typography/custom colors to `<html>`.
@@ -48,30 +51,37 @@ every endpoint has an `if (!supabase)` mock branch.
 - `<Html lang="en">`, smooth scroll, no analytics scripts.
 
 ### Home `/`
+
 - Hero + CMS sections for path `/` + CTA. SEO title `{name} | {title}`, description from identity.
 - **Visit notifier**: prod-only, `NEXT_PUBLIC_VISIT_NOTIFIER_URL`, sessionStorage-deduped Discord POST (referrer + UA).
 
 ### `/about`
+
 - Avatar (if `show_profile_picture`), `bio[]` as ReactMarkdown paragraphs, then CMS sections for `/about`. Skeleton while loading.
 
 ### `/projects`
+
 - CMS sections for `/projects`: section titled "Featured Projects" → case-study cards from its items; then GitHub repos grid (§4).
 
 ### `/showcase`
+
 - Heading + CMS sections for `/showcase`.
 
 ### `/contact` (§5), `/updates` (§7), `/blog` + `/blog/view?slug=` (§6).
 
 ### `[...slug]` catch-all
+
 - `getStaticPaths`: visible `navigation_links` hrefs → slugs, excluding `/` and reserved
   {admin, blog, projects, about, contact, showcase, experience, updates, 404, 500}; `fallback: false`.
 - Page title = nav link label (fallback: capitalized slug). Renders CMS sections for the path.
 - Net effect: any admin-created nav link to a non-reserved path becomes a CMS page.
 
 ### `404`
+
 - Not-found screen, `noindex`.
 
 ### `/_offline`
+
 - Static offline screen. NOTE: no service worker exists in v1 — placeholder only. v2 may drop or wire it.
 
 ## 2. Section-renderer

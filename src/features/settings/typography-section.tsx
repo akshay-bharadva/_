@@ -97,7 +97,9 @@ export function TypographySection({ form }: TypographySectionProps) {
                           </p>
                           <p
                             className="text-[11px] leading-relaxed text-muted-foreground"
-                            style={{ fontFamily: `"${preset.body}", sans-serif` }}
+                            style={{
+                              fontFamily: `"${preset.body}", sans-serif`,
+                            }}
                           >
                             Building beautiful things for the web.
                           </p>
@@ -112,7 +114,9 @@ export function TypographySection({ form }: TypographySectionProps) {
                             </span>
                             <span
                               className="text-[9px] text-primary"
-                              style={{ fontFamily: `"${preset.body}", sans-serif` }}
+                              style={{
+                                fontFamily: `"${preset.body}", sans-serif`,
+                              }}
                             >
                               View Projects →
                             </span>

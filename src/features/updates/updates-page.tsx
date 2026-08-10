@@ -73,7 +73,11 @@ export function UpdatesPage() {
         </div>
 
         {activeCategories.length > 1 && (
-          <div role="group" aria-label="Filter by category" className="flex flex-wrap gap-1.5">
+          <div
+            role="group"
+            aria-label="Filter by category"
+            className="flex flex-wrap gap-1.5"
+          >
             <button
               type="button"
               onClick={() => setCategory("all")}

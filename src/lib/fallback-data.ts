@@ -1,6 +1,11 @@
 // Auto-generated from portfolio.config.ts — edit the config file, not this one.
 
-import type { SiteContent, PortfolioSection, BlogPost, LifeUpdate } from "@/types";
+import type {
+  SiteContent,
+  PortfolioSection,
+  BlogPost,
+  LifeUpdate,
+} from "@/types";
 import config from "../../portfolio.config";
 
 // --- 0. NAVIGATION ---
@@ -92,7 +97,18 @@ export const MOCK_BLOG_POSTS: BlogPost[] = config.blogPosts.map((post, i) => ({
 // Helper to build section items
 function buildItems(
   sectionId: string,
-  items: { title: string; subtitle?: string; description?: string; from?: string; to?: string; tags?: string[]; link?: string; image?: string; company?: string; institution?: string }[],
+  items: {
+    title: string;
+    subtitle?: string;
+    description?: string;
+    from?: string;
+    to?: string;
+    tags?: string[];
+    link?: string;
+    image?: string;
+    company?: string;
+    institution?: string;
+  }[],
 ) {
   return items.map((item, i) => ({
     id: `${sectionId}-${i + 1}`,

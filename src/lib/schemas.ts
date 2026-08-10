@@ -23,7 +23,9 @@ export const urlOrEmpty = z
   .or(z.literal(""));
 
 /** Date string in YYYY-MM-DD format */
-export const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format");
+export const dateString = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format");
 
 /** Required date string */
 export const requiredDateString = z.string().min(1, "Date is required");
@@ -35,7 +37,11 @@ export const requiredDateString = z.string().min(1, "Date is required");
 export const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   status: z.enum([TASK_STATUS.TODO, TASK_STATUS.IN_PROGRESS, TASK_STATUS.DONE]),
-  priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH]),
+  priority: z.enum([
+    TASK_PRIORITY.LOW,
+    TASK_PRIORITY.MEDIUM,
+    TASK_PRIORITY.HIGH,
+  ]),
   due_date: z.string().optional().nullable(),
 });
 
@@ -157,7 +163,9 @@ export type NoteFormValues = z.infer<typeof noteSchema>;
 export const lifeUpdateSchema = z.object({
   title: optionalString,
   content: optionalString,
-  category: z.enum(["watching", "activity", "photo", "thought", "milestone"]).default("thought"),
+  category: z
+    .enum(["watching", "activity", "photo", "thought", "milestone"])
+    .default("thought"),
   image_url: optionalString,
   tags: z.array(z.string()).optional().nullable(),
   is_pinned: z.boolean().optional(),

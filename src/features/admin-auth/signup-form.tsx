@@ -100,7 +100,10 @@ export function SignupForm() {
               </p>
             </div>
           </div>
-          <Button className="w-full" onClick={() => router.push("/admin/login")}>
+          <Button
+            className="w-full"
+            onClick={() => router.push("/admin/login")}
+          >
             Go to login
           </Button>
           <AuthStatusLine text="verification email dispatched" />

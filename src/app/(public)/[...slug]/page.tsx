@@ -67,11 +67,7 @@ export async function generateMetadata({
   return { title: await pageTitle(params.slug) };
 }
 
-export default async function Page({
-  params,
-}: {
-  params: { slug: string[] };
-}) {
+export default async function Page({ params }: { params: { slug: string[] } }) {
   const title = await pageTitle(params.slug);
   return <CmsPage pagePath={`/${params.slug.join("/")}`} title={title} />;
 }

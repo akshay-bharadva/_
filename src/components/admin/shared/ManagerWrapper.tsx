@@ -20,7 +20,7 @@ export default function ManagerWrapper({
       className={cn(
         ADMIN_MANAGER.CONTENT_SPACING,
         ADMIN_MANAGER.MOBILE_BOTTOM_PADDING,
-        className
+        className,
       )}
     >
       {children}

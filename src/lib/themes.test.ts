@@ -44,9 +44,9 @@ describe("applyTheme", () => {
     expect(document.documentElement.classList.contains("theme-dracula")).toBe(
       false,
     );
-    expect(
-      document.documentElement.classList.contains("typo-editorial"),
-    ).toBe(false);
+    expect(document.documentElement.classList.contains("typo-editorial")).toBe(
+      false,
+    );
     expect(window.localStorage.getItem("site-theme")).toBe("theme-nord");
   });
 

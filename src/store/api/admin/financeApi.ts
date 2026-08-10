@@ -1,9 +1,5 @@
 import { supabase } from "@/supabase/client";
-import type {
-  FinancialGoal,
-  RecurringTransaction,
-  Transaction,
-} from "@/types";
+import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR, saveQueryFn, deleteQueryFn } from "./query-helpers";
 

@@ -180,7 +180,9 @@ export function MfaChallenge() {
           </p>
         </div>
 
-        {error && <AuthErrorAlert title="verification failed" message={error} />}
+        {error && (
+          <AuthErrorAlert title="verification failed" message={error} />
+        )}
 
         <Button
           type="submit"

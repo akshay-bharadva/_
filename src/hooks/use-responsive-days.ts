@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 
 // Defines how many days to show at each breakpoint
 const BREAKPOINTS = {
-  sm: 640,  // 7 days
-  md: 768,  // 10 days
+  sm: 640, // 7 days
+  md: 768, // 10 days
   lg: 1024, // 14 days
 };
 
@@ -22,7 +21,7 @@ export function useResponsiveDays() {
       if (width >= BREAKPOINTS.sm) return 7;
       return 5; // Mobile default
     };
-    
+
     // Set initial value on mount
     setDaysToShow(getDaysForWidth(window.innerWidth));
 

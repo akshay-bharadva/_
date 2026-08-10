@@ -273,8 +273,7 @@ export const publicApi = createApi({
         }
 
         // Send Discord notification
-        const webhookUrl =
-          process.env.NEXT_PUBLIC_CONTACT_WEBHOOK_URL || "";
+        const webhookUrl = process.env.NEXT_PUBLIC_CONTACT_WEBHOOK_URL || "";
         if (webhookUrl) {
           try {
             await fetch(webhookUrl, {

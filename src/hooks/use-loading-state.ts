@@ -22,7 +22,7 @@ import { useMemo } from "react";
 export function useLoadingState(loadingStates: boolean[]): boolean {
   return useMemo(
     () => loadingStates.some((isLoading) => isLoading),
-    [loadingStates]
+    [loadingStates],
   );
 }
 
@@ -49,11 +49,11 @@ export function useLoadingState(loadingStates: boolean[]): boolean {
  * ```
  */
 export function useMutationLoadingState<T extends Record<string, boolean>>(
-  states: T
+  states: T,
 ): { isAnyLoading: boolean } & T {
   const isAnyLoading = useMemo(
     () => Object.values(states).some(Boolean),
-    [states]
+    [states],
   );
 
   return {

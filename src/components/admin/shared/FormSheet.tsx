@@ -67,7 +67,7 @@ export default function FormSheet({
         side={side}
         className={cn(
           "flex flex-col sm:max-w-lg",
-          side === "right" && "w-full"
+          side === "right" && "w-full",
         )}
       >
         <SheetHeader>

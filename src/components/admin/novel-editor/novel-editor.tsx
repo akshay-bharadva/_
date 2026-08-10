@@ -77,13 +77,15 @@ const SLASH_COMMANDS = [
     title: "Bullet List",
     description: "Create a bullet list",
     icon: List,
-    command: (editor: Editor) => editor.chain().focus().toggleBulletList().run(),
+    command: (editor: Editor) =>
+      editor.chain().focus().toggleBulletList().run(),
   },
   {
     title: "Numbered List",
     description: "Create a numbered list",
     icon: ListOrdered,
-    command: (editor: Editor) => editor.chain().focus().toggleOrderedList().run(),
+    command: (editor: Editor) =>
+      editor.chain().focus().toggleOrderedList().run(),
   },
   {
     title: "Task List",
@@ -95,7 +97,8 @@ const SLASH_COMMANDS = [
     title: "Quote",
     description: "Add a blockquote",
     icon: Quote,
-    command: (editor: Editor) => editor.chain().focus().toggleBlockquote().run(),
+    command: (editor: Editor) =>
+      editor.chain().focus().toggleBlockquote().run(),
   },
   {
     title: "Code Block",
@@ -107,7 +110,8 @@ const SLASH_COMMANDS = [
     title: "Divider",
     description: "Add a horizontal divider",
     icon: Minus,
-    command: (editor: Editor) => editor.chain().focus().setHorizontalRule().run(),
+    command: (editor: Editor) =>
+      editor.chain().focus().setHorizontalRule().run(),
   },
   {
     title: "Table",

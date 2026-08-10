@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  eachDayOfInterval,
-  endOfYear,
-  format,
-  startOfYear,
-} from "date-fns";
+import { eachDayOfInterval, endOfYear, format, startOfYear } from "date-fns";
 import type { Habit } from "@/types";
 import {
   Dialog,

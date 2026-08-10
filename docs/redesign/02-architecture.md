@@ -2,13 +2,13 @@
 
 ## 1. Framework decisions
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| Router | **App Router** (`src/app/`) | Nested layouts give the public chrome and the admin shell for free; route groups map 1:1 to the two experiences; this is the stack named in the rebuild brief. Static export (`output: 'export'`) is fully supported and remains — deployment target is GitHub Pages. |
-| Data | **Redux Toolkit + RTK Query, preserved** | The store layer (publicApi / adminApi feature slices, query-helper factories, tag invalidation) is business logic, not design. It survives the rebuild; UI imports hooks from the same barrels. |
-| Auth | Supabase Auth + mandatory TOTP, unchanged | The DB-level enforcement (`is_admin()`, AAL2 policies, signup-blocking trigger) is the security boundary and is untouched. Client guard is reimplemented as an admin route-group layout. |
-| Validation | Zod + React Hook Form, preserved | Schemas in `src/lib/schemas.ts` are the entity contracts. |
-| Styling | Tailwind + CSS-variable tokens | New token scale (see design vision); theme presets become data-driven token layers. |
+| Decision   | Choice                                    | Rationale                                                                                                                                                                                                                                                             |
+| ---------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Router     | **App Router** (`src/app/`)               | Nested layouts give the public chrome and the admin shell for free; route groups map 1:1 to the two experiences; this is the stack named in the rebuild brief. Static export (`output: 'export'`) is fully supported and remains — deployment target is GitHub Pages. |
+| Data       | **Redux Toolkit + RTK Query, preserved**  | The store layer (publicApi / adminApi feature slices, query-helper factories, tag invalidation) is business logic, not design. It survives the rebuild; UI imports hooks from the same barrels.                                                                       |
+| Auth       | Supabase Auth + mandatory TOTP, unchanged | The DB-level enforcement (`is_admin()`, AAL2 policies, signup-blocking trigger) is the security boundary and is untouched. Client guard is reimplemented as an admin route-group layout.                                                                              |
+| Validation | Zod + React Hook Form, preserved          | Schemas in `src/lib/schemas.ts` are the entity contracts.                                                                                                                                                                                                             |
+| Styling    | Tailwind + CSS-variable tokens            | New token scale (see design vision); theme presets become data-driven token layers.                                                                                                                                                                                   |
 
 Because the site is a static export with client-side Supabase, all interactive routes are
 client components; the App Router win here is **layout composition and file organization**,
@@ -47,6 +47,7 @@ src/
 ```
 
 Rules:
+
 - `components/ui` never imports from `features/`; `features/` never import each other.
 - Admin pages are thin route files; logic lives in the feature folder.
 - RTK Query hooks are imported only from the API barrels (unchanged rule).

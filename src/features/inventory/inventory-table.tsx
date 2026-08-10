@@ -22,7 +22,11 @@ interface InventoryTableProps {
   onDelete: (id: string) => void;
 }
 
-export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps) {
+export function InventoryTable({
+  items,
+  onEdit,
+  onDelete,
+}: InventoryTableProps) {
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table>
@@ -95,7 +99,8 @@ export function InventoryTable({ items, onEdit, onDelete }: InventoryTableProps)
                   </div>
                   {item.purchase_date && (
                     <div className="mt-0.5 text-[10px] text-muted-foreground">
-                      Bought: {format(parseLocalDate(item.purchase_date), "MMM yyyy")}
+                      Bought:{" "}
+                      {format(parseLocalDate(item.purchase_date), "MMM yyyy")}
                     </div>
                   )}
                 </TableCell>

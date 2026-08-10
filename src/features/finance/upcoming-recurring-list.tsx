@@ -79,10 +79,7 @@ export function UpcomingRecurringList({
       // Generate occurrences within the look window
       let safety = 0;
       while (isBefore(nextDate, lookAhead) && safety < 50) {
-        if (
-          rule.end_date &&
-          isAfter(nextDate, parseLocalDate(rule.end_date))
-        ) {
+        if (rule.end_date && isAfter(nextDate, parseLocalDate(rule.end_date))) {
           break;
         }
 

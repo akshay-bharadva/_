@@ -37,7 +37,9 @@ function Breadcrumbs() {
   const segments = pathname.split("/").filter(Boolean); // ["admin", ...]
 
   if (segments.length <= 1) {
-    return <span className="font-heading text-sm font-semibold">Dashboard</span>;
+    return (
+      <span className="font-heading text-sm font-semibold">Dashboard</span>
+    );
   }
 
   return (
@@ -53,7 +55,10 @@ function Breadcrumbs() {
         const href = "/admin/" + arr.slice(0, index + 1).join("/");
         return (
           <Fragment key={href}>
-            <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
+            <ChevronRight
+              className="size-3.5 text-muted-foreground"
+              aria-hidden
+            />
             {isLast ? (
               <span className="font-medium capitalize text-foreground">
                 {crumbLabel(segment)}

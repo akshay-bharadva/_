@@ -17,14 +17,14 @@ Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 
 
 ## Commands
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Dev server on port 8889 |
-| `npm run build` | Production build + static export to `./out/` |
-| `npm run lint` | ESLint |
-| `npm run test` | Vitest (run once); `npm run test:watch` for watch mode |
+| Command                 | Purpose                                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`           | Dev server on port 8889                                                                                                |
+| `npm run build`         | Production build + static export to `./out/`                                                                           |
+| `npm run lint`          | ESLint                                                                                                                 |
+| `npm run test`          | Vitest (run once); `npm run test:watch` for watch mode                                                                 |
 | `npx vitest run <path>` | Run a single test file, e.g. `npx vitest run src/lib/theme-contrast.test.ts`; add `-t "<name>"` to filter by test name |
-| `npm run format` | Prettier |
+| `npm run format`        | Prettier                                                                                                               |
 
 ## Architecture
 
@@ -45,7 +45,7 @@ All API calls check if Supabase is configured. If not, mock data from `src/lib/f
 - **Public** — route group `src/app/(public)/` with shared chrome (`components/layout/public-chrome`): `/`, `/about`, `/projects`, `/showcase`, `/contact`, `/updates`, `/blog`, `/blog/view` (`?slug=`, static-export-friendly), `/[...slug]` (CMS catch-all via `generateStaticParams`). Plus `src/app/not-found.tsx`.
 - **Admin** — `src/app/admin/`: `(auth)` group (login, signup, setup-mfa, mfa-challenge) with no guard; `(protected)` group whose `layout.tsx` runs the guard + Personal OS shell and wraps dashboard + 14 modules (tasks, habits, learning, calendar, notes, finance, inventory, content, blog, updates/life-updates, navigation, assets, settings, security).
 - **Auth guard**: `src/features/admin-shell/use-admin-guard.ts`, invoked once by the `(protected)` layout (replaces the old per-page `withAdminPage` HOC). `src/hooks/use-auth-guard.ts` now only exports the read-only `useSupabaseSession` for chrome.
-- **Feature-first UI**: page-specific logic lives in `src/features/<domain>/` (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell); `src/components/layout/` holds shared chrome; `src/components/ui/` the primitives. Admin *module internals* still live in `src/components/admin/` (v1 components, token-styled so they inherit the new theme).
+- **Feature-first UI**: page-specific logic lives in `src/features/<domain>/` (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell); `src/components/layout/` holds shared chrome; `src/components/ui/` the primitives. Admin _module internals_ still live in `src/components/admin/` (v1 components, token-styled so they inherit the new theme).
 
 ### Validation
 
@@ -82,6 +82,7 @@ Vitest + React Testing Library (jsdom). Tests live next to source as `*.test.ts(
 ### Environment Variables
 
 Required for dynamic mode:
+
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY

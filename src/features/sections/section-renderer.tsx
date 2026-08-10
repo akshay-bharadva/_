@@ -113,7 +113,10 @@ export default function SectionRenderer({
       <div className="mb-6">
         <h2 className="font-heading text-2xl font-bold tracking-tight">
           {typeof index === "number" && (
-            <span aria-hidden className="section-label mr-3 align-middle text-primary">
+            <span
+              aria-hidden
+              className="section-label mr-3 align-middle text-primary"
+            >
               {String(index + 1).padStart(2, "0")} /
             </span>
           )}

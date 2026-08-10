@@ -1,12 +1,6 @@
 import type { PortfolioItem } from "@/types";
 import { cn } from "@/lib/utils";
-import {
-  ItemDates,
-  ItemImage,
-  ItemTags,
-  Markdown,
-  MaybeLink,
-} from "./shared";
+import { ItemDates, ItemImage, ItemTags, Markdown, MaybeLink } from "./shared";
 
 type LayoutProps = { items: PortfolioItem[] };
 
@@ -23,7 +17,9 @@ export function DefaultListLayout({ items }: LayoutProps) {
                   {item.title}
                 </h3>
                 {item.subtitle && (
-                  <p className="text-sm text-muted-foreground">{item.subtitle}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {item.subtitle}
+                  </p>
                 )}
               </div>
               <ItemDates from={item.date_from} to={item.date_to} />
@@ -130,14 +126,19 @@ export function CardsWithImageLayout({ items }: LayoutProps) {
               className="aspect-video w-full border-b object-cover"
             />
           ) : (
-            <div aria-hidden className="aspect-video w-full border-b bg-graph-paper" />
+            <div
+              aria-hidden
+              className="aspect-video w-full border-b bg-graph-paper"
+            />
           )}
           <div className="p-5">
             <h3 className="font-heading font-semibold group-hover/link:text-primary">
               {item.title}
             </h3>
             {item.subtitle && (
-              <p className="mt-0.5 text-sm text-muted-foreground">{item.subtitle}</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {item.subtitle}
+              </p>
             )}
             {item.description && (
               <Markdown className="mt-2 text-muted-foreground">
@@ -180,7 +181,10 @@ export function StatsGridLayout({ items }: LayoutProps) {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {items.map((item) => (
-        <div key={item.id} className="rounded-lg border bg-card p-5 text-center">
+        <div
+          key={item.id}
+          className="rounded-lg border bg-card p-5 text-center"
+        >
           <p className="font-mono text-3xl font-bold tracking-tight text-primary">
             {item.title}
           </p>
@@ -238,7 +242,10 @@ export function FeatureAlternatingLayout({ items }: LayoutProps) {
             index % 2 === 1 && "md:[&>*:first-child]:order-2",
           )}
         >
-          <MaybeLink href={item.link_url} className="overflow-hidden rounded-lg border">
+          <MaybeLink
+            href={item.link_url}
+            className="overflow-hidden rounded-lg border"
+          >
             {item.image_url ? (
               <ItemImage
                 src={item.image_url}
@@ -259,12 +266,17 @@ export function FeatureAlternatingLayout({ items }: LayoutProps) {
           <div>
             <p className="section-label text-primary">Featured</p>
             <h3 className="mt-2 font-heading text-xl font-bold tracking-tight">
-              <MaybeLink href={item.link_url} className="inline hover:text-primary">
+              <MaybeLink
+                href={item.link_url}
+                className="inline hover:text-primary"
+              >
                 {item.title}
               </MaybeLink>
             </h3>
             {item.subtitle && (
-              <p className="mt-1 text-sm text-muted-foreground">{item.subtitle}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {item.subtitle}
+              </p>
             )}
             {item.description && (
               <Markdown className="mt-3 text-muted-foreground">

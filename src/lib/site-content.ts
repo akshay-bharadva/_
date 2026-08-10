@@ -9,8 +9,7 @@ export const siteContent = {
   pages: {
     about: {
       title: "About Me",
-      description:
-        `Learn more about ${portfolioConfig.name}, the developer behind the code.`,
+      description: `Learn more about ${portfolioConfig.name}, the developer behind the code.`,
       heading: "[ ABOUT_ME ]",
       bio: [
         "I'm a full-stack developer specializing in building robust and scalable web applications. My passion lies at the intersection of clean architecture, efficient code, and intuitive user experiences.",
@@ -19,8 +18,7 @@ export const siteContent = {
     },
     contact: {
       title: "Contact Me",
-      description:
-        `Let's build something great together. Get in touch with ${portfolioConfig.name}.`,
+      description: `Let's build something great together. Get in touch with ${portfolioConfig.name}.`,
       heading: "Get In Touch",
       subheading:
         "Have a project in mind or just want to say hello? I'd love to hear from you.",
@@ -28,8 +26,7 @@ export const siteContent = {
     },
     projects: {
       title: "My Projects",
-      description:
-        `A collection of projects developed by ${portfolioConfig.name}, showcasing skills in various technologies.`,
+      description: `A collection of projects developed by ${portfolioConfig.name}, showcasing skills in various technologies.`,
       heading: "Projects",
     },
     showcase: {

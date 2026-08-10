@@ -21,7 +21,10 @@ export default function Page() {
       <DynamicPageContent pagePath="/projects" />
       <section aria-label="GitHub repositories" className="mt-16">
         <h2 className="font-heading text-2xl font-bold tracking-tight">
-          <span aria-hidden className="section-label mr-3 align-middle text-primary">
+          <span
+            aria-hidden
+            className="section-label mr-3 align-middle text-primary"
+          >
             gh /
           </span>
           Open source & experiments

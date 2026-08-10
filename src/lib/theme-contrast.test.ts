@@ -8,10 +8,7 @@ import { resolve } from "path";
  * critical foreground/background pairs meet 4.5:1 (normal text).
  */
 
-const css = readFileSync(
-  resolve(__dirname, "../styles/themes.css"),
-  "utf-8",
-);
+const css = readFileSync(resolve(__dirname, "../styles/themes.css"), "utf-8");
 
 type HSL = { h: number; s: number; l: number };
 

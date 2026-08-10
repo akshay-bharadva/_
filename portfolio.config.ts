@@ -54,7 +54,11 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   socialLinks: [
     { id: "github", label: "GitHub", url: "https://github.com/vercel" },
-    { id: "linkedin", label: "LinkedIn", url: "https://linkedin.com/in/vercel" },
+    {
+      id: "linkedin",
+      label: "LinkedIn",
+      url: "https://linkedin.com/in/vercel",
+    },
     { id: "email", label: "Email", url: "mailto:john@foliokit.dev" },
     { id: "twitter", label: "Twitter", url: "https://twitter.com/vercel" },
   ],
@@ -62,8 +66,7 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   // FOOTER
   // ---------------------------------------------------------------------------
-  footerText:
-    "Powered by **Foliokit**.",
+  footerText: "Powered by **Foliokit**.",
 
   // ---------------------------------------------------------------------------
   // GITHUB PROJECTS
@@ -138,22 +141,52 @@ const portfolioConfig = {
   // TECH STACK
   // ---------------------------------------------------------------------------
   techStack: [
-    { title: "React / Next.js", description: "Component architecture, SSR, App Router, hooks" },
-    { title: "TypeScript", description: "Static typing, generics, advanced interface design" },
-    { title: "Node.js / Express", description: "REST APIs, middleware, background jobs" },
-    { title: "PostgreSQL", description: "Schema design, query optimization, Prisma ORM" },
-    { title: "Tailwind CSS", description: "Responsive UI, design systems, dark mode" },
-    { title: "Docker & CI/CD", description: "Containerization, GitHub Actions, AWS ECS" },
+    {
+      title: "React / Next.js",
+      description: "Component architecture, SSR, App Router, hooks",
+    },
+    {
+      title: "TypeScript",
+      description: "Static typing, generics, advanced interface design",
+    },
+    {
+      title: "Node.js / Express",
+      description: "REST APIs, middleware, background jobs",
+    },
+    {
+      title: "PostgreSQL",
+      description: "Schema design, query optimization, Prisma ORM",
+    },
+    {
+      title: "Tailwind CSS",
+      description: "Responsive UI, design systems, dark mode",
+    },
+    {
+      title: "Docker & CI/CD",
+      description: "Containerization, GitHub Actions, AWS ECS",
+    },
   ],
 
   // ---------------------------------------------------------------------------
   // TOOLS
   // ---------------------------------------------------------------------------
   tools: [
-    { title: "VS Code", description: "Daily driver — heavily customized with Vim bindings." },
-    { title: "Figma", description: "UI mockups and component specs before any code is written." },
-    { title: "Warp", description: "Terminal of choice — AI autocomplete saves real time." },
-    { title: "Linear", description: "Project and issue tracking. Keeps sprints honest." },
+    {
+      title: "VS Code",
+      description: "Daily driver — heavily customized with Vim bindings.",
+    },
+    {
+      title: "Figma",
+      description: "UI mockups and component specs before any code is written.",
+    },
+    {
+      title: "Warp",
+      description: "Terminal of choice — AI autocomplete saves real time.",
+    },
+    {
+      title: "Linear",
+      description: "Project and issue tracking. Keeps sprints honest.",
+    },
   ],
 
   // ---------------------------------------------------------------------------
