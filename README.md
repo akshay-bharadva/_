@@ -8,7 +8,7 @@
 
 A developer portfolio template + personal CMS. Clone it, edit one config file, deploy. Optionally connect Supabase to unlock a full admin dashboard — blog, tasks, finance, habits, learning, calendar, and more.
 
-**One config file. 30 themes. Zero lock-in.**
+**One config file. 32 themes. Zero lock-in.**
 
 ---
 
@@ -65,7 +65,7 @@ Foliokit auto-detects its mode at runtime based on environment variables.
 
 Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` and you unlock:
 
-- `/admin` dashboard (18 protected pages)
+- `/admin` dashboard (15 protected routes)
 - Portfolio CMS, blog editor, life updates feed
 - Task manager, habit tracker, finance tracker, learning hub, calendar, notes, inventory
 - Asset manager with storage bucket browser
@@ -85,7 +85,7 @@ The public site stays statically exported — all data fetching happens client-s
 | `name`, `title`, `description` | Hero identity |
 | `bio` | About-page paragraphs |
 | `logo.{main,highlight}` | Two-tone header logo |
-| `defaultTheme` | One of 30 themes |
+| `defaultTheme` | One of 32 themes |
 | `typographyPreset` | One of 8 font pairings |
 | `portfolioMode` | `"multi-page"` or `"single-page"` |
 | `statusPanel` | Right-side hero widget — `minimal`, `terminal`, or `bento` variant |
@@ -107,7 +107,7 @@ The public site stays statically exported — all data fetching happens client-s
 
 ## Themes
 
-30 curated themes, all CSS-variable based. Visitors can switch live; your default is just the starting point.
+32 curated themes, all CSS-variable based. Visitors can switch live; your default is just the starting point.
 
 ```typescript
 defaultTheme: "theme-nord",
@@ -115,6 +115,7 @@ defaultTheme: "theme-nord",
 
 | Category | Themes |
 |----------|--------|
+| **Ink** (default) | `theme-ink-light`, `theme-ink-dark` |
 | **Dark** | `theme-dracula`, `theme-nord`, `theme-tokyo-night`, `theme-catppuccin-mocha`, `theme-github-dark`, `theme-onedark-pro`, `theme-rose-pine`, `theme-monokai`, `theme-ayu-dark` |
 | **Light** | `theme-solarized-light`, `theme-catppuccin-latte`, `theme-github-light`, `theme-arctic`, `theme-paper` |
 | **Special** | `theme-blueprint`, `theme-cyberpunk`, `theme-ocean`, `theme-matrix`, `theme-terminal` |
@@ -181,11 +182,16 @@ Want the admin dashboard? Four steps:
 
 Then visit `/admin/signup` to create your admin account. You'll be prompted to enroll TOTP MFA on first login.
 
+Single-admin and MFA are enforced in the database, not just the client: write policies
+require an AAL2 session, and a trigger on `auth.users` rejects further signups once an
+admin exists. The client-side guard is UX, not the security boundary.
+
 ---
 
 ## Admin Dashboard
 
-18 protected pages, all guarded by `useAuthGuard` (requires AAL2 / MFA).
+15 protected routes. The `(protected)` route group's layout runs the guard once
+(`useAdminGuard`, requires AAL2 / MFA) and wraps every module in the admin shell.
 
 | Route | Feature |
 |-------|---------|
@@ -223,28 +229,45 @@ foliokit/
 │   └── john-doe.sample.sql       # Demo persona seed
 ├── public/                       # Static assets
 └── src/
-    ├── pages/                    # 32 pages (14 public + 18 admin)
+    ├── app/                      # App Router tree (static export)
+    │   ├── layout.tsx            # Root layout + providers.tsx
+    │   ├── (public)/             # Public routes, shared header/footer chrome
+    │   └── admin/
+    │       ├── (auth)/           # login, signup, setup-mfa, mfa-challenge
+    │       └── (protected)/      # Guard + admin shell, 15 routes
+    ├── features/                 # Feature-first UI — one folder per domain
+    │   │                         #   public: home, about, contact, blog,
+    │   │                         #   updates, sections, github
+    │   │                         #   admin: tasks, notes, habits, learning,
+    │   │                         #   calendar, finance, inventory, assets,
+    │   │                         #   content, settings, security, dashboard…
+    │   └── sections/             # 20 CMS layouts + markdown/list fallback
     ├── components/
-    │   ├── admin/                # Dashboard components (~80 files, 13 feature areas)
-    │   ├── sections/             # 20 section layouts for CMS catch-all
-    │   ├── public/               # Public-page components
-    │   └── ui/                   # 51 Shadcn/Radix primitives
+    │   ├── layout/               # Shared public + admin chrome
+    │   ├── admin/                # Shared admin infra (patterns, editor, spinner)
+    │   └── ui/                   # Shadcn/Radix primitives
     ├── store/
     │   ├── api/
-    │   │   ├── publicApi.ts      # 10 public endpoints
-    │   │   ├── adminApi.ts       # 71 admin endpoints
-    │   │   └── mutation-factory.ts
+    │   │   ├── publicApi.ts      # 10 public endpoints (no auth)
+    │   │   ├── adminApi.ts       # Barrel — import every admin hook from here
+    │   │   └── admin/            # Per-feature endpoint slices + query-helpers
     │   └── slices/               # Focus timer + learning session state
     ├── lib/
     │   ├── fallback-data.ts      # Maps portfolio.config.ts → mock RTK payloads
-    │   ├── schemas.ts            # 19 Zod schemas (form validation)
+    │   ├── schemas.ts            # Zod schemas (form validation)
     │   ├── config.ts             # isSupabaseConfigured + AppConfig
-    │   └── constants.ts          # Themes, typography, enums, limits
-    ├── hooks/                    # 7 custom hooks (auth guard, mobile, toast, etc.)
+    │   ├── themes.ts             # Runtime theme/typography application
+    │   └── constants.ts          # Theme + typography registries, enums, limits
+    ├── hooks/                    # Custom hooks (session, mobile, theme sync…)
     ├── supabase/client.ts        # Nullable Supabase client
-    ├── styles/globals.css        # Tailwind + 30 theme presets + 8 typography presets
-    └── types/index.ts            # 29 central TypeScript interfaces
+    ├── styles/
+    │   ├── globals.css           # Tailwind, base token scale, prose, motifs
+    │   └── themes.css            # 32 theme + 8 typography presets (unlayered)
+    ├── test/setup.ts             # Vitest + Testing Library setup
+    └── types/index.ts            # Central TypeScript interfaces
 ```
+
+Tests live next to their source as `*.test.ts(x)`.
 
 ---
 
@@ -256,13 +279,17 @@ foliokit/
 | `npm run build` | Production build + static export to `./out/` |
 | `npm run start` | Production server |
 | `npm run lint` | ESLint |
+| `npm run test` | Vitest, single run |
+| `npm run test:watch` | Vitest in watch mode |
 | `npm run format` | Prettier |
+
+Run one test file with `npx vitest run <path>`, and filter by name with `-t "<name>"`.
 
 ---
 
 ## Tech Stack
 
-**Framework:** Next.js 14 (Pages Router) · React 18 · TypeScript 5
+**Framework:** Next.js 14 (App Router, static export) · React 18 · TypeScript 5
 
 **State & Data:** Redux Toolkit · RTK Query · Supabase (optional)
 
@@ -274,7 +301,9 @@ foliokit/
 
 **Visualization:** Recharts · FullCalendar
 
-**Security:** Supabase Auth · mandatory TOTP MFA · RLS on every table
+**Testing:** Vitest · React Testing Library · jsdom
+
+**Security:** Supabase Auth · mandatory TOTP MFA · RLS on every table · `rehype-sanitize` on all rendered Markdown
 
 ---
 

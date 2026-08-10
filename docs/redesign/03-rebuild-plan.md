@@ -97,7 +97,7 @@ New section-renderer with the same `layout_style` contract (21 layouts).
       SubjectTopicTree, EventBadge, the calendar day-event drawer/sheet).
       `src/components/admin/` now holds only shared infrastructure: `shared/`,
       `novel-editor/`, and `LoadingSpinner`.
-- [~] **Phase 4 cleanup & polish** — IN PROGRESS. **Code splitting done**: the TipTap
+- [x] **Phase 4 cleanup & polish** — DONE. **Code splitting**: the TipTap
       suite is now split once at the `novel-editor` barrel (a `novel-editor-lazy`
       wrapper), so all five editing surfaces — notes, learning, content x2, blog —
       get it on demand without touching their call sites; the dead `getExtensions`
@@ -105,13 +105,41 @@ New section-renderer with the same `layout_style` contract (21 layouts).
       Recharts is split at the admin landing route and behind the two finance chart
       tabs. First Load JS: `/admin` 326→90 kB, `/admin/learning` 540→341 kB,
       `/admin/notes` 523→326 kB, `/admin/content` 514→319 kB, `/admin/finance`
-      470→355 kB. Remaining: a11y sweep, port/expand admin tests, README.
-      `/blog/view` (539 kB, react-markdown + prism) is the last heavy route.
+      470→355 kB. Finally `/blog/view` 539→208 kB: the markdown pipeline
+      (raw→sanitize→prism/refractor→slug) now loads on demand from `post-page`,
+      with a preload effect firing on mount so the split runs in parallel with
+      the post query instead of serializing behind it.
+      **a11y sweep**: every icon-only button across the 26 feature modules got an
+      accessible name (52 additions, 57 now labeled, 0 missing), and a real WCAG
+      2.1.1 keyboard trap was fixed — the two `display:none` file inputs in the
+      life-update editor were `sr-only`'d so they stay in the tab order, with a
+      `focus-within` ring on the wrapping label.
+      **Tests**: colocated suites for the ported pure-logic modules —
+      `inventory/warranty`, `assets/asset-utils`, `calendar/calendar-utils` —
+      covering the branches where a silent porting slip would hide (warranty
+      windows on a pinned clock, folder/placeholder handling, per-`item_type`
+      date parsing and `allDay` rules). 176→219 tests.
+      **Typography resync**: `TYPOGRAPHY_PRESETS` gained `weight`/`serif` so the
+      settings preview reads the same source as `themes.css` instead of a
+      hardcoded list; `--heading-weight` is applied on bare `h1..h6` only, so
+      `font-*` utilities in components still win. Dead escape hatches removed:
+      `.font-display`/`--font-display` (no consumers, byte-identical to
+      `--font-heading`) and the `!important` heading-font block (guarded against
+      `font-mono` headings that no longer exist, and skipped `typo-default`).
+      **README** updated for the App Router, 32 themes, the `features/` tree,
+      the test commands, and the DB-level MFA/single-admin note.
 
 ## Current build/test state (as of latest commit)
 
 - `npm run build` (static export) green; 31 routes, public shared JS ~88 kB
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
-  Heaviest admin route is now `/admin/tasks` at 344 kB; no admin route exceeds 355 kB.
-- `npm run test` 176 passing (11 files); `npx tsc --noEmit` clean.
+  Heaviest admin route is `/admin/finance` at 355 kB; heaviest public route is
+  `/contact` at 295 kB. No route exceeds 355 kB.
+- `npm run test` 219 passing (14 files); `npx tsc --noEmit` clean; lint clean.
 - Pages Router fully removed; app is App-Router-only; dev server boots, pages render 200.
+
+## Known follow-ups (not blockers)
+
+- The repo is not Prettier-clean at baseline: `npm run format` rewrites ~103 files,
+  including README.md and themes.css. Worth one dedicated formatting commit, kept
+  separate so it doesn't bury real diffs — deliberately not folded into Phase 4.
