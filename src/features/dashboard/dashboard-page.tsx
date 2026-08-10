@@ -1,24 +1,26 @@
+"use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Banknote,
-  CheckCircle,
-  ListTodo,
-  Target,
-  CalendarClock,
-  Repeat,
-  Eye,
-  Zap,
-  ArrowUpRight,
-  ArrowDownLeft,
   AlertOctagon,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Banknote,
+  CalendarClock,
+  CheckCircle,
+  ExternalLink,
+  Eye,
+  ListTodo,
   Pin,
+  Repeat,
+  Target,
+  Zap,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  XAxis,
-} from "recharts";
+import { Bar, BarChart, XAxis } from "recharts";
+import { addDays, format, startOfDay } from "date-fns";
+import type { DashboardData } from "@/types";
+import { useGetDashboardDataQuery } from "@/store/api/adminApi";
 import {
   Card,
   CardContent,
@@ -26,27 +28,48 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { DashboardData } from "@/types";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import LoadingSpinner from "@/components/admin/LoadingSpinner";
+import { PageHeader, StatCard } from "@/components/admin/shared";
 import { cn } from "@/lib/utils";
 import { projectRecurringOccurrences } from "@/lib/finance-utils";
-import StatCard from "./shared/StatCard";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { addDays, format, startOfDay } from "date-fns";
-import { Button } from "../ui/button";
-import { ExternalLink } from "lucide-react";
+
+export default function DashboardPage() {
+  const router = useRouter();
+  // The (protected) layout guards this route, so data can load immediately.
+  const { data: dashboardData, isLoading } = useGetDashboardDataQuery();
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description="Your portfolio's command center."
+      />
+      {isLoading || !dashboardData ? (
+        <LoadingSpinner />
+      ) : (
+        <DashboardOverview
+          dashboardData={dashboardData}
+          onNavigate={(path) => router.push(path)}
+        />
+      )}
+    </div>
+  );
+}
 
 interface DashboardOverviewProps {
   dashboardData: DashboardData;
   onNavigate: (path: string) => void;
 }
 
-export default function DashboardOverview({
+function DashboardOverview({
   dashboardData,
   onNavigate,
 }: DashboardOverviewProps) {
@@ -80,7 +103,7 @@ export default function DashboardOverview({
     });
   }, [dailyExpenses, dailyEarnings]);
 
-  // --- RECURRING FORECAST LOGIC ---
+  // Recurring forecast for the outlook column
   const upcomingRecurring = useMemo(() => {
     const today = startOfDay(new Date());
     const next7Days = addDays(today, 8); // Look 7 days ahead (inclusive)
@@ -97,7 +120,10 @@ export default function DashboardOverview({
   }, [recurring]);
 
   const goalProgress = primaryGoal
-    ? Math.min((primaryGoal.current_amount / primaryGoal.target_amount) * 100, 100)
+    ? Math.min(
+        (primaryGoal.current_amount / primaryGoal.target_amount) * 100,
+        100,
+      )
     : 0;
 
   return (
@@ -126,13 +152,13 @@ export default function DashboardOverview({
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Column 1: Present / "What's going on now?" */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="h-full flex flex-col">
+        <div className="space-y-6 lg:col-span-1">
+          <Card className="flex h-full flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="text-primary size-5" /> Action Center
+                <Zap className="size-5 text-primary" /> Action Center
               </CardTitle>
               <CardDescription>
                 What needs your attention right now.
@@ -142,8 +168,8 @@ export default function DashboardOverview({
               {overdueTasks.length === 0 &&
               tasksDueToday.length === 0 &&
               pinnedNotes.length === 0 ? (
-                <div className="flex flex-col h-full items-center justify-center text-center text-muted-foreground p-8 border border-dashed rounded-lg bg-graph-paper">
-                  <CheckCircle className="mx-auto size-12 mb-4 text-primary opacity-80" />
+                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed bg-graph-paper p-8 text-center text-muted-foreground">
+                  <CheckCircle className="mx-auto mb-4 size-12 text-primary opacity-80" />
                   <p className="font-heading font-semibold tracking-tight text-foreground">
                     Inbox Zero
                   </p>
@@ -156,15 +182,15 @@ export default function DashboardOverview({
                   {overdueTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-center gap-3 p-3 rounded-md bg-destructive/10 border border-destructive/20 cursor-pointer hover:bg-destructive/15 transition-colors"
+                      className="flex cursor-pointer items-center gap-3 rounded-md border border-destructive/20 bg-destructive/10 p-3 transition-colors hover:bg-destructive/15"
                       onClick={() => onNavigate("/admin/tasks")}
                     >
-                      <AlertOctagon className="h-5 w-5 text-destructive shrink-0" />
+                      <AlertOctagon className="h-5 w-5 shrink-0 text-destructive" />
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm leading-tight text-destructive truncate">
+                        <p className="truncate text-sm font-semibold leading-tight text-destructive">
                           {task.title}
                         </p>
-                        <p className="text-[10px] uppercase font-bold text-destructive/80 mt-0.5">
+                        <p className="mt-0.5 text-[10px] font-bold uppercase text-destructive/80">
                           Overdue Task
                         </p>
                       </div>
@@ -173,15 +199,15 @@ export default function DashboardOverview({
                   {tasksDueToday.map((task) => (
                     <div
                       key={task.id}
-                      className="flex items-center gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20 cursor-pointer hover:bg-amber-500/15 transition-colors"
+                      className="flex cursor-pointer items-center gap-3 rounded-md border border-chart-3/20 bg-chart-3/10 p-3 transition-colors hover:bg-chart-3/15"
                       onClick={() => onNavigate("/admin/tasks")}
                     >
-                      <ListTodo className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <ListTodo className="h-5 w-5 shrink-0 text-chart-3" />
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm leading-tight truncate">
+                        <p className="truncate text-sm font-semibold leading-tight">
                           {task.title}
                         </p>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">
+                        <p className="mt-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                           Due Today
                         </p>
                       </div>
@@ -190,15 +216,15 @@ export default function DashboardOverview({
                   {pinnedNotes.map((note) => (
                     <div
                       key={note.id}
-                      className="flex items-center gap-3 p-3 rounded-md bg-secondary border border-border cursor-pointer hover:bg-secondary/80 transition-colors"
+                      className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-secondary p-3 transition-colors hover:bg-secondary/80"
                       onClick={() => onNavigate("/admin/notes")}
                     >
-                      <Pin className="h-5 w-5 text-primary shrink-0" />
+                      <Pin className="h-5 w-5 shrink-0 text-primary" />
                       <div className="min-w-0">
-                        <p className="font-semibold text-sm leading-tight truncate">
+                        <p className="truncate text-sm font-semibold leading-tight">
                           {note.title || "Untitled Note"}
                         </p>
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">
+                        <p className="mt-0.5 text-[10px] font-bold uppercase text-muted-foreground">
                           Pinned Note
                         </p>
                       </div>
@@ -211,7 +237,7 @@ export default function DashboardOverview({
         </div>
 
         {/* Column 2: Past / "What happened?" */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="space-y-6 lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
@@ -221,7 +247,7 @@ export default function DashboardOverview({
                 recentPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="flex items-center justify-between gap-2 text-sm p-2 rounded-md hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between gap-2 rounded-md p-2 text-sm transition-colors hover:bg-muted/50"
                   >
                     <div className="flex items-center gap-2 overflow-hidden">
                       <Badge
@@ -230,7 +256,7 @@ export default function DashboardOverview({
                       >
                         {post.published ? "Pub" : "Draft"}
                       </Badge>
-                      <span className="font-medium truncate">{post.title}</span>
+                      <span className="truncate font-medium">{post.title}</span>
                     </div>
                     <Button
                       variant="ghost"
@@ -249,7 +275,7 @@ export default function DashboardOverview({
                   </div>
                 ))
               ) : (
-                <p className="text-center text-sm text-muted-foreground py-4">
+                <p className="py-4 text-center text-sm text-muted-foreground">
                   No recent blog posts.
                 </p>
               )}
@@ -303,7 +329,7 @@ export default function DashboardOverview({
         </div>
 
         {/* Column 3: Future / "What's going to happen?" */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="space-y-6 lg:col-span-1">
           <Card className="h-full">
             <CardHeader>
               <CardTitle>7-Day Outlook</CardTitle>
@@ -318,19 +344,19 @@ export default function DashboardOverview({
                     {tasksDueSoon.map((task) => (
                       <div
                         key={task.id}
-                        className="text-sm flex justify-between items-center p-2 rounded-md bg-secondary/30"
+                        className="flex items-center justify-between rounded-md bg-secondary/30 p-2 text-sm"
                       >
-                        <span className="truncate mr-2 font-medium">
+                        <span className="mr-2 truncate font-medium">
                           {task.title}
                         </span>
-                        <span className="font-mono text-xs text-muted-foreground whitespace-nowrap bg-background px-1.5 py-0.5 rounded border">
+                        <span className="whitespace-nowrap rounded border bg-background px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                           {format(new Date(task.due_date!), "MMM d")}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic pl-2">
+                  <p className="pl-2 text-xs italic text-muted-foreground">
                     No tasks due in next 7 days.
                   </p>
                 )}
@@ -347,9 +373,9 @@ export default function DashboardOverview({
                     {upcomingRecurring.map((item) => (
                       <div
                         key={item.id}
-                        className="text-sm flex justify-between items-center p-2 rounded-md bg-secondary/30"
+                        className="flex items-center justify-between rounded-md bg-secondary/30 p-2 text-sm"
                       >
-                        <div className="flex flex-col min-w-0 mr-2">
+                        <div className="mr-2 flex min-w-0 flex-col">
                           <span className="truncate font-medium">
                             {item.description}
                           </span>
@@ -359,16 +385,16 @@ export default function DashboardOverview({
                         </div>
                         <span
                           className={cn(
-                            "font-mono text-xs font-bold whitespace-nowrap flex items-center gap-0.5",
+                            "flex items-center gap-0.5 whitespace-nowrap font-mono text-xs font-bold",
                             item.type === "earning"
-                              ? "text-emerald-500"
-                              : "text-rose-500",
+                              ? "text-chart-2"
+                              : "text-chart-5",
                           )}
                         >
                           {item.type === "earning" ? (
                             <ArrowUpRight className="size-3" />
                           ) : (
-                             <ArrowDownLeft className="size-3" />
+                            <ArrowDownLeft className="size-3" />
                           )}
                           ${item.amount.toFixed(0)}
                         </span>
@@ -376,7 +402,7 @@ export default function DashboardOverview({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground italic pl-2">
+                  <p className="pl-2 text-xs italic text-muted-foreground">
                     No recurring payments scheduled.
                   </p>
                 )}

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import FocusTimer from "@/components/admin/focus/FocusTimer";
+import { FocusTimer } from "@/features/focus/focus-timer";
 import { useAdminGuard } from "./use-admin-guard";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminTopbar } from "./admin-topbar";
