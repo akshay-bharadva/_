@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { BookUser } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,14 +13,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
-import { BookUser } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface HeroAboutSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function HeroAboutSection({ form }: HeroAboutSectionProps) {
+export function HeroAboutSection({ form }: HeroAboutSectionProps) {
   return (
     <Card>
       <CardHeader>

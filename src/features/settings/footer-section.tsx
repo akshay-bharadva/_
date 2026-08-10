@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Footprints } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   FormControl,
@@ -14,14 +11,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Footprints } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface FooterSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function FooterSection({ form }: FooterSectionProps) {
+export function FooterSection({ form }: FooterSectionProps) {
   return (
     <Card>
       <CardHeader>

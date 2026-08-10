@@ -1,11 +1,13 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
+import { Check, Type } from "lucide-react";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import {
   FormControl,
@@ -13,7 +15,6 @@ import {
   FormItem,
   FormMessage,
 } from "@/components/ui/form";
-import { Type, Check } from "lucide-react";
 import { TYPOGRAPHY_PRESETS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
@@ -22,7 +23,7 @@ export interface TypographySectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function TypographySection({ form }: TypographySectionProps) {
+export function TypographySection({ form }: TypographySectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -30,7 +31,8 @@ export default function TypographySection({ form }: TypographySectionProps) {
           <Type className="size-5 text-primary" /> Typography
         </CardTitle>
         <CardDescription>
-          Choose a font combination that defines your portfolio&apos;s personality.
+          Choose a font combination that defines your portfolio&apos;s
+          personality.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -40,24 +42,28 @@ export default function TypographySection({ form }: TypographySectionProps) {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {TYPOGRAPHY_PRESETS.map((preset) => {
                     const isActive = field.value === preset.value;
-                    const isSerif = ["Playfair Display", "Instrument Serif", "Libre Baskerville"].includes(preset.heading);
+                    const isSerif = [
+                      "Playfair Display",
+                      "Instrument Serif",
+                      "Libre Baskerville",
+                    ].includes(preset.heading);
                     return (
                       <button
                         type="button"
                         key={preset.value}
                         onClick={() => field.onChange(preset.value)}
                         className={cn(
-                          "relative text-left rounded-lg border-2 p-3.5 transition-all group",
+                          "group relative rounded-lg border-2 p-3.5 text-left transition-all",
                           isActive
                             ? "border-primary bg-primary/5 ring-1 ring-primary/20"
-                            : "border-border hover:border-muted-foreground/30 hover:bg-accent/20"
+                            : "border-border hover:border-muted-foreground/30 hover:bg-accent/20",
                         )}
                       >
                         {isActive && (
-                          <div className="absolute top-2.5 right-2.5 size-5 rounded-full bg-primary flex items-center justify-center">
+                          <div className="absolute right-2.5 top-2.5 flex size-5 items-center justify-center rounded-full bg-primary">
                             <Check className="size-3 text-primary-foreground" />
                           </div>
                         )}
@@ -65,11 +71,12 @@ export default function TypographySection({ form }: TypographySectionProps) {
                         {/* Large display preview */}
                         <div className="mb-3 pr-6">
                           <p
-                            className="text-2xl text-foreground leading-tight"
+                            className="text-2xl leading-tight text-foreground"
                             style={{
                               fontFamily: `"${preset.heading}", ${isSerif ? "serif" : "sans-serif"}`,
                               letterSpacing: "-0.02em",
-                              fontWeight: preset.heading === "Instrument Serif" ? 400 : 700,
+                              fontWeight:
+                                preset.heading === "Instrument Serif" ? 400 : 700,
                             }}
                           >
                             Aa
@@ -78,29 +85,32 @@ export default function TypographySection({ form }: TypographySectionProps) {
 
                         {/* Mini site mockup */}
                         <div
-                          className="rounded border border-border/40 bg-background/60 p-2.5 space-y-1.5 mb-2.5"
+                          className="mb-2.5 space-y-1.5 rounded border border-border/40 bg-background/60 p-2.5"
                           style={{ fontFamily: `"${preset.body}", sans-serif` }}
                         >
                           <p
-                            className="text-sm text-foreground leading-snug"
+                            className="text-sm leading-snug text-foreground"
                             style={{
                               fontFamily: `"${preset.heading}", ${isSerif ? "serif" : "sans-serif"}`,
-                              fontWeight: preset.heading === "Instrument Serif" ? 400 : 700,
+                              fontWeight:
+                                preset.heading === "Instrument Serif" ? 400 : 700,
                               letterSpacing: "-0.02em",
                             }}
                           >
                             Hello, I&apos;m Derek
                           </p>
                           <p
-                            className="text-[11px] text-muted-foreground leading-relaxed"
+                            className="text-[11px] leading-relaxed text-muted-foreground"
                             style={{ fontFamily: `"${preset.body}", sans-serif` }}
                           >
                             Building beautiful things for the web.
                           </p>
-                          <div className="flex gap-2 items-center">
+                          <div className="flex items-center gap-2">
                             <span
-                              className="text-[9px] px-1.5 py-0.5 bg-muted/60 rounded text-muted-foreground/80"
-                              style={{ fontFamily: `"${preset.code}", monospace` }}
+                              className="rounded bg-muted/60 px-1.5 py-0.5 text-[9px] text-muted-foreground/80"
+                              style={{
+                                fontFamily: `"${preset.code}", monospace`,
+                              }}
                             >
                               npm run dev
                             </span>
@@ -117,10 +127,10 @@ export default function TypographySection({ form }: TypographySectionProps) {
                         <p className="text-xs font-semibold text-foreground">
                           {preset.label}
                         </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+                        <p className="mt-0.5 text-[10px] leading-relaxed text-muted-foreground">
                           {preset.description}
                         </p>
-                        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 mt-1.5 text-[9px] text-muted-foreground/70">
+                        <div className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[9px] text-muted-foreground/70">
                           <span>
                             Display{" "}
                             <span className="font-medium text-muted-foreground">

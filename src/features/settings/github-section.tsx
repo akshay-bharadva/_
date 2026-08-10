@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Github } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -28,14 +25,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Github } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface GitHubSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function GitHubSection({ form }: GitHubSectionProps) {
+export function GitHubSection({ form }: GitHubSectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -48,7 +44,7 @@ export default function GitHubSection({ form }: GitHubSectionProps) {
           control={form.control}
           name="profile_data.github_projects_config.show"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/10">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
               <div className="space-y-0.5">
                 <FormLabel>Show GitHub Section</FormLabel>
               </div>
@@ -76,10 +72,10 @@ export default function GitHubSection({ form }: GitHubSectionProps) {
         />
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="item-1" className="border-b-0">
-            <AccordionTrigger className="hover:no-underline py-2">
+            <AccordionTrigger className="py-2 hover:no-underline">
               Advanced Options
             </AccordionTrigger>
-            <AccordionContent className="pt-4 space-y-4 px-1">
+            <AccordionContent className="space-y-4 px-1 pt-4">
               <FormField
                 control={form.control}
                 name="profile_data.github_projects_config.sort_by"
@@ -138,7 +134,7 @@ export default function GitHubSection({ form }: GitHubSectionProps) {
                   control={form.control}
                   name="profile_data.github_projects_config.exclude_forks"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between border rounded-md p-2">
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-2">
                       <FormLabel className="text-sm font-normal">
                         Exclude Forks
                       </FormLabel>
@@ -155,7 +151,7 @@ export default function GitHubSection({ form }: GitHubSectionProps) {
                   control={form.control}
                   name="profile_data.github_projects_config.exclude_archived"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between border rounded-md p-2">
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-2">
                       <FormLabel className="text-sm font-normal">
                         Exclude Archived
                       </FormLabel>
@@ -172,7 +168,7 @@ export default function GitHubSection({ form }: GitHubSectionProps) {
                   control={form.control}
                   name="profile_data.github_projects_config.exclude_profile_repo"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between border rounded-md p-2">
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-2">
                       <FormLabel className="text-sm font-normal">
                         Exclude Profile Repo
                       </FormLabel>

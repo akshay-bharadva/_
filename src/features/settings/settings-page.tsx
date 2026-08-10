@@ -1,39 +1,37 @@
-import React, { useEffect } from "react";
+"use client";
+
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
-import { Loader2, Save } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Loader2, Save } from "lucide-react";
 import {
   useGetSiteSettingsQuery,
   useUpdateSiteSettingsMutation,
 } from "@/store/api/adminApi";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import {
-  siteSettingsSchema,
   siteSettingsDefaultValues,
+  siteSettingsSchema,
   type SiteSettingsFormValues,
 } from "@/lib/schemas";
 import { getErrorMessage } from "@/lib/utils";
-import { PageHeader, ManagerWrapper } from "./shared";
+import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import { SettingsSkeleton } from "./settings-skeleton";
+import { BrandIdentitySection } from "./brand-identity-section";
+import { HeroAboutSection } from "./hero-about-section";
+import { GitHubSection } from "./github-section";
+import { ThemeSection } from "./theme-section";
+import { TypographySection } from "./typography-section";
+import { SocialLinksSection } from "./social-links-section";
+import { StatusPanelSection } from "./status-panel-section";
+import { LayoutSection } from "./layout-section";
+import { FooterSection } from "./footer-section";
+import { ContactPageSection } from "./contact-page-section";
 
-// Extracted section components
-import {
-  SettingsSkeleton,
-  BrandIdentitySection,
-  HeroAboutSection,
-  GitHubSection,
-  ThemeSection,
-  SocialLinksSection,
-  StatusPanelSection,
-  LayoutSection,
-  FooterSection,
-  ContactPageSection,
-  TypographySection,
-} from "./settings";
-
-export default function SiteSettingsManager() {
+export default function SettingsPage() {
   const { data: settingsData, isLoading: isLoadingSettings } =
     useGetSiteSettingsQuery();
   const [updateSiteSettings, { isLoading: isSubmitting }] =
@@ -55,17 +53,23 @@ export default function SiteSettingsManager() {
           Object.entries(obj).map(([key, value]) => [
             key,
             nullsToStrings(value),
-          ])
+          ]),
         );
       };
       const cleanIdentity = nullsToStrings(settingsData);
 
-      const fetchedSocials = (cleanIdentity.social_links as { id: string; label: string; url: string; is_visible: boolean }[]) || [];
+      const fetchedSocials =
+        (cleanIdentity.social_links as {
+          id: string;
+          label: string;
+          url: string;
+          is_visible: boolean;
+        }[]) || [];
       const mergedSocials = (siteSettingsDefaultValues.social_links || []).map(
         (def) => {
           const fetched = fetchedSocials.find((f) => f.id === def.id);
           return fetched ? { ...def, ...fetched } : def;
-        }
+        },
       );
 
       const fetchedColors =
@@ -138,7 +142,9 @@ export default function SiteSettingsManager() {
       await updateSiteSettings(values).unwrap();
       toast.success("Site settings updated successfully!");
     } catch (err) {
-      toast.error("Failed to save settings", { description: getErrorMessage(err) });
+      toast.error("Failed to save settings", {
+        description: getErrorMessage(err),
+      });
     }
   };
 
@@ -155,7 +161,7 @@ export default function SiteSettingsManager() {
           <Button
             onClick={form.handleSubmit(onSubmit)}
             disabled={isSubmitting}
-            className="w-full sm:w-auto shadow-md"
+            className="w-full shadow-md sm:w-auto"
           >
             {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}{" "}
             Save Changes
@@ -166,10 +172,10 @@ export default function SiteSettingsManager() {
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto px-1"
+          className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-1 lg:grid-cols-3"
         >
           {/* Left Column — Identity & Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-6 lg:col-span-2">
             <BrandIdentitySection form={form} />
             <HeroAboutSection form={form} />
             <ThemeSection form={form} />
@@ -178,7 +184,7 @@ export default function SiteSettingsManager() {
           </div>
 
           {/* Right Column — Layout & Features */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="space-y-6 lg:col-span-1">
             <LayoutSection form={form} />
             <StatusPanelSection form={form} />
             <GitHubSection form={form} />
@@ -196,7 +202,7 @@ export default function SiteSettingsManager() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 80, opacity: 0 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.15)]"
+            className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] backdrop-blur-md"
           >
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
               <p className="text-sm text-muted-foreground">

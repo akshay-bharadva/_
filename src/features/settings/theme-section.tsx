@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Palette } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palette } from "lucide-react";
 import { THEME_PRESETS } from "@/lib/constants";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
@@ -42,7 +38,7 @@ const CUSTOM_COLOR_KEYS = [
   "card",
 ] as const;
 
-export default function ThemeSection({ form }: ThemeSectionProps) {
+export function ThemeSection({ form }: ThemeSectionProps) {
   const watchTheme = form.watch("profile_data.default_theme");
   const isCustomTheme = watchTheme === "theme-custom";
 
@@ -55,7 +51,7 @@ export default function ThemeSection({ form }: ThemeSectionProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="presets" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="mb-4 grid w-full grid-cols-2">
             <TabsTrigger value="presets">Presets</TabsTrigger>
             <TabsTrigger value="custom">Custom</TabsTrigger>
           </TabsList>
@@ -91,7 +87,7 @@ export default function ThemeSection({ form }: ThemeSectionProps) {
           </TabsContent>
 
           <TabsContent value="custom" className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-secondary/30">
+            <div className="flex items-center justify-between rounded-lg border bg-secondary/30 p-3">
               <Label
                 className="cursor-pointer text-sm"
                 onClick={() =>
@@ -105,7 +101,7 @@ export default function ThemeSection({ form }: ThemeSectionProps) {
                 onCheckedChange={(checked) =>
                   form.setValue(
                     "profile_data.default_theme",
-                    checked ? "theme-custom" : "theme-blueprint"
+                    checked ? "theme-custom" : "theme-blueprint",
                   )
                 }
               />
@@ -119,14 +115,14 @@ export default function ThemeSection({ form }: ThemeSectionProps) {
                   name={`profile_data.custom_theme_colors.${colorKey}`}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="capitalize text-xs">
+                      <FormLabel className="text-xs capitalize">
                         {colorKey}
                       </FormLabel>
-                      <div className="flex gap-2 items-center">
-                        <div className="relative w-8 h-8 rounded-md border overflow-hidden shrink-0">
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-md border">
                           <input
                             type="color"
-                            className="absolute inset-0 w-12 h-12 -top-2 -left-2 cursor-pointer"
+                            className="absolute -left-2 -top-2 inset-0 h-12 w-12 cursor-pointer"
                             value={field.value || "#000000"}
                             onChange={field.onChange}
                           />
@@ -134,7 +130,7 @@ export default function ThemeSection({ form }: ThemeSectionProps) {
                         <FormControl>
                           <Input
                             {...field}
-                            className="font-mono text-[10px] h-8 px-2"
+                            className="h-8 px-2 font-mono text-[10px]"
                           />
                         </FormControl>
                       </div>
@@ -144,31 +140,32 @@ export default function ThemeSection({ form }: ThemeSectionProps) {
               ))}
             </div>
 
+            {/* Live preview painted with the user's chosen colors */}
             <div
-              className="mt-4 p-4 rounded-lg border shadow-lg"
+              className="mt-4 rounded-lg border p-4 shadow-lg"
               style={{
                 backgroundColor: form.watch(
-                  "profile_data.custom_theme_colors.background"
+                  "profile_data.custom_theme_colors.background",
                 ),
                 color: form.watch("profile_data.custom_theme_colors.foreground"),
                 borderColor: form.watch(
-                  "profile_data.custom_theme_colors.secondary"
+                  "profile_data.custom_theme_colors.secondary",
                 ),
               }}
             >
-              <h4 className="font-bold text-sm mb-2">Preview</h4>
+              <h4 className="mb-2 text-sm font-bold">Preview</h4>
               <p className="mb-3 text-xs opacity-80">
                 This is how your custom theme looks.
               </p>
               <button
                 type="button"
-                className="px-3 py-1.5 rounded-md text-xs font-medium"
+                className="rounded-md px-3 py-1.5 text-xs font-medium"
                 style={{
                   backgroundColor: form.watch(
-                    "profile_data.custom_theme_colors.primary"
+                    "profile_data.custom_theme_colors.primary",
                   ),
                   color: form.watch(
-                    "profile_data.custom_theme_colors.background"
+                    "profile_data.custom_theme_colors.background",
                   ),
                 }}
               >

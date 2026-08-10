@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Fingerprint } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
@@ -16,16 +13,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { Fingerprint } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface BrandIdentitySectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function BrandIdentitySection({
-  form,
-}: BrandIdentitySectionProps) {
+export function BrandIdentitySection({ form }: BrandIdentitySectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -47,7 +41,7 @@ export default function BrandIdentitySection({
             </FormItem>
           )}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="profile_data.logo.main"
@@ -92,11 +86,11 @@ export default function BrandIdentitySection({
           control={form.control}
           name="profile_data.show_profile_picture"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/10">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
               <div className="space-y-0.5">
                 <FormLabel>Show Profile Picture</FormLabel>
                 <FormDescription>
-                  Display avatar on "About" page.
+                  Display avatar on &quot;About&quot; page.
                 </FormDescription>
               </div>
               <FormControl>

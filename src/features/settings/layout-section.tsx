@@ -1,20 +1,15 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { BookImage, Clock, LayoutDashboard } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
-  FormDescription,
 } from "@/components/ui/form";
-import { LayoutDashboard, Clock, BookImage } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
@@ -22,7 +17,7 @@ export interface LayoutSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function LayoutSection({ form }: LayoutSectionProps) {
+export function LayoutSection({ form }: LayoutSectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -33,7 +28,7 @@ export default function LayoutSection({ form }: LayoutSectionProps) {
       <CardContent className="space-y-6">
         {/* Portfolio Mode */}
         <div>
-          <h4 className="text-sm font-medium mb-2">Portfolio Mode</h4>
+          <h4 className="mb-2 text-sm font-medium">Portfolio Mode</h4>
           <FormField
             control={form.control}
             name="portfolio_mode"
@@ -45,19 +40,19 @@ export default function LayoutSection({ form }: LayoutSectionProps) {
                     value={field.value}
                     className="flex flex-col gap-2"
                   >
-                    <FormItem className="flex items-center space-x-3 space-y-0 border rounded-md p-2 hover:bg-secondary/10 cursor-pointer">
+                    <FormItem className="flex cursor-pointer items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-secondary/10">
                       <FormControl>
                         <RadioGroupItem value="multi-page" />
                       </FormControl>
-                      <FormLabel className="font-normal cursor-pointer flex-1">
+                      <FormLabel className="flex-1 cursor-pointer font-normal">
                         Multi-Page
                       </FormLabel>
                     </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 border rounded-md p-2 hover:bg-secondary/10 cursor-pointer">
+                    <FormItem className="flex cursor-pointer items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-secondary/10">
                       <FormControl>
                         <RadioGroupItem value="single-page" />
                       </FormControl>
-                      <FormLabel className="font-normal cursor-pointer flex-1">
+                      <FormLabel className="flex-1 cursor-pointer font-normal">
                         Single-Page
                       </FormLabel>
                     </FormItem>
@@ -72,8 +67,8 @@ export default function LayoutSection({ form }: LayoutSectionProps) {
 
         {/* Updates Layout */}
         <div>
-          <h4 className="text-sm font-medium mb-1">Updates Page Layout</h4>
-          <p className="text-xs text-muted-foreground mb-3">
+          <h4 className="mb-1 text-sm font-medium">Updates Page Layout</h4>
+          <p className="mb-3 text-xs text-muted-foreground">
             Choose how life updates are displayed on the public page.
           </p>
           <FormField
@@ -85,7 +80,7 @@ export default function LayoutSection({ form }: LayoutSectionProps) {
                   <RadioGroup
                     onValueChange={field.onChange}
                     value={field.value || "scrapbook"}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                   >
                     <FormItem className="space-y-0">
                       <FormControl>
@@ -94,11 +89,11 @@ export default function LayoutSection({ form }: LayoutSectionProps) {
                           className="peer sr-only"
                         />
                       </FormControl>
-                      <FormLabel className="flex flex-col items-center gap-2 border-2 rounded-lg p-4 cursor-pointer hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-colors">
+                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
                         <BookImage className="size-8 text-muted-foreground peer-data-[state=checked]:text-primary" />
                         <div className="text-center">
-                          <p className="font-medium text-sm">Scrapbook</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
+                          <p className="text-sm font-medium">Scrapbook</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
                             Polaroid cards with washi tape and random rotations
                           </p>
                         </div>
@@ -112,12 +107,13 @@ export default function LayoutSection({ form }: LayoutSectionProps) {
                           className="peer sr-only"
                         />
                       </FormControl>
-                      <FormLabel className="flex flex-col items-center gap-2 border-2 rounded-lg p-4 cursor-pointer hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 transition-colors">
+                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
                         <Clock className="size-8 text-muted-foreground peer-data-[state=checked]:text-primary" />
                         <div className="text-center">
-                          <p className="font-medium text-sm">Timeline</p>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">
-                            Chronological feed with month grouping and colored dots
+                          <p className="text-sm font-medium">Timeline</p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            Chronological feed with month grouping and colored
+                            dots
                           </p>
                         </div>
                       </FormLabel>

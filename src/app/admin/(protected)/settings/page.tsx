@@ -1,7 +1,7 @@
 "use client";
 
-import SiteSettingsManager from "@/components/admin/SiteSettingsManager";
+import SettingsPage from "@/features/settings/settings-page";
 
 export default function Page() {
-  return <SiteSettingsManager />;
+  return <SettingsPage />;
 }

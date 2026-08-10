@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Link as LinkIcon } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -15,14 +12,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Link as LinkIcon } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface SocialLinksSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function SocialLinksSection({ form }: SocialLinksSectionProps) {
+export function SocialLinksSection({ form }: SocialLinksSectionProps) {
   const socialLinks = form.getValues("social_links");
 
   return (
@@ -36,7 +32,7 @@ export default function SocialLinksSection({ form }: SocialLinksSectionProps) {
         {socialLinks.map((link, index) => (
           <div
             key={link.id}
-            className="space-y-2 border rounded-md p-2 bg-secondary/5"
+            className="space-y-2 rounded-md border bg-secondary/5 p-2"
           >
             <div className="flex items-center justify-between">
               <FormLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { MessageSquare } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import {
   FormControl,
@@ -14,14 +11,13 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { MessageSquare } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface ContactPageSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function ContactPageSection({ form }: ContactPageSectionProps) {
+export function ContactPageSection({ form }: ContactPageSectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -34,7 +30,7 @@ export default function ContactPageSection({ form }: ContactPageSectionProps) {
           control={form.control}
           name="profile_data.contact_page.show_contact_form"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/10">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
               <div className="space-y-0.5">
                 <FormLabel>Contact Form</FormLabel>
                 <FormDescription>
@@ -54,7 +50,7 @@ export default function ContactPageSection({ form }: ContactPageSectionProps) {
           control={form.control}
           name="profile_data.contact_page.show_availability_badge"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/10">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
               <div className="space-y-0.5">
                 <FormLabel>Availability Badge</FormLabel>
                 <FormDescription>
@@ -74,7 +70,7 @@ export default function ContactPageSection({ form }: ContactPageSectionProps) {
           control={form.control}
           name="profile_data.contact_page.show_services"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/10">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
               <div className="space-y-0.5">
                 <FormLabel>Services Section</FormLabel>
                 <FormDescription>

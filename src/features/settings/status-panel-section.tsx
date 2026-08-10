@@ -1,11 +1,8 @@
-import React from "react";
+"use client";
+
 import { UseFormReturn } from "react-hook-form";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { PanelRightOpen } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
@@ -24,14 +21,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { PanelRightOpen } from "lucide-react";
 import type { SiteSettingsFormValues } from "@/lib/schemas";
 
 export interface StatusPanelSectionProps {
   form: UseFormReturn<SiteSettingsFormValues>;
 }
 
-export default function StatusPanelSection({ form }: StatusPanelSectionProps) {
+export function StatusPanelSection({ form }: StatusPanelSectionProps) {
   return (
     <Card>
       <CardHeader>
@@ -44,7 +40,7 @@ export default function StatusPanelSection({ form }: StatusPanelSectionProps) {
           control={form.control}
           name="profile_data.status_panel.show"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/10">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
               <div className="space-y-0.5">
                 <FormLabel>Show Status Panel</FormLabel>
                 <FormDescription>
@@ -77,8 +73,12 @@ export default function StatusPanelSection({ form }: StatusPanelSectionProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="minimal">Minimal — editorial card</SelectItem>
-                  <SelectItem value="terminal">Terminal — monospace prompt</SelectItem>
+                  <SelectItem value="minimal">
+                    Minimal — editorial card
+                  </SelectItem>
+                  <SelectItem value="terminal">
+                    Terminal — monospace prompt
+                  </SelectItem>
                   <SelectItem value="bento">Bento — flat tile grid</SelectItem>
                 </SelectContent>
               </Select>
