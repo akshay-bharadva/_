@@ -75,7 +75,6 @@
    TYPOGRAPHY PRESETS
    ========================================= */
 :root {
-  --font-display: "Space Grotesk", sans-serif;
   --font-heading: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-code: "JetBrains Mono", "IBM Plex Mono", monospace;
@@ -86,7 +85,6 @@
 
 /* 1. Editorial Serif — Playfair Display + DM Sans + Fira Code */
 .typo-editorial {
-  --font-display: "Playfair Display", serif;
   --font-heading: "Playfair Display", serif;
   --font-body: "DM Sans", sans-serif;
   --font-code: "Fira Code", monospace;
@@ -97,7 +95,6 @@
 
 /* 2. Modern Tech — Space Grotesk + Inter + Fira Code */
 .typo-modern-tech {
-  --font-display: "Space Grotesk", sans-serif;
   --font-heading: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
   --font-code: "Fira Code", monospace;
@@ -108,7 +105,6 @@
 
 /* 3. Elegant Minimal — Instrument Serif + Manrope + IBM Plex Mono */
 .typo-elegant {
-  --font-display: "Instrument Serif", serif;
   --font-heading: "Instrument Serif", serif;
   --font-body: "Manrope", sans-serif;
   --font-code: "IBM Plex Mono", monospace;
@@ -119,7 +115,6 @@
 
 /* 4. Bold Quirky — Bricolage Grotesque + Outfit + JetBrains Mono */
 .typo-bold-quirky {
-  --font-display: "Bricolage Grotesque", sans-serif;
   --font-heading: "Bricolage Grotesque", sans-serif;
   --font-body: "Outfit", sans-serif;
   --font-code: "JetBrains Mono", monospace;
@@ -130,7 +125,6 @@
 
 /* 5. Futuristic — Unbounded + Sora + Fira Code */
 .typo-futuristic {
-  --font-display: "Unbounded", sans-serif;
   --font-heading: "Unbounded", sans-serif;
   --font-body: "Sora", sans-serif;
   --font-code: "Fira Code", monospace;
@@ -141,7 +135,6 @@
 
 /* 6. Classic Pro — Libre Baskerville + Plus Jakarta Sans + IBM Plex Mono */
 .typo-classic-pro {
-  --font-display: "Libre Baskerville", serif;
   --font-heading: "Libre Baskerville", serif;
   --font-body: "Plus Jakarta Sans", sans-serif;
   --font-code: "IBM Plex Mono", monospace;
@@ -152,7 +145,6 @@
 
 /* 7. Clean Geometric — Outfit + DM Sans + JetBrains Mono */
 .typo-geometric {
-  --font-display: "Outfit", sans-serif;
   --font-heading: "Outfit", sans-serif;
   --font-body: "DM Sans", sans-serif;
   --font-code: "JetBrains Mono", monospace;
@@ -184,25 +176,6 @@ h1, h2, h3, h4, h5, h6 {
 /* Ensure nav, card titles, buttons pick up the body font */
 nav, button, input, textarea, select {
   font-family: var(--font-body);
-}
-
-/* When a non-default typography preset is active, override font-mono on headings
-   so the selected display/heading font takes precedence over hardcoded font-mono classes */
-.typo-editorial h1, .typo-editorial h2, .typo-editorial h3,
-.typo-modern-tech h1, .typo-modern-tech h2, .typo-modern-tech h3,
-.typo-elegant h1, .typo-elegant h2, .typo-elegant h3,
-.typo-bold-quirky h1, .typo-bold-quirky h2, .typo-bold-quirky h3,
-.typo-futuristic h1, .typo-futuristic h2, .typo-futuristic h3,
-.typo-classic-pro h1, .typo-classic-pro h2, .typo-classic-pro h3,
-.typo-geometric h1, .typo-geometric h2, .typo-geometric h3 {
-  font-family: var(--font-heading) !important;
-  letter-spacing: var(--heading-letter-spacing) !important;
-}
-
-/* Display class always wins for hero text */
-.font-display {
-  font-family: var(--font-display) !important;
-  letter-spacing: var(--heading-letter-spacing) !important;
 }
 
 /* =========================================
