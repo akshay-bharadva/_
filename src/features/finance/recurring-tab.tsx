@@ -1,5 +1,8 @@
-import type { RecurringTransaction } from "@/types";
+"use client";
+
 import { format } from "date-fns";
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import type { RecurringTransaction } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,11 +15,10 @@ import {
 } from "@/components/ui/table";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 
@@ -26,11 +28,7 @@ export interface RecurringTabProps {
   onDelete: (id: string) => void;
 }
 
-export default function RecurringTab({
-  recurring,
-  onEdit,
-  onDelete,
-}: RecurringTabProps) {
+export function RecurringTab({ recurring, onEdit, onDelete }: RecurringTabProps) {
   return (
     <Card>
       <div className="overflow-x-auto">
@@ -45,7 +43,12 @@ export default function RecurringTab({
           </TableHeader>
           <TableBody>
             {recurring.map((r) => (
-              <RecurringRow key={r.id} rule={r} onEdit={onEdit} onDelete={onDelete} />
+              <RecurringRow
+                key={r.id}
+                rule={r}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
             ))}
           </TableBody>
         </Table>
@@ -76,20 +79,20 @@ function RecurringRow({
   return (
     <TableRow>
       <TableCell className="font-medium">
-        <p className="truncate max-w-[150px]">{r.description}</p>
-        <p className="md:hidden text-xs text-muted-foreground capitalize">
+        <p className="max-w-[150px] truncate">{r.description}</p>
+        <p className="text-xs capitalize text-muted-foreground md:hidden">
           {r.frequency} ({nextDueDate.split(",")[0]})
         </p>
       </TableCell>
       <TableCell
         className={cn(
           "font-mono",
-          r.type === "earning" ? "text-green-500" : "text-red-500",
+          r.type === "earning" ? "text-chart-2" : "text-chart-5",
         )}
       >
         ${r.amount.toFixed(2)}
       </TableCell>
-      <TableCell className="hidden md:table-cell capitalize">
+      <TableCell className="hidden capitalize md:table-cell">
         {r.frequency}{" "}
         <span className="text-xs text-muted-foreground">
           (Next: {nextDueDate})

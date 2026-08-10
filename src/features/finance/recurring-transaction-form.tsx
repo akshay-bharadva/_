@@ -1,10 +1,19 @@
-import React, { useEffect } from "react";
+"use client";
+
+import { useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { RecurringTransaction } from "@/types";
 import { useSaveRecurringMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Select,
   SelectContent,
@@ -12,10 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { motion, AnimatePresence } from "framer-motion";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -23,18 +28,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
-import { toast } from "sonner";
-import { Loader2, CalendarIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
-import { format } from "date-fns";
+import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
 
 const recurringSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -53,7 +53,7 @@ interface RecurringTransactionFormProps {
   onSuccess: () => void;
 }
 
-export default function RecurringTransactionForm({
+export function RecurringTransactionForm({
   recurringTransaction,
   onSuccess,
 }: RecurringTransactionFormProps) {
@@ -88,6 +88,7 @@ export default function RecurringTransactionForm({
           form.setValue("occurrence_day", new Date(sd + "T00:00:00").getDay());
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequency]);
 
   const handleSubmit = async (values: RecurringFormValues) => {
@@ -102,6 +103,45 @@ export default function RecurringTransactionForm({
       toast.error("Failed to save rule", { description: getErrorMessage(err) });
     }
   };
+
+  const renderDateField = (
+    field: {
+      value: string | null | undefined;
+      onChange: (value: string | null) => void;
+    },
+    clearTo: string | null,
+  ) => (
+    <Popover>
+      <PopoverTrigger asChild>
+        <FormControl>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !field.value && "text-muted-foreground",
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {field.value ? (
+              format(parseLocalDate(field.value), "PPP")
+            ) : (
+              <span>Pick a date</span>
+            )}
+          </Button>
+        </FormControl>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={field.value ? parseLocalDate(field.value) : undefined}
+          onSelect={(date) =>
+            field.onChange(date ? format(date, "yyyy-MM-dd") : clearTo)
+          }
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  );
 
   return (
     <Form {...form}>
@@ -181,7 +221,7 @@ export default function RecurringTransactionForm({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4 items-end">
+        <div className="grid grid-cols-2 items-end gap-4">
           <FormField
             control={form.control}
             name="frequency"
@@ -296,38 +336,7 @@ export default function RecurringTransactionForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Start Date *</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(parseLocalDate(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value ? parseLocalDate(field.value) : undefined
-                      }
-                      onSelect={(date) =>
-                        field.onChange(date ? format(date, "yyyy-MM-dd") : "")
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                {renderDateField(field, "")}
                 <FormMessage />
               </FormItem>
             )}
@@ -338,38 +347,7 @@ export default function RecurringTransactionForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>End Date (Optional)</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(parseLocalDate(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value ? parseLocalDate(field.value) : undefined
-                      }
-                      onSelect={(date) =>
-                        field.onChange(date ? format(date, "yyyy-MM-dd") : null)
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                {renderDateField(field, null)}
                 <FormMessage />
               </FormItem>
             )}

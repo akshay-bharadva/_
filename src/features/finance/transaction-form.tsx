@@ -1,14 +1,18 @@
-import { FormEvent } from "react";
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { Transaction } from "@/types";
 import { useSaveTransactionMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Combobox } from "@/components/ui/combobox";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -17,16 +21,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { toast } from "sonner";
-import { Loader2, CalendarIcon } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
-import { format } from "date-fns";
+import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
 
 const transactionSchema = z.object({
   date: z.string().min(1, "Date is required"),
@@ -43,7 +43,7 @@ interface TransactionFormProps {
   categories: string[];
 }
 
-export default function TransactionForm({
+export function TransactionForm({
   transaction,
   onSuccess,
   categories,
@@ -70,7 +70,9 @@ export default function TransactionForm({
       toast.success(`Transaction "${values.description}" saved.`);
       onSuccess();
     } catch (err: unknown) {
-      toast.error("Failed to save transaction", { description: getErrorMessage(err) });
+      toast.error("Failed to save transaction", {
+        description: getErrorMessage(err),
+      });
     }
   };
 

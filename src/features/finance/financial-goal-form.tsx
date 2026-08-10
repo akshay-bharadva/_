@@ -1,15 +1,17 @@
-import { FormEvent } from "react";
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { FinancialGoal } from "@/types";
 import { useSaveGoalMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { Loader2, CalendarIcon } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -23,9 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
-import { format } from "date-fns";
+import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
 
 const goalSchema = z.object({
   name: z.string().min(1, "Goal name is required."),
@@ -41,10 +41,7 @@ interface FinancialGoalFormProps {
   onSuccess: () => void;
 }
 
-export default function FinancialGoalForm({
-  goal,
-  onSuccess,
-}: FinancialGoalFormProps) {
+export function FinancialGoalForm({ goal, onSuccess }: FinancialGoalFormProps) {
   const [saveGoal, { isLoading }] = useSaveGoalMutation();
 
   const form = useForm<GoalFormValues>({

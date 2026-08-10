@@ -1,13 +1,21 @@
-import React, { useMemo } from "react";
+"use client";
+
+import { useMemo } from "react";
 import {
-  format,
   addDays,
-  subMonths,
-  isBefore,
+  format,
   isAfter,
+  isBefore,
   isSameDay,
   startOfDay,
+  subMonths,
 } from "date-fns";
+import {
+  ArrowDown,
+  ArrowUp,
+  Calendar as CalendarIcon,
+  Check,
+} from "lucide-react";
 import type { RecurringTransaction } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,17 +29,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Calendar as CalendarIcon,
-  ArrowUp,
-  ArrowDown,
-  Check,
-} from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
-import {
-  getFirstOccurrence,
-  getNextOccurrence,
-} from "@/lib/finance-utils";
+import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 
 export interface UpcomingRecurringListProps {
   recurring: RecurringTransaction[];
@@ -44,7 +43,7 @@ type UpcomingItem = {
   status: "overdue" | "due" | "upcoming";
 };
 
-export default function UpcomingRecurringList({
+export function UpcomingRecurringList({
   recurring,
   onConfirm,
 }: UpcomingRecurringListProps) {
@@ -56,11 +55,10 @@ export default function UpcomingRecurringList({
     const items: UpcomingItem[] = [];
 
     recurring.forEach((rule) => {
-      // ── Determine the first date to show ──────────────────────────
-      // If we've already processed some occurrences, start from the
-      // next one after the last processed date.
-      // If we haven't processed any, compute the FIRST valid occurrence
-      // from the rule's start_date (respecting occurrence_day).
+      // If we've already processed occurrences, continue after the last
+      // processed date; otherwise compute the first valid occurrence from
+      // start_date (respecting occurrence_day — e.g. start on Wednesday with
+      // occurrence_day=Friday yields the Friday).
       let nextDate: Date;
 
       if (rule.last_processed_date) {
@@ -70,24 +68,17 @@ export default function UpcomingRecurringList({
           rule,
         );
       } else {
-        // getFirstOccurrence returns the first valid date ON or AFTER start_date
-        // that matches the occurrence_day constraint.
-        // e.g. start_date=Wednesday + occurrence_day=Friday(5) → returns Friday
         nextDate = getFirstOccurrence(parseLocalDate(rule.start_date), rule);
       }
 
-      // ── Check end_date: skip rules that have already ended ────────
-      if (
-        rule.end_date &&
-        isAfter(nextDate, parseLocalDate(rule.end_date))
-      ) {
-        return; // rule has ended, no more occurrences
+      // Skip rules that have already ended
+      if (rule.end_date && isAfter(nextDate, parseLocalDate(rule.end_date))) {
+        return;
       }
 
-      // ── Generate occurrences within the look window ───────────────
+      // Generate occurrences within the look window
       let safety = 0;
       while (isBefore(nextDate, lookAhead) && safety < 50) {
-        // Respect end_date for each generated occurrence
         if (
           rule.end_date &&
           isAfter(nextDate, parseLocalDate(rule.end_date))
@@ -113,7 +104,7 @@ export default function UpcomingRecurringList({
 
   if (upcomingItems.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center p-8 text-center text-muted-foreground border rounded-lg border-dashed bg-muted/20">
+      <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 p-8 text-center text-muted-foreground">
         <CalendarIcon className="mb-3 size-10 opacity-20" />
         <p className="text-sm">No upcoming recurring payments.</p>
       </div>
@@ -136,8 +127,8 @@ export default function UpcomingRecurringList({
               className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border",
                 rule.type === "earning"
-                  ? "bg-green-500/10 text-green-500 border-green-500/20"
-                  : "bg-red-500/10 text-red-500 border-red-500/20",
+                  ? "border-chart-2/20 bg-chart-2/10 text-chart-2"
+                  : "border-chart-5/20 bg-chart-5/10 text-chart-5",
               )}
             >
               {rule.type === "earning" ? (
@@ -164,8 +155,8 @@ export default function UpcomingRecurringList({
                       ? "Due Today "
                       : format(date, "MMM d")}
                 </span>
-                <span className="hidden xs:inline">•</span>
-                <span className="hidden xs:inline capitalize">
+                <span className="xs:inline hidden">•</span>
+                <span className="xs:inline hidden capitalize">
                   {rule.frequency}
                 </span>
               </div>
@@ -180,7 +171,7 @@ export default function UpcomingRecurringList({
                 <Button
                   size="sm"
                   variant={status === "overdue" ? "destructive" : "outline"}
-                  className="h-8 w-8 rounded-full p-0 shrink-0"
+                  className="h-8 w-8 shrink-0 rounded-full p-0"
                 >
                   <Check className="size-4" />
                 </Button>

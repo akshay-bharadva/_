@@ -1,7 +1,7 @@
 "use client";
 
-import FinanceManager from "@/components/admin/finance-manager";
+import FinancePage from "@/features/finance/finance-page";
 
 export default function Page() {
-  return <FinanceManager />;
+  return <FinancePage />;
 }

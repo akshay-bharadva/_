@@ -1,8 +1,11 @@
-import React from "react";
-import type { Transaction } from "@/types";
+"use client";
+
 import { format } from "date-fns";
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import type { Transaction } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -13,12 +16,10 @@ import {
 } from "@/components/ui/table";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, MoreHorizontal } from "lucide-react";
 import { cn, parseLocalDate } from "@/lib/utils";
 
 export interface TransactionsTabProps {
@@ -27,7 +28,7 @@ export interface TransactionsTabProps {
   onDelete: (id: string, description: string) => void;
 }
 
-export default function TransactionsTab({
+export function TransactionsTab({
   transactions,
   onEdit,
   onDelete,
@@ -80,15 +81,15 @@ function TransactionRow({
 }) {
   return (
     <TableRow>
-      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
         {format(parseLocalDate(t.date), "MMM dd")}
       </TableCell>
       <TableCell className="font-medium">
         <div className="flex flex-col gap-1">
-          <span className="truncate max-w-[140px] sm:max-w-xs">
+          <span className="max-w-[140px] truncate sm:max-w-xs">
             {t.description}
           </span>
-          <Badge variant="secondary" className="md:hidden w-fit text-[10px]">
+          <Badge variant="secondary" className="w-fit text-[10px] md:hidden">
             {t.category || "General"}
           </Badge>
         </div>
@@ -98,8 +99,8 @@ function TransactionRow({
       </TableCell>
       <TableCell
         className={cn(
-          "text-right font-semibold font-mono whitespace-nowrap",
-          t.type === "earning" ? "text-green-500" : "text-red-500",
+          "whitespace-nowrap text-right font-mono font-semibold",
+          t.type === "earning" ? "text-chart-2" : "text-chart-5",
         )}
       >
         {t.type === "earning" ? "+" : "-"}${t.amount.toFixed(2)}

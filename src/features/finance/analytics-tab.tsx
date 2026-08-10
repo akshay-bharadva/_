@@ -1,13 +1,33 @@
-import React, { useState, useMemo, FormEvent } from "react";
+"use client";
+
+import { useMemo, useState, type FormEvent } from "react";
 import {
+  endOfYear,
   format,
-  isBefore,
   isAfter,
+  isBefore,
   isSameDay,
   startOfYear,
-  endOfYear,
 } from "date-fns";
-import type { Transaction, RecurringTransaction } from "@/types";
+import { ArrowDown, ArrowUp, HandCoins, MoreVertical } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { toast } from "sonner";
+import type { RecurringTransaction, Transaction } from "@/types";
+import { useManageCategoryMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,41 +39,20 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Pie,
-  PieChart,
-  Cell,
-  ResponsiveContainer,
-  Line,
-  LineChart,
-  Tooltip as RechartsTooltip,
-  ReferenceLine,
-} from "recharts";
-import {
-  ArrowDown,
-  ArrowUp,
-  HandCoins,
-  MoreVertical,
-} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -62,13 +61,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "sonner";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -77,13 +75,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useManageCategoryMutation } from "@/store/api/adminApi";
-import { cn, parseLocalDate, getErrorMessage } from "@/lib/utils";
+import { StatCard } from "@/components/admin/shared";
+import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 import { CHART_COLORS } from "@/lib/constants";
-import { StatCard } from "./index";
 import { AnnualCumulativeTooltip } from "./chart-tooltips";
-import MonthlyDetailSheet from "./monthly-detail-sheet";
+import { MonthlyDetailSheet } from "./monthly-detail-sheet";
 
 const chartConfig = {
   earning: { label: "Earnings", color: "hsl(var(--chart-2))" },
@@ -111,7 +108,7 @@ export interface AnalyticsTabProps {
   recurring: RecurringTransaction[];
 }
 
-export default function AnalyticsTab({
+export function AnalyticsTab({
   transactions,
   allYears,
   allCategories,
@@ -129,9 +126,9 @@ export default function AnalyticsTab({
   const yearTransactions = useMemo(
     () =>
       transactions.filter(
-        (t) => parseLocalDate(t.date).getFullYear() === analyticsYear
+        (t) => parseLocalDate(t.date).getFullYear() === analyticsYear,
       ),
-    [transactions, analyticsYear]
+    [transactions, analyticsYear],
   );
 
   const annualCumulativeData = useMemo(() => {
@@ -140,7 +137,7 @@ export default function AnalyticsTab({
       .filter((t) => isBefore(parseLocalDate(t.date), yearStartDate))
       .reduce(
         (acc, t) => acc + (t.type === "earning" ? t.amount : -t.amount),
-        0
+        0,
       );
 
     const allMonths = Array.from({ length: 12 }, (_, i) => ({
@@ -178,7 +175,7 @@ export default function AnalyticsTab({
         const alreadyLogged = yearTransactions.some(
           (t) =>
             t.recurring_transaction_id === rule.id &&
-            isSameDay(parseLocalDate(t.date), nextDate)
+            isSameDay(parseLocalDate(t.date), nextDate),
         );
 
         if (!alreadyLogged) {
@@ -225,11 +222,11 @@ export default function AnalyticsTab({
     });
 
     const sortedCategories = Object.entries(categoryMap).sort(
-      (a, b) => b[1].total - a[1].total
+      (a, b) => b[1].total - a[1].total,
     );
     const topCategory = sortedCategories.length > 0 ? sortedCategories[0] : null;
     const allMonths = Array.from({ length: 12 }, (_, i) =>
-      format(new Date(analyticsYear, i), "MMM")
+      format(new Date(analyticsYear, i), "MMM"),
     );
     const chartData = allMonths.map((month) => ({
       month,
@@ -261,7 +258,9 @@ export default function AnalyticsTab({
     };
   }, [yearTransactions, analyticsYear]);
 
-  const handleBarClick = (data: { activePayload?: { payload: { month: string } }[] }) => {
+  const handleBarClick = (data: {
+    activePayload?: { payload: { month: string } }[];
+  }) => {
     if (data?.activePayload && data.activePayload.length > 0) {
       const month = data.activePayload[0].payload.month;
       setSelectedMonthData({ month, year: analyticsYear });
@@ -271,13 +270,15 @@ export default function AnalyticsTab({
   const handleAction = async (
     type: "edit" | "merge" | "delete",
     oldName: string,
-    newName?: string
+    newName?: string,
   ) => {
     try {
       await manageCategory({ type, oldName, newName }).unwrap();
       toast.success(`Category action "${type}" successful.`);
     } catch (err: unknown) {
-      toast.error(`Failed to ${type} category`, { description: getErrorMessage(err) });
+      toast.error(`Failed to ${type} category`, {
+        description: getErrorMessage(err),
+      });
     }
     setActionDialog(null);
   };
@@ -285,7 +286,7 @@ export default function AnalyticsTab({
   return (
     <div className="space-y-6 pb-24 md:pb-0">
       <Card>
-        <CardHeader className="md:flex-row md:items-center justify-between">
+        <CardHeader className="justify-between md:flex-row md:items-center">
           <div>
             <CardTitle>Annual Report</CardTitle>
             <CardDescription>
@@ -309,7 +310,7 @@ export default function AnalyticsTab({
           </Select>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Income"
               value={`$${annualStats.totalIncome.toFixed(2)}`}
@@ -324,7 +325,7 @@ export default function AnalyticsTab({
               title="Net Income"
               value={`${annualStats.netIncome < 0 ? "-" : ""}$${Math.abs(annualStats.netIncome).toFixed(2)}`}
               className={
-                annualStats.netIncome < 0 ? "text-red-500" : "text-green-500"
+                annualStats.netIncome < 0 ? "text-chart-5" : "text-chart-2"
               }
               icon={<HandCoins />}
             />
@@ -334,11 +335,8 @@ export default function AnalyticsTab({
             />
           </div>
           <div>
-            <h3 className="text-lg font-semibold mb-4">Monthly Cash Flow</h3>
-            <ChartContainer
-              config={chartConfig}
-              className="h-64 sm:h-72 w-full"
-            >
+            <h3 className="mb-4 text-lg font-semibold">Monthly Cash Flow</h3>
+            <ChartContainer config={chartConfig} className="h-64 w-full sm:h-72">
               <BarChart data={monthlyChartData} onClick={handleBarClick}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
@@ -382,7 +380,7 @@ export default function AnalyticsTab({
           <CardDescription>Projected year-end trend.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={{}} className="h-64 sm:h-72 w-full">
+          <ChartContainer config={{}} className="h-64 w-full sm:h-72">
             <LineChart
               data={annualCumulativeData}
               margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
@@ -417,7 +415,7 @@ export default function AnalyticsTab({
           <CardTitle>Category Breakdown</CardTitle>
           <CardDescription>Spending by category.</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-5">
           <div className="md:col-span-2">
             <ChartContainer config={{}} className="h-64 w-full">
               <ResponsiveContainer>
@@ -432,7 +430,7 @@ export default function AnalyticsTab({
                     outerRadius={80}
                     onClick={(data) =>
                       setSelectedCategory(
-                        selectedCategory === data.name ? null : data.name
+                        selectedCategory === data.name ? null : data.name,
                       )
                     }
                     className="cursor-pointer"
@@ -458,7 +456,7 @@ export default function AnalyticsTab({
               </ResponsiveContainer>
             </ChartContainer>
           </div>
-          <div className="md:col-span-3 overflow-x-auto">
+          <div className="overflow-x-auto md:col-span-3">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -470,11 +468,11 @@ export default function AnalyticsTab({
               <TableBody>
                 {expenseByCategory
                   .filter((c) =>
-                    selectedCategory ? c.name === selectedCategory : true
+                    selectedCategory ? c.name === selectedCategory : true,
                   )
                   .map((cat) => (
                     <TableRow key={cat.name}>
-                      <TableCell className="font-medium flex items-center gap-2">
+                      <TableCell className="flex items-center gap-2 font-medium">
                         <div
                           className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: cat.fill }}
@@ -552,7 +550,8 @@ export default function AnalyticsTab({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="capitalize">
-              {actionDialog?.type} Category: "{actionDialog?.category.name}"
+              {actionDialog?.type} Category: &quot;{actionDialog?.category.name}
+              &quot;
             </DialogTitle>
             <DialogDescription>
               {actionDialog?.type === "edit" &&
@@ -572,7 +571,7 @@ export default function AnalyticsTab({
                 handleAction(
                   actionDialog.type,
                   actionDialog.category.name,
-                  newName
+                  newName,
                 );
             }}
           >

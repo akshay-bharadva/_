@@ -1,5 +1,15 @@
-import React, { useState, useMemo } from "react";
+"use client";
+
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import { TrendingDown, TrendingUp, X as XIcon } from "lucide-react";
+import {
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 import type { Transaction } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,20 +21,9 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import {
-  ChartContainer,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Pie,
-  PieChart,
-  Cell,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-} from "recharts";
-import { TrendingUp, TrendingDown, X as XIcon } from "lucide-react";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { StatCard } from "@/components/admin/shared";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { StatCard } from "./index";
 import { CHART_COLORS } from "@/lib/constants";
 
 export interface MonthlyDetailSheetProps {
@@ -34,7 +33,7 @@ export interface MonthlyDetailSheetProps {
   onClose: () => void;
 }
 
-export default function MonthlyDetailSheet({
+export function MonthlyDetailSheet({
   month,
   year,
   transactions,
@@ -45,9 +44,9 @@ export default function MonthlyDetailSheet({
   const monthTransactions = useMemo(
     () =>
       transactions.filter(
-        (t) => format(parseLocalDate(t.date), "MMM") === month
+        (t) => format(parseLocalDate(t.date), "MMM") === month,
       ),
-    [transactions, month]
+    [transactions, month],
   );
 
   const { totalIncome, totalExpenses, expenseByCategory } = useMemo(() => {
@@ -80,16 +79,16 @@ export default function MonthlyDetailSheet({
     () =>
       selectedCategory
         ? monthTransactions.filter(
-            (t) => (t.category || "Uncategorized") === selectedCategory
+            (t) => (t.category || "Uncategorized") === selectedCategory,
           )
         : monthTransactions,
-    [monthTransactions, selectedCategory]
+    [monthTransactions, selectedCategory],
   );
 
   return (
     <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-lg w-full flex flex-col">
-        <div className="flex justify-between items-center">
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
+        <div className="flex items-center justify-between">
           <SheetHeader>
             <SheetTitle>
               Financial Details for {month}, {year}
@@ -101,8 +100,8 @@ export default function MonthlyDetailSheet({
             </Button>
           </SheetClose>
         </div>
-        <ScrollArea className="h-[calc(100vh-8rem)] ">
-          <div className="grid grid-cols-2 gap-4 my-4">
+        <ScrollArea className="h-[calc(100vh-8rem)]">
+          <div className="my-4 grid grid-cols-2 gap-4">
             <StatCard
               title="Income"
               value={`$${totalIncome.toFixed(2)}`}
@@ -114,8 +113,8 @@ export default function MonthlyDetailSheet({
               icon={<TrendingDown />}
             />
           </div>
-          <h4 className="font-semibold mb-2">Expense Breakdown</h4>
-          <ChartContainer config={{}} className="h-64 w-full -ml-4">
+          <h4 className="mb-2 font-semibold">Expense Breakdown</h4>
+          <ChartContainer config={{}} className="-ml-4 h-64 w-full">
             <ResponsiveContainer>
               <PieChart>
                 <Pie
@@ -128,7 +127,7 @@ export default function MonthlyDetailSheet({
                   outerRadius={70}
                   onClick={(d) =>
                     setSelectedCategory(
-                      selectedCategory === d.name ? null : d.name
+                      selectedCategory === d.name ? null : d.name,
                     )
                   }
                   className="cursor-pointer"
@@ -150,7 +149,7 @@ export default function MonthlyDetailSheet({
               </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
-          <div className="flex justify-between items-center my-4">
+          <div className="my-4 flex items-center justify-between">
             <h4 className="font-semibold">
               {selectedCategory
                 ? `Transactions in "${selectedCategory}"`
@@ -172,10 +171,10 @@ export default function MonthlyDetailSheet({
               filteredTransactions.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-secondary"
+                  className="flex items-center justify-between rounded-md p-2 hover:bg-secondary"
                 >
-                  <div className="overflow-hidden mr-2">
-                    <p className="font-medium truncate">{t.description}</p>
+                  <div className="mr-2 overflow-hidden">
+                    <p className="truncate font-medium">{t.description}</p>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-muted-foreground">
                         {format(parseLocalDate(t.date), "MMM dd")}
@@ -183,7 +182,7 @@ export default function MonthlyDetailSheet({
                       {t.category && (
                         <Badge
                           variant="outline"
-                          className="hidden xs:inline-flex"
+                          className="xs:inline-flex hidden"
                         >
                           {t.category}
                         </Badge>
@@ -192,8 +191,8 @@ export default function MonthlyDetailSheet({
                   </div>
                   <p
                     className={cn(
-                      "font-bold text-sm whitespace-nowrap",
-                      t.type === "earning" ? "text-chart-2" : "text-chart-5"
+                      "whitespace-nowrap text-sm font-bold",
+                      t.type === "earning" ? "text-chart-2" : "text-chart-5",
                     )}
                   >
                     {t.type === "earning" ? "+" : "-"}${t.amount.toFixed(2)}
@@ -201,7 +200,7 @@ export default function MonthlyDetailSheet({
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground py-10">
+              <p className="py-10 text-center text-muted-foreground">
                 No transactions.
               </p>
             )}

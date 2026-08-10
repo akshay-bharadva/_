@@ -1,10 +1,5 @@
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
+"use client";
+
 import {
   ArrowRightLeft,
   Home,
@@ -15,6 +10,13 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
 const BottomNavButton = ({
@@ -31,7 +33,7 @@ const BottomNavButton = ({
   <button
     onClick={onClick}
     className={cn(
-      "flex flex-col items-center justify-center gap-1 w-full h-full transition-colors",
+      "flex h-full w-full flex-col items-center justify-center gap-1 transition-colors",
       isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
     )}
   >
@@ -52,7 +54,7 @@ export function MobileBottomNav({
   onMore: () => void;
 }) {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background/95 backdrop-blur border-t grid grid-cols-5 items-center px-1 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 grid h-16 grid-cols-5 items-center border-t bg-background/95 px-1 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] backdrop-blur md:hidden">
       <BottomNavButton
         icon={Home}
         label="Home"
@@ -67,7 +69,7 @@ export function MobileBottomNav({
       />
       <div className="relative -top-5 flex justify-center">
         <Button
-          className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 border-4 border-background"
+          className="h-14 w-14 rounded-full border-4 border-background bg-primary shadow-lg hover:bg-primary/90"
           onClick={onAddNew}
         >
           <Plus className="size-6 text-primary-foreground" />
@@ -104,27 +106,27 @@ export function AddNewDrawer({
         <DrawerHeader>
           <DrawerTitle>Add New</DrawerTitle>
         </DrawerHeader>
-        <div className="p-4 pb-8 space-y-2">
+        <div className="space-y-2 p-4 pb-8">
           <Button
             variant="outline"
-            className="w-full justify-start h-12 text-base"
+            className="h-12 w-full justify-start text-base"
             onClick={() => onSelect("transaction")}
           >
             <ArrowRightLeft className="mr-3 size-5 text-primary" /> Transaction
           </Button>
           <Button
             variant="outline"
-            className="w-full justify-start h-12 text-base"
+            className="h-12 w-full justify-start text-base"
             onClick={() => onSelect("recurring")}
           >
-            <Repeat className="mr-3 size-5 text-blue-500" /> Recurring Rule
+            <Repeat className="mr-3 size-5 text-chart-1" /> Recurring Rule
           </Button>
           <Button
             variant="outline"
-            className="w-full justify-start h-12 text-base"
+            className="h-12 w-full justify-start text-base"
             onClick={() => onSelect("goal")}
           >
-            <Target className="mr-3 size-5 text-orange-500" /> Goal
+            <Target className="mr-3 size-5 text-chart-3" /> Goal
           </Button>
         </div>
       </DrawerContent>
@@ -149,17 +151,17 @@ export function MoreDrawer({
         <DrawerHeader>
           <DrawerTitle>More</DrawerTitle>
         </DrawerHeader>
-        <div className="p-4 pb-8 space-y-2">
+        <div className="space-y-2 p-4 pb-8">
           <Button
             variant={activeTab === "goals" ? "secondary" : "ghost"}
-            className="w-full justify-start h-12"
+            className="h-12 w-full justify-start"
             onClick={() => onTabChange("goals")}
           >
             <Target className="mr-3 size-5" /> Goals
           </Button>
           <Button
             variant={activeTab === "analytics" ? "secondary" : "ghost"}
-            className="w-full justify-start h-12"
+            className="h-12 w-full justify-start"
             onClick={() => onTabChange("analytics")}
           >
             <LayoutDashboard className="mr-3 size-5" /> Analytics

@@ -1,37 +1,44 @@
-import { useState, useMemo, FormEvent } from "react";
-import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
-import { DateRange } from "react-day-picker";
+"use client";
+
+import { useMemo, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
+import type { DateRange } from "react-day-picker";
 import { addDays, format, startOfMonth } from "date-fns";
+import {
+  ArrowRightLeft,
+  Calendar as CalendarIcon,
+  Loader2,
+  Plus,
+  Repeat,
+  Target,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
+import {
+  useAddFundsToGoalMutation,
+  useDeleteGoalMutation,
+  useDeleteRecurringMutation,
+  useDeleteTransactionMutation,
+  useGetFinancialDataQuery,
+  useSaveRecurringMutation,
+  useSaveTransactionMutation,
+} from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import TransactionForm from "@/components/admin/transaction-form";
-import RecurringTransactionForm from "@/components/admin/recurring-transaction-form";
-import FinancialGoalForm from "@/components/admin/financial-goal-form";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Calendar as CalendarIcon,
-  Plus,
-  Repeat,
-  ArrowRightLeft,
-  Target,
-  X,
-  Loader2,
-} from "lucide-react";
-import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import dynamic from "next/dynamic";
-import { parseLocalDate, getErrorMessage } from "@/lib/utils";
 import {
   Sheet,
   SheetClose,
@@ -39,39 +46,27 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  useGetFinancialDataQuery,
-  useDeleteTransactionMutation,
-  useDeleteRecurringMutation,
-  useDeleteGoalMutation,
-  useAddFundsToGoalMutation,
-  useSaveTransactionMutation,
-  useSaveRecurringMutation,
-} from "@/store/api/adminApi";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { ManagerWrapper, PageHeader } from "./shared";
-import { GoalCard, AnalyticsTab } from "./finance";
+import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import { getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { buildForecastData } from "@/lib/finance-utils";
-import DashboardTab from "./finance/dashboard-tab";
-import TransactionsTab from "./finance/transactions-tab";
-import RecurringTab from "./finance/recurring-tab";
-import {
-  MobileBottomNav,
-  AddNewDrawer,
-  MoreDrawer,
-} from "./finance/mobile-nav";
+import type { DialogState } from "./finance-types";
+import { DashboardTab } from "./dashboard-tab";
+import { TransactionsTab } from "./transactions-tab";
+import { RecurringTab } from "./recurring-tab";
+import { AnalyticsTab } from "./analytics-tab";
+import { GoalCard } from "./goal-card";
+import { TransactionForm } from "./transaction-form";
+import { RecurringTransactionForm } from "./recurring-transaction-form";
+import { FinancialGoalForm } from "./financial-goal-form";
+import { AddNewDrawer, MobileBottomNav, MoreDrawer } from "./mobile-nav";
 
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((mod) => mod.Calendar),
   { ssr: false },
 );
 
-type DialogState = {
-  type: "transaction" | "recurring" | "goal" | "addFunds" | null;
-  data?: Transaction | RecurringTransaction | FinancialGoal;
-};
-
-export default function FinanceManager() {
+export default function FinancePage() {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
@@ -107,20 +102,19 @@ export default function FinanceManager() {
     });
   }, [transactions, searchTerm, date]);
 
-  const { totalEarnings, totalExpenses, netIncome } =
-    useMemo(() => {
-      let earnings = 0,
-        expenses = 0;
-      for (const t of filteredTransactions) {
-        if (t.type === "earning") earnings += t.amount;
-        else expenses += t.amount;
-      }
-      return {
-        totalEarnings: earnings,
-        totalExpenses: expenses,
-        netIncome: earnings - expenses,
-      };
-    }, [filteredTransactions]);
+  const { totalEarnings, totalExpenses, netIncome } = useMemo(() => {
+    let earnings = 0,
+      expenses = 0;
+    for (const t of filteredTransactions) {
+      if (t.type === "earning") earnings += t.amount;
+      else expenses += t.amount;
+    }
+    return {
+      totalEarnings: earnings,
+      totalExpenses: expenses,
+      netIncome: earnings - expenses,
+    };
+  }, [filteredTransactions]);
 
   const allCategories = useMemo(() => {
     return Array.from(
@@ -217,7 +211,12 @@ export default function FinanceManager() {
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading)
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   if (error) return <p>Error loading data.</p>;
 
   return (
@@ -263,9 +262,7 @@ export default function FinanceManager() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onSelect={() => handleOpenSheet("transaction")}
-                >
+                <DropdownMenuItem onSelect={() => handleOpenSheet("transaction")}>
                   <ArrowRightLeft className="mr-2 size-4" /> Transaction
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => handleOpenSheet("recurring")}>
@@ -283,10 +280,10 @@ export default function FinanceManager() {
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="space-y-6 mt-6"
+        className="mt-6 space-y-6"
       >
         <div className="hidden md:block">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:inline-grid lg:w-auto">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="recurring">Recurring</TabsTrigger>
@@ -334,7 +331,7 @@ export default function FinanceManager() {
         </TabsContent>
 
         <TabsContent value="goals">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {goals.map((goal) => (
               <GoalCard
                 key={goal.id}
@@ -347,7 +344,7 @@ export default function FinanceManager() {
               />
             ))}
             {goals.length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground border border-dashed rounded-lg">
+              <div className="col-span-full rounded-lg border border-dashed py-12 text-center text-muted-foreground">
                 No goals yet.
               </div>
             )}
@@ -384,8 +381,8 @@ export default function FinanceManager() {
         open={!!sheetState.type}
         onOpenChange={(open) => !open && handleCloseSheet()}
       >
-        <SheetContent className="sm:max-w-lg w-full flex flex-col overflow-y-auto">
-          <div className="flex justify-between items-center shrink-0">
+        <SheetContent className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
+          <div className="flex shrink-0 items-center justify-between">
             <SheetHeader>
               <SheetTitle className="capitalize">
                 {sheetState.type === "addFunds"
@@ -409,7 +406,9 @@ export default function FinanceManager() {
             )}
             {sheetState.type === "recurring" && (
               <RecurringTransactionForm
-                recurringTransaction={(sheetState.data as RecurringTransaction) ?? null}
+                recurringTransaction={
+                  (sheetState.data as RecurringTransaction) ?? null
+                }
                 onSuccess={handleCloseSheet}
               />
             )}
@@ -449,13 +448,5 @@ export default function FinanceManager() {
         </SheetContent>
       </Sheet>
     </ManagerWrapper>
-  );
-}
-
-function LoadingSpinner() {
-  return (
-    <div className="flex h-96 items-center justify-center">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" />
-    </div>
   );
 }
