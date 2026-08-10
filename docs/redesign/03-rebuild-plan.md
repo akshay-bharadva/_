@@ -63,7 +63,7 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   `withAdminPage`/`AdminLayout`/`Sidebar` and the dead `/admin/test` nav link. CLAUDE.md
   updated for the App Router. Runtime-verified: all public routes + admin/login boot 200
   with no runtime errors.
-- [~] **Phase 3b-modules module internals** — IN PROGRESS. Approach corrected: v1
+- [x] **Phase 3b-modules module internals** — DONE. Approach corrected: v1
   managers in `src/components/admin/` are **rebuilt as new feature-first
   implementations** (per `02-architecture.md` §2), not restyled in place; the old files
   are deleted at parity. **Tasks done** — new `src/features/tasks/` (tasks-page,
@@ -78,15 +78,25 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   section-label rail, destructive tokens, shared EmptyState); per-note pastel colors
   kept (user data, not theme). Old `notes-manager.tsx` + `note-editor.tsx` deleted.
   Also: v1 `border-2 border-dashed` normalized to single-width dashed across
-  remaining modules. Remaining rebuilds: habits, learning, calendar, finance,
-  inventory, blog, content CMS, updates, navigation, assets, settings, security,
-  dashboard.
+  remaining modules. **All remaining modules rebuilt the same way** — habits,
+  life-updates, inventory, navigation, assets, blog-admin, learning, security,
+  calendar, finance, content, settings, and finally dashboard + focus. Each lives in
+  `src/features/<domain>/` as flat kebab-case files with named exports (page
+  components stay default-export), keeps its business logic verbatim (RTK Query hooks
+  from the `adminApi` barrel, Zod schemas, Supabase calls, MFA/RLS behavior), and is
+  recomposed with the shared admin patterns plus token-only color. Every admin route
+  is now a thin wrapper. Notable fixes along the way: the content CMS now passes
+  `layout_style` through to `ItemEditorSheet` (v1 never did, leaving its layout-hint
+  registry dead), and dead v1 files were dropped rather than ported (LearningDashboard,
+  SubjectTopicTree, EventBadge, the calendar day-event drawer/sheet).
+  `src/components/admin/` now holds only shared infrastructure: `shared/`,
+  `novel-editor/`, and `LoadingSpinner`.
 - [ ] **Phase 4 cleanup & polish** — a11y sweep, dynamic-import remaining heavy deps
   (Recharts on dashboard/finance, TipTap suites — calendar + blog editor already dynamic),
   port/expand admin tests, README.
 
 ## Current build/test state (as of latest commit)
-- `npm run build` (static export) green, cold + warm; 29 routes, public shared JS ~88 kB
+- `npm run build` (static export) green; 31 routes, public shared JS ~88 kB
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
-- `npm run test` 176 passing; `npx tsc --noEmit` clean.
+- `npm run test` 176 passing (11 files); `npx tsc --noEmit` clean.
 - Pages Router fully removed; app is App-Router-only; dev server boots, pages render 200.
