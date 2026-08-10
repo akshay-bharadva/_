@@ -14,7 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { EmptyState, ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import {
+  EmptyState,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import { BoardCard, ListRow } from "./update-cards";
 import { StatsRow } from "./stats-row";
@@ -135,6 +139,7 @@ export default function LifeUpdatesPage() {
               <Button
                 variant={viewMode === "board" ? "secondary" : "ghost"}
                 size="icon"
+                aria-label="Board view"
                 className="h-7 w-7"
                 onClick={() => setViewMode("board")}
                 title="Board view"
@@ -144,6 +149,7 @@ export default function LifeUpdatesPage() {
               <Button
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="icon"
+                aria-label="List view"
                 className="h-7 w-7"
                 onClick={() => setViewMode("list")}
                 title="List view"

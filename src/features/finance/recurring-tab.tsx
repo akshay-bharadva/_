@@ -28,7 +28,11 @@ export interface RecurringTabProps {
   onDelete: (id: string) => void;
 }
 
-export function RecurringTab({ recurring, onEdit, onDelete }: RecurringTabProps) {
+export function RecurringTab({
+  recurring,
+  onEdit,
+  onDelete,
+}: RecurringTabProps) {
   return (
     <Card>
       <div className="overflow-x-auto">
@@ -101,7 +105,12 @@ function RecurringRow({
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Recurring transaction actions"
+              className="h-8 w-8"
+            >
               <MoreHorizontal className="size-4" />
             </Button>
           </DropdownMenuTrigger>

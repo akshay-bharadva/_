@@ -272,6 +272,7 @@ export function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
                       type="button"
                       variant="ghost"
                       size="icon"
+                      aria-label="Remove subtask"
                       className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                       onClick={() => deleteSubTask(sub.id)}
                     >

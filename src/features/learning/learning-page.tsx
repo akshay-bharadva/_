@@ -274,7 +274,10 @@ export default function LearningPage() {
                   }
                   onDeleteSubject={() => handleDelete("subject", subject.id)}
                   onAddTopic={() =>
-                    setSheetState({ type: "create-topic", subjectId: subject.id })
+                    setSheetState({
+                      type: "create-topic",
+                      subjectId: subject.id,
+                    })
                   }
                   onEditTopic={(topic) =>
                     setSheetState({ type: "edit-topic", data: topic })
@@ -301,7 +304,7 @@ export default function LearningPage() {
               <SheetDescription>Configure details.</SheetDescription>
             </SheetHeader>
             <SheetClose asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Close">
                 <X className="size-4" />
               </Button>
             </SheetClose>
@@ -309,7 +312,9 @@ export default function LearningPage() {
           {(sheetState?.type === "create-subject" ||
             sheetState?.type === "edit-subject") && (
             <SubjectForm
-              subject={sheetState.type === "edit-subject" ? sheetState.data : null}
+              subject={
+                sheetState.type === "edit-subject" ? sheetState.data : null
+              }
               onSuccess={handleSaveSuccess}
             />
           )}

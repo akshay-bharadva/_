@@ -87,6 +87,7 @@ export function FocusTimer() {
           <div className="flex gap-1">
             <Button
               size="icon"
+              aria-label="Expand focus timer"
               variant="ghost"
               className="h-8 w-8"
               onClick={() => setIsMinimized(false)}
@@ -96,6 +97,7 @@ export function FocusTimer() {
             {isPaused ? (
               <Button
                 size="icon"
+                aria-label="Resume timer"
                 variant="outline"
                 className="h-8 w-8"
                 onClick={() => dispatch(resumeFocus())}
@@ -105,6 +107,7 @@ export function FocusTimer() {
             ) : (
               <Button
                 size="icon"
+                aria-label="Pause timer"
                 variant="outline"
                 className="h-8 w-8"
                 onClick={() => dispatch(pauseFocus())}

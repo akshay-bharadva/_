@@ -27,7 +27,14 @@ interface HabitRowProps {
 }
 
 export const HabitRow = React.memo(
-  ({ habit, dates, onToggle, onEdit, onDelete, onViewStats }: HabitRowProps) => {
+  ({
+    habit,
+    dates,
+    onToggle,
+    onEdit,
+    onDelete,
+    onViewStats,
+  }: HabitRowProps) => {
     const { streak, completionRate } = useMemo(
       () => calculateHabitStats(habit),
       [habit],
@@ -107,6 +114,7 @@ export const HabitRow = React.memo(
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Habit actions"
                   className="h-6 w-6 rounded-full text-muted-foreground"
                 >
                   <MoreVertical className="size-3.5" />

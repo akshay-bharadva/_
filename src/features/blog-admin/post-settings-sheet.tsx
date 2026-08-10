@@ -188,6 +188,7 @@ export function PostSettingsSheet({
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Clear cover image"
                         onClick={() => onChange({ cover_image_url: "" })}
                         title="Clear"
                       >

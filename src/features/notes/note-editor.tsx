@@ -100,7 +100,9 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
       <SheetHeader className="shrink-0 space-y-0 border-b py-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1 text-left">
-            <SheetTitle>{note?.id ? "Edit Note" : "Create New Note"}</SheetTitle>
+            <SheetTitle>
+              {note?.id ? "Edit Note" : "Create New Note"}
+            </SheetTitle>
             <SheetDescription className="text-xs">
               Capture your ideas.
             </SheetDescription>
@@ -131,6 +133,7 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Choose note color"
                 className="h-10 w-10 shrink-0 rounded-full"
                 style={{
                   backgroundColor: color ? `${color}40` : undefined,

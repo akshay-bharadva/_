@@ -27,7 +27,12 @@ export interface GoalCardProps {
   onDelete: () => void;
 }
 
-export function GoalCard({ goal, onAddFunds, onEdit, onDelete }: GoalCardProps) {
+export function GoalCard({
+  goal,
+  onAddFunds,
+  onEdit,
+  onDelete,
+}: GoalCardProps) {
   const percentage = Math.min(
     (goal.current_amount / goal.target_amount) * 100,
     100,
@@ -58,6 +63,7 @@ export function GoalCard({ goal, onAddFunds, onEdit, onDelete }: GoalCardProps) 
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Goal actions"
                   className="h-8 w-8 hover:bg-background/50"
                 >
                   <MoreHorizontal className="size-4" />

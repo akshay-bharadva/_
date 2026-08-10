@@ -410,7 +410,12 @@ export default function FinancePage() {
               </SheetTitle>
             </SheetHeader>
             <SheetClose asChild>
-              <Button type="button" variant="ghost" size="icon">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close"
+              >
                 <X className="size-4" />
               </Button>
             </SheetClose>

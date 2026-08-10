@@ -124,7 +124,9 @@ export default function NavigationPage() {
     if (!draggedLinkId || draggedLinkId === targetLinkId) return;
 
     const reorderedLinks = [...localLinks];
-    const draggedIndex = reorderedLinks.findIndex((l) => l.id === draggedLinkId);
+    const draggedIndex = reorderedLinks.findIndex(
+      (l) => l.id === draggedLinkId,
+    );
     const targetIndex = reorderedLinks.findIndex((l) => l.id === targetLinkId);
 
     const [draggedItem] = reorderedLinks.splice(draggedIndex, 1);
@@ -231,6 +233,7 @@ export default function NavigationPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Edit link"
                       className="h-8 w-8"
                       onClick={() => {
                         setEditingLink(link);
@@ -242,6 +245,7 @@ export default function NavigationPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Delete link"
                       className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => handleDelete(link.id)}
                     >

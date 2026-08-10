@@ -247,17 +247,21 @@ export function LifeUpdateEditor({
               onChange={(e) => setImageUrl(e.target.value)}
               className="flex-1"
             />
-            <label>
+            {/* sr-only rather than hidden: display:none would drop the input
+                out of the tab order, leaving this control mouse-only. */}
+            <label className="rounded-md focus-within:ring-2 focus-within:ring-ring">
               <input
                 type="file"
                 accept="image/*"
                 onChange={onImageSelected}
-                className="hidden"
+                aria-label="Upload image"
+                className="sr-only"
               />
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
+                aria-label="Upload image"
                 className="shrink-0"
                 asChild
               >
@@ -274,6 +278,7 @@ export function LifeUpdateEditor({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Clear image"
                 onClick={() => setImageUrl("")}
                 title="Clear"
                 type="button"
@@ -295,12 +300,12 @@ export function LifeUpdateEditor({
             </div>
           )}
           {!imageUrl && (
-            <label className="mt-2 flex h-24 cursor-pointer items-center justify-center rounded-md border border-dashed transition-colors hover:bg-secondary/20">
+            <label className="mt-2 flex h-24 cursor-pointer items-center justify-center rounded-md border border-dashed transition-colors hover:bg-secondary/20 focus-within:ring-2 focus-within:ring-ring">
               <input
                 type="file"
                 accept="image/*"
                 onChange={onImageSelected}
-                className="hidden"
+                className="sr-only"
               />
               <div className="flex flex-col items-center text-xs text-muted-foreground">
                 <ImageIcon className="mb-1 size-5" />

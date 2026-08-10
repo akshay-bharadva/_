@@ -27,6 +27,7 @@ export function ItemActions({
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Item actions"
           className={cn("h-8 w-8", triggerClassName)}
         >
           <MoreHorizontal className="size-4" />

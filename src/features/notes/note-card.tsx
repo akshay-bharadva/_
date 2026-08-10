@@ -21,7 +21,12 @@ interface NoteCardProps {
   onTogglePin: () => void;
 }
 
-export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps) {
+export function NoteCard({
+  note,
+  onEdit,
+  onDelete,
+  onTogglePin,
+}: NoteCardProps) {
   return (
     <motion.div
       layout
@@ -101,6 +106,7 @@ export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps)
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
                 className="h-7 w-7 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -117,6 +123,7 @@ export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps)
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Edit note"
                 className="h-7 w-7 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -129,6 +136,7 @@ export function NoteCard({ note, onEdit, onDelete, onTogglePin }: NoteCardProps)
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Delete note"
                 className="h-7 w-7 rounded-full hover:bg-destructive/15 hover:text-destructive"
                 onClick={(e) => {
                   e.stopPropagation();

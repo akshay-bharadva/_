@@ -53,6 +53,7 @@ export function AssetDetailsSheet({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Download asset"
                 onClick={() => onDownload(asset)}
                 title="Download"
               >
@@ -60,7 +61,12 @@ export function AssetDetailsSheet({
               </Button>
             )}
             <SheetClose asChild>
-              <Button type="button" variant="ghost" size="icon">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close details"
+              >
                 <X className="size-4" />
               </Button>
             </SheetClose>
@@ -131,6 +137,7 @@ export function AssetDetailsSheet({
                 <Button
                   variant="outline"
                   size="icon"
+                  aria-label="Copy asset URL"
                   onClick={() => copyUrl(getStorageUrl(asset.file_path))}
                 >
                   <Copy className="size-4" />

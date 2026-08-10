@@ -224,7 +224,8 @@ export function AnalyticsTab({
     const sortedCategories = Object.entries(categoryMap).sort(
       (a, b) => b[1].total - a[1].total,
     );
-    const topCategory = sortedCategories.length > 0 ? sortedCategories[0] : null;
+    const topCategory =
+      sortedCategories.length > 0 ? sortedCategories[0] : null;
     const allMonths = Array.from({ length: 12 }, (_, i) =>
       format(new Date(analyticsYear, i), "MMM"),
     );
@@ -336,7 +337,10 @@ export function AnalyticsTab({
           </div>
           <div>
             <h3 className="mb-4 text-lg font-semibold">Monthly Cash Flow</h3>
-            <ChartContainer config={chartConfig} className="h-64 w-full sm:h-72">
+            <ChartContainer
+              config={chartConfig}
+              className="h-64 w-full sm:h-72"
+            >
               <BarChart data={monthlyChartData} onClick={handleBarClick}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
                 <XAxis
@@ -488,6 +492,7 @@ export function AnalyticsTab({
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Category actions"
                               className="h-8 w-8"
                             >
                               <MoreVertical className="size-3" />

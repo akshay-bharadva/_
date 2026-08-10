@@ -112,6 +112,7 @@ export function TaskList({
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Toggle subtasks"
                       className={cn(
                         "mt-0.5 h-6 w-6 shrink-0 transition-transform",
                         (task.sub_tasks?.length ?? 0) === 0 &&
@@ -142,8 +143,11 @@ export function TaskList({
                             variant="secondary"
                             className="hidden h-5 px-1.5 font-mono text-[10px] text-muted-foreground sm:inline-flex"
                           >
-                            {task.sub_tasks.filter((s) => s.is_completed).length}/
-                            {task.sub_tasks.length}
+                            {
+                              task.sub_tasks.filter((s) => s.is_completed)
+                                .length
+                            }
+                            /{task.sub_tasks.length}
                           </Badge>
                         )}
                       </div>
@@ -209,7 +213,11 @@ export function TaskList({
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreHorizontal className="size-4 text-muted-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -286,6 +294,7 @@ export function TaskList({
                       <Button
                         variant="ghost"
                         size="icon"
+                        aria-label="Delete subtask"
                         className="h-6 w-6 transition-opacity md:opacity-0 md:hover:opacity-100"
                         onClick={() => onDeleteSubTask(subTask.id)}
                       >

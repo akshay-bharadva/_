@@ -227,6 +227,7 @@ export function PostCards({
                           <Button
                             variant="ghost"
                             size="icon"
+                            aria-label="Post actions"
                             className="-mr-2 -mt-1 h-6 w-6"
                           >
                             <MoreHorizontal className="h-4 w-4" />

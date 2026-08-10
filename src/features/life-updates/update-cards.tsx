@@ -88,7 +88,12 @@ function UpdateActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Update actions"
+          className="h-7 w-7 rounded-full"
+        >
           <MoreHorizontal className="size-4" />
         </Button>
       </DropdownMenuTrigger>

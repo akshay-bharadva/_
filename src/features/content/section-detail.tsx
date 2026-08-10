@@ -86,6 +86,7 @@ export function SectionDetail({
               <Button
                 variant="ghost"
                 size="icon"
+                aria-label="Back to sections"
                 onClick={onBack}
                 className="-ml-2 shrink-0"
               >
@@ -112,7 +113,11 @@ export function SectionDetail({
             {isMobile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Section actions"
+                  >
                     <MoreVertical className="size-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -140,6 +145,7 @@ export function SectionDetail({
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Delete section"
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => onDeleteSection(section.id)}
                 >
@@ -220,13 +226,16 @@ export function SectionDetail({
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                aria-label="Item actions"
                                 className="-mr-2 -mt-2 h-8 w-8"
                               >
                                 <MoreVertical className="size-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEditItem(item)}>
+                              <DropdownMenuItem
+                                onClick={() => onEditItem(item)}
+                              >
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -287,6 +296,7 @@ export function SectionDetail({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Edit item"
                           className="h-8 w-8"
                           onClick={() => onEditItem(item)}
                           title="Edit"
@@ -296,6 +306,7 @@ export function SectionDetail({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Delete item"
                           className="h-8 w-8 hover:text-destructive"
                           onClick={() => onDeleteItem(item.id)}
                           title="Delete"

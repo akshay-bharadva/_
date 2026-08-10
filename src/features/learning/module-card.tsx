@@ -103,7 +103,12 @@ export function ModuleCard({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="size-8 shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Module actions"
+                className="size-8 shrink-0"
+              >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -152,7 +157,9 @@ export function ModuleCard({
                     )}
                     onClick={() => onTopicClick(topic)}
                   >
-                    <StatusIcon className={cn("size-4 shrink-0", config.color)} />
+                    <StatusIcon
+                      className={cn("size-4 shrink-0", config.color)}
+                    />
                     <span className="flex-1 truncate text-sm">
                       {topic.title}
                     </span>
@@ -169,6 +176,7 @@ export function ModuleCard({
                         <Button
                           variant="ghost"
                           size="icon"
+                          aria-label="Topic actions"
                           className="size-7 opacity-0 transition-opacity group-hover:opacity-100"
                           onClick={(e) => e.stopPropagation()}
                         >

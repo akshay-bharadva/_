@@ -106,6 +106,7 @@ export function AssetGrid({
             <Button
               variant="secondary"
               size="icon"
+              aria-label="Download asset"
               className="absolute right-1.5 top-1.5 z-20 h-7 w-7 rounded-full opacity-0 shadow-md transition-opacity group-hover:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
@@ -198,6 +199,7 @@ export function AssetTable({
                 <div className="flex justify-end gap-1">
                   <Button
                     size="icon"
+                    aria-label="Download asset"
                     variant="ghost"
                     className="h-7 w-7"
                     onClick={(e) => {
@@ -210,6 +212,7 @@ export function AssetTable({
                   </Button>
                   <Button
                     size="icon"
+                    aria-label="Delete asset"
                     variant="ghost"
                     className="h-7 w-7"
                     onClick={(e) => {

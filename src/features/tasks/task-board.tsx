@@ -88,13 +88,18 @@ export function TaskBoard({
             ref={columnRefs[status]}
             className={cn(
               "flex min-w-[300px] flex-1 flex-col rounded-lg border bg-secondary/20 transition-all duration-300",
-              isDragging ? "border-dashed border-primary/50" : "border-border/60",
+              isDragging
+                ? "border-dashed border-primary/50"
+                : "border-border/60",
               activeColumn === status ? "z-20" : "z-10",
             )}
           >
             <div className="flex items-center justify-between border-b border-dotted border-border px-3 py-2.5">
               <div className="section-label flex items-center gap-2 text-foreground">
-                <span aria-hidden className={cn("size-2 rounded-full", meta.dot)} />
+                <span
+                  aria-hidden
+                  className={cn("size-2 rounded-full", meta.dot)}
+                />
                 {meta.label}
                 <span className="font-mono text-[10px] text-muted-foreground">
                   {columnTasks.length}
@@ -203,6 +208,7 @@ function TaskBoardCard({
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Task actions"
                     className="-mr-1 -mt-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     <MoreHorizontal className="size-3.5" />

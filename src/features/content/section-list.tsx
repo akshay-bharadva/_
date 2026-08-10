@@ -123,6 +123,7 @@ export function SectionList({
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Move section up"
                               className="size-8 text-muted-foreground hover:text-foreground md:size-7"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -135,6 +136,7 @@ export function SectionList({
                             <Button
                               variant="ghost"
                               size="icon"
+                              aria-label="Move section down"
                               className="size-8 text-muted-foreground hover:text-foreground md:size-7"
                               onClick={(e) => {
                                 e.stopPropagation();

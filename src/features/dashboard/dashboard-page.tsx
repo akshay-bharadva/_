@@ -261,6 +261,7 @@ function DashboardOverview({
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="View post"
                       className="h-7 w-7"
                       asChild
                     >

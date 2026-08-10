@@ -50,10 +50,22 @@ export function CalendarTopBar({
         >
           Today
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Previous period"
+          className="h-8 w-8"
+          onClick={onPrev}
+        >
           <ChevronLeft className="size-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Next period"
+          className="h-8 w-8"
+          onClick={onNext}
+        >
           <ChevronRight className="size-4" />
         </Button>
         <h2 className="ml-2 hidden whitespace-nowrap text-base font-medium text-foreground sm:block">
@@ -87,6 +99,7 @@ export function CalendarTopBar({
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Search events"
             className="hidden h-8 w-8 sm:flex"
             onClick={() => onShowSearchChange(true)}
           >

@@ -212,7 +212,11 @@ interface TopicEditorProps {
   onTopicUpdate: (updatedTopic: LearningTopic) => void;
 }
 
-export function TopicEditor({ topic, onBack, onTopicUpdate }: TopicEditorProps) {
+export function TopicEditor({
+  topic,
+  onBack,
+  onTopicUpdate,
+}: TopicEditorProps) {
   const isMobile = useIsMobile();
   const [coreNotes, setCoreNotes] = useState("");
   const [status, setStatus] = useState<LearningStatus>("To Learn");
@@ -284,7 +288,10 @@ export function TopicEditor({ topic, onBack, onTopicUpdate }: TopicEditorProps) 
 
   const handleAddResource = () => {
     if (!newResName || !newResUrl || !validateUrl(newResUrl)) return;
-    const updatedResources = [...resources, { name: newResName, url: newResUrl }];
+    const updatedResources = [
+      ...resources,
+      { name: newResName, url: newResUrl },
+    ];
     setResources(updatedResources);
     handleSave({ resources: updatedResources, core_notes: coreNotes });
     setNewResName("");
@@ -318,6 +325,7 @@ export function TopicEditor({ topic, onBack, onTopicUpdate }: TopicEditorProps) 
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Back to modules"
             onClick={onBack}
             className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
           >
@@ -449,7 +457,9 @@ export function TopicEditor({ topic, onBack, onTopicUpdate }: TopicEditorProps) 
                 }}
                 className={urlError ? "border-destructive" : ""}
               />
-              {urlError && <p className="text-xs text-destructive">{urlError}</p>}
+              {urlError && (
+                <p className="text-xs text-destructive">{urlError}</p>
+              )}
             </div>
           </div>
           <DialogFooter>
