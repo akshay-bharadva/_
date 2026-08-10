@@ -6,6 +6,7 @@ import PublicFooter from "@/components/layout/public-footer";
 import MaintenanceView from "@/components/layout/maintenance-view";
 import { useGetLockdownStatusQuery } from "@/store/api/publicApi";
 import { useSupabaseSession } from "@/hooks/use-auth-guard";
+import { useVisitTracker } from "@/features/analytics/use-visit-tracker";
 
 /** Injects `<meta name="robots" content="noindex">` while mounted. */
 function NoIndexMeta() {
@@ -33,6 +34,13 @@ export default function PublicChrome({
 }) {
   const { data: lockdownLevel = 0 } = useGetLockdownStatusQuery();
   const { session, isLoading: isSessionLoading } = useSupabaseSession();
+
+  // Every public page, not only the home page — the previous notifier fired
+  // once per session from the hero, so a visitor who landed on a blog post and
+  // read four more registered as nothing at all. Called before the lockdown
+  // branch so the hook order is stable across renders; it no-ops on /admin and
+  // outside production.
+  useVisitTracker();
 
   const blocked = lockdownLevel >= 1 && !isSessionLoading && !session;
 
