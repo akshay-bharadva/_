@@ -207,9 +207,11 @@ export const TYPOGRAPHY_PRESETS = [
   {
     value: "typo-default",
     label: "Developer Default",
-    heading: "Inter",
+    heading: "Space Grotesk",
     body: "Inter",
     code: "JetBrains Mono",
+    weight: 700,
+    serif: false,
     description: "Clean and versatile — the standard developer choice",
   },
   {
@@ -218,6 +220,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Playfair Display",
     body: "DM Sans",
     code: "Fira Code",
+    weight: 700,
+    serif: true,
     description: "Dramatic serif headlines with smooth body text — magazine-style",
   },
   {
@@ -226,6 +230,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Space Grotesk",
     body: "Inter",
     code: "Fira Code",
+    weight: 700,
+    serif: false,
     description: "Geometric techy headings with code ligatures — Vercel/Linear vibe",
   },
   {
@@ -234,6 +240,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Instrument Serif",
     body: "Manrope",
     code: "IBM Plex Mono",
+    weight: 400,
+    serif: true,
     description: "Refined italic serif with airy body — Apple-inspired editorial",
   },
   {
@@ -242,6 +250,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Bricolage Grotesque",
     body: "Outfit",
     code: "JetBrains Mono",
+    weight: 800,
+    serif: false,
     description: "Chunky variable headings with playful body — creative portfolio",
   },
   {
@@ -250,6 +260,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Unbounded",
     body: "Sora",
     code: "Fira Code",
+    weight: 700,
+    serif: false,
     description: "Rounded futuristic display font — cyberpunk/gaming aesthetic",
   },
   {
@@ -258,6 +270,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Libre Baskerville",
     body: "Plus Jakarta Sans",
     code: "IBM Plex Mono",
+    weight: 700,
+    serif: true,
     description: "Traditional serif authority with modern body — lawyer/architect",
   },
   {
@@ -266,6 +280,8 @@ export const TYPOGRAPHY_PRESETS = [
     heading: "Outfit",
     body: "DM Sans",
     code: "JetBrains Mono",
+    weight: 700,
+    serif: false,
     description: "Smooth geometric stack — Stripe/Figma inspired simplicity",
   },
 ] as const;

@@ -173,10 +173,12 @@ h1, h2, h3, h4, h5, h6,
   letter-spacing: var(--heading-letter-spacing);
 }
 
-/* Display font for hero/large text */
-.font-display {
-  font-family: var(--font-display);
-  letter-spacing: var(--heading-letter-spacing);
+/* Preset heading weight, on bare elements only: a font-* utility class always
+   outranks these element selectors, so explicit weights in components still win
+   while presets that ask for a lighter or chunkier default (elegant 400,
+   bold-quirky 800) actually get it. */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--heading-weight);
 }
 
 /* Ensure nav, card titles, buttons pick up the body font */

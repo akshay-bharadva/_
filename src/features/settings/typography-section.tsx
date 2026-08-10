@@ -45,11 +45,9 @@ export function TypographySection({ form }: TypographySectionProps) {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {TYPOGRAPHY_PRESETS.map((preset) => {
                     const isActive = field.value === preset.value;
-                    const isSerif = [
-                      "Playfair Display",
-                      "Instrument Serif",
-                      "Libre Baskerville",
-                    ].includes(preset.heading);
+                    // Mirrors the preset's own --font-heading / --heading-weight
+                    // so the preview can't drift from what themes.css applies.
+                    const headingFont = `"${preset.heading}", ${preset.serif ? "serif" : "sans-serif"}`;
                     return (
                       <button
                         type="button"
@@ -73,10 +71,9 @@ export function TypographySection({ form }: TypographySectionProps) {
                           <p
                             className="text-2xl leading-tight text-foreground"
                             style={{
-                              fontFamily: `"${preset.heading}", ${isSerif ? "serif" : "sans-serif"}`,
+                              fontFamily: headingFont,
                               letterSpacing: "-0.02em",
-                              fontWeight:
-                                preset.heading === "Instrument Serif" ? 400 : 700,
+                              fontWeight: preset.weight,
                             }}
                           >
                             Aa
@@ -91,9 +88,8 @@ export function TypographySection({ form }: TypographySectionProps) {
                           <p
                             className="text-sm leading-snug text-foreground"
                             style={{
-                              fontFamily: `"${preset.heading}", ${isSerif ? "serif" : "sans-serif"}`,
-                              fontWeight:
-                                preset.heading === "Instrument Serif" ? 400 : 700,
+                              fontFamily: headingFont,
+                              fontWeight: preset.weight,
                               letterSpacing: "-0.02em",
                             }}
                           >
