@@ -51,10 +51,8 @@ import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
 import { getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { buildForecastData } from "@/lib/finance-utils";
 import type { DialogState } from "./finance-types";
-import { DashboardTab } from "./dashboard-tab";
 import { TransactionsTab } from "./transactions-tab";
 import { RecurringTab } from "./recurring-tab";
-import { AnalyticsTab } from "./analytics-tab";
 import { GoalCard } from "./goal-card";
 import { TransactionForm } from "./transaction-form";
 import { RecurringTransactionForm } from "./recurring-transaction-form";
@@ -64,6 +62,25 @@ import { AddNewDrawer, MobileBottomNav, MoreDrawer } from "./mobile-nav";
 const Calendar = dynamic(
   () => import("@/components/ui/calendar").then((mod) => mod.Calendar),
   { ssr: false },
+);
+
+// Both chart tabs pull in Recharts; the transaction and recurring tabs don't.
+// Splitting them keeps the table-only views light, and the analytics chunk is
+// only fetched once that tab is actually opened.
+const chartTabLoader = () => (
+  <div className="flex h-64 items-center justify-center">
+    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+  </div>
+);
+
+const DashboardTab = dynamic(
+  () => import("./dashboard-tab").then((mod) => mod.DashboardTab),
+  { ssr: false, loading: chartTabLoader },
+);
+
+const AnalyticsTab = dynamic(
+  () => import("./analytics-tab").then((mod) => mod.AnalyticsTab),
+  { ssr: false, loading: chartTabLoader },
 );
 
 export default function FinancePage() {
@@ -262,7 +279,9 @@ export default function FinancePage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => handleOpenSheet("transaction")}>
+                <DropdownMenuItem
+                  onSelect={() => handleOpenSheet("transaction")}
+                >
                   <ArrowRightLeft className="mr-2 size-4" /> Transaction
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => handleOpenSheet("recurring")}>
