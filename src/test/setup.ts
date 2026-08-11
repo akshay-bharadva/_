@@ -23,6 +23,11 @@ if (typeof window !== "undefined") {
       disconnect() {}
     };
   }
+  if (!document.elementFromPoint) {
+    // input-otp polls this from a timer to track the caret; jsdom has no
+    // layout, so returning nothing is the honest answer.
+    document.elementFromPoint = () => null;
+  }
   if (!window.IntersectionObserver) {
     window.IntersectionObserver = class IntersectionObserver {
       root = null;

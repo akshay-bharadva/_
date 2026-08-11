@@ -155,15 +155,18 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
   Heaviest admin route is `/admin/finance` at 355 kB; heaviest public route is
   `/contact` at 295 kB. No route exceeds 355 kB.
-- `npm run test` 375 passing (27 files); `npx tsc --noEmit` clean; lint clean.
+- `npm run test` 419 passing (31 files); `npx tsc --noEmit` clean; lint clean.
   Post-phase additions: `habit-utils` (streak/window math), `date-utils`
   (`parseLocalDate`, the timezone guard under warranty/calendar/finance),
   `color-utils`, `admin-shell/nav-config`, `admin-shell/use-admin-guard`
   (all four guard exits incl. the aal1 rejection), `storage-utils`, and the
   three side-effecting hooks: `assets/use-asset-operations` (storage rollback
   on a failed DB insert), `blog-admin/use-blog-image-upload`,
-  `home/use-visit-notifier`, and the two `features/ink` suites
-  (`ink-geometry`, `use-ink-canvas`).
+  `home/use-visit-notifier`, the four `features/ink` suites, and all four
+  `features/admin-auth` screens — the AAL routing table in `login-form` and
+  `mfa-challenge`, TOTP enrollment in `mfa-setup`, and the bootstrap-only
+  `signup-form`. Those are the client half of the auth contract; the
+  boundary itself stays in RLS + the `block_additional_signups` trigger.
 - Dead v1 scaffolding removed post-phase: `shared/ManagerLayout.tsx` and its
   `StatsGrid`/`ContentCard`/`SectionDivider` exports had no consumers left
   once every module moved to `ManagerWrapper` + `PageHeader`.
