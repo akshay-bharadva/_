@@ -135,7 +135,11 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
   Heaviest admin route is `/admin/finance` at 355 kB; heaviest public route is
   `/contact` at 295 kB. No route exceeds 355 kB.
-- `npm run test` 219 passing (14 files); `npx tsc --noEmit` clean; lint clean.
+- `npm run test` 270 passing (20 files); `npx tsc --noEmit` clean; lint clean.
+  Post-phase additions: `habit-utils` (streak/window math), `date-utils`
+  (`parseLocalDate`, the timezone guard under warranty/calendar/finance),
+  `color-utils`, `admin-shell/nav-config`, `admin-shell/use-admin-guard`
+  (all four guard exits incl. the aal1 rejection) and `storage-utils`.
 - Pages Router fully removed; app is App-Router-only; dev server boots, pages render 200.
 
 ## Known follow-ups (not blockers)
