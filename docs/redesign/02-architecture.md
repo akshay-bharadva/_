@@ -77,7 +77,7 @@ carries over as the gate for every preset.
 
 ## 5. Migration mechanics
 
-The rebuild happens on `redesign/v2` in phases (see `03-rebuild-plan.md`). Pages Router
+The rebuild happens on `fable` in phases (see `03-rebuild-plan.md`). Pages Router
 files are deleted as each App Router route reaches functional parity; the store, lib,
 types, and DB layer are ported (and trimmed) rather than rewritten. `npm run build` +
 `npm run test` must pass at every phase boundary.

@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 (App Router). Supports two modes: static portfolio (zero-config with mock data) and dynamic CMS with Supabase backend. Deployed as a static export (`output: "export"`) to GitHub Pages.
 
-> **v2 redesign (branch `redesign/v2`):** the app was rebuilt from scratch with a new
+> **v2 redesign (branch `fable`):** the app was rebuilt from scratch with a new
 > visual identity ("Precision Instrument" — Ink theme) and migrated Pages Router → App
 > Router. The data layer, Zod schemas, DB schema, and RTK store were preserved as business
 > logic. See `docs/redesign/` for the functional specs, design vision, architecture, and
