@@ -129,6 +129,22 @@ New section-renderer with the same `layout_style` contract (21 layouts).
       `font-mono` headings that no longer exist, and skipped `typo-default`).
       **README** updated for the App Router, 32 themes, the `features/` tree,
       the test commands, and the DB-level MFA/single-admin note.
+- [x] **Post-migration: handwritten sketches** — the first feature written new
+      for v2 rather than ported. `src/features/ink/` adds an Apple Pencil surface
+      as a second creation path in `/admin/notes`, for capture that is faster by
+      hand than by keyboard. Built on `perfect-freehand` (~4 kB) rather than
+      tldraw/Excalidraw (~1 MB), which would have undone the whole splitting
+      phase. New `ink_notes` table on the standard private-admin RLS shape
+      (`auth.uid() = user_id AND public.is_aal2()`); strokes are stored as
+      vectors plus a downsampled `preview` column, and the list query projects
+      away `strokes` so the thumbnail strip never fetches full records. Colors
+      are palette keys resolving to theme CSS vars, so sketches survive all 32
+      presets. The editor sits behind `next/dynamic`, so typed notes do not pay
+      for it — `/admin/notes` 13.3 kB, shared bundle unchanged at 88.4 kB.
+      Scope is deliberately Phase 1: fixed-size canvas, pen + eraser, five
+      colors, three widths, undo/redo. No pan, zoom, multi-page, or lasso.
+      47 colocated tests over the stroke geometry and the pointer arbitration
+      (palm rejection, coalesced sampling, pressure fallback, eraser identity).
 
 ## Current build/test state (as of latest commit)
 
@@ -136,14 +152,15 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
   Heaviest admin route is `/admin/finance` at 355 kB; heaviest public route is
   `/contact` at 295 kB. No route exceeds 355 kB.
-- `npm run test` 304 passing (23 files); `npx tsc --noEmit` clean; lint clean.
+- `npm run test` 351 passing (25 files); `npx tsc --noEmit` clean; lint clean.
   Post-phase additions: `habit-utils` (streak/window math), `date-utils`
   (`parseLocalDate`, the timezone guard under warranty/calendar/finance),
   `color-utils`, `admin-shell/nav-config`, `admin-shell/use-admin-guard`
   (all four guard exits incl. the aal1 rejection), `storage-utils`, and the
   three side-effecting hooks: `assets/use-asset-operations` (storage rollback
   on a failed DB insert), `blog-admin/use-blog-image-upload`,
-  `home/use-visit-notifier`.
+  `home/use-visit-notifier`, and the two `features/ink` suites
+  (`ink-geometry`, `use-ink-canvas`).
 - Dead v1 scaffolding removed post-phase: `shared/ManagerLayout.tsx` and its
   `StatsGrid`/`ContentCard`/`SectionDivider` exports had no consumers left
   once every module moved to `ManagerWrapper` + `PageHeader`.
@@ -156,6 +173,12 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   configs. Deliberately excluded: `.tokensave/*.json` (machine-written tool state,
   reformatting it only invites conflicts) and `akshay.md` / `akshay/` (personal
   persona files). Those two groups still fail `prettier --check` by design.
-- `next build` can fail on a _dirty_ `.next` left over from the Pages Router era
-  (`Cannot find module for page: /_document`). Clearing `.next` fixes it; cold
-  builds are reproducibly green, so CI is unaffected.
+- `next build` can fail on a _dirty_ `.next` — from the Pages Router era
+  (`Cannot find module for page: /_document`) or after a dependency install
+  (`Cannot find module './chunks/vendor-chunks/@supabase.js'`, or a route
+  reported missing during "Collecting page data"). Clearing `.next` fixes it;
+  cold builds are reproducibly green, so CI is unaffected.
+- **Sketches need real hardware.** The `use-ink-canvas` tests pin the logic —
+  palm rejection, coalesced sampling, pressure fallback — but none of it has
+  been exercised on an actual iPad + Pencil. Verify before building anything
+  on top of it (Phase 2: multi-page, pan/zoom, lasso; Phase 3: whiteboard).

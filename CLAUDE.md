@@ -51,6 +51,10 @@ All API calls check if Supabase is configured. If not, mock data from `src/lib/f
 
 Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form via `@hookform/resolvers`. Types are inferred from schemas with `z.infer<>`.
 
+### Handwritten sketches (`src/features/ink/`)
+
+Apple Pencil surface mounted into `/admin/notes` via `SketchStrip`, backed by the `ink_notes` table and `inkApi`. Strokes are vectors rendered with `perfect-freehand` — deliberately not a canvas library, to keep the bundle intact. Three constraints to preserve: stroke colors are palette **keys** (`InkColor`) resolving to theme CSS vars, never hex, so sketches follow the active preset; list queries read the downsampled `preview` column and project away `strokes`; the editor loads through `ink-editor-lazy` so typed notes don't pay for it.
+
 ### Styling
 
 - Tailwind CSS with token-based theming. The base token scale + prose/motif styles live in `src/styles/globals.css`; the **32 theme presets** (v2 default `theme-ink-light`/`theme-ink-dark`) + 8 typography presets live in `src/styles/themes.css` (raw CSS, deliberately unlayered so Tailwind can't tree-shake runtime-applied classes). Labeled registry in `src/lib/constants.ts` (`THEME_PRESETS`); application logic in `src/lib/themes.ts` + `src/hooks/use-theme-sync.ts`; WCAG AA contrast gate in `src/lib/theme-contrast.test.ts` (parses `themes.css`). Toasts use sonner exclusively.
@@ -61,7 +65,7 @@ Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form 
 ### Key Directories
 
 - `src/app/` — App Router route tree (`(public)`, `admin/(auth)`, `admin/(protected)`), root `layout.tsx` + `providers.tsx`.
-- `src/features/` — feature-first UI (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell).
+- `src/features/` — feature-first UI (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell, plus the admin modules and `ink`).
 - `src/components/layout/` — shared public/admin chrome. `src/components/ui/` — Shadcn UI primitives (40+ components).
 - `src/components/admin/` — Admin module internals (~80 files), organized by feature (tasks/, finance/, habits/, learning/, etc.); rendered inside the new admin shell.
 - `src/lib/` — Config, constants, utilities, Zod schemas, fallback data
