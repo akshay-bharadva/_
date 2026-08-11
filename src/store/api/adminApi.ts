@@ -27,3 +27,4 @@ export * from "./admin/inventoryApi";
 export * from "./admin/whiteboardApi";
 export * from "./admin/inboxApi";
 export * from "./admin/analyticsApi";
+export * from "./admin/discoverApi";
