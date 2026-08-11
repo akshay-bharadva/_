@@ -143,8 +143,11 @@ New section-renderer with the same `layout_style` contract (21 layouts).
       for it — `/admin/notes` 13.3 kB, shared bundle unchanged at 88.4 kB.
       Scope is deliberately Phase 1: fixed-size canvas, pen + eraser, five
       colors, three widths, undo/redo. No pan, zoom, multi-page, or lasso.
-      47 colocated tests over the stroke geometry and the pointer arbitration
-      (palm rejection, coalesced sampling, pressure fallback, eraser identity).
+      71 colocated tests: the stroke geometry, the pointer arbitration (palm
+      rejection, coalesced sampling, pressure fallback, eraser identity), and
+      RTL suites over the two components that can lose work — the editor
+      (surface withheld until strokes load, save payload, dirty-close confirm,
+      failed save keeps the sketch open) and the strip (open/delete routing).
 
 ## Current build/test state (as of latest commit)
 
@@ -152,7 +155,7 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
   Heaviest admin route is `/admin/finance` at 355 kB; heaviest public route is
   `/contact` at 295 kB. No route exceeds 355 kB.
-- `npm run test` 351 passing (25 files); `npx tsc --noEmit` clean; lint clean.
+- `npm run test` 375 passing (27 files); `npx tsc --noEmit` clean; lint clean.
   Post-phase additions: `habit-utils` (streak/window math), `date-utils`
   (`parseLocalDate`, the timezone guard under warranty/calendar/finance),
   `color-utils`, `admin-shell/nav-config`, `admin-shell/use-admin-guard`
