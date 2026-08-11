@@ -152,6 +152,32 @@ export interface Note {
   updated_at?: string;
 }
 
+/** A single sampled pointer position: x, y, and pen pressure (0–1). */
+export type InkPoint = [number, number, number];
+
+/** Palette key rather than a literal color, so sketches follow the theme. */
+export type InkColor = "ink" | "accent" | "signal" | "note" | "wash";
+
+export interface InkStroke {
+  points: InkPoint[];
+  color: InkColor;
+  size: number;
+}
+
+export interface InkNote {
+  id: string;
+  user_id?: string;
+  title?: string | null;
+  /** Full vector record; omitted by the list query, loaded when editing. */
+  strokes?: InkStroke[];
+  /** Downsampled copy of `strokes` for grid thumbnails. */
+  preview?: InkStroke[];
+  tags?: string[] | null;
+  is_pinned?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export type LifeUpdateCategory =
   | "watching"
   | "activity"

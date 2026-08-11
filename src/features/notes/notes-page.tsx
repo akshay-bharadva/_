@@ -20,6 +20,7 @@ import {
 } from "@/components/admin/shared";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import { SketchStrip } from "@/features/ink/sketch-strip";
 import { NoteCard } from "./note-card";
 import { NoteEditor } from "./note-editor";
 
@@ -165,6 +166,8 @@ export default function NotesPage() {
         </aside>
 
         <main className="w-full min-w-0 flex-1">
+          <SketchStrip />
+
           {/* Mobile tag filter */}
           <div className="mb-4 md:hidden">
             <ScrollArea className="w-full whitespace-nowrap pb-2">

@@ -14,6 +14,7 @@ export * from "./admin/dashboardApi";
 export * from "./admin/calendarApi";
 export * from "./admin/blogAdminApi";
 export * from "./admin/notesApi";
+export * from "./admin/inkApi";
 export * from "./admin/tasksApi";
 export * from "./admin/financeApi";
 export * from "./admin/learningApi";
