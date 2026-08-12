@@ -163,7 +163,7 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   Heaviest admin route is `/admin/finance` at 358 kB; heaviest public route is
   `/contact` at 298 kB. No route exceeds 358 kB — Excalidraw is not counted in
   `/admin/whiteboard`'s 241 kB because it loads only when a board is opened.
-- `npm run test` 383 passing (30 files); `npx tsc --noEmit` clean; lint clean.
+- `npm run test` 412 passing (32 files); `npx tsc --noEmit` clean; lint clean.
   Post-phase additions: `habit-utils` (streak/window math), `date-utils`
   (`parseLocalDate`, the timezone guard under warranty/calendar/finance),
   `color-utils`, `admin-shell/nav-config`, `admin-shell/use-admin-guard`
@@ -171,7 +171,10 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   three side-effecting hooks: `assets/use-asset-operations` (storage rollback
   on a failed DB insert), `blog-admin/use-blog-image-upload`,
   `home/use-visit-notifier`, the `features/whiteboard` suites (scene
-  round-tripping, theme derivation, gallery card), and all four
+  round-tripping, theme derivation, gallery card, and RTL over the two
+  components that can lose work — the editor's save payload, thumbnail
+  fallbacks and dirty-close confirm, and the gallery's open/delete/pin
+  routing), and all four
   `features/admin-auth` screens — the AAL routing table in `login-form` and
   `mfa-challenge`, TOTP enrollment in `mfa-setup`, and the bootstrap-only
   `signup-form`. Those are the client half of the auth contract; the
