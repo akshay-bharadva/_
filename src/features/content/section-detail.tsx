@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NovelEditor } from "@/components/editor/novel-editor";
+import { NovelEditor } from "@/components/admin/novel-editor";
 import { LAYOUT_OPTIONS } from "@/features/content/layout-registry";
 import { safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
@@ -64,32 +64,56 @@ const AUTOSAVE_DELAY = 1200;
  * expected to know this from the layout name alone. Now the section says so.
  */
 const FIELD_HINTS: Record<string, string> = {
-  "stats-grid": "Title = the number. Subtitle = its label. Description is unused.",
-  "impact-numbers": "Title = the number. Subtitle = its label. Description is unused.",
-  testimonials: "Title = the quote. Subtitle = who said it. Description = their role. Image = avatar.",
-  "work-experience": "Title = role. Subtitle = company. Image = company logo. Dates drive the range.",
-  "case-study": "Description carries the write-up — markdown is supported. Image = hero.",
+  "stats-grid":
+    "Title = the number. Subtitle = its label. Description is unused.",
+  "impact-numbers":
+    "Title = the number. Subtitle = its label. Description is unused.",
+  testimonials:
+    "Title = the quote. Subtitle = who said it. Description = their role. Image = avatar.",
+  "work-experience":
+    "Title = role. Subtitle = company. Image = company logo. Dates drive the range.",
+  "case-study":
+    "Description carries the write-up — markdown is supported. Image = hero.",
   services: "Tags render as a feature checklist, not as metadata chips.",
   uses: "Subtitle is the group heading — items sharing one are grouped together.",
   "client-logos": "Image = the logo. Without one, the title is shown as text.",
   "open-source": "Title = repo name (mono). Subtitle = the star/meta line.",
   speaking: "Subtitle = the type badge (Talk, Podcast, Workshop…).",
-  "compact-cards": "Only title and subtitle render. Everything else is ignored.",
+  "compact-cards":
+    "Only title and subtitle render. Everything else is ignored.",
   "press-awards": "Only title and subtitle render.",
   "now-page": "Subtitle = the category label above each entry.",
   masonry: "Image-led. Items without one get a placeholder tile.",
-  "cards-with-image": "Image sits above the text. Missing images get a numbered placeholder.",
+  "cards-with-image":
+    "Image sits above the text. Missing images get a numbered placeholder.",
   "feature-alternating": "Subtitle doubles as the eyebrow above the title.",
-  "github-grid": "This layout fetches repositories from GitHub. Items here are ignored.",
+  "github-grid":
+    "This layout fetches repositories from GitHub. Items here are ignored.",
 };
 
 function SaveIndicator({ state }: { state: SaveState }) {
   const map = {
     idle: { icon: Check, text: "Saved", className: "text-muted-foreground" },
-    dirty: { icon: Loader2, text: "Unsaved changes", className: "text-amber-600 dark:text-amber-500" },
-    saving: { icon: Loader2, text: "Saving…", className: "text-muted-foreground" },
-    saved: { icon: Check, text: "Saved", className: "text-emerald-600 dark:text-emerald-500" },
-    error: { icon: CloudOff, text: "Save failed — retrying on next edit", className: "text-destructive" },
+    dirty: {
+      icon: Loader2,
+      text: "Unsaved changes",
+      className: "text-amber-600 dark:text-amber-500",
+    },
+    saving: {
+      icon: Loader2,
+      text: "Saving…",
+      className: "text-muted-foreground",
+    },
+    saved: {
+      icon: Check,
+      text: "Saved",
+      className: "text-emerald-600 dark:text-emerald-500",
+    },
+    error: {
+      icon: CloudOff,
+      text: "Save failed — retrying on next edit",
+      className: "text-destructive",
+    },
   } as const;
 
   const { icon: Icon, text, className } = map[state];
@@ -232,7 +256,9 @@ export function SectionDetail({
       <div className="flex h-full items-center justify-center bg-muted/5 p-8 text-center text-muted-foreground">
         <div className="max-w-xs">
           <LayoutTemplate className="mx-auto mb-4 size-12 opacity-20" />
-          <p className="text-sm">Select a section to edit its content and items.</p>
+          <p className="text-sm">
+            Select a section to edit its content and items.
+          </p>
         </div>
       </div>
     );
@@ -243,7 +269,9 @@ export function SectionDetail({
   const items = [...(section.portfolio_items ?? [])].sort(
     (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
   );
-  const hint = section.layout_style ? FIELD_HINTS[section.layout_style] : undefined;
+  const hint = section.layout_style
+    ? FIELD_HINTS[section.layout_style]
+    : undefined;
   const unknownLayout = !isMarkdown && !layoutMeta;
   const livePath = section.page_path === "/" ? "/" : section.page_path;
 
@@ -283,7 +311,10 @@ export function SectionDetail({
                 )}
                 <MetaBadge title="Page path">{section.page_path}</MetaBadge>
                 {isHidden && (
-                  <MetaBadge tone="warn" title="Not rendered on the public site">
+                  <MetaBadge
+                    tone="warn"
+                    title="Not rendered on the public site"
+                  >
                     <EyeOff className="size-3" /> hidden
                   </MetaBadge>
                 )}
@@ -295,7 +326,11 @@ export function SectionDetail({
             {isMobile ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="Section actions">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Section actions"
+                  >
                     <MoreVertical className="size-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -304,7 +339,11 @@ export function SectionDetail({
                     <Edit className="mr-2 size-4" /> Edit details
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href={livePath} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={livePath}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="mr-2 size-4" /> View on site
                     </a>
                   </DropdownMenuItem>
@@ -324,7 +363,11 @@ export function SectionDetail({
                     <ExternalLink className="mr-2 size-4" /> View
                   </a>
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => onEditSection(section)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEditSection(section)}
+                >
                   <Edit className="mr-2 size-4" /> Edit
                 </Button>
                 <Button
@@ -350,8 +393,10 @@ export function SectionDetail({
               <EyeOff className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-500" />
               <p className="text-muted-foreground">
                 This section is hidden, so it does not render on{" "}
-                <span className="font-mono text-foreground">{section.page_path}</span>. Its
-                items are still readable through the public API.
+                <span className="font-mono text-foreground">
+                  {section.page_path}
+                </span>
+                . Its items are still readable through the public API.
               </p>
             </div>
           )}
@@ -361,9 +406,12 @@ export function SectionDetail({
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
               <p className="text-muted-foreground">
                 Layout{" "}
-                <span className="font-mono text-foreground">{section.layout_style}</span>{" "}
-                has no renderer, so the public site falls back to a plain list. Pick a
-                layout in <span className="whitespace-nowrap">Edit → Layout</span>.
+                <span className="font-mono text-foreground">
+                  {section.layout_style}
+                </span>{" "}
+                has no renderer, so the public site falls back to a plain list.
+                Pick a layout in{" "}
+                <span className="whitespace-nowrap">Edit → Layout</span>.
               </p>
             </div>
           )}
@@ -378,14 +426,14 @@ export function SectionDetail({
                 <NovelEditor
                   value={content}
                   onChange={setContent}
-                  onBlur={() => void flush()}
                   placeholder="Write your section content here…"
                   minHeight="500px"
                   className="prose-sm sm:prose max-w-none"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Saves automatically. Raw HTML is escaped when rendered on the public site.
+                Saves automatically. Raw HTML is escaped when rendered on the
+                public site.
               </p>
             </div>
           )}
@@ -417,8 +465,9 @@ export function SectionDetail({
                   <LayoutTemplate className="mx-auto mb-3 size-8 text-muted-foreground/30" />
                   <p className="text-sm font-medium">No items yet</p>
                   <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-                    This section renders as {layoutMeta?.label ?? section.layout_style} and
-                    needs at least one item. Until then it is skipped on the public site.
+                    This section renders as{" "}
+                    {layoutMeta?.label ?? section.layout_style} and needs at
+                    least one item. Until then it is skipped on the public site.
                   </p>
                   <Button
                     size="sm"
@@ -497,7 +546,9 @@ export function SectionDetail({
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => onEditItem(item)}>
+                                    <DropdownMenuItem
+                                      onClick={() => onEditItem(item)}
+                                    >
                                       <Edit className="mr-2 size-4" /> Edit
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
@@ -551,14 +602,16 @@ export function SectionDetail({
 
                             {item.tags && item.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 pt-0.5">
-                                {item.tags.slice(0, isMobile ? 3 : 6).map((tag, i) => (
-                                  <span
-                                    key={`${tag}-${i}`}
-                                    className="max-w-[10rem] truncate rounded-sm border bg-background/50 px-1.5 text-[10px]"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
+                                {item.tags
+                                  .slice(0, isMobile ? 3 : 6)
+                                  .map((tag, i) => (
+                                    <span
+                                      key={`${tag}-${i}`}
+                                      className="max-w-[10rem] truncate rounded-sm border bg-background/50 px-1.5 text-[10px]"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
                                 {item.tags.length > (isMobile ? 3 : 6) && (
                                   <span className="text-[10px] text-muted-foreground">
                                     +{item.tags.length - (isMobile ? 3 : 6)}
