@@ -1,26 +1,28 @@
 // =============================================================================
-// FOLIOKIT - Portfolio Configuration
+// FOLIOKIT - Portfolio Configuration — Akshay Bharadva
+// Generated from akshay.md. To use: replace the root portfolio.config.ts
+// with this file (or copy its values over).
 // =============================================================================
 
 const portfolioConfig = {
   // ---------------------------------------------------------------------------
   // IDENTITY
   // ---------------------------------------------------------------------------
-  name: "John Doe",
-  title: "Full Stack Engineer",
+  name: "Akshay Bharadva",
+  title: "AI Engineer",
   description:
-    "I build fast, scalable web apps — from pixel-perfect UIs to bulletproof APIs.",
-  profilePicture: "https://github.com/shadcn.png",
+    "Most AI projects never leave a Jupyter notebook. I build the ones that do — production RAG & LLM systems, full-stack products, and security-aware engineering.",
+  profilePicture: "https://github.com/akshay-bharadva.png",
   showProfilePicture: true,
 
   logo: {
-    main: "John",
+    main: "akshay",
     highlight: ".dev",
   },
 
   bio: [
-    "I'm a full stack engineer with 6+ years of experience turning ideas into production-ready products. I've worked across early-stage startups and mid-size SaaS companies, owning features end-to-end — from database schema to deployed UI.",
-    "Outside of work, I contribute to open source, write about developer tooling on my blog, and occasionally mentor junior devs. When I'm not at a keyboard, I'm probably hiking or losing at chess.",
+    'At Amico Corporation, I designed and deployed "Hey Ami!" — a voice-activated enterprise chatbot powered by RAG and PGVector that reduced routine task handling time by 30%. I also built the Complexity Matrix, an AI-driven tool that transformed how our estimators prioritize projects — replacing gut feel with data.',
+    "My path here: 3 years as a full-stack developer (MERN, Spring Boot, TypeScript) → applied AI implementation → postgraduate studies in both AI and Cybersecurity at Durham College (GPA 4.78/5.00). That combination isn't accidental. I understand how to ship features, how to secure them, and how to make AI systems that non-technical users actually trust and use.",
   ],
 
   // ---------------------------------------------------------------------------
@@ -37,15 +39,15 @@ const portfolioConfig = {
     show: true,
     design: "minimal" as const,
     title: "Current Status",
-    availability: "Open to new opportunities",
+    availability: "Open to AI Engineer / LLM Developer roles",
     currentlyExploring: {
       title: "Learning",
-      items: ["Rust", "WebAssembly", "AI-assisted tooling"],
+      items: ["Advanced RAG patterns", "Agentic systems", "LLM fine-tuning"],
     },
     latestProject: {
-      name: "Taskflow — AI Task Manager",
+      name: "Bookmarkly — local AI for bookmarks",
       linkText: "View on GitHub",
-      href: "https://github.com/vercel/next.js",
+      href: "https://github.com/akshay-bharadva/bookmarkly",
     },
   },
 
@@ -53,26 +55,24 @@ const portfolioConfig = {
   // SOCIAL LINKS
   // ---------------------------------------------------------------------------
   socialLinks: [
-    { id: "github", label: "GitHub", url: "https://github.com/vercel" },
+    { id: "github", label: "GitHub", url: "https://github.com/akshay-bharadva" },
     {
       id: "linkedin",
       label: "LinkedIn",
-      url: "https://linkedin.com/in/vercel",
+      url: "https://linkedin.com/in/akshay-bharadva",
     },
-    { id: "email", label: "Email", url: "mailto:john@foliokit.dev" },
-    { id: "twitter", label: "Twitter", url: "https://twitter.com/vercel" },
   ],
 
   // ---------------------------------------------------------------------------
   // FOOTER
   // ---------------------------------------------------------------------------
-  footerText: "Powered by **Foliokit**.",
+  footerText: "Built with Next.js & Supabase · Toronto, ON",
 
   // ---------------------------------------------------------------------------
   // GITHUB PROJECTS
   // ---------------------------------------------------------------------------
   github: {
-    username: "vercel",
+    username: "akshay-bharadva",
     show: true,
     sortBy: "pushed" as const,
     excludeForks: true,
@@ -109,31 +109,31 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   experience: [
     {
-      title: "Senior Full Stack Engineer",
-      company: "Streamline Inc.",
-      from: "2021",
+      title: "AI Implementation Specialist",
+      company: "Amico Corporation",
+      from: "Sep 2024",
       to: "Present",
       description:
-        "Lead engineer on a B2B SaaS dashboard used by 40,000+ users. Migrated a legacy Rails monolith to a Next.js + Node.js microservices architecture, cutting p95 latency by 60%. Mentored a team of 4 junior developers.",
-      tags: ["Next.js", "Node.js", "PostgreSQL", "AWS", "Docker"],
+        'Built and deployed "Hey Ami!" — a voice-activated RAG chatbot using LangChain + PGVector; cut routine task handling time by 30% across sales and ops. Engineered the Complexity Matrix, an AI-powered project scoring tool. Owned the full pipeline: ingestion, vector storage, retrieval tuning, prompt engineering, and production deployment.',
+      tags: ["LangChain", "PGVector", "Python", "RAG", "OpenAI API"],
+    },
+    {
+      title: "MERN Developer",
+      company: "DigiPie Technologies LLP",
+      from: "Dec 2022",
+      to: "Aug 2023",
+      description:
+        "Led development of a flagship product feature that drove 20% revenue growth in Q1. Modernized legacy codebases to MERN standards. Owned the full SDLC across multiple concurrent client projects.",
+      tags: ["MongoDB", "Express", "React", "Node.js", "TypeScript"],
     },
     {
       title: "Full Stack Developer",
-      company: "Brightloop Agency",
-      from: "2019",
-      to: "2021",
+      company: "NJ Group (Finlogic Technologies)",
+      from: "Nov 2021",
+      to: "Nov 2022",
       description:
-        "Built and shipped client-facing web applications for e-commerce and marketing verticals. Owned the full delivery cycle from scoping to deployment across 12+ client projects.",
-      tags: ["React", "GraphQL", "Shopify", "GSAP", "Tailwind CSS"],
-    },
-    {
-      title: "Junior Web Developer",
-      company: "DevNest Studios",
-      from: "2018",
-      to: "2019",
-      description:
-        "Developed internal tools and customer-facing features for a local SaaS startup. First professional exposure to agile workflows, code review culture, and CI/CD pipelines.",
-      tags: ["Vue.js", "Python", "Django", "MySQL"],
+        "Built microservices with Spring Boot, Docker, and Kubernetes for scalable financial applications. Developed SQL/PL/SQL components optimizing high-volume financial data. Created unit test suites and POCs that reduced rework.",
+      tags: ["Spring Boot", "Java", "Docker", "Kubernetes", "PL/SQL"],
     },
   ],
 
@@ -141,52 +141,22 @@ const portfolioConfig = {
   // TECH STACK
   // ---------------------------------------------------------------------------
   techStack: [
-    {
-      title: "React / Next.js",
-      description: "Component architecture, SSR, App Router, hooks",
-    },
-    {
-      title: "TypeScript",
-      description: "Static typing, generics, advanced interface design",
-    },
-    {
-      title: "Node.js / Express",
-      description: "REST APIs, middleware, background jobs",
-    },
-    {
-      title: "PostgreSQL",
-      description: "Schema design, query optimization, Prisma ORM",
-    },
-    {
-      title: "Tailwind CSS",
-      description: "Responsive UI, design systems, dark mode",
-    },
-    {
-      title: "Docker & CI/CD",
-      description: "Containerization, GitHub Actions, AWS ECS",
-    },
+    { title: "RAG / LangChain", description: "Ingestion → embedding → retrieval tuning → LLM response" },
+    { title: "Python", description: "Production AI services, tooling, and data pipelines" },
+    { title: "TypeScript / React / Next.js", description: "Full-stack product frontends" },
+    { title: "PGVector / PostgreSQL", description: "Vector search, schema design, high-volume data" },
+    { title: "PyTorch / Hugging Face", description: "Model fine-tuning and NLP workflows" },
+    { title: "Docker & Spring Boot", description: "Microservices, containerization, backend depth" },
   ],
 
   // ---------------------------------------------------------------------------
   // TOOLS
   // ---------------------------------------------------------------------------
   tools: [
-    {
-      title: "VS Code",
-      description: "Daily driver — heavily customized with Vim bindings.",
-    },
-    {
-      title: "Figma",
-      description: "UI mockups and component specs before any code is written.",
-    },
-    {
-      title: "Warp",
-      description: "Terminal of choice — AI autocomplete saves real time.",
-    },
-    {
-      title: "Linear",
-      description: "Project and issue tracking. Keeps sprints honest.",
-    },
+    { title: "Splunk", description: "Log analysis and security monitoring." },
+    { title: "Wireshark", description: "Network protocol analysis — attack surfaces, not just benchmarks." },
+    { title: "Nessus", description: "Vulnerability scanning and assessment." },
+    { title: "PFsense / Snort", description: "Firewalling and intrusion detection." },
   ],
 
   // ---------------------------------------------------------------------------
@@ -194,12 +164,27 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   education: [
     {
-      title: "B.Sc. Computer Science",
-      institution: "State University of New York",
-      from: "2014",
-      to: "2018",
+      title: "Postgraduate Certificate, Cybersecurity",
+      institution: "Durham College",
+      from: "Sep 2024",
+      to: "Apr 2025",
       description:
-        "Graduated with Honours. Focused on software engineering and distributed systems. Final thesis on peer-to-peer file sync algorithms.",
+        "Network Monitoring, Penetration Testing, Access Controls, Security Auditing & Governance.",
+    },
+    {
+      title: "Postgraduate Certificate, AI Analysis, Design & Implementation",
+      institution: "Durham College",
+      from: "Sep 2023",
+      to: "Aug 2024",
+      description:
+        "GPA 4.78 / 5.00 · AI Algorithms, NLP, Predictive Modeling, Enterprise AI Systems.",
+    },
+    {
+      title: "Bachelor of Computer Applications",
+      institution: "Veer Narmad South Gujarat University",
+      from: "Jun 2019",
+      to: "Apr 2022",
+      description: "CGPA 8.7 / 10.",
     },
   ],
 
@@ -208,18 +193,18 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   showcase: [
     {
-      title: "Rebuilding a Monolith into Microservices",
+      title: '"Hey Ami!" — Voice-Activated Enterprise RAG Chatbot',
       description:
-        "A behind-the-scenes look at how I led the migration of a 200k-line Rails app to a distributed Node.js architecture — including the mistakes, tradeoffs, and wins.",
-      link: "https://github.com/vercel/next.js",
-      tags: ["System Design", "Node.js", "AWS"],
+        "End-to-end RAG pipeline (LangChain + PGVector) with a voice interface, deployed to production at Amico Corporation. Reduced routine task handling time by 30% across sales and ops teams.",
+      link: "https://amico.ca",
+      tags: ["RAG", "LangChain", "PGVector", "Voice AI"],
     },
     {
-      title: "Zero to 40k Users: Scaling Streamline's Dashboard",
+      title: "Complexity Matrix — AI Project Scoring",
       description:
-        "How I optimized a React dashboard from a 6-second initial load to under 900ms using code splitting, edge caching, and smarter data fetching.",
-      link: "https://github.com/vercel/next.js",
-      tags: ["Performance", "Next.js", "CDN"],
+        "AI-driven complexity scoring that moved estimator prioritization from gut feel to data — embedded directly into the existing workflow so adoption required zero process change.",
+      link: "https://amico.ca",
+      tags: ["Applied AI", "Decision Support", "Python"],
     },
   ],
 
@@ -228,24 +213,31 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   projects: [
     {
-      title: "Taskflow",
-      subtitle: "AI-Powered Task Manager",
+      title: "Bookmarkly",
+      subtitle: "Local AI for your bookmarks",
       description:
-        "A productivity app that uses AI to auto-prioritize your task list based on deadlines, energy levels, and past completion patterns.\n\n[View Source on GitHub](https://github.com/vercel/next.js)",
-      tags: ["Next.js", "OpenAI", "Supabase", "Tailwind CSS"],
-      link: "https://github.com/vercel/next.js",
-      image:
-        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2670&auto=format&fit=crop",
+        "Auto-organizes browser bookmarks using on-device LLM inference — no cloud, no data leaves your machine. Python, MIT licensed.\n\n[View Source on GitHub](https://github.com/akshay-bharadva/bookmarkly)",
+      tags: ["Python", "Local LLM", "AI"],
+      link: "https://github.com/akshay-bharadva/bookmarkly",
+      image: "",
     },
     {
-      title: "Pricewise",
-      subtitle: "SaaS Pricing Page Builder",
+      title: "Portmapper",
+      subtitle: "Network security monitoring",
       description:
-        "A drag-and-drop pricing page builder that generates clean, embeddable HTML/React components — no design skills required.\n\n[View Source on GitHub](https://github.com/vercel/next.js)",
-      tags: ["React", "Tailwind CSS", "Framer Motion"],
-      link: "https://github.com/vercel/next.js",
-      image:
-        "https://images.unsplash.com/photo-1532354058425-ba7ccc7e4a24?q=80&w=2670&auto=format&fit=crop",
+        "Real-time port scanning and threat detection platform. Security depth meets practical tooling.\n\n[View Source on GitHub](https://github.com/akshay-bharadva/portmapper)",
+      tags: ["Python", "Security", "Networking"],
+      link: "https://github.com/akshay-bharadva/portmapper",
+      image: "",
+    },
+    {
+      title: "Template Management System",
+      subtitle: "Dynamic PDF generation",
+      description:
+        "Java/Spring MVC web app for generating dynamic PDFs from custom templates with data placeholders.\n\n[View Source on GitHub](https://github.com/akshay-bharadva/template-management-system)",
+      tags: ["Java", "Spring MVC", "PDF"],
+      link: "https://github.com/akshay-bharadva/template-management-system",
+      image: "",
     },
   ],
 
@@ -254,25 +246,25 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   services: [
     {
-      title: "Full Stack Development",
-      subtitle: "End-to-End Web Apps",
+      title: "LLM & RAG Systems",
+      subtitle: "LangChain · PGVector · OpenAI API",
       description:
-        "From MVP to production — I handle frontend, backend, database, and deployment so you don't have to stitch together three freelancers.",
-      tags: ["React", "Node.js", "PostgreSQL", "AWS"],
+        "End-to-end RAG pipeline design — ingestion, embedding, retrieval tuning, and LLM response generation. Built for production, not demos.",
+      tags: ["RAG pipelines", "Chatbots", "Voice AI", "Prompt engineering"],
     },
     {
-      title: "Technical Consulting",
-      subtitle: "Architecture & Code Strategy",
+      title: "Full-Stack Products",
+      subtitle: "React · Next.js · Spring Boot · Node",
       description:
-        "Struggling with a legacy codebase or planning a new system? I help teams make smart architectural decisions before they become expensive mistakes.",
-      tags: ["System Design", "Code Review", "Roadmapping"],
+        "AI integrated into real products — not just model wrappers. Frontend, backend, database, and deployment handled end to end.",
+      tags: ["Web apps", "APIs", "Auth", "Deployment"],
     },
     {
-      title: "Performance Audits",
-      subtitle: "Speed & Scalability",
+      title: "Security-Aware Engineering",
+      subtitle: "Splunk · Wireshark · Nessus",
       description:
-        "I'll profile your app, identify bottlenecks, and deliver a prioritized fix list with measurable impact — not vague suggestions.",
-      tags: ["Lighthouse", "Web Vitals", "Database Optimization"],
+        "I've studied the attack surfaces, not just the benchmarks. AI systems that ship, scale, and don't get compromised.",
+      tags: ["Threat detection", "Network security", "Audits"],
     },
   ],
 
@@ -281,24 +273,14 @@ const portfolioConfig = {
   // ---------------------------------------------------------------------------
   blogPosts: [
     {
-      title: "Why I Stopped Using useEffect for Data Fetching",
-      slug: "stop-using-useeffect-for-data-fetching",
+      title: 'RAG Lessons from Shipping "Hey Ami!" to Production',
+      slug: "rag-lessons-from-shipping-hey-ami",
       excerpt:
-        "useEffect works — but it's rarely the right tool for async data. Here's what I use instead and why it matters for UX.",
+        "Most RAG advice comes from demos. Here's what actually mattered when a voice chatbot had to answer real questions for real teams every day.",
       content:
-        "## The Problem\n\nEvery React developer has written this pattern...\n\n```typescript\nuseEffect(() => {\n  fetch('/api/data').then(res => setData(res.json()));\n}, []);\n```\n\nIt works. But it leaks, it races, and it doesn't scale.\n\n## What to Use Instead\n\nReact Query (TanStack Query) solves all of this out of the box — caching, deduplication, background refetch, loading states, and error handling.\n\n```typescript\nconst { data, isLoading } = useQuery({\n  queryKey: ['user'],\n  queryFn: () => fetch('/api/user').then(r => r.json()),\n});\n```\n\n### Why It's Better\n\n- No cleanup functions needed\n- Automatic deduplication across components\n- Stale-while-revalidate built in\n- Devtools that actually help",
-      tags: ["React", "Performance", "Frontend"],
+        "## Draft outline\n\n## The gap between a RAG demo and a RAG product\n\n## Retrieval quality is the product\n\n- Chunking strategy gotchas\n- PGVector tuning that actually moved the needle\n\n## Prompt engineering with non-technical users in the loop\n\n## What I'd do differently next time",
+      tags: ["RAG", "LangChain", "PGVector", "LLM"],
       showToc: true,
-    },
-    {
-      title: "The Docker Compose Setup I Use for Every Project",
-      slug: "docker-compose-setup-every-project",
-      excerpt:
-        "A battle-tested docker-compose.yml that gives you Postgres, Redis, and a Node API with hot reload in under 5 minutes.",
-      content:
-        "## The Stack\n\nEvery new project starts with the same foundation:\n\n- **PostgreSQL** — primary database\n- **Redis** — caching and queues\n- **Node.js API** — with nodemon hot reload\n\n## The Config\n\n```yaml\nversion: '3.8'\nservices:\n  db:\n    image: postgres:15\n    environment:\n      POSTGRES_USER: dev\n      POSTGRES_PASSWORD: dev\n      POSTGRES_DB: appdb\n  redis:\n    image: redis:7-alpine\n  api:\n    build: .\n    volumes:\n      - .:/app\n    depends_on:\n      - db\n      - redis\n```\n\nSave this, run `docker compose up`, and you're coding in minutes.",
-      tags: ["Docker", "DevOps", "Backend"],
-      showToc: false,
     },
   ],
 
@@ -309,27 +291,27 @@ const portfolioConfig = {
 
   lifeUpdates: [
     {
-      title: "Shipped Taskflow v1.0 🚀",
+      title: 'Deployed "Hey Ami!" at Amico 🚀',
       content:
-        "After 3 months of evenings and weekends, Taskflow is live. 200 beta signups in the first 48 hours. Genuinely didn't expect that.",
+        "Voice-activated enterprise RAG chatbot, live in production. Routine task handling time down 30% across sales and ops. Most AI projects never leave a Jupyter notebook — this one did.",
       category: "milestone" as const,
-      tags: ["Launch", "SaaS", "Dev"],
+      tags: ["RAG", "LLM", "Production"],
       isPinned: true,
     },
     {
-      title: "Started learning Rust",
+      title: "Completed Cybersecurity postgrad at Durham College",
       content:
-        "Three chapters into The Book. The borrow checker humbles you fast. Coming from TypeScript, the mental model shift is real — but I can already see why people love it.",
-      category: "thought" as const,
-      tags: ["Rust", "Learning"],
+        "Second postgraduate certificate done — network monitoring, penetration testing, security auditing. AI + security is a rare combination and that's the point.",
+      category: "milestone" as const,
+      tags: ["Cybersecurity", "Durham College"],
       isPinned: false,
     },
     {
-      title: "Spoke at NodeConf EU",
+      title: "Building Bookmarkly",
       content:
-        "Gave a 20-minute talk on migrating monoliths to microservices. Terrifying but worth it. Slides are up on my GitHub.",
-      category: "milestone" as const,
-      tags: ["Speaking", "Node.js", "Conference"],
+        "Local AI that organizes your bookmarks with on-device LLM inference. No cloud, no tracking — your browsing habits stay yours.",
+      category: "activity" as const,
+      tags: ["Local LLM", "Python", "Side project"],
       isPinned: false,
     },
   ],
