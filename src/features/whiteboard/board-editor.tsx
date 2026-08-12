@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { skipToken } from "@reduxjs/toolkit/query";
@@ -12,7 +13,6 @@ import {
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import ExcalidrawCanvasLazy from "./excalidraw-canvas-lazy";
@@ -36,32 +36,63 @@ interface BoardEditorProps {
  * once the scene has arrived — Excalidraw reads `initialData` a single time,
  * so mounting it against a not-yet-loaded board would leave it permanently
  * showing an empty scene.
+ *
+ * This is a hand-rolled panel rather than the shared `Dialog`, and it has to
+ * stay that way: Excalidraw appends its menus, export dialog, and color pickers
+ * to `document.body`, outside any React tree we control. A Radix modal dialog
+ * sets `pointer-events: none` on the body and `aria-hidden` on everything
+ * outside its own layer, so those popups render at their z-index of 1000 and
+ * then silently swallow every click. A plain portal leaves them alone.
  */
 export function BoardEditor({ boardId, open, onClose }: BoardEditorProps) {
   const { data: board, isLoading } = useGetWhiteboardQuery(
     boardId ?? skipToken,
   );
   const isReady = !boardId || (!isLoading && !!board);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="flex h-[100dvh] max-w-none flex-col gap-3 rounded-none border-0 p-3 sm:rounded-none">
-        <DialogTitle className="sr-only">
-          {boardId ? "Edit whiteboard" : "New whiteboard"}
-        </DialogTitle>
-        {isReady ? (
-          <BoardSurface
-            key={boardId ?? "new"}
-            board={boardId ? (board ?? null) : null}
-            onClose={onClose}
-          />
-        ) : (
-          <div className="flex flex-1 items-center justify-center">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+  // Focus the panel, not a control inside it: the gallery card that opened the
+  // editor is now behind an opaque overlay, and focusing the title input would
+  // swallow the canvas keyboard shortcuts before the user has drawn anything.
+  useEffect(() => {
+    if (open) panelRef.current?.focus();
+  }, [open]);
+
+  // The panel covers the viewport; letting the shell behind it scroll would
+  // only move content the user cannot see.
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={boardId ? "Edit whiteboard" : "New whiteboard"}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex flex-col gap-3 bg-background p-3 outline-none"
+    >
+      {isReady ? (
+        <BoardSurface
+          key={boardId ?? "new"}
+          board={boardId ? (board ?? null) : null}
+          onClose={onClose}
+        />
+      ) : (
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      )}
+    </div>,
+    document.body,
   );
 }
 
@@ -162,6 +193,8 @@ function BoardSurface({
           className="h-9 max-w-xs border-0 bg-transparent px-0 font-heading text-lg font-semibold focus-visible:ring-0"
         />
         <div className="ml-auto flex items-center gap-2">
+          {/* Closing is deliberately click-only: Escape belongs to the canvas,
+              which uses it to dismiss its own dialogs and drop the selection. */}
           <Button
             type="button"
             variant="ghost"

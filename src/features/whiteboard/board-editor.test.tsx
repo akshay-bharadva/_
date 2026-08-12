@@ -120,6 +120,37 @@ describe("BoardEditor", () => {
     expect(screen.queryByTestId("canvas")).not.toBeInTheDocument();
   });
 
+  it("renders nothing while closed", () => {
+    render(<BoardEditor boardId={null} open={false} onClose={vi.fn()} />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("portals the panel out of the caller's subtree", () => {
+    // Excalidraw appends its menus and dialogs to document.body. A Radix modal
+    // would set pointer-events: none there and make them unclickable, so this
+    // panel is a plain portal — if it ever regains a modal wrapper, the canvas
+    // menu breaks.
+    const { container } = render(
+      <BoardEditor boardId={null} open onClose={vi.fn()} />,
+    );
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("hidden");
+  });
+
+  it("releases the scroll lock when it closes", () => {
+    const { unmount } = render(
+      <BoardEditor boardId={null} open onClose={vi.fn()} />,
+    );
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe("");
+  });
+
   it("mounts a blank canvas immediately for a new board", () => {
     render(<BoardEditor boardId={null} open onClose={vi.fn()} />);
 
