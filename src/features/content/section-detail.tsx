@@ -31,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { NovelEditor } from "@/components/admin/novel-editor";
+import NovelEditor from "@/components/admin/novel-editor";
 import { LAYOUT_OPTIONS } from "@/features/content/layout-registry";
 import { safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/utils";
