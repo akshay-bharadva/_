@@ -13,7 +13,7 @@ export const adminApi = createApi({
   baseQuery: fakeBaseQuery(),
   tagTypes: [
     "Notes",
-    "InkNotes",
+    "Whiteboards",
     "Tasks",
     "Transactions",
     "Recurring",

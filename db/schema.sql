@@ -285,26 +285,28 @@ CREATE POLICY "Admin manage notes" ON notes FOR ALL USING (auth.uid() = user_id 
 DROP TRIGGER IF EXISTS update_notes_updated_at ON notes;
 CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Handwritten (Apple Pencil) sketches. `strokes` holds the full vector record:
--- [{ points: [[x, y, pressure], ...], color, size, tool }]. `preview` is a
--- downsampled copy of the same shape, so the sketch grid can render thumbnails
--- without fetching every point of every sketch.
-CREATE TABLE IF NOT EXISTS ink_notes (
+-- Excalidraw whiteboards. `elements`, `app_state`, and `files` are the scene
+-- exactly as the library serializes it, so a board always round-trips.
+-- `preview` is an SVG string rendered at save time, so the gallery can show
+-- thumbnails without loading a single scene.
+CREATE TABLE IF NOT EXISTS whiteboards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
   title TEXT,
-  strokes JSONB NOT NULL DEFAULT '[]'::jsonb,
-  preview JSONB NOT NULL DEFAULT '[]'::jsonb,
+  elements JSONB NOT NULL DEFAULT '[]'::jsonb,
+  app_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+  files JSONB NOT NULL DEFAULT '{}'::jsonb,
+  preview TEXT,
   tags TEXT[],
   is_pinned BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
-ALTER TABLE ink_notes ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "Admin manage ink notes" ON ink_notes;
-CREATE POLICY "Admin manage ink notes" ON ink_notes FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
-DROP TRIGGER IF EXISTS update_ink_notes_updated_at ON ink_notes;
-CREATE TRIGGER update_ink_notes_updated_at BEFORE UPDATE ON ink_notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+ALTER TABLE whiteboards ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admin manage whiteboards" ON whiteboards;
+CREATE POLICY "Admin manage whiteboards" ON whiteboards FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
+DROP TRIGGER IF EXISTS update_whiteboards_updated_at ON whiteboards;
+CREATE TRIGGER update_whiteboards_updated_at BEFORE UPDATE ON whiteboards FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TABLE IF NOT EXISTS events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

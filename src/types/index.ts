@@ -152,26 +152,24 @@ export interface Note {
   updated_at?: string;
 }
 
-/** A single sampled pointer position: x, y, and pen pressure (0–1). */
-export type InkPoint = [number, number, number];
-
-/** Palette key rather than a literal color, so sketches follow the theme. */
-export type InkColor = "ink" | "accent" | "signal" | "note" | "wash";
-
-export interface InkStroke {
-  points: InkPoint[];
-  color: InkColor;
-  size: number;
-}
-
-export interface InkNote {
+/**
+ * An Excalidraw scene. `elements`, `app_state`, and `files` are stored exactly
+ * as the library hands them over, so a board always round-trips; they are
+ * deliberately loose (`unknown[]` / record) rather than mirroring Excalidraw's
+ * internal types, which change between minor versions.
+ */
+export interface Whiteboard {
   id: string;
   user_id?: string;
   title?: string | null;
-  /** Full vector record; omitted by the list query, loaded when editing. */
-  strokes?: InkStroke[];
-  /** Downsampled copy of `strokes` for grid thumbnails. */
-  preview?: InkStroke[];
+  /** Scene elements; omitted by the list query, loaded when a board is opened. */
+  elements?: unknown[];
+  /** Viewport and tool state — scroll, zoom, background, active colors. */
+  app_state?: Record<string, unknown> | null;
+  /** Binary files (pasted images) keyed by file id. */
+  files?: Record<string, unknown> | null;
+  /** SVG thumbnail rendered at save time so the gallery needs no scene data. */
+  preview?: string | null;
   tags?: string[] | null;
   is_pinned?: boolean;
   created_at?: string;

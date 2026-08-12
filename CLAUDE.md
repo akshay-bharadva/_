@@ -43,7 +43,7 @@ All API calls check if Supabase is configured. If not, mock data from `src/lib/f
 
 - **App Router** (`src/app/`), static export.
 - **Public** — route group `src/app/(public)/` with shared chrome (`components/layout/public-chrome`): `/`, `/about`, `/projects`, `/showcase`, `/contact`, `/updates`, `/blog`, `/blog/view` (`?slug=`, static-export-friendly), `/[...slug]` (CMS catch-all via `generateStaticParams`). Plus `src/app/not-found.tsx`.
-- **Admin** — `src/app/admin/`: `(auth)` group (login, signup, setup-mfa, mfa-challenge) with no guard; `(protected)` group whose `layout.tsx` runs the guard + Personal OS shell and wraps dashboard + 14 modules (tasks, habits, learning, calendar, notes, finance, inventory, content, blog, updates/life-updates, navigation, assets, settings, security).
+- **Admin** — `src/app/admin/`: `(auth)` group (login, signup, setup-mfa, mfa-challenge) with no guard; `(protected)` group whose `layout.tsx` runs the guard + Personal OS shell and wraps dashboard + 15 modules (tasks, habits, learning, calendar, notes, whiteboard, finance, inventory, content, blog, updates/life-updates, navigation, assets, settings, security).
 - **Auth guard**: `src/features/admin-shell/use-admin-guard.ts`, invoked once by the `(protected)` layout (replaces the old per-page `withAdminPage` HOC). `src/hooks/use-auth-guard.ts` now only exports the read-only `useSupabaseSession` for chrome.
 - **Feature-first UI**: page-specific logic lives in `src/features/<domain>/` (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell); `src/components/layout/` holds shared chrome; `src/components/ui/` the primitives. Admin _module internals_ still live in `src/components/admin/` (v1 components, token-styled so they inherit the new theme).
 
@@ -51,9 +51,14 @@ All API calls check if Supabase is configured. If not, mock data from `src/lib/f
 
 Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form via `@hookform/resolvers`. Types are inferred from schemas with `z.infer<>`.
 
-### Handwritten sketches (`src/features/ink/`)
+### Whiteboard (`src/features/whiteboard/`)
 
-Apple Pencil surface mounted into `/admin/notes` via `SketchStrip`, backed by the `ink_notes` table and `inkApi`. Strokes are vectors rendered with `perfect-freehand` — deliberately not a canvas library, to keep the bundle intact. Three constraints to preserve: stroke colors are palette **keys** (`InkColor`) resolving to theme CSS vars, never hex, so sketches follow the active preset; list queries read the downsampled `preview` column and project away `strokes`; the editor loads through `ink-editor-lazy` so typed notes don't pay for it.
+Excalidraw-backed drawing section at `/admin/whiteboard`, backed by the `whiteboards` table and `whiteboardApi`. Four constraints to preserve:
+
+- **Excalidraw is client-only and code-split.** It touches `window` on import, so it is reached exclusively through `excalidraw-canvas-lazy` (`next/dynamic`, `ssr: false`). That loader also sets `window.EXCALIDRAW_ASSET_PATH` _before_ awaiting the import, because fonts register during module evaluation. Nothing outside this route may import `@excalidraw/excalidraw` at the top level — it is ~1 MB against a ~90 kB shared bundle.
+- **Fonts are copied, not committed.** `scripts/copy-excalidraw-assets.mjs` (wired to `predev`/`prebuild`) copies 8 Latin families into the gitignored `public/excalidraw/fonts`. Xiaolai (13 MB, CJK) is skipped and falls back to the library's CDN.
+- **The scene is stored in three columns.** `scene-io.ts` maps `serializeAsJSON` output → `elements`/`app_state`/`files` and back, stripping session-only appState (selection, collaborators, `theme`). The gallery query projects those columns away and reads only the SVG `preview`, which is rendered through an `<img>` data URL so it can't execute anything.
+- **The canvas follows the app theme** by reading the lightness of the resolved `--background` token (`whiteboard-theme.ts`), not a list of preset names — that keeps all 32 presets plus custom themes working.
 
 ### Styling
 
@@ -65,7 +70,7 @@ Apple Pencil surface mounted into `/admin/notes` via `SketchStrip`, backed by th
 ### Key Directories
 
 - `src/app/` — App Router route tree (`(public)`, `admin/(auth)`, `admin/(protected)`), root `layout.tsx` + `providers.tsx`.
-- `src/features/` — feature-first UI (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell, plus the admin modules and `ink`).
+- `src/features/` — feature-first UI (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell, plus the admin modules and `whiteboard`).
 - `src/components/layout/` — shared public/admin chrome. `src/components/ui/` — Shadcn UI primitives (40+ components).
 - `src/components/admin/` — Admin module internals (~80 files), organized by feature (tasks/, finance/, habits/, learning/, etc.); rendered inside the new admin shell.
 - `src/lib/` — Config, constants, utilities, Zod schemas, fallback data

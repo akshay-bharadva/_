@@ -156,22 +156,19 @@ export const noteSchema = z.object({
 
 export type NoteFormValues = z.infer<typeof noteSchema>;
 
-export const inkPointSchema = z.tuple([z.number(), z.number(), z.number()]);
-
-export const inkStrokeSchema = z.object({
-  points: z.array(inkPointSchema).min(1),
-  color: z.enum(["ink", "accent", "signal", "note", "wash"]),
-  size: z.number().positive(),
-});
-
-export const inkNoteSchema = z.object({
+/**
+ * Only the fields the user edits are validated. The Excalidraw scene itself
+ * (`elements`/`app_state`/`files`) is the library's own output and is stored
+ * verbatim — re-validating its shape here would break on every upstream
+ * element-format change without protecting anything.
+ */
+export const whiteboardSchema = z.object({
   title: optionalString,
-  strokes: z.array(inkStrokeSchema),
   tags: z.array(z.string()).optional().nullable(),
   is_pinned: z.boolean().optional(),
 });
 
-export type InkNoteFormValues = z.infer<typeof inkNoteSchema>;
+export type WhiteboardFormValues = z.infer<typeof whiteboardSchema>;
 
 // =============================================================================
 // LIFE UPDATE SCHEMAS

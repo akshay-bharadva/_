@@ -129,40 +129,49 @@ New section-renderer with the same `layout_style` contract (21 layouts).
       `font-mono` headings that no longer exist, and skipped `typo-default`).
       **README** updated for the App Router, 32 themes, the `features/` tree,
       the test commands, and the DB-level MFA/single-admin note.
-- [x] **Post-migration: handwritten sketches** — the first feature written new
-      for v2 rather than ported. `src/features/ink/` adds an Apple Pencil surface
-      as a second creation path in `/admin/notes`, for capture that is faster by
-      hand than by keyboard. Built on `perfect-freehand` (~4 kB) rather than
-      tldraw/Excalidraw (~1 MB), which would have undone the whole splitting
-      phase. New `ink_notes` table on the standard private-admin RLS shape
-      (`auth.uid() = user_id AND public.is_aal2()`); strokes are stored as
-      vectors plus a downsampled `preview` column, and the list query projects
-      away `strokes` so the thumbnail strip never fetches full records. Colors
-      are palette keys resolving to theme CSS vars, so sketches survive all 32
-      presets. The editor sits behind `next/dynamic`, so typed notes do not pay
-      for it — `/admin/notes` 13.3 kB, shared bundle unchanged at 88.4 kB.
-      Scope is deliberately Phase 1: fixed-size canvas, pen + eraser, five
-      colors, three widths, undo/redo. No pan, zoom, multi-page, or lasso.
-      71 colocated tests: the stroke geometry, the pointer arbitration (palm
-      rejection, coalesced sampling, pressure fallback, eraser identity), and
-      RTL suites over the two components that can lose work — the editor
-      (surface withheld until strokes load, save payload, dirty-close confirm,
-      failed save keeps the sketch open) and the strip (open/delete routing).
+- [x] **Post-migration: whiteboard** — the first feature written new for v2
+      rather than ported. A drawing surface for capture that is faster by hand
+      than by keyboard. Shipped first as `src/features/ink/`, a bespoke
+      `perfect-freehand` canvas embedded in `/admin/notes`, chosen to protect
+      the bundle; replaced at the owner's direction with **Excalidraw** as its
+      own section (`/admin/whiteboard`, nav entry under Life), which trades
+      ~1 MB of lazily-loaded JS for shapes, text, images, libraries, and export
+      that the bespoke surface would have taken months to reach. The bundle
+      concern is answered by isolation rather than by avoidance: the library is
+      reached only through `excalidraw-canvas-lazy` (`next/dynamic`,
+      `ssr: false`), the editor mounts only while open, and the shared bundle is
+      unchanged at 90.9 kB with `/admin/whiteboard` at 241 kB first load.
+      New `whiteboards` table on the standard private-admin RLS shape
+      (`auth.uid() = user_id AND public.is_aal2()`); a scene is stored as
+      `elements`/`app_state`/`files` plus an SVG `preview`, and the gallery query
+      projects the three heavy columns away. `scene-io.ts` strips session-only
+      appState (selection, collaborators, `theme`) in both directions, so a board
+      never restores someone's cursor and always follows the app theme — which is
+      derived from the lightness of the resolved `--background` token, so all 32
+      presets and custom themes work without a hardcoded name list. Previews
+      render through an `<img>` data URL, which cannot execute script, and are
+      capped at 200 kB with a placeholder fallback. Fonts are self-hosted via
+      `scripts/copy-excalidraw-assets.mjs` (`predev`/`prebuild`) into a gitignored
+      `public/excalidraw/`; the 13 MB CJK family is skipped and falls back to the
+      library CDN. The `ink_notes` table is left in place — dropping it is the
+      owner's call.
 
 ## Current build/test state (as of latest commit)
 
-- `npm run build` (static export) green; 31 routes, public shared JS ~88 kB
+- `npm run build` (static export) green; 32 routes, public shared JS ~91 kB
   (was ~292 kB under Pages Router — admin bundle no longer loaded on public pages).
-  Heaviest admin route is `/admin/finance` at 355 kB; heaviest public route is
-  `/contact` at 295 kB. No route exceeds 355 kB.
-- `npm run test` 419 passing (31 files); `npx tsc --noEmit` clean; lint clean.
+  Heaviest admin route is `/admin/finance` at 358 kB; heaviest public route is
+  `/contact` at 298 kB. No route exceeds 358 kB — Excalidraw is not counted in
+  `/admin/whiteboard`'s 241 kB because it loads only when a board is opened.
+- `npm run test` 383 passing (30 files); `npx tsc --noEmit` clean; lint clean.
   Post-phase additions: `habit-utils` (streak/window math), `date-utils`
   (`parseLocalDate`, the timezone guard under warranty/calendar/finance),
   `color-utils`, `admin-shell/nav-config`, `admin-shell/use-admin-guard`
   (all four guard exits incl. the aal1 rejection), `storage-utils`, and the
   three side-effecting hooks: `assets/use-asset-operations` (storage rollback
   on a failed DB insert), `blog-admin/use-blog-image-upload`,
-  `home/use-visit-notifier`, the four `features/ink` suites, and all four
+  `home/use-visit-notifier`, the `features/whiteboard` suites (scene
+  round-tripping, theme derivation, gallery card), and all four
   `features/admin-auth` screens — the AAL routing table in `login-form` and
   `mfa-challenge`, TOTP enrollment in `mfa-setup`, and the bootstrap-only
   `signup-form`. Those are the client half of the auth contract; the
@@ -184,7 +193,10 @@ New section-renderer with the same `layout_style` contract (21 layouts).
   (`Cannot find module './chunks/vendor-chunks/@supabase.js'`, or a route
   reported missing during "Collecting page data"). Clearing `.next` fixes it;
   cold builds are reproducibly green, so CI is unaffected.
-- **Sketches need real hardware.** The `use-ink-canvas` tests pin the logic —
-  palm rejection, coalesced sampling, pressure fallback — but none of it has
-  been exercised on an actual iPad + Pencil. Verify before building anything
-  on top of it (Phase 2: multi-page, pan/zoom, lasso; Phase 3: whiteboard).
+- **The whiteboard needs real hardware.** Pencil input, palm rejection, and
+  pressure are now Excalidraw's problem rather than ours, but nothing has been
+  exercised on an actual iPad + Pencil. Verify before building on top of it.
+- **`ink_notes` is orphaned.** The table and its RLS policy are still in the
+  database for anyone who applied the earlier schema; `db/schema.sql` no longer
+  creates it. Dropping it is destructive and deliberately left manual:
+  `DROP TABLE IF EXISTS ink_notes;`.
