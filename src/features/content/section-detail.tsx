@@ -428,7 +428,7 @@ export function SectionDetail({
                   onChange={setContent}
                   placeholder="Write your section content here…"
                   minHeight="500px"
-                  className="prose-sm sm:prose max-w-none"
+                  className="prose-sm sm:prose min-w-full"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
