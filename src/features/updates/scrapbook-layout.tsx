@@ -58,9 +58,9 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
         </div>
 
         {update.title && (
-          <h2 className="mt-2 font-tahu text-2xl leading-tight">
+          <div className="mt-2 font-tahu text-2xl leading-tight">
             {update.title}
-          </h2>
+          </div>
         )}
         {update.content && (
           <div className="markdown mt-1.5 text-sm text-muted-foreground">
@@ -76,7 +76,7 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
             {relativeDate(update.created_at)}
           </time>
           {update.tags && update.tags.length > 0 && (
-            <ul className="flex flex-wrap gap-1">
+            <ul className="flex flex-wrap gap-1 list-none">
               {update.tags.slice(0, 3).map((tag) => (
                 <li
                   key={tag}
