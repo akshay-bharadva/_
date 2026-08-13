@@ -117,7 +117,7 @@ export default function SectionRenderer({
         >
           {typeof index === "number" && (
             <span aria-hidden className="section-label mr-3 align-middle text-primary">
-              {String(index + 1).padStart(2, "0")} /
+              ~ /
             </span>
           )}
           {section.title}

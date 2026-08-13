@@ -62,11 +62,14 @@ export function TimelineLayout({ items }: LayoutProps) {
         <li key={item.id} className="relative min-w-0">
           <span
             aria-hidden
-            className="absolute -left-[31px] top-1.5 size-2.5 rounded-full border-2 border-background bg-primary"
+            className="absolute -left-[25px] top-1.5 size-2.5 -translate-x-1/2 rounded-full border-2 border-background bg-primary"
           />
           <ItemDates from={item.date_from} to={item.date_to} />
           <h3 className="mt-1 font-heading font-semibold [overflow-wrap:anywhere]">
-            <TextLink href={item.link_url} className="hover:text-primary">
+            <TextLink
+              href={item.link_url}
+              className="rounded-sm hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
               {item.title}
             </TextLink>
           </h3>
