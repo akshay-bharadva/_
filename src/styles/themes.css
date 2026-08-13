@@ -1099,6 +1099,13 @@ select {
   --chart-5: 0 75% 50%;
 }
 
+
+/* =============================================================================
+   ADDED THEMES — see THEME-AUDIT.md for the palette sources and the
+   contrast figures every one of these was solved against.
+   ============================================================================= */
+
+/* ===== GAP-FILLERS — completing pairs the set already half-had ===== */
 /* --- Solarized Dark — Ethan Schoonover's base03 canvas --- */
 .theme-solarized-dark {
   --background: 192 100% 11%;
@@ -1421,6 +1428,211 @@ select {
   --chart-3: 31 85% 38%;
   --chart-4: 330 60% 45%;
   --chart-5: 199 78% 34%;
+}
+
+/* ===== NEO-BRUTALISM PALETTES — light variants of the theme you liked ===== */
+/* --- Neo-Brutalism Gumroad — the canonical neobrutalist SaaS pink --- */
+.theme-neobrutalism-gumroad {
+  --background: 60 12% 96%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 313 90% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 313 100% 78%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 60 10% 91%;
+  --muted-foreground: 0 0% 27%;
+  --accent: 313 100% 90%;
+  --accent-foreground: 313 90% 30%;
+  --destructive: 0 84% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 8%;
+  --input: 0 0% 45%;
+  --ring: 313 90% 42%;
+  --radius: 0.75rem;
+
+  --chart-1: 313 90% 45%;
+  --chart-2: 196 90% 40%;
+  --chart-3: 45 95% 35%;
+  --chart-4: 265 75% 50%;
+  --chart-5: 150 70% 32%;
+}
+/* --- Neo-Brutalism Bauhaus — red, blue, yellow, hard geometry --- */
+.theme-neobrutalism-bauhaus {
+  --background: 45 40% 95%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 212 100% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 48 100% 50%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 45 25% 90%;
+  --muted-foreground: 0 0% 32%;
+  --accent: 48 100% 88%;
+  --accent-foreground: 212 100% 26%;
+  --destructive: 357 85% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 8%;
+  --input: 0 0% 45%;
+  --ring: 212 100% 33%;
+  --radius: 0rem;
+
+  --chart-1: 212 100% 38%;
+  --chart-2: 357 85% 45%;
+  --chart-3: 45 100% 34%;
+  --chart-4: 0 0% 12%;
+  --chart-5: 175 70% 30%;
+}
+/* --- Neo-Brutalism Memphis — 80s Milano pop, cyan and hot pink --- */
+.theme-neobrutalism-memphis {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 330 95% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 190 100% 50%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 195 30% 93%;
+  --muted-foreground: 0 0% 31%;
+  --accent: 52 100% 62%;
+  --accent-foreground: 0 0% 8%;
+  --destructive: 12 88% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 8%;
+  --input: 0 0% 45%;
+  --ring: 330 95% 42%;
+  --radius: 0.5rem;
+
+  --chart-1: 330 95% 45%;
+  --chart-2: 190 95% 35%;
+  --chart-3: 52 95% 33%;
+  --chart-4: 265 80% 52%;
+  --chart-5: 140 70% 32%;
+}
+/* --- Neo-Brutalism Electric — the 2026 'polished brutalism' read --- */
+.theme-neobrutalism-electric {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 202 100% 36%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 186 100% 50%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 200 25% 93%;
+  --muted-foreground: 0 0% 32%;
+  --accent: 186 100% 88%;
+  --accent-foreground: 202 100% 26%;
+  --destructive: 14 90% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 8%;
+  --input: 0 0% 45%;
+  --ring: 202 100% 36%;
+  --radius: 0.5rem;
+
+  --chart-1: 202 100% 40%;
+  --chart-2: 14 90% 48%;
+  --chart-3: 48 95% 35%;
+  --chart-4: 280 70% 50%;
+  --chart-5: 160 75% 30%;
+}
+/* --- Neo-Brutalism Butter — butter yellow and tangerine, softer edges --- */
+.theme-neobrutalism-butter {
+  --background: 48 75% 93%;
+  --foreground: 24 40% 12%;
+  --card: 48 90% 97%;
+  --card-foreground: 24 40% 12%;
+  --popover: 48 90% 97%;
+  --popover-foreground: 24 40% 12%;
+  --primary: 18 88% 40%;
+  --primary-foreground: 48 90% 97%;
+  --secondary: 45 100% 62%;
+  --secondary-foreground: 24 40% 12%;
+  --muted: 46 45% 88%;
+  --muted-foreground: 24 20% 34%;
+  --accent: 30 90% 86%;
+  --accent-foreground: 18 88% 30%;
+  --destructive: 0 78% 40%;
+  --destructive-foreground: 48 90% 97%;
+  --border: 24 45% 12%;
+  --input: 24 20% 45%;
+  --ring: 18 88% 40%;
+  --radius: 1rem;
+
+  --chart-1: 18 88% 44%;
+  --chart-2: 152 60% 28%;
+  --chart-3: 42 95% 36%;
+  --chart-4: 340 60% 42%;
+  --chart-5: 200 70% 34%;
+}
+/* --- Neo-Brutalism Acid — Y2K lime and violet --- */
+.theme-neobrutalism-acid {
+  --background: 70 35% 96%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 272 85% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 75 95% 55%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 70 22% 91%;
+  --muted-foreground: 0 0% 32%;
+  --accent: 75 90% 85%;
+  --accent-foreground: 272 85% 32%;
+  --destructive: 336 85% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 8%;
+  --input: 0 0% 45%;
+  --ring: 272 85% 45%;
+  --radius: 0.75rem;
+
+  --chart-1: 272 85% 50%;
+  --chart-2: 75 85% 32%;
+  --chart-3: 336 85% 48%;
+  --chart-4: 192 90% 38%;
+  --chart-5: 32 95% 42%;
+}
+/* --- Neo-Brutalism Teal — 2026's transformative teal with coral --- */
+.theme-neobrutalism-teal {
+  --background: 0 0% 100%;
+  --foreground: 192 45% 10%;
+  --card: 180 25% 98%;
+  --card-foreground: 192 45% 10%;
+  --popover: 180 25% 98%;
+  --popover-foreground: 192 45% 10%;
+  --primary: 178 100% 25%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 172 75% 58%;
+  --secondary-foreground: 192 45% 10%;
+  --muted: 180 20% 93%;
+  --muted-foreground: 192 15% 32%;
+  --accent: 12 90% 88%;
+  --accent-foreground: 8 85% 32%;
+  --destructive: 8 85% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 192 45% 10%;
+  --input: 192 15% 45%;
+  --ring: 178 100% 25%;
+  --radius: 0.5rem;
+
+  --chart-1: 178 100% 28%;
+  --chart-2: 12 88% 48%;
+  --chart-3: 45 95% 36%;
+  --chart-4: 262 70% 50%;
+  --chart-5: 210 85% 38%;
 }
 
 /* ===== ACCESSIBLE-FIRST — built to AAA body text, AA on every accent ===== */
