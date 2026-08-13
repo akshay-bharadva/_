@@ -29,14 +29,14 @@
   --accent-foreground: 251 65% 35%;
   --destructive: 0 70% 42%;
   --destructive-foreground: 0 0% 100%;
-  --border: 45 12% 85%;
-  --input: 45 12% 85%;
+  --border: 45 12% 75%;
+  --input: 45 12% 52%;
   --ring: 251 65% 48%;
   --radius: 0.5rem;
 
   --chart-1: 251 65% 52%;
   --chart-2: 172 60% 35%;
-  --chart-3: 35 90% 45%;
+  --chart-3: 35 90% 41%;
   --chart-4: 340 65% 50%;
   --chart-5: 210 60% 45%;
 }
@@ -59,8 +59,8 @@
   --accent-foreground: 252 90% 80%;
   --destructive: 0 75% 62%;
   --destructive-foreground: 240 6% 9%;
-  --border: 240 5% 19%;
-  --input: 240 5% 16%;
+  --border: 240 5% 27%;
+  --input: 240 5% 44%;
   --ring: 252 90% 74%;
   --radius: 0.5rem;
 
@@ -213,10 +213,10 @@ select {
   --muted-foreground: 215 12% 55%;
   --accent: 200 80% 55%;
   --accent-foreground: 220 20% 5%;
-  --destructive: 0 73% 55%;
+  --destructive: 0 73% 59%;
   --destructive-foreground: 210 20% 4%;
-  --border: 220 12% 18%;
-  --input: 220 15% 13%;
+  --border: 220 12% 25%;
+  --input: 220 15% 42%;
   --ring: 200 100% 50%;
   --radius: 0.5rem;
 
@@ -241,18 +241,18 @@ select {
   --muted: 210 17% 95%;
   --muted-foreground: 213 10% 40%;
   --accent: 137 55% 33%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 99%;
   --destructive: 0 73% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 210 17% 90%;
-  --input: 210 17% 95%;
+  --border: 210 17% 77%;
+  --input: 210 17% 56%;
   --ring: 212 92% 45%;
   --radius: 0.375rem;
-  --chart-1: var(--primary);
-  --chart-2: var(--accent);
-  --chart-3: var(--foreground);
-  --chart-4: var(--muted-foreground);
-  --chart-5: var(--destructive);
+  --chart-1: 212 92% 45%;
+  --chart-2: 137 66% 28%;
+  --chart-3: 24 100% 37%;
+  --chart-4: 356 72% 47%;
+  --chart-5: 262 68% 59%;
 }
 
 .theme-github-dark {
@@ -262,25 +262,25 @@ select {
   --card-foreground: 213 15% 78%;
   --popover: 210 11% 7%;
   --popover-foreground: 213 15% 78%;
-  --primary: 212 92% 45%;
-  --primary-foreground: 210 11% 95.5%;
+  --primary: 212 92% 55%;
+  --primary-foreground: 210 11% 7%;
   --secondary: 210 10% 15%;
   --secondary-foreground: 213 15% 78%;
   --muted: 210 10% 15%;
   --muted-foreground: 215 12% 60%;
   --accent: 137 55% 55%;
   --accent-foreground: 210 11% 7%;
-  --destructive: 0 73% 60%;
-  --destructive-foreground: 213 15% 10.5%;
-  --border: 210 10% 19%;
-  --input: 210 10% 15%;
-  --ring: 212 92% 45%;
+  --destructive: 0 73% 61%;
+  --destructive-foreground: 210 11% 7%;
+  --border: 210 10% 26%;
+  --input: 210 10% 42%;
+  --ring: 212 92% 55%;
   --radius: 0.375rem;
-  --chart-1: var(--primary);
-  --chart-2: var(--accent);
-  --chart-3: var(--foreground);
-  --chart-4: var(--muted-foreground);
-  --chart-5: var(--destructive);
+  --chart-1: 215 100% 67%;
+  --chart-2: 137 55% 49%;
+  --chart-3: 44 75% 48%;
+  --chart-4: 4 92% 64%;
+  --chart-5: 266 85% 70%;
 }
 
 /* --- Dracula --- */
@@ -296,13 +296,13 @@ select {
   --secondary: 230 14% 25%;
   --secondary-foreground: 60 30% 96%;
   --muted: 230 14% 25%;
-  --muted-foreground: 228 8% 66%;
+  --muted-foreground: 228 8% 67%;
   --accent: 135 94% 65%;
   --accent-foreground: 231 15% 18%;
-  --destructive: 0 100% 67%;
-  --destructive-foreground: 60 30% 13.5%;
-  --border: 230 12% 28%;
-  --input: 230 14% 25%;
+  --destructive: 0 100% 71%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 230 12% 35%;
+  --input: 230 14% 53%;
   --ring: 265 89% 78%;
   --radius: 0.5rem;
 
@@ -321,26 +321,26 @@ select {
   --card-foreground: 219 28% 88%;
   --popover: 220 17% 25%;
   --popover-foreground: 219 28% 88%;
-  --primary: 213 32% 52%;
+  --primary: 213 32% 68%;
   --primary-foreground: 220 16% 8.5%;
   --secondary: 220 16% 28%;
   --secondary-foreground: 219 28% 88%;
   --muted: 220 16% 28%;
-  --muted-foreground: 219 15% 70.5%;
+  --muted-foreground: 219 15% 71.5%;
   --accent: 179 25% 65%;
   --accent-foreground: 220 16% 22%;
-  --destructive: 354 42% 56%;
+  --destructive: 354 42% 72%;
   --destructive-foreground: 219 28% 7.5%;
-  --border: 220 16% 32%;
-  --input: 220 16% 28%;
-  --ring: 213 32% 52%;
+  --border: 220 16% 39%;
+  --input: 220 16% 56%;
+  --ring: 213 32% 68%;
   --radius: 0.5rem;
 
-  --chart-1: 213 32% 52%;
+  --chart-1: 213 32% 56%;
   --chart-2: 179 25% 65%;
   --chart-3: 92 28% 65%;
   --chart-4: 311 20% 63%;
-  --chart-5: 354 42% 56%;
+  --chart-5: 354 42% 61%;
 }
 
 /* --- Tokyo Night --- */
@@ -356,13 +356,13 @@ select {
   --secondary: 234 17% 19%;
   --secondary-foreground: 224 20% 78%;
   --muted: 234 17% 19%;
-  --muted-foreground: 227 12% 59.5%;
+  --muted-foreground: 227 12% 60.5%;
   --accent: 266 60% 68%;
   --accent-foreground: 235 21% 13%;
-  --destructive: 348 70% 60%;
-  --destructive-foreground: 224 20% 12%;
-  --border: 234 15% 23%;
-  --input: 234 17% 19%;
+  --destructive: 348 70% 64%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 234 15% 31%;
+  --input: 234 17% 50%;
   --ring: 218 67% 65%;
   --radius: 0.5rem;
 
@@ -386,13 +386,13 @@ select {
   --secondary: 240 18% 19%;
   --secondary-foreground: 227 68% 88%;
   --muted: 240 18% 19%;
-  --muted-foreground: 228 24% 61.5%;
+  --muted-foreground: 228 24% 62.5%;
   --accent: 189 71% 73%;
   --accent-foreground: 240 21% 12%;
   --destructive: 343 81% 75%;
   --destructive-foreground: 240 21% 12%;
-  --border: 240 17% 23%;
-  --input: 240 18% 19%;
+  --border: 240 17% 31%;
+  --input: 240 18% 50%;
   --ring: 267 84% 81%;
   --radius: 0.5rem;
 
@@ -416,13 +416,13 @@ select {
   --secondary: 220 13% 24%;
   --secondary-foreground: 219 14% 76%;
   --muted: 220 13% 24%;
-  --muted-foreground: 219 10% 65.5%;
+  --muted-foreground: 219 10% 66.5%;
   --accent: 95 38% 62%;
   --accent-foreground: 220 13% 18%;
-  --destructive: 355 65% 65%;
-  --destructive-foreground: 219 14% 17%;
-  --border: 220 13% 28%;
-  --input: 220 13% 24%;
+  --destructive: 355 65% 70%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 220 13% 35%;
+  --input: 220 13% 52%;
   --ring: 207 82% 66%;
   --radius: 0.5rem;
 
@@ -446,13 +446,13 @@ select {
   --secondary: 248 18% 19%;
   --secondary-foreground: 245 50% 91%;
   --muted: 248 18% 19%;
-  --muted-foreground: 249 12% 60.5%;
+  --muted-foreground: 249 12% 61.5%;
   --accent: 190 30% 70%;
   --accent-foreground: 249 22% 12%;
   --destructive: 343 76% 68%;
-  --destructive-foreground: 245 50% 29%;
-  --border: 248 16% 24%;
-  --input: 248 18% 19%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 248 16% 31%;
+  --input: 248 18% 50%;
   --ring: 2 55% 83%;
   --radius: 0.5rem;
 
@@ -460,7 +460,7 @@ select {
   --chart-2: 190 30% 70%;
   --chart-3: 343 76% 68%;
   --chart-4: 35 60% 72%;
-  --chart-5: 189 43% 73%;
+  --chart-5: 267 57% 78%;
 }
 
 /* --- Monokai --- */
@@ -476,13 +476,13 @@ select {
   --secondary: 70 8% 22%;
   --secondary-foreground: 60 12% 82%;
   --muted: 70 8% 22%;
-  --muted-foreground: 60 5% 63.5%;
+  --muted-foreground: 60 5% 64.5%;
   --accent: 190 81% 67%;
   --accent-foreground: 70 8% 15%;
-  --destructive: 338 95% 56%;
-  --destructive-foreground: 60 12% 9.5%;
-  --border: 70 6% 26%;
-  --input: 70 8% 22%;
+  --destructive: 338 95% 69%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 70 6% 31%;
+  --input: 70 8% 46%;
   --ring: 80 76% 53%;
   --radius: 0.5rem;
 
@@ -506,13 +506,13 @@ select {
   --secondary: 220 18% 18%;
   --secondary-foreground: 40 14% 78%;
   --muted: 220 18% 18%;
-  --muted-foreground: 220 10% 58.5%;
+  --muted-foreground: 220 10% 59.5%;
   --accent: 200 60% 55%;
   --accent-foreground: 220 22% 11%;
-  --destructive: 356 70% 58%;
+  --destructive: 356 70% 63%;
   --destructive-foreground: 40 14% 8%;
-  --border: 220 16% 22%;
-  --input: 220 18% 18%;
+  --border: 220 16% 29%;
+  --input: 220 18% 46%;
   --ring: 36 100% 50%;
   --radius: 0.5rem;
 
@@ -531,25 +531,25 @@ select {
   --card-foreground: 194 14% 40%;
   --popover: 44 87% 94%;
   --popover-foreground: 194 14% 40%;
-  --primary: 205 69% 49%;
-  --primary-foreground: 44 87% 8%;
+  --primary: 205 69% 40%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 46 42% 88%;
-  --secondary-foreground: 194 14% 39%;
+  --secondary-foreground: 194 14% 38%;
   --muted: 46 42% 88%;
-  --muted-foreground: 195 10% 39.5%;
+  --muted-foreground: 195 10% 38.5%;
   --accent: 175 59% 40%;
-  --accent-foreground: 44 87% 11.5%;
-  --destructive: 1 71% 52%;
-  --destructive-foreground: 44 87% 97.5%;
-  --border: 44 30% 82%;
-  --input: 46 42% 88%;
-  --ring: 205 69% 49%;
+  --accent-foreground: 44 87% 10.5%;
+  --destructive: 1 71% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 44 30% 70%;
+  --input: 46 42% 43%;
+  --ring: 205 69% 40%;
   --radius: 0.5rem;
 
   --chart-1: 205 69% 49%;
-  --chart-2: 175 59% 40%;
+  --chart-2: 175 59% 37%;
   --chart-3: 1 71% 52%;
-  --chart-4: 45 100% 47%;
+  --chart-4: 45 100% 34%;
   --chart-5: 265 60% 55%;
 }
 
@@ -561,26 +561,26 @@ select {
   --card-foreground: 234 16% 35%;
   --popover: 220 23% 95%;
   --popover-foreground: 234 16% 35%;
-  --primary: 266 85% 58%;
-  --primary-foreground: 220 23% 95%;
+  --primary: 266 85% 57%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 220 20% 88%;
   --secondary-foreground: 234 16% 35%;
   --muted: 220 20% 88%;
-  --muted-foreground: 233 10% 41%;
+  --muted-foreground: 233 10% 40%;
   --accent: 197 57% 48%;
-  --accent-foreground: 220 23% 17%;
-  --destructive: 347 87% 44%;
-  --destructive-foreground: 220 23% 95%;
-  --border: 220 18% 84%;
-  --input: 220 20% 88%;
-  --ring: 266 85% 58%;
+  --accent-foreground: 220 23% 16%;
+  --destructive: 347 87% 43%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 18% 73%;
+  --input: 220 20% 54%;
+  --ring: 266 85% 57%;
   --radius: 0.5rem;
 
   --chart-1: 266 85% 58%;
-  --chart-2: 197 57% 48%;
+  --chart-2: 197 57% 44%;
   --chart-3: 347 87% 44%;
-  --chart-4: 109 58% 40%;
-  --chart-5: 25 78% 52%;
+  --chart-4: 109 58% 37%;
+  --chart-5: 25 78% 45%;
 }
 
 /* --- Arctic (Frost) --- */
@@ -591,25 +591,25 @@ select {
   --card-foreground: 214 22% 22%;
   --popover: 210 40% 96%;
   --popover-foreground: 214 22% 22%;
-  --primary: 210 100% 44%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 210 100% 40%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 210 28% 88%;
   --secondary-foreground: 214 22% 22%;
   --muted: 210 28% 88%;
-  --muted-foreground: 215 14% 40%;
+  --muted-foreground: 215 14% 39%;
   --accent: 190 70% 33.5%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 72% 51%;
+  --accent-foreground: 0 0% 99%;
+  --destructive: 0 72% 47%;
   --destructive-foreground: 0 0% 100%;
-  --border: 210 24% 84%;
-  --input: 210 28% 88%;
+  --border: 210 24% 73%;
+  --input: 210 28% 53%;
   --ring: 210 100% 50%;
   --radius: 0.5rem;
 
   --chart-1: 210 100% 50%;
-  --chart-2: 190 70% 48%;
+  --chart-2: 190 70% 39%;
   --chart-3: 0 72% 51%;
-  --chart-4: 145 65% 42%;
+  --chart-4: 145 65% 36%;
   --chart-5: 280 60% 55%;
 }
 
@@ -626,13 +626,13 @@ select {
   --secondary: 40 20% 90%;
   --secondary-foreground: 20 10% 20%;
   --muted: 40 20% 90%;
-  --muted-foreground: 20 6% 41%;
+  --muted-foreground: 20 6% 40%;
   --accent: 24 60% 50%;
-  --accent-foreground: 40 33% 11.5%;
+  --accent-foreground: 40 33% 10.5%;
   --destructive: 0 65% 48%;
   --destructive-foreground: 40 33% 97%;
-  --border: 40 16% 85%;
-  --input: 40 20% 90%;
+  --border: 40 16% 72%;
+  --input: 40 20% 49%;
   --ring: 20 10% 20%;
   --radius: 0.375rem;
 
@@ -656,13 +656,13 @@ select {
   --secondary: 270 15% 14%;
   --secondary-foreground: 180 100% 70%;
   --muted: 270 15% 14%;
-  --muted-foreground: 270 10% 56%;
+  --muted-foreground: 270 10% 57%;
   --accent: 180 100% 50%;
   --accent-foreground: 270 20% 6%;
-  --destructive: 0 90% 55%;
-  --destructive-foreground: 180 100% 4.5%;
-  --border: 270 12% 20%;
-  --input: 270 15% 14%;
+  --destructive: 0 90% 57%;
+  --destructive-foreground: 270 20% 6%;
+  --border: 270 12% 26%;
+  --input: 270 15% 44%;
   --ring: 320 100% 60%;
   --radius: 0.25rem;
 
@@ -686,13 +686,13 @@ select {
   --secondary: 210 35% 15%;
   --secondary-foreground: 200 25% 82%;
   --muted: 210 35% 15%;
-  --muted-foreground: 210 15% 55.5%;
+  --muted-foreground: 210 15% 56.5%;
   --accent: 165 60% 50%;
   --accent-foreground: 210 50% 7%;
-  --destructive: 5 72% 56%;
-  --destructive-foreground: 200 25% 8.5%;
-  --border: 210 30% 20%;
-  --input: 210 35% 15%;
+  --destructive: 5 72% 58%;
+  --destructive-foreground: 210 50% 7%;
+  --border: 210 30% 25%;
+  --input: 210 35% 42%;
   --ring: 190 80% 50%;
   --radius: 0.5rem;
 
@@ -716,21 +716,21 @@ select {
   --secondary: 120 8% 11%;
   --secondary-foreground: 120 80% 60%;
   --muted: 120 8% 11%;
-  --muted-foreground: 120 20% 47%;
+  --muted-foreground: 120 20% 48%;
   --accent: 120 60% 35%;
-  --accent-foreground: 120 100% 4%;
-  --destructive: 0 80% 50%;
-  --destructive-foreground: 120 80% 98%;
-  --border: 120 10% 16%;
-  --input: 120 8% 11%;
+  --accent-foreground: 120 100% 3%;
+  --destructive: 0 80% 58%;
+  --destructive-foreground: 120 10% 4%;
+  --border: 120 10% 22%;
+  --input: 120 8% 38%;
   --ring: 120 100% 45%;
   --radius: 0.25rem;
 
   --chart-1: 120 100% 45%;
-  --chart-2: 120 60% 35%;
-  --chart-3: 120 80% 55%;
-  --chart-4: 120 40% 28%;
-  --chart-5: 120 100% 65%;
+  --chart-2: 120 60% 32%;
+  --chart-3: 120 85% 58%;
+  --chart-4: 120 45% 71%;
+  --chart-5: 120 100% 84%;
 }
 
 /* --- High Contrast Dark --- */
@@ -749,10 +749,10 @@ select {
   --muted-foreground: 0 0% 65%;
   --accent: 200 100% 55%;
   --accent-foreground: 0 0% 0%;
-  --destructive: 0 100% 45.5%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 100% 48.5%;
+  --destructive-foreground: 0 0% 0%;
   --border: 0 0% 30%;
-  --input: 0 0% 12%;
+  --input: 0 0% 38%;
   --ring: 50 100% 50%;
   --radius: 0.375rem;
 
@@ -778,18 +778,18 @@ select {
   --muted: 0 0% 92%;
   --muted-foreground: 0 0% 35%;
   --accent: 160 80% 28.5%;
-  --accent-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 99%;
   --destructive: 0 90% 40%;
   --destructive-foreground: 0 0% 100%;
   --border: 0 0% 70%;
-  --input: 0 0% 92%;
+  --input: 0 0% 54%;
   --ring: 220 90% 40%;
   --radius: 0.375rem;
 
   --chart-1: 220 90% 40%;
   --chart-2: 160 80% 30%;
   --chart-3: 0 90% 40%;
-  --chart-4: 45 95% 45%;
+  --chart-4: 45 95% 35%;
   --chart-5: 280 75% 50%;
 }
 
@@ -808,21 +808,21 @@ select {
   --secondary: 48 96% 53%;
   --secondary-foreground: 0 0% 8%;
   --muted: 60 20% 92%;
-  --muted-foreground: 0 0% 35%;
+  --muted-foreground: 0 0% 34%;
   --accent: 150 80% 28.5%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 84% 48.5%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive-foreground: 0 0% 100%;
   --border: 0 0% 8%;
-  --input: 60 20% 92%;
+  --input: 60 20% 47%;
   --ring: 262 83% 58%;
   --radius: 0.75rem;
 
   --chart-1: 262 83% 58%;
-  --chart-2: 48 96% 53%;
-  --chart-3: 150 80% 44%;
+  --chart-2: 48 96% 34%;
+  --chart-3: 150 80% 35%;
   --chart-4: 0 84% 60%;
-  --chart-5: 200 85% 52%;
+  --chart-5: 200 85% 46%;
 }
 
 /* --- Neo-Brutalism Dark --- */
@@ -838,18 +838,18 @@ select {
   --secondary: 262 83% 58%;
   --secondary-foreground: 0 0% 100%;
   --muted: 240 4% 20%;
-  --muted-foreground: 240 5% 61.5%;
+  --muted-foreground: 240 5% 91.5%;
   --accent: 150 80% 44%;
   --accent-foreground: 0 0% 8%;
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 60 50% 7.5%;
+  --destructive: 0 84% 64%;
+  --destructive-foreground: 0 0% 9%;
   --border: 60 50% 97%;
-  --input: 240 4% 20%;
+  --input: 240 4% 45%;
   --ring: 48 96% 53%;
   --radius: 0.75rem;
 
   --chart-1: 48 96% 53%;
-  --chart-2: 262 83% 58%;
+  --chart-2: 262 83% 61%;
   --chart-3: 150 80% 44%;
   --chart-4: 0 84% 60%;
   --chart-5: 200 85% 52%;
@@ -863,18 +863,18 @@ select {
   --card-foreground: 60 100% 70%;
   --popover: 330 8% 11%;
   --popover-foreground: 60 100% 70%;
-  --primary: 340 100% 45%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 340 100% 56%;
+  --primary-foreground: 330 10% 7%;
   --secondary: 60 100% 50%;
   --secondary-foreground: 0 0% 8%;
   --muted: 330 6% 16%;
   --muted-foreground: 330 5% 57%;
   --accent: 280 100% 54.5%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 25 100% 38%;
-  --destructive-foreground: 0 0% 98%;
+  --accent-foreground: 0 0% 99%;
+  --destructive: 25 100% 44%;
+  --destructive-foreground: 330 10% 7%;
   --border: 60 100% 70%;
-  --input: 330 6% 16%;
+  --input: 330 6% 43%;
   --ring: 340 100% 55%;
   --radius: 0.75rem;
 
@@ -895,18 +895,18 @@ select {
   --card-foreground: 220 15% 88%;
   --popover: 230 18% 12%;
   --popover-foreground: 220 15% 88%;
-  --primary: 220 90% 55%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 220 90% 62%;
+  --primary-foreground: 230 20% 8%;
   --secondary: 230 15% 18%;
   --secondary-foreground: 220 15% 88%;
   --muted: 230 15% 18%;
-  --muted-foreground: 225 10% 58.5%;
+  --muted-foreground: 225 10% 59.5%;
   --accent: 260 75% 61.5%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 72% 55%;
+  --accent-foreground: 0 0% 99%;
+  --destructive: 0 72% 61%;
   --destructive-foreground: 220 15% 4%;
-  --border: 230 12% 24%;
-  --input: 230 15% 18%;
+  --border: 230 12% 27%;
+  --input: 230 15% 45%;
   --ring: 220 90% 62%;
   --radius: 1rem;
 
@@ -925,25 +925,25 @@ select {
   --card-foreground: 225 20% 18%;
   --popover: 220 30% 98%;
   --popover-foreground: 225 20% 18%;
-  --primary: 220 85% 55%;
+  --primary: 220 85% 52%;
   --primary-foreground: 0 0% 100%;
   --secondary: 220 20% 90%;
   --secondary-foreground: 225 20% 18%;
   --muted: 220 20% 90%;
-  --muted-foreground: 225 12% 42%;
+  --muted-foreground: 225 12% 41%;
   --accent: 190 70% 33.5%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 72% 50%;
+  --accent-foreground: 0 0% 99%;
+  --destructive: 0 72% 48%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 18% 84%;
-  --input: 220 20% 90%;
-  --ring: 220 85% 55%;
+  --border: 220 18% 76%;
+  --input: 220 20% 57%;
+  --ring: 220 85% 52%;
   --radius: 1rem;
 
   --chart-1: 220 85% 55%;
-  --chart-2: 190 70% 45%;
+  --chart-2: 190 70% 40%;
   --chart-3: 0 72% 50%;
-  --chart-4: 145 60% 40%;
+  --chart-4: 145 60% 38%;
   --chart-5: 275 65% 55%;
 }
 
@@ -960,13 +960,13 @@ select {
   --secondary: 250 18% 17%;
   --secondary-foreground: 240 15% 88%;
   --muted: 250 18% 17%;
-  --muted-foreground: 245 10% 58.5%;
+  --muted-foreground: 245 10% 59.5%;
   --accent: 280 75% 65%;
   --accent-foreground: 250 25% 8%;
-  --destructive: 350 80% 58%;
-  --destructive-foreground: 240 15% 10.5%;
-  --border: 250 14% 22%;
-  --input: 250 18% 17%;
+  --destructive: 350 80% 59%;
+  --destructive-foreground: 250 25% 8%;
+  --border: 250 14% 27%;
+  --input: 250 18% 46%;
   --ring: 160 80% 55%;
   --radius: 1rem;
 
@@ -990,13 +990,13 @@ select {
   --secondary: 205 30% 16%;
   --secondary-foreground: 200 20% 85%;
   --muted: 205 30% 16%;
-  --muted-foreground: 205 15% 56.5%;
+  --muted-foreground: 205 15% 57.5%;
   --accent: 155 65% 50%;
   --accent-foreground: 205 45% 8%;
-  --destructive: 5 75% 55%;
+  --destructive: 5 75% 60%;
   --destructive-foreground: 200 20% 7.5%;
-  --border: 205 25% 22%;
-  --input: 205 30% 16%;
+  --border: 205 25% 25%;
+  --input: 205 30% 41%;
   --ring: 185 75% 50%;
   --radius: 1rem;
 
@@ -1022,13 +1022,13 @@ select {
   --secondary: 270 20% 15%;
   --secondary-foreground: 300 20% 88%;
   --muted: 270 20% 15%;
-  --muted-foreground: 270 12% 57%;
+  --muted-foreground: 270 12% 58%;
   --accent: 190 100% 55%;
   --accent-foreground: 270 30% 6%;
-  --destructive: 0 85% 55%;
-  --destructive-foreground: 300 20% 7%;
-  --border: 270 18% 22%;
-  --input: 270 20% 15%;
+  --destructive: 0 85% 59%;
+  --destructive-foreground: 270 30% 6%;
+  --border: 270 18% 27%;
+  --input: 270 20% 45%;
   --ring: 320 100% 65%;
   --radius: 0.5rem;
 
@@ -1052,20 +1052,20 @@ select {
   --secondary: 30 10% 14%;
   --secondary-foreground: 38 90% 75%;
   --muted: 30 10% 14%;
-  --muted-foreground: 30 15% 53.5%;
+  --muted-foreground: 30 15% 54.5%;
   --accent: 16 85% 55%;
   --accent-foreground: 30 15% 6%;
-  --destructive: 0 80% 50%;
-  --destructive-foreground: 38 90% 98%;
-  --border: 30 10% 20%;
-  --input: 30 10% 14%;
+  --destructive: 0 80% 61%;
+  --destructive-foreground: 30 15% 6%;
+  --border: 30 10% 25%;
+  --input: 30 10% 40%;
   --ring: 38 100% 55%;
   --radius: 0.25rem;
 
   --chart-1: 38 100% 55%;
   --chart-2: 16 85% 55%;
-  --chart-3: 55 90% 60%;
-  --chart-4: 0 80% 52%;
+  --chart-3: 55 90% 72%;
+  --chart-4: 0 80% 45%;
   --chart-5: 30 60% 45%;
 }
 
@@ -1082,13 +1082,13 @@ select {
   --secondary: 160 10% 11%;
   --secondary-foreground: 120 60% 70%;
   --muted: 160 10% 11%;
-  --muted-foreground: 150 15% 48%;
+  --muted-foreground: 150 15% 49%;
   --accent: 80 70% 55%;
   --accent-foreground: 160 15% 4%;
-  --destructive: 0 75% 50%;
-  --destructive-foreground: 120 60% 96%;
-  --border: 150 10% 16%;
-  --input: 160 10% 11%;
+  --destructive: 0 75% 58%;
+  --destructive-foreground: 160 15% 4%;
+  --border: 150 10% 22%;
+  --input: 160 10% 37%;
   --ring: 120 80% 55%;
   --radius: 0.125rem;
 
@@ -1097,6 +1097,390 @@ select {
   --chart-3: 160 60% 45%;
   --chart-4: 45 80% 55%;
   --chart-5: 0 75% 50%;
+}
+
+/* --- Solarized Dark — Ethan Schoonover's base03 canvas --- */
+.theme-solarized-dark {
+  --background: 192 100% 11%;
+  --foreground: 186 8% 65%;
+  --card: 192 81% 14%;
+  --card-foreground: 186 8% 65%;
+  --popover: 192 81% 14%;
+  --popover-foreground: 180 7% 72%;
+  --primary: 205 69% 58%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 192 81% 17%;
+  --secondary-foreground: 180 7% 72%;
+  --muted: 192 81% 17%;
+  --muted-foreground: 186 8% 64%;
+  --accent: 192 70% 20%;
+  --accent-foreground: 205 69% 68%;
+  --destructive: 1 71% 69%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 192 60% 26%;
+  --input: 192 50% 41%;
+  --ring: 205 69% 58%;
+  --radius: 0.5rem;
+
+  --chart-1: 205 69% 55%;
+  --chart-2: 68 100% 40%;
+  --chart-3: 45 100% 45%;
+  --chart-4: 331 64% 62%;
+  --chart-5: 175 59% 45%;
+}
+/* --- Gruvbox Dark — retro groove, warm and low-glare --- */
+.theme-gruvbox-dark {
+  --background: 0 0% 16%;
+  --foreground: 44 51% 81%;
+  --card: 20 6% 20%;
+  --card-foreground: 44 51% 81%;
+  --popover: 20 6% 20%;
+  --popover-foreground: 44 51% 81%;
+  --primary: 27 99% 55%;
+  --primary-foreground: 0 0% 16%;
+  --secondary: 20 5% 24%;
+  --secondary-foreground: 44 51% 81%;
+  --muted: 20 5% 24%;
+  --muted-foreground: 40 20% 66%;
+  --accent: 27 40% 24%;
+  --accent-foreground: 27 99% 66%;
+  --destructive: 6 96% 69%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 20 5% 33%;
+  --input: 20 5% 50%;
+  --ring: 27 99% 55%;
+  --radius: 0.375rem;
+
+  --chart-1: 27 99% 55%;
+  --chart-2: 61 66% 44%;
+  --chart-3: 42 95% 70%;
+  --chart-4: 180 24% 61%;
+  --chart-5: 344 46% 68%;
+}
+/* --- Gruvbox Light — the same groove on aged paper --- */
+.theme-gruvbox-light {
+  --background: 48 87% 88%;
+  --foreground: 20 5% 22%;
+  --card: 48 70% 92%;
+  --card-foreground: 20 5% 22%;
+  --popover: 48 70% 92%;
+  --popover-foreground: 20 5% 22%;
+  --primary: 21 96% 35%;
+  --primary-foreground: 48 87% 96%;
+  --secondary: 46 42% 82%;
+  --secondary-foreground: 20 5% 22%;
+  --muted: 46 42% 82%;
+  --muted-foreground: 20 5% 37%;
+  --accent: 27 60% 86%;
+  --accent-foreground: 21 96% 30%;
+  --destructive: 0 68% 38%;
+  --destructive-foreground: 48 87% 96%;
+  --border: 46 30% 69%;
+  --input: 46 25% 46%;
+  --ring: 21 96% 35%;
+  --radius: 0.375rem;
+
+  --chart-1: 21 96% 35%;
+  --chart-2: 156 30% 30%;
+  --chart-3: 57 80% 26%;
+  --chart-4: 189 88% 25%;
+  --chart-5: 317 39% 40%;
+}
+/* --- Tokyo Night Day — the light half of Tokyo Night --- */
+.theme-tokyo-night-day {
+  --background: 228 22% 92%;
+  --foreground: 223 54% 30%;
+  --card: 228 30% 96%;
+  --card-foreground: 223 54% 30%;
+  --popover: 228 30% 96%;
+  --popover-foreground: 223 54% 30%;
+  --primary: 212 82% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 228 18% 86%;
+  --secondary-foreground: 223 54% 30%;
+  --muted: 228 18% 86%;
+  --muted-foreground: 223 20% 39%;
+  --accent: 212 55% 88%;
+  --accent-foreground: 212 82% 32%;
+  --destructive: 350 60% 42%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 228 16% 73%;
+  --input: 228 14% 54%;
+  --ring: 212 82% 42%;
+  --radius: 0.5rem;
+
+  --chart-1: 212 82% 42%;
+  --chart-2: 165 60% 30%;
+  --chart-3: 33 85% 35%;
+  --chart-4: 280 50% 45%;
+  --chart-5: 343 62% 42%;
+}
+
+/* ===== NATURE / LOW-FATIGUE — desaturated, built for long sessions ===== */
+/* --- Everforest Dark — forest greens, deliberately soft --- */
+.theme-everforest-dark {
+  --background: 197 14% 20%;
+  --foreground: 39 26% 79%;
+  --card: 196 13% 24%;
+  --card-foreground: 39 26% 79%;
+  --popover: 196 13% 24%;
+  --popover-foreground: 39 26% 79%;
+  --primary: 88 30% 63%;
+  --primary-foreground: 197 14% 18%;
+  --secondary: 195 12% 28%;
+  --secondary-foreground: 39 26% 79%;
+  --muted: 195 12% 28%;
+  --muted-foreground: 39 12% 72%;
+  --accent: 88 18% 27%;
+  --accent-foreground: 88 30% 72%;
+  --destructive: 3 60% 74%;
+  --destructive-foreground: 0 0% 9%;
+  --border: 195 10% 37%;
+  --input: 195 10% 54%;
+  --ring: 88 30% 63%;
+  --radius: 0.5rem;
+
+  --chart-1: 88 30% 63%;
+  --chart-2: 172 25% 60%;
+  --chart-3: 40 60% 66%;
+  --chart-4: 18 45% 68%;
+  --chart-5: 300 20% 68%;
+}
+/* --- Kanagawa — Hokusai's wave, muted ink on sumi --- */
+.theme-kanagawa {
+  --background: 240 13% 14%;
+  --foreground: 45 22% 79%;
+  --card: 240 12% 18%;
+  --card-foreground: 45 22% 79%;
+  --popover: 240 12% 18%;
+  --popover-foreground: 45 22% 79%;
+  --primary: 219 45% 66%;
+  --primary-foreground: 240 13% 12%;
+  --secondary: 240 10% 22%;
+  --secondary-foreground: 45 22% 79%;
+  --muted: 240 10% 22%;
+  --muted-foreground: 45 10% 64%;
+  --accent: 219 22% 26%;
+  --accent-foreground: 219 45% 75%;
+  --destructive: 349 60% 66%;
+  --destructive-foreground: 240 13% 12%;
+  --border: 240 8% 32%;
+  --input: 240 8% 49%;
+  --ring: 219 45% 66%;
+  --radius: 0.375rem;
+
+  --chart-1: 219 45% 66%;
+  --chart-2: 96 22% 60%;
+  --chart-3: 36 60% 62%;
+  --chart-4: 349 45% 68%;
+  --chart-5: 186 30% 62%;
+}
+/* --- Sepia — long-form reading, warm and glare-free --- */
+.theme-sepia {
+  --background: 39 55% 90%;
+  --foreground: 27 25% 18%;
+  --card: 39 60% 94%;
+  --card-foreground: 27 25% 18%;
+  --popover: 39 60% 94%;
+  --popover-foreground: 27 25% 18%;
+  --primary: 22 62% 34%;
+  --primary-foreground: 39 60% 96%;
+  --secondary: 38 35% 84%;
+  --secondary-foreground: 27 25% 18%;
+  --muted: 38 35% 84%;
+  --muted-foreground: 27 15% 36%;
+  --accent: 30 45% 86%;
+  --accent-foreground: 22 62% 28%;
+  --destructive: 2 62% 38%;
+  --destructive-foreground: 39 60% 96%;
+  --border: 36 28% 69%;
+  --input: 36 24% 48%;
+  --ring: 22 62% 34%;
+  --radius: 0.25rem;
+
+  --chart-1: 22 62% 34%;
+  --chart-2: 150 30% 28%;
+  --chart-3: 58 55% 28%;
+  --chart-4: 340 35% 38%;
+  --chart-5: 200 40% 32%;
+}
+
+/* ===== MODERN PRODUCT PALETTES ===== */
+/* --- Linear-style — near-black canvas, electric violet --- */
+.theme-linear-dark {
+  --background: 230 12% 6%;
+  --foreground: 220 14% 96%;
+  --card: 230 11% 9%;
+  --card-foreground: 220 14% 96%;
+  --popover: 230 11% 11%;
+  --popover-foreground: 220 14% 96%;
+  --primary: 241 84% 72%;
+  --primary-foreground: 230 12% 6%;
+  --secondary: 230 9% 15%;
+  --secondary-foreground: 220 14% 96%;
+  --muted: 230 9% 15%;
+  --muted-foreground: 228 8% 66%;
+  --accent: 241 30% 20%;
+  --accent-foreground: 241 84% 80%;
+  --destructive: 356 75% 66%;
+  --destructive-foreground: 230 12% 6%;
+  --border: 230 8% 25%;
+  --input: 230 8% 42%;
+  --ring: 241 84% 72%;
+  --radius: 0.5rem;
+
+  --chart-1: 241 84% 72%;
+  --chart-2: 189 70% 55%;
+  --chart-3: 41 90% 62%;
+  --chart-4: 330 70% 68%;
+  --chart-5: 152 55% 55%;
+}
+/* --- Mono Dark — zero hue, pure luminance hierarchy --- */
+.theme-mono-dark {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 14%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 0 0% 18%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 0% 75%;
+  --destructive-foreground: 0 0% 4%;
+  --border: 0 0% 23%;
+  --input: 0 0% 39%;
+  --ring: 0 0% 98%;
+  --radius: 0.25rem;
+
+  --chart-1: 0 0% 98%;
+  --chart-2: 0 0% 85%;
+  --chart-3: 0 0% 72%;
+  --chart-4: 0 0% 59%;
+  --chart-5: 0 0% 46%;
+}
+/* --- Mono Light — the same discipline, inverted --- */
+.theme-mono-light {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --card: 0 0% 99%;
+  --card-foreground: 0 0% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 8%;
+  --primary: 0 0% 8%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 95%;
+  --secondary-foreground: 0 0% 8%;
+  --muted: 0 0% 95%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 8%;
+  --destructive: 0 0% 25%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 78%;
+  --input: 0 0% 56%;
+  --ring: 0 0% 8%;
+  --radius: 0.25rem;
+
+  --chart-1: 0 0% 8%;
+  --chart-2: 0 0% 20%;
+  --chart-3: 0 0% 31%;
+  --chart-4: 0 0% 42%;
+  --chart-5: 0 0% 53%;
+}
+/* --- Stripe-style — cool slate ink, indigo accent --- */
+.theme-stripe-light {
+  --background: 210 43% 98%;
+  --foreground: 211 73% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 211 73% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 211 73% 15%;
+  --primary: 243 60% 52%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 38% 94%;
+  --secondary-foreground: 211 73% 15%;
+  --muted: 210 38% 94%;
+  --muted-foreground: 211 25% 40%;
+  --accent: 243 55% 94%;
+  --accent-foreground: 243 60% 40%;
+  --destructive: 356 62% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 28% 77%;
+  --input: 210 22% 57%;
+  --ring: 243 60% 52%;
+  --radius: 0.5rem;
+
+  --chart-1: 243 60% 52%;
+  --chart-2: 171 62% 30%;
+  --chart-3: 31 85% 38%;
+  --chart-4: 330 60% 45%;
+  --chart-5: 199 78% 34%;
+}
+
+/* ===== ACCESSIBLE-FIRST — built to AAA body text, AA on every accent ===== */
+/* --- Accessible Light — 7:1 body text, no decorative compromises --- */
+.theme-aaa-light {
+  --background: 0 0% 100%;
+  --foreground: 220 20% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 20% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 20% 11%;
+  --primary: 221 83% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 16% 93%;
+  --secondary-foreground: 220 20% 11%;
+  --muted: 220 16% 93%;
+  --muted-foreground: 220 14% 32%;
+  --accent: 221 60% 92%;
+  --accent-foreground: 221 83% 28%;
+  --destructive: 0 72% 36%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 14% 78%;
+  --input: 220 12% 52%;
+  --ring: 221 83% 33%;
+  --radius: 0.375rem;
+
+  --chart-1: 221 83% 33%;
+  --chart-2: 165 80% 22%;
+  --chart-3: 28 90% 30%;
+  --chart-4: 318 60% 36%;
+  --chart-5: 258 60% 42%;
+}
+/* --- Accessible Dark — 7:1 body text on a true dark canvas --- */
+.theme-aaa-dark {
+  --background: 220 18% 8%;
+  --foreground: 220 15% 96%;
+  --card: 220 16% 11%;
+  --card-foreground: 220 15% 96%;
+  --popover: 220 16% 13%;
+  --popover-foreground: 220 15% 96%;
+  --primary: 210 100% 78%;
+  --primary-foreground: 220 18% 8%;
+  --secondary: 220 13% 18%;
+  --secondary-foreground: 220 15% 96%;
+  --muted: 220 13% 18%;
+  --muted-foreground: 220 12% 74%;
+  --accent: 210 40% 22%;
+  --accent-foreground: 210 100% 84%;
+  --destructive: 4 90% 76%;
+  --destructive-foreground: 220 18% 8%;
+  --border: 220 11% 28%;
+  --input: 220 11% 43%;
+  --ring: 210 100% 78%;
+  --radius: 0.375rem;
+
+  --chart-1: 210 100% 78%;
+  --chart-2: 158 65% 62%;
+  --chart-3: 40 95% 68%;
+  --chart-4: 320 80% 78%;
+  --chart-5: 265 90% 82%;
 }
 
 /* =============================================================================
@@ -1110,7 +1494,9 @@ select {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   background: hsl(var(--card) / 0.65);
-  border: 1px solid hsl(var(--border) / 0.3);
+  /* 0.3 alpha made the card edge imperceptible (under 1.2:1 against the
+     canvas). 0.6 keeps the frosted look and gives the card a real edge. */
+  border: 1px solid hsl(var(--border) / 0.6);
   box-shadow: 0 8px 32px hsl(var(--primary) / 0.06);
 }
 

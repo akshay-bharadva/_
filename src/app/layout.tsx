@@ -1,5 +1,6 @@
 import "@/styles/globals.css";
 import "@/styles/themes.css";
+import "@/styles/typography.css";
 import "prism-themes/themes/prism-one-dark.css";
 import type { Metadata, Viewport } from "next";
 import { config as appConfig } from "@/lib/config";

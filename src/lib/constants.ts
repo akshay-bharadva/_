@@ -204,6 +204,7 @@ export const LIFE_UPDATE_CATEGORY_OPTIONS = [
 ] as const;
 
 export const TYPOGRAPHY_PRESETS = [
+  /* ── Sans systems ──────────────────────────────────────────────────────── */
   {
     value: "typo-default",
     label: "Developer Default",
@@ -212,51 +213,53 @@ export const TYPOGRAPHY_PRESETS = [
     code: "JetBrains Mono",
     weight: 700,
     serif: false,
+    mood: "Sans",
     description: "Clean and versatile — the standard developer choice",
-  },
-  {
-    value: "typo-editorial",
-    label: "Editorial Serif",
-    heading: "Playfair Display",
-    body: "DM Sans",
-    code: "Fira Code",
-    weight: 700,
-    serif: true,
-    description:
-      "Dramatic serif headlines with smooth body text — magazine-style",
+    pairing:
+      "Space Grotesk's quirky geometric caps give headings a signature; Inter stays out of the way underneath.",
+    families: ["Space Grotesk", "Inter", "JetBrains Mono"],
   },
   {
     value: "typo-modern-tech",
-    label: "Modern Tech",
-    heading: "Space Grotesk",
-    body: "Inter",
-    code: "Fira Code",
+    label: "Product UI",
+    heading: "Geist",
+    body: "Geist",
+    code: "Geist Mono",
     weight: 700,
     serif: false,
-    description:
-      "Geometric techy headings with code ligatures — Vercel/Linear vibe",
+    mood: "Sans",
+    description: "One family, weight-driven hierarchy — Vercel/Linear approach",
+    pairing:
+      "A single-family system. Hierarchy comes from weight and size rather than a second typeface, which is how most modern product interfaces are actually built.",
+    families: ["Geist", "Geist Mono"],
   },
   {
-    value: "typo-elegant",
-    label: "Elegant Minimal",
-    heading: "Instrument Serif",
-    body: "Manrope",
-    code: "IBM Plex Mono",
-    weight: 400,
-    serif: true,
-    description:
-      "Refined italic serif with airy body — Apple-inspired editorial",
+    value: "typo-geometric",
+    label: "Quiet Geometric",
+    heading: "Onest",
+    body: "Onest",
+    code: "JetBrains Mono",
+    weight: 700,
+    serif: false,
+    mood: "Sans",
+    description: "Calm geometric sans with nothing to prove",
+    pairing:
+      "Also single-family. Onest has even, unfussy proportions that hold from a 12px label to a 48px headline.",
+    families: ["Onest", "JetBrains Mono"],
   },
   {
     value: "typo-bold-quirky",
-    label: "Bold & Quirky",
+    label: "Bold & Expressive",
     heading: "Bricolage Grotesque",
-    body: "Outfit",
+    body: "Inter",
     code: "JetBrains Mono",
     weight: 800,
     serif: false,
-    description:
-      "Chunky variable headings with playful body — creative portfolio",
+    mood: "Expressive",
+    description: "Chunky variable display with a neutral body — creative portfolio",
+    pairing:
+      "Bricolage is loud and deliberately imperfect. It needs a body face with no opinions, which is exactly Inter's job.",
+    families: ["Bricolage Grotesque", "Inter", "JetBrains Mono"],
   },
   {
     value: "typo-futuristic",
@@ -266,7 +269,41 @@ export const TYPOGRAPHY_PRESETS = [
     code: "Fira Code",
     weight: 700,
     serif: false,
-    description: "Rounded futuristic display font — cyberpunk/gaming aesthetic",
+    mood: "Expressive",
+    description: "Wide rounded display — cyberpunk and gaming aesthetic",
+    pairing:
+      "Unbounded is extremely wide, so it needs a body face with room in it. Sora's open apertures keep the pair from feeling cramped.",
+    families: ["Unbounded", "Sora", "Fira Code"],
+  },
+
+  /* ── Serif display over sans body ──────────────────────────────────────── */
+  {
+    value: "typo-editorial",
+    label: "Editorial Serif",
+    heading: "Playfair Display",
+    body: "DM Sans",
+    code: "Fira Code",
+    weight: 700,
+    serif: true,
+    mood: "Editorial",
+    description: "Dramatic serif headlines with smooth body text — magazine-style",
+    pairing:
+      "The reference high-contrast pairing. Playfair's hairlines carry the drama; DM Sans's low contrast keeps the body calm.",
+    families: ["Playfair Display", "DM Sans", "Fira Code"],
+  },
+  {
+    value: "typo-elegant",
+    label: "Elegant Minimal",
+    heading: "Instrument Serif",
+    body: "Manrope",
+    code: "IBM Plex Mono",
+    weight: 400,
+    serif: true,
+    mood: "Editorial",
+    description: "Refined serif with airy body — Apple-inspired editorial",
+    pairing:
+      "Instrument Serif ships one weight and needs no other; setting it at 400 across large sizes is the whole effect.",
+    families: ["Instrument Serif", "Manrope", "IBM Plex Mono"],
   },
   {
     value: "typo-classic-pro",
@@ -276,18 +313,72 @@ export const TYPOGRAPHY_PRESETS = [
     code: "IBM Plex Mono",
     weight: 700,
     serif: true,
-    description:
-      "Traditional serif authority with modern body — lawyer/architect",
+    mood: "Editorial",
+    description: "Traditional serif authority with a modern body",
+    pairing:
+      "Libre Baskerville reads as institutional without being stuffy; Plus Jakarta Sans keeps the interface feeling current.",
+    families: ["Libre Baskerville", "Plus Jakarta Sans", "IBM Plex Mono"],
+  },
+
+  /* ── Serif body — for reading, not for landing pages ───────────────────── */
+  {
+    value: "typo-longform",
+    label: "Long-form Reading",
+    heading: "Instrument Sans",
+    body: "Lora",
+    code: "IBM Plex Mono",
+    weight: 600,
+    serif: true,
+    mood: "Reading",
+    description: "Serif body tuned for screens — the one to pick for a blog",
+    pairing:
+      "The only preset with a serif *body*. Lora is drawn for screen reading at 16–18px; Instrument Sans keeps headings from turning the page into a novel.",
+    families: ["Instrument Sans", "Lora", "IBM Plex Mono"],
   },
   {
-    value: "typo-geometric",
-    label: "Clean Geometric",
-    heading: "Outfit",
-    body: "DM Sans",
+    value: "typo-authority",
+    label: "Data & Authority",
+    heading: "Fraunces",
+    body: "Chivo",
+    code: "IBM Plex Mono",
+    weight: 700,
+    serif: true,
+    mood: "Reading",
+    description: "Old-style serif headings over a grotesque built for figures",
+    pairing:
+      "Fraunces carries institutional weight without a didone's fragility. Chivo handles dense numeric tables without looking out of place beneath it.",
+    families: ["Fraunces", "Chivo", "IBM Plex Mono"],
+  },
+
+  /* ── Monospace and system ──────────────────────────────────────────────── */
+  {
+    value: "typo-terminal",
+    label: "Terminal",
+    heading: "JetBrains Mono",
+    body: "Inter",
     code: "JetBrains Mono",
     weight: 700,
     serif: false,
-    description: "Smooth geometric stack — Stripe/Figma inspired simplicity",
+    mono: true,
+    mood: "Mono",
+    description: "Monospace headings — pairs with the CRT and terminal themes",
+    pairing:
+      "Mono headings over a proportional body. Note this is the one preset with positive heading tracking: monospace caps are already tight on a fixed advance width.",
+    families: ["JetBrains Mono", "Inter"],
+  },
+  {
+    value: "typo-system",
+    label: "System",
+    heading: "system-ui",
+    body: "system-ui",
+    code: "ui-monospace",
+    weight: 700,
+    serif: false,
+    mood: "System",
+    description: "No webfont — instant render, zero layout shift, native on every OS",
+    pairing:
+      "Downloads nothing. On a slow connection this is the only preset that paints text immediately, and it always looks native.",
+    families: [],
   },
 ] as const;
 
@@ -327,4 +418,17 @@ export const THEME_PRESETS = [
   { value: "theme-synthwave", label: "Synthwave" },
   { value: "theme-retrowave", label: "Retrowave" },
   { value: "theme-terminal", label: "Terminal" },
+  { value: "theme-solarized-dark", label: "Solarized Dark" },
+  { value: "theme-gruvbox-dark", label: "Gruvbox Dark" },
+  { value: "theme-gruvbox-light", label: "Gruvbox Light" },
+  { value: "theme-tokyo-night-day", label: "Tokyo Night Day" },
+  { value: "theme-everforest-dark", label: "Everforest" },
+  { value: "theme-kanagawa", label: "Kanagawa" },
+  { value: "theme-sepia", label: "Sepia" },
+  { value: "theme-linear-dark", label: "Linear" },
+  { value: "theme-mono-dark", label: "Mono Dark" },
+  { value: "theme-mono-light", label: "Mono Light" },
+  { value: "theme-stripe-light", label: "Stripe" },
+  { value: "theme-aaa-light", label: "Accessible Light" },
+  { value: "theme-aaa-dark", label: "Accessible Dark" },
 ] as const;
