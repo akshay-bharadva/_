@@ -82,10 +82,10 @@ export function GitHubSection({ form }: GitHubSectionProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Sort Repos By</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    {/* Controlled, not `defaultValue`: the form is reset from
+                        the fetched settings after this mounts, and an
+                        uncontrolled Select keeps showing the schema default. */}
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />

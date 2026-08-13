@@ -221,7 +221,7 @@ export function MasonryLayout({ items }: LayoutProps) {
       {items.map((item) => (
         <div
           key={item.id}
-          className="mb-4 break-inside-avoid [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
+          className="mb-4 break-inside-avoid [contain-intrinsic-size:auto_320px]"
         >
           <MaybeLink
             href={item.link_url}

@@ -172,6 +172,56 @@
     @apply text-muted-foreground;
   }
 
+  
+  /* Vertical rhythm and a heading scale for `.markdown`.
+
+     Preflight zeroes every margin and collapses headings to `font-size:
+     inherit`. `.prose` gets both back from the typography plugin; `.markdown`
+     never did — so anything rendered through it came out as an unbroken slab
+     with headings at body size. That went unnoticed everywhere the markdown is
+     a single paragraph (hero tagline, life updates, section blurbs) and is
+     glaring on a blog post, which is the difference between the two.
+
+     Scoped to `.markdown` rather than the shared selector list above because
+     `article` also wraps cards (case-study and scrapbook layouts), which do
+     their own spacing. Margins sit on adjacent siblings only, so single-block
+     callers stay flush inside their container. */
+  .markdown > * + * {
+    @apply mt-4;
+  }
+
+  .markdown > * + :is(h1, h2, h3, h4, h5, h6) {
+    @apply mt-8;
+  }
+
+  .markdown h1 {
+    @apply text-2xl;
+  }
+
+  .markdown h2 {
+    @apply text-xl;
+  }
+
+  .markdown h3 {
+    @apply text-lg;
+  }
+
+  .markdown h4,
+  .markdown h5,
+  .markdown h6 {
+    @apply text-base;
+  }
+
+  .markdown h5,
+  .markdown h6 {
+    @apply font-heading font-semibold tracking-tight text-foreground scroll-mt-24;
+  }
+
+  .markdown li + li {
+    @apply mt-1;
+  }
+
+  
   /* --- Novel Editor (Tiptap) Styles --- */
 
   .novel-editor .ProseMirror {

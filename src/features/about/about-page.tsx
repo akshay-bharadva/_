@@ -1,7 +1,7 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
+import { Markdown } from "@/components/ui/markdown";
 import { Container } from "@/components/layout/container";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,9 +34,14 @@ export function AboutPage() {
                 className="size-32 rounded-lg border object-cover"
               />
             )}
-          <div className="markdown max-w-none space-y-4 leading-relaxed text-muted-foreground [&_strong]:text-foreground">
+          <div className="space-y-4 leading-relaxed [&_strong]:text-foreground">
             {identity.profile_data.bio.map((paragraph, index) => (
-              <ReactMarkdown key={index}>{paragraph}</ReactMarkdown>
+              <Markdown
+                key={index}
+                className="max-w-none text-muted-foreground"
+              >
+                {paragraph}
+              </Markdown>
             ))}
           </div>
         </div>

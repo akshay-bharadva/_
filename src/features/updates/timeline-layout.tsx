@@ -1,7 +1,7 @@
 "use client";
 
-import ReactMarkdown from "react-markdown";
 import type { LifeUpdate } from "@/types";
+import { Markdown } from "@/components/ui/markdown";
 import { categoryOption, PinBadge, relativeDate } from "./update-meta";
 
 function monthKey(iso?: string): string {
@@ -51,9 +51,9 @@ export function TimelineLayout({ updates }: { updates: LifeUpdate[] }) {
                     </h3>
                   )}
                   {update.content && (
-                    <div className="markdown mt-1.5 text-sm text-muted-foreground">
-                      <ReactMarkdown>{update.content}</ReactMarkdown>
-                    </div>
+                    <Markdown className="mt-1.5 text-sm text-muted-foreground">
+                      {update.content}
+                    </Markdown>
                   )}
                   {update.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element

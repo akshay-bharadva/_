@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
+import { Markdown } from "@/components/ui/markdown";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Container } from "@/components/layout/container";
@@ -89,9 +89,9 @@ export function Hero() {
             </span>
           </h1>
 
-          <div className="markdown mt-6 max-w-xl text-base leading-relaxed text-muted-foreground">
-            <ReactMarkdown>{profile_data.description}</ReactMarkdown>
-          </div>
+          <Markdown className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground">
+            {profile_data.description}
+          </Markdown>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             {social_links

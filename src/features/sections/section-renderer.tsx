@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Markdown as MarkdownBase } from "@/components/ui/markdown";
 import type { PortfolioSection } from "@/types";
 import { cn } from "@/lib/utils";
 import { markdownUrlTransform } from "@/lib/safe-url";
@@ -33,11 +32,9 @@ function SectionBody({ section }: { section: PortfolioSection }) {
   if (section.type === "markdown") {
     if (!section.content?.trim()) return <EmptySection label="Markdown section has no content." />;
     return (
-      <div className="markdown leading-relaxed [overflow-wrap:anywhere]">
-        <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={markdownUrlTransform}>
-          {section.content}
-        </ReactMarkdown>
-      </div>
+      <MarkdownBase className="leading-relaxed">
+        {section.content}
+      </MarkdownBase>
     );
   }
 

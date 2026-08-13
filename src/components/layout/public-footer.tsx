@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { Markdown } from "@/components/ui/markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
@@ -74,9 +74,12 @@ export default function PublicFooter() {
               </span>
             </p>
             {footer_data.copyright_text && (
-              <div className="text-sm [&_a]:text-primary [&_a]:underline-offset-4 [&_a:hover]:underline [&_p]:m-0">
-                <ReactMarkdown>{footer_data.copyright_text}</ReactMarkdown>
-              </div>
+              // Opts out of the `.markdown` defaults it shouldn't inherit: the
+              // copyright line stays muted, full-width, and underlines its
+              // links on hover only.
+              <Markdown className="max-w-none text-sm text-muted-foreground [&_a]:text-primary [&_a]:no-underline [&_a]:underline-offset-4 [&_a:hover]:underline [&_p]:m-0">
+                {footer_data.copyright_text}
+              </Markdown>
             )}
           </div>
 

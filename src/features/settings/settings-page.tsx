@@ -31,6 +31,12 @@ import { LayoutSection } from "./layout-section";
 import { FooterSection } from "./footer-section";
 import { ContactPageSection } from "./contact-page-section";
 
+// How many inputs each section renders for its string array. Kept next to the
+// form because it is the form layout, not the schema, that fixes these counts:
+// HeroAboutSection renders bio.0/bio.1, StatusPanelSection items.0/items.1.
+const BIO_SLOTS = 2;
+const EXPLORING_SLOTS = 2;
+
 export default function SettingsPage() {
   const { data: settingsData, isLoading: isLoadingSettings } =
     useGetSiteSettingsQuery();
@@ -57,6 +63,18 @@ export default function SettingsPage() {
         );
       };
       const cleanIdentity = nullsToStrings(settingsData);
+
+      // The form exposes a fixed number of inputs per string array (two bio
+      // paragraphs, two "exploring" entries). Handing it a shorter array leaves
+      // those trailing fields with no entry in defaultValues, so registering
+      // them writes `undefined` into the form values and the array grows past
+      // its default — which react-hook-form reads as a dirty form the moment
+      // the page loads, and renders the input as uncontrolled (empty) instead
+      // of showing the stored value. Pad to exactly what the UI renders.
+      const padTo = (value: unknown, count: number): string[] => {
+        const list = Array.isArray(value) ? value : [];
+        return Array.from({ length: count }, (_, i) => list[i] ?? "");
+      };
 
       const fetchedSocials =
         (cleanIdentity.social_links as {
@@ -102,11 +120,11 @@ export default function SettingsPage() {
               .currently_exploring,
             ...(cleanIdentity.profile_data.status_panel?.currently_exploring ||
               {}),
-            items: cleanIdentity.profile_data.status_panel?.currently_exploring
-              ?.items?.length
-              ? cleanIdentity.profile_data.status_panel.currently_exploring
-                  .items
-              : [""],
+            items: padTo(
+              cleanIdentity.profile_data.status_panel?.currently_exploring
+                ?.items,
+              EXPLORING_SLOTS,
+            ),
           },
           latestProject: {
             ...siteSettingsDefaultValues.profile_data.status_panel
@@ -122,9 +140,7 @@ export default function SettingsPage() {
           ...siteSettingsDefaultValues.profile_data.contact_page,
           ...(cleanIdentity.profile_data.contact_page || {}),
         },
-        bio: cleanIdentity.profile_data.bio?.length
-          ? cleanIdentity.profile_data.bio
-          : [""],
+        bio: padTo(cleanIdentity.profile_data.bio, BIO_SLOTS),
       };
 
       form.reset({
@@ -138,8 +154,20 @@ export default function SettingsPage() {
   }, [settingsData, form]);
 
   const onSubmit = async (values: SiteSettingsFormValues) => {
+    // The padding above is a form-layout concern; don't persist the blank
+    // slots, or the public About page renders an empty paragraph for each one.
+    // (`currently_exploring.items` is already filtered by its schema transform.)
+    const bio = values.profile_data.bio.filter((p) => p.trim() !== "");
+    const payload: SiteSettingsFormValues = {
+      ...values,
+      profile_data: {
+        ...values.profile_data,
+        bio: bio.length ? bio : [""],
+      },
+    };
+
     try {
-      await updateSiteSettings(values).unwrap();
+      await updateSiteSettings(payload).unwrap();
       toast.success("Site settings updated successfully!");
     } catch (err) {
       toast.error("Failed to save settings", {

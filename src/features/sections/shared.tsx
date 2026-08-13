@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { useId } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { Markdown as MarkdownBase } from "@/components/ui/markdown";
 import { ImageOff } from "lucide-react";
 import type { PortfolioItem } from "@/types";
 import { cn } from "@/lib/utils";
@@ -45,16 +44,9 @@ export function Markdown({
 }) {
   if (!children?.trim()) return null;
   return (
-    <div
-      className={cn(
-        "markdown text-sm leading-relaxed [overflow-wrap:anywhere] break-words",
-        className,
-      )}
-    >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={markdownUrlTransform}>
-        {children}
-      </ReactMarkdown>
-    </div>
+    <MarkdownBase className={cn("text-sm leading-relaxed", className)}>
+      {children}
+    </MarkdownBase>
   );
 }
 

@@ -422,13 +422,22 @@ export default function NovelEditor({
     <div
       ref={editorRef}
       className={cn(
-        "novel-editor relative flex flex-col overflow-hidden bg-card transition-all duration-200",
+        "novel-editor relative flex flex-col overflow-hidden bg-card",
+        isRounded && "rounded-lg border",
+        // Ordered after `isRounded` so tailwind-merge lets the fullscreen
+        // variant win — otherwise the rounded border stays on in fullscreen.
         isFullScreen &&
           "fixed inset-0 z-[9999] h-screen w-screen rounded-none border-0",
-        isRounded && "rounded-lg border",
         className,
       )}
-      style={{ minHeight: isFullScreen ? "100vh" : minHeight }}
+      // No min-height in fullscreen: `inset-0` + `h-screen` already define the
+      // box. Callers pass percentages (`100%`) that resolve against a different
+      // containing block once the element is fixed, and resolving one against
+      // the other on every frame made the panel oscillate between the two
+      // layouts. `transition-all` is gone from the wrapper for the same reason —
+      // position, inset and size all change at once here, and animating that
+      // swap is what made the oscillation visible.
+      style={{ minHeight: isFullScreen ? undefined : minHeight }}
     >
       {/* Toolbar */}
       <div className="shrink-0 sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-muted/30 px-2 py-1.5">
