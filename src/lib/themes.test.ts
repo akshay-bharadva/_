@@ -7,12 +7,17 @@ import {
   resolveThemeClass,
   applyTheme,
 } from "./themes";
+import { THEME_PRESETS } from "./constants";
+
 
 describe("theme registry", () => {
   it("derives all preset themes plus the custom theme", () => {
     expect(VALID_THEMES).toContain(DEFAULT_THEME);
     expect(VALID_THEMES).toContain(CUSTOM_THEME);
-    expect(VALID_THEMES.length).toBe(33);
+    expect(VALID_THEMES).toEqual([
+      ...THEME_PRESETS.map((theme) => theme.value),
+      CUSTOM_THEME,
+    ]);
     expect(TYPOGRAPHY_CLASSES).toContain("typo-default");
     expect(TYPOGRAPHY_CLASSES.length).toBe(8);
   });
