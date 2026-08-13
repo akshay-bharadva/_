@@ -7,7 +7,7 @@ import {
   resolveThemeClass,
   applyTheme,
 } from "./themes";
-import { THEME_PRESETS } from "./constants";
+import { THEME_PRESETS, TYPOGRAPHY_PRESETS } from "./constants";
 
 
 describe("theme registry", () => {
@@ -19,7 +19,9 @@ describe("theme registry", () => {
       CUSTOM_THEME,
     ]);
     expect(TYPOGRAPHY_CLASSES).toContain("typo-default");
-    expect(TYPOGRAPHY_CLASSES.length).toBe(8);
+    expect(TYPOGRAPHY_CLASSES).toEqual(
+      TYPOGRAPHY_PRESETS.map((theme) => theme.value),
+    );
   });
 });
 
