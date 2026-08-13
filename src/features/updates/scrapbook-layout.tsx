@@ -1,6 +1,7 @@
 "use client";
 
 import type { LifeUpdate } from "@/types";
+import { Markdown } from "@/components/ui/markdown";
 import { cn } from "@/lib/utils";
 import { categoryOption, PinBadge, relativeDate } from "./update-meta";
 
