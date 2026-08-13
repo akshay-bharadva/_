@@ -121,7 +121,7 @@ export function Hero() {
               {visibleSocials.map((social) => {
                 const Icon = SOCIAL_ICONS[social.id.toLowerCase()];
                 return (
-                  
+                  <a
                     key={social.id}
                     href={social.url}
                     target="_blank"
