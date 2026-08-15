@@ -81,13 +81,46 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
         "2xl": "1rem",
         "3xl": "1.5rem",
+        // v3 two-tier shape system — see docs/redesign/v3-design-vision.md
+        surface: "var(--r-surface)",
+        control: "var(--r-control)",
       },
       boxShadow: {
-        card: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-        "card-hover":
-          "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-        elevated:
-          "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        // v3 elevation. Derived from the theme's own foreground so depth reads
+        // correctly on light and dark presets alike.
+        e1: "var(--e-1)",
+        e2: "var(--e-2)",
+        e3: "var(--e-3)",
+      },
+      maxWidth: {
+        content: "var(--w-content)",
+        wide: "var(--w-wide)",
+        prose: "var(--w-prose)",
+      },
+      fontSize: {
+        display: ["var(--t-display)", { lineHeight: "1.05" }],
+        title: ["var(--t-title)", { lineHeight: "1.12" }],
+        heading: ["var(--t-heading)", { lineHeight: "1.25" }],
+        lead: ["var(--t-lead)", { lineHeight: "1.55" }],
+        micro: ["var(--t-micro)", { lineHeight: "1.4" }],
+      },
+      spacing: {
+        s1: "var(--s-1)",
+        s2: "var(--s-2)",
+        s3: "var(--s-3)",
+        s4: "var(--s-4)",
+        s5: "var(--s-5)",
+        s6: "var(--s-6)",
+        s7: "var(--s-7)",
+        s8: "var(--s-8)",
+        s9: "var(--s-9)",
+        s10: "var(--s-10)",
+        s11: "var(--s-11)",
+        s12: "var(--s-12)",
+      },
+      transitionTimingFunction: {
+        enter: "cubic-bezier(0.32, 0.72, 0, 1)",
+        exit: "cubic-bezier(0.4, 0, 1, 1)",
       },
       keyframes: {
         "accordion-down": {

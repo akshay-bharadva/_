@@ -10,8 +10,7 @@ import {
 } from "@/store/api/publicApi";
 import { useSupabaseSession } from "@/hooks/use-auth-guard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Container } from "@/components/layout/container";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 /** Normalizes a route path for comparison (static export uses trailing slashes). */
 function normalizePath(path: string): string {
@@ -27,8 +26,15 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 /**
- * Sticky minimal header: editorial logo on the left, terminal-precision
- * mono nav on the right. "Admin" appears only for an authenticated session.
+ * The site header.
+ *
+ * v3 composition: the nav is a floating pill that sits *on* the page rather
+ * than a full-width bar ruled off from it — which is what makes the page read
+ * as surfaces on a ground. The active item is a filled chip, so position is
+ * legible at a glance instead of being carried by colour alone.
+ *
+ * Retired from v2: the uppercase monospace nav voice and the bordered
+ * bottom rule.
  */
 export default function SiteHeader() {
   const pathname = usePathname() ?? "/";
@@ -39,88 +45,82 @@ export default function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isLoading = isIdentityLoading || isNavLoading;
+  const logo = identity?.profile_data.logo;
 
   // Close the mobile menu whenever navigation lands somewhere.
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  const linkClass = (active: boolean) =>
-    cn(
-      "rounded-md px-3 py-2 font-mono text-xs uppercase tracking-[0.08em] transition-colors",
-      active ? "text-primary" : "text-muted-foreground hover:text-foreground",
-    );
-
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
-      <Container>
-        <div className="flex h-14 items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 px-s4 pt-s4">
+      <div className="mx-auto flex max-w-content items-center gap-s3">
+        <nav
+          aria-label="Main"
+          className="flex w-full items-center gap-s3 rounded-full bg-card/90 px-s3 py-2 shadow-e2 backdrop-blur-md"
+        >
           <Link
             href="/"
-            className="flex items-baseline font-heading text-lg font-bold tracking-tight transition-opacity hover:opacity-80"
+            className="flex shrink-0 items-baseline rounded-full px-3 py-1.5 font-heading text-base font-bold tracking-tight transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {isLoading || !identity ? (
-              <Skeleton className="h-5 w-28" />
+            {isLoading || !logo ? (
+              <Skeleton className="h-5 w-24" />
             ) : (
               <>
-                <span className="text-foreground">
-                  {identity.profile_data.logo.main}
-                </span>
-                <span className="text-primary">
-                  {identity.profile_data.logo.highlight}
-                </span>
+                <span className="text-foreground">{logo.main}</span>
+                <span className="text-primary">{logo.highlight}</span>
               </>
             )}
           </Link>
 
-          {/* Desktop nav */}
-          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          <ul className="ml-auto hidden items-center gap-1 md:flex">
             {isLoading ? (
-              <div className="flex gap-3 px-2">
+              <li className="flex gap-3 px-2">
                 <Skeleton className="h-4 w-14" />
                 <Skeleton className="h-4 w-14" />
                 <Skeleton className="h-4 w-14" />
-              </div>
+              </li>
             ) : (
-              <>
-                {navLinks?.map((link) => {
-                  const active = isActivePath(pathname, link.href);
-                  return (
+              (navLinks ?? []).map((link) => {
+                const active = isActivePath(pathname, link.href);
+                return (
+                  <li key={link.href}>
                     <Link
-                      key={link.href}
                       href={link.href}
                       aria-current={active ? "page" : undefined}
-                      className={linkClass(active)}
-                    >
-                      {active && (
-                        <span aria-hidden className="mr-1.5 text-primary">
-                          ●
-                        </span>
+                      className={cn(
+                        "block rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-200 ease-enter",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                       )}
+                    >
                       {link.label}
                     </Link>
-                  );
-                })}
-                {session && (
-                  <Link
-                    href="/admin"
-                    className="ml-1 flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 font-mono text-xs uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
-                  >
-                    <ShieldCheck className="size-3.5" aria-hidden />
-                    Admin
-                  </Link>
-                )}
-              </>
+                  </li>
+                );
+              })
             )}
-          </nav>
+            {session && (
+              <li>
+                <Link
+                  href="/admin"
+                  className="ml-1 flex items-center gap-1.5 rounded-full bg-secondary px-3.5 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ShieldCheck className="size-3.5" aria-hidden />
+                  Admin
+                </Link>
+              </li>
+            )}
+          </ul>
 
-          {/* Mobile menu toggle */}
           <button
             type="button"
-            className="flex size-9 items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted md:hidden"
-            aria-expanded={menuOpen}
-            aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="site-menu"
+            className="ml-auto flex size-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
           >
             {menuOpen ? (
               <X className="size-5" aria-hidden />
@@ -131,48 +131,47 @@ export default function SiteHeader() {
               {menuOpen ? "Close menu" : "Open menu"}
             </span>
           </button>
-        </div>
-      </Container>
+        </nav>
+      </div>
 
-      {/* Mobile nav panel */}
       {menuOpen && (
-        <nav
-          id="mobile-nav"
-          aria-label="Main"
-          className="border-t border-border bg-background md:hidden"
+        <div
+          id="site-menu"
+          className="mx-auto mt-s2 max-w-content rounded-surface bg-card p-s2 shadow-e3 md:hidden"
         >
-          <Container className="flex flex-col gap-1 py-3">
-            {navLinks?.map((link) => {
+          <ul className="flex flex-col gap-1">
+            {(navLinks ?? []).map((link) => {
               const active = isActivePath(pathname, link.href);
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => setMenuOpen(false)}
-                  className={cn(
-                    "rounded-md px-3 py-2.5 font-mono text-sm uppercase tracking-[0.08em] transition-colors",
-                    active
-                      ? "bg-muted text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  {link.label}
-                </Link>
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "block rounded-control px-3 py-2.5 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
               );
             })}
             {session && (
-              <Link
-                href="/admin"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2 rounded-md px-3 py-2.5 font-mono text-sm uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
-              >
-                <ShieldCheck className="size-4" aria-hidden />
-                Admin
-              </Link>
+              <li>
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2 rounded-control px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <ShieldCheck className="size-4" aria-hidden />
+                  Admin
+                </Link>
+              </li>
             )}
-          </Container>
-        </nav>
+          </ul>
+        </div>
       )}
     </header>
   );

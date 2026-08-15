@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { Markdown } from "@/components/ui/markdown";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
+import { safeLinkUrl } from "@/lib/safe-url";
+import { cn } from "@/lib/cn";
 import { StatusPanel } from "./status-panel";
 
 const ROTATE_MS = 3200;
@@ -18,6 +20,7 @@ function RotatingTitle({ title }: { title: string }) {
     .map((part) => part.trim())
     .filter(Boolean);
   const [index, setIndex] = useState(0);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (parts.length < 2) return;
@@ -30,15 +33,17 @@ function RotatingTitle({ title }: { title: string }) {
 
   if (parts.length === 0) return null;
 
+  // With reduced motion the rotation still happens — it carries content — but
+  // it crossfades in place instead of travelling.
   return (
     <span className="relative inline-block text-primary">
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={parts[index]}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
           className="inline-block"
         >
           {parts[index]}
@@ -48,80 +53,151 @@ function RotatingTitle({ title }: { title: string }) {
   );
 }
 
-export function Hero() {
-  const { data: identity, isLoading } = useGetSiteIdentityQuery();
+/**
+ * Availability, as a soft pill on the surface rather than a terminal prompt.
+ * The `● open to work — Toronto` status-line motif belongs to v2 and is retired.
+ */
+function AvailabilityPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-s2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-primary">
+      <span aria-hidden className="relative flex size-2">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
+        <span className="relative inline-flex size-2 rounded-full bg-primary" />
+      </span>
+      {label}
+    </span>
+  );
+}
 
-  if (isLoading || !identity) {
-    return (
-      <section aria-busy className="bg-graph-paper">
-        <Container className="grid gap-10 py-20 lg:grid-cols-[3fr_2fr] lg:py-28">
-          <div className="space-y-5">
-            <Skeleton className="h-5 w-56" />
-            <Skeleton className="h-14 w-3/4" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-          <Skeleton className="h-56 rounded-lg" />
-        </Container>
-      </section>
-    );
-  }
-
-  const { profile_data, social_links } = identity;
+function SocialRow({
+  links,
+}: {
+  links: { id: string; label: string; url: string; is_visible?: boolean }[];
+}) {
+  const visible = links.filter((l) => l.is_visible !== false && l.url);
+  if (visible.length === 0) return null;
 
   return (
-    <section className="border-b bg-graph-paper">
-      <Container className="grid items-center gap-10 py-20 lg:grid-cols-[3fr_2fr] lg:py-28">
-        <div>
-          <p className="status-line flex items-center gap-2">
-            <span aria-hidden className="text-primary">
-              ●
-            </span>
-            {profile_data.status_panel.availability || profile_data.title}
-          </p>
+    <ul className="flex flex-wrap items-center gap-s2">
+      {visible.map((link) => {
+        const href = safeLinkUrl(link.url);
+        if (!href) return null;
+        const Icon = SOCIAL_ICONS[link.id as keyof typeof SOCIAL_ICONS];
+        const external = !href.startsWith("/") && !href.startsWith("#");
+        return (
+          <li key={link.id}>
+            <a
+              href={href}
+              {...(external
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-control bg-card px-3 py-2 text-sm font-medium",
+                "shadow-e1 transition-[box-shadow,transform] duration-200 ease-enter",
+                "hover:-translate-y-0.5 hover:shadow-e2 motion-reduce:hover:translate-y-0",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              )}
+            >
+              {Icon && <Icon className="size-4 text-muted-foreground" />}
+              {link.label}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
-          <h1 className="mt-5 font-heading text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            {profile_data.name}
-            <span aria-hidden className="text-primary">
-              .
-            </span>
-            <span className="mt-2 block text-2xl font-semibold text-muted-foreground sm:text-3xl lg:text-4xl">
-              <RotatingTitle title={profile_data.title} />
-            </span>
-          </h1>
-
-          <Markdown className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground">
-            {profile_data.description}
-          </Markdown>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            {social_links
-              .filter((social) => social.is_visible)
-              .map((social) => {
-                const Icon = SOCIAL_ICONS[social.id.toLowerCase()];
-                return (
-                  <a
-                    key={social.id}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-md border bg-card px-3.5 py-2 font-mono text-xs transition-colors hover:border-primary/50 hover:text-primary"
-                  >
-                    {Icon && <Icon className="size-3.5" aria-hidden />}
-                    {social.label}
-                  </a>
-                );
-              })}
+function HeroSkeleton() {
+  return (
+    <Band weight="feature" aria-busy>
+      <div className="grid gap-s9 lg:grid-cols-[1.35fr_1fr] lg:items-center">
+        <div className="space-y-s5">
+          <Skeleton className="h-7 w-40 rounded-full" />
+          <Skeleton className="h-20 w-full max-w-xl rounded-control" />
+          <Skeleton className="h-12 w-2/3 rounded-control" />
+          <Skeleton className="h-20 w-full max-w-prose rounded-control" />
+          <div className="flex gap-s2">
+            <Skeleton className="h-10 w-28 rounded-control" />
+            <Skeleton className="h-10 w-28 rounded-control" />
           </div>
         </div>
+        <Skeleton className="h-72 w-full rounded-surface" />
+      </div>
+    </Band>
+  );
+}
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut", delay: 0.1 }}
-        >
-          <StatusPanel panel={profile_data.status_panel} />
+/**
+ * The identity band.
+ *
+ * v3 composition: an asymmetric two-column feature band. The left column is a
+ * single descending sequence — availability, name at display size, rotating
+ * role, description, channels — so the eye has one path. The right column is a
+ * floating surface carrying the status panel, which is deliberately the only
+ * elevated object on the band.
+ *
+ * Nothing here uses the v2 grammar: no graph-paper ground, no dotted rule, no
+ * monospace status line.
+ */
+export function Hero() {
+  const { data: identity, isLoading } = useGetSiteIdentityQuery();
+  const reduceMotion = useReducedMotion();
+
+  if (isLoading || !identity) return <HeroSkeleton />;
+
+  const { profile_data, social_links } = identity;
+  const panel = profile_data.status_panel;
+
+  const rise = reduceMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 12 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] as const },
+      };
+
+  return (
+    <Band weight="feature" aria-labelledby="hero-name">
+      <div className="grid gap-s9 lg:grid-cols-[1.35fr_1fr] lg:items-center">
+        <motion.div {...rise} className="flex flex-col items-start gap-s5">
+          {panel.availability && (
+            <AvailabilityPill label={panel.availability} />
+          )}
+
+          <div>
+            <h1 id="hero-name" className="t-display text-balance">
+              {profile_data.name}
+            </h1>
+            {profile_data.title && (
+              <p className="t-title mt-s2 text-balance">
+                <RotatingTitle title={profile_data.title} />
+              </p>
+            )}
+          </div>
+
+          {profile_data.description && (
+            <div className="t-lead max-w-prose text-pretty [&_p]:m-0">
+              <Markdown>{profile_data.description}</Markdown>
+            </div>
+          )}
+
+          <SocialRow links={social_links ?? []} />
         </motion.div>
-      </Container>
-    </section>
+
+        {panel.show && (
+          <motion.div
+            {...rise}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 0.4, delay: 0.08, ease: [0.32, 0.72, 0, 1] }
+            }
+          >
+            <StatusPanel panel={panel} />
+          </motion.div>
+        )}
+      </div>
+    </Band>
   );
 }
