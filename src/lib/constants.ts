@@ -100,7 +100,14 @@ export const CHART_COLORS = [
   "hsl(var(--accent))",
 ] as const;
 
+/**
+ * Fallbacks for rows written before a colour was required, and the starting
+ * value for a new record. Both palettes are user data stored on the row — they
+ * are deliberately not theme tokens, because a note keeps its colour when the
+ * owner switches theme.
+ */
 export const DEFAULT_HABIT_COLOR = "#3b82f6";
+export const DEFAULT_NOTE_COLOR = "#facc15";
 
 export const TASK_STATUS = {
   TODO: "todo",
@@ -256,7 +263,8 @@ export const TYPOGRAPHY_PRESETS = [
     weight: 800,
     serif: false,
     mood: "Expressive",
-    description: "Chunky variable display with a neutral body — creative portfolio",
+    description:
+      "Chunky variable display with a neutral body — creative portfolio",
     pairing:
       "Bricolage is loud and deliberately imperfect. It needs a body face with no opinions, which is exactly Inter's job.",
     families: ["Bricolage Grotesque", "Inter", "JetBrains Mono"],
@@ -286,7 +294,8 @@ export const TYPOGRAPHY_PRESETS = [
     weight: 700,
     serif: true,
     mood: "Editorial",
-    description: "Dramatic serif headlines with smooth body text — magazine-style",
+    description:
+      "Dramatic serif headlines with smooth body text — magazine-style",
     pairing:
       "The reference high-contrast pairing. Playfair's hairlines carry the drama; DM Sans's low contrast keeps the body calm.",
     families: ["Playfair Display", "DM Sans", "Fira Code"],
@@ -375,7 +384,8 @@ export const TYPOGRAPHY_PRESETS = [
     weight: 700,
     serif: false,
     mood: "System",
-    description: "No webfont — instant render, zero layout shift, native on every OS",
+    description:
+      "No webfont — instant render, zero layout shift, native on every OS",
     pairing:
       "Downloads nothing. On a slow connection this is the only preset that paints text immediately, and it always looks native.",
     families: [],

@@ -52,44 +52,39 @@ export default function StatCard({
 }: StatCardProps) {
   const description = helpText ?? subValue;
 
+  /**
+   * Trend styling lived inline three times over, and had drifted —
+   * `text-green-500` in one branch, `text-green-600` in the next. It also used
+   * literal palette colours, which do not move with the 52 theme presets: a
+   * green-500 chip stays the same green on a green-tinted theme. `chart-2` is
+   * the success token the task module already established.
+   */
+  const trendClasses = (() => {
+    if (trend === "up") return "text-chart-2 bg-chart-2/10";
+    if (trend === "down") return "text-destructive bg-destructive/10";
+    if (highlight) return "text-primary bg-primary/10";
+    return "text-muted-foreground bg-muted";
+  })();
+
+  const trendTextClass =
+    trend === "up"
+      ? "text-chart-2"
+      : trend === "down"
+        ? "text-destructive"
+        : "text-muted-foreground";
+
   const renderIcon = () => {
     if (!icon) return null;
 
     // Pre-rendered ReactNode (e.g. `<Wallet className="size-4" />`)
     if (!isIconComponent(icon)) {
-      return (
-        <div
-          className={cn(
-            "p-2 rounded-full",
-            trend === "up"
-              ? "text-green-500 bg-green-500/10"
-              : trend === "down"
-                ? "text-red-500 bg-red-500/10"
-                : highlight
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground bg-muted",
-          )}
-        >
-          {icon}
-        </div>
-      );
+      return <div className={cn("p-2 rounded-full", trendClasses)}>{icon}</div>;
     }
 
     // LucideIcon component reference (e.g. `Eye`)
     const Icon = icon;
     return (
-      <div
-        className={cn(
-          "p-2 rounded-full",
-          trend === "up"
-            ? "text-green-600 bg-green-500/10"
-            : trend === "down"
-              ? "text-red-500 bg-red-500/10"
-              : highlight
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground bg-muted",
-        )}
-      >
+      <div className={cn("p-2 rounded-full", trendClasses)}>
         <Icon className="size-4" />
       </div>
     );
@@ -99,16 +94,7 @@ export default function StatCard({
     if (!description) return null;
 
     return (
-      <p
-        className={cn(
-          "text-xs mt-1 flex items-center gap-1",
-          trend === "up"
-            ? "text-green-600"
-            : trend === "down"
-              ? "text-red-500"
-              : "text-muted-foreground",
-        )}
-      >
+      <p className={cn("text-xs mt-1 flex items-center gap-1", trendTextClass)}>
         {trend === "up" && <TrendingUp className="size-3" />}
         {trend === "down" && <TrendingDown className="size-3" />}
         {description}

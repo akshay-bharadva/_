@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type DragEvent } from "react";
-import { Edit, GripVertical, Link2, Loader2, Plus, Trash2 } from "lucide-react";
+import { Edit, GripVertical, Link2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   useDeleteNavLinkMutation,
@@ -25,6 +25,7 @@ import {
   FormSheet,
   ManagerWrapper,
   PageHeader,
+  LoadingState,
 } from "@/components/admin/shared";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { NavLinkForm } from "./nav-link-form";
@@ -175,9 +176,7 @@ export default function NavigationPage() {
         </CardHeader>
         <CardContent className="p-4">
           {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="animate-spin" />
-            </div>
+            <LoadingState variant="section" />
           ) : localLinks.length === 0 ? (
             <EmptyState
               icon={Link2}

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { Loader2, Plus, StickyNote, Tag } from "lucide-react";
+import { Plus, StickyNote, Tag } from "lucide-react";
 import { toast } from "sonner";
 import type { Note } from "@/types";
 import {
@@ -17,6 +17,7 @@ import {
   EmptyState,
   ManagerWrapper,
   PageHeader,
+  LoadingState,
 } from "@/components/admin/shared";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
@@ -107,11 +108,7 @@ export default function NotesPage() {
   };
 
   if (isLoading && !notes.length) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (

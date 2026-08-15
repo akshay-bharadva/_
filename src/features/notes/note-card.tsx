@@ -66,7 +66,9 @@ export function NoteCard({
         </CardHeader>
 
         <CardContent className="flex-grow px-4 py-2">
-          <div className="prose prose-sm line-clamp-[8] text-sm text-muted-foreground/90 dark:prose-invert">
+          {/* break-words: a pasted URL or hash is one unbreakable token, which
+              line-clamp does not constrain — it overflowed the card. */}
+          <div className="prose prose-sm line-clamp-[8] break-words text-sm text-muted-foreground/90 dark:prose-invert">
             <ReactMarkdown
               components={{
                 p: ({ node: _node, ...props }) => (

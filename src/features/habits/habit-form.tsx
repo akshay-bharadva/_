@@ -2,10 +2,11 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Habit } from "@/types";
+import { habitSchema, type HabitFormValues } from "@/lib/schemas";
+import { DEFAULT_HABIT_COLOR, HABIT_COLORS } from "@/lib/constants";
 import { useSaveHabitMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,26 +25,6 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-const habitSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  color: z.string().min(1),
-  target_per_week: z.coerce.number().min(1).max(7),
-});
-
-type FormValues = z.infer<typeof habitSchema>;
-
-// Per-habit accent colors, stored on the habit row — user data, not theme tokens
-const COLORS = [
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#a855f7", // purple
-  "#ec4899", // pink
-];
-
 export function HabitForm({
   habit,
   onSuccess,
@@ -53,16 +34,18 @@ export function HabitForm({
 }) {
   const [saveHabit, { isLoading }] = useSaveHabitMutation();
 
-  const form = useForm<FormValues>({
+  const form = useForm<HabitFormValues>({
     resolver: zodResolver(habitSchema),
+    // `??` rather than `||`: a stored 0 is still a value the form should show
+    // and let the resolver reject, not silently rewrite to the default.
     defaultValues: {
-      title: habit?.title || "",
-      color: habit?.color || "#3b82f6",
-      target_per_week: habit?.target_per_week || 7,
+      title: habit?.title ?? "",
+      color: habit?.color ?? DEFAULT_HABIT_COLOR,
+      target_per_week: habit?.target_per_week ?? 7,
     },
   });
 
-  const handleSubmit = async (values: FormValues) => {
+  const handleSubmit = async (values: HabitFormValues) => {
     try {
       await saveHabit({ id: habit?.id, ...values, is_active: true }).unwrap();
       toast.success("Habit saved successfully");
@@ -112,13 +95,24 @@ export function HabitForm({
                       />
                     </PopoverTrigger>
                     <PopoverContent className="w-64">
-                      <div className="grid grid-cols-4 gap-2">
-                        {COLORS.map((c) => (
-                          <div
+                      {/* Buttons, not divs: these are the only way to pick a
+                          colour without typing a hex code by hand, so they have
+                          to be reachable by keyboard. */}
+                      <div
+                        className="grid grid-cols-4 gap-2"
+                        role="group"
+                        aria-label="Habit colour"
+                      >
+                        {HABIT_COLORS.map((c) => (
+                          <button
                             key={c}
+                            type="button"
                             onClick={() => field.onChange(c)}
+                            aria-label={`Use colour ${c}`}
+                            aria-pressed={field.value === c}
                             className={cn(
-                              "flex size-10 cursor-pointer items-center justify-center rounded-full border-2 transition-all hover:scale-110",
+                              "flex size-10 items-center justify-center rounded-full border-2 transition-all hover:scale-110",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                               field.value === c
                                 ? "border-foreground"
                                 : "border-transparent",
@@ -128,15 +122,17 @@ export function HabitForm({
                             {field.value === c && (
                               <Check className="size-4 text-white drop-shadow-md" />
                             )}
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </PopoverContent>
                   </Popover>
                   <Input
                     {...field}
+                    aria-label="Colour hex code"
+                    maxLength={7}
                     className="w-32 font-mono uppercase"
-                    placeholder="#000000"
+                    placeholder="#3b82f6"
                   />
                 </div>
               </FormControl>

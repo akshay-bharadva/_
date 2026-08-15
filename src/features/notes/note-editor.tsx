@@ -24,18 +24,8 @@ import {
 } from "@/components/ui/popover";
 import NovelEditor from "@/components/admin/novel-editor";
 import { cn, getErrorMessage } from "@/lib/utils";
-
-// Per-note accent colors, stored on the note row — user data, not theme tokens
-const NOTE_COLORS = [
-  "#f87171", // Red
-  "#fb923c", // Orange
-  "#facc15", // Yellow
-  "#4ade80", // Green
-  "#22d3ee", // Cyan
-  "#60a5fa", // Blue
-  "#c084fc", // Purple
-  "#e879f9", // Pink
-];
+import { NOTE_COLORS } from "@/lib/constants";
+import { noteSchema } from "@/lib/schemas";
 
 interface NoteEditorProps {
   note: Note | null;
@@ -80,6 +70,20 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
       tags: tagsArray.length > 0 ? tagsArray : null,
       color: color,
     };
+
+    /**
+     * This editor is hand-rolled state rather than react-hook-form, so nothing
+     * was checking length or tag count before the row hit Postgres. Validating
+     * against the shared schema keeps it honest without rewriting the form.
+     */
+    const parsed = noteSchema.safeParse(noteDataToSave);
+    if (!parsed.success) {
+      toast.error("Note can't be saved", {
+        description:
+          parsed.error.issues[0]?.message ?? "Please check the form.",
+      });
+      return;
+    }
 
     try {
       if (note?.id) {
@@ -149,11 +153,17 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-3" align="end">
-              <div className="grid grid-cols-4 gap-2">
+              <div
+                className="grid grid-cols-4 gap-2"
+                role="group"
+                aria-label="Note colour"
+              >
                 <button
                   type="button"
                   onClick={() => setColor(null)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed hover:bg-muted"
+                  aria-label="No colour"
+                  aria-pressed={color === null}
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-dashed hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   title="Default"
                 >
                   <X className="size-3 text-muted-foreground" />
@@ -163,7 +173,9 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
                     key={c}
                     type="button"
                     onClick={() => setColor(c)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-black/5 transition-transform hover:scale-110 dark:border-white/10"
+                    aria-label={`Use colour ${c}`}
+                    aria-pressed={color === c}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-black/5 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:border-white/10"
                     style={{ backgroundColor: c }}
                   >
                     {color === c && (

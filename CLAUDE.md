@@ -1,104 +1,186 @@
-# CLAUDE.md
+# Personal Portfolio + Personal OS — Project Guardrails (read this first, every task)
 
-All code produced in this repository will be reviewed and validated by an automated agent such as OpenAI Codex or equivalent.
+This repository is a personal portfolio website and headless CMS / “Personal OS” built with Next.js 14 App Router. It supports a zero-config static portfolio mode using fallback data and a dynamic CMS/admin mode backed by Supabase. The site is deployed as a static export to GitHub Pages, with public portfolio/content routes and an authenticated Personal OS for managing tasks, learning, finance, content, notes, whiteboards, and other personal data.
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+**This file is the contract. Every change, in any component, must stay consistent with the architecture and rules below. If a task would require breaking a rule here, STOP and surface it instead of working around it.**
 
-## Project Overview
+---
 
-Personal portfolio website + headless CMS ("Personal OS") built with Next.js 14 (App Router). Supports two modes: static portfolio (zero-config with mock data) and dynamic CMS with Supabase backend. Deployed as a static export (`output: "export"`) to GitHub Pages.
+## Architecture: components and their boundaries
 
-> **v2 redesign (branch `fable`):** the app was rebuilt from scratch with a new
-> visual identity ("Precision Instrument" — Ink theme) and migrated Pages Router → App
-> Router. The data layer, Zod schemas, DB schema, and RTK store were preserved as business
-> logic. See `docs/redesign/` for the functional specs, design vision, architecture, and
-> phase plan. Every route is a static-export client experience; Supabase is called from the
-> client, so interactive pages are client components under thin server `page.tsx` wrappers.
+- **`src/app/`** — Owns route composition, layouts, route groups, and static-export-compatible page entry points. Public interactive pages should use thin `page.tsx` wrappers around feature components. Must not contain reusable domain logic that belongs in `src/features/` or shared UI logic that belongs elsewhere.
 
-## Commands
+- **`src/app/(public)/`** — Owns public portfolio/content routes: home, about, projects, showcase, contact, updates, blog, CMS catch-all pages, and related public chrome. Must not contain admin-only functionality or bypass the public data layer.
 
-| Command                 | Purpose                                                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`           | Dev server on port 8889                                                                                                |
-| `npm run build`         | Production build + static export to `./out/`                                                                           |
-| `npm run lint`          | ESLint                                                                                                                 |
-| `npm run test`          | Vitest (run once); `npm run test:watch` for watch mode                                                                 |
-| `npx vitest run <path>` | Run a single test file, e.g. `npx vitest run src/lib/theme-contrast.test.ts`; add `-t "<name>"` to filter by test name |
-| `npm run format`        | Prettier                                                                                                               |
+- **`src/app/admin/(auth)/`** — Owns unauthenticated authentication routes such as login, signup, MFA setup, and MFA challenge. Must not implement the protected admin shell or duplicate the admin authorization boundary.
 
-## Architecture
+- **`src/app/admin/(protected)/`** — Owns protected admin route composition. Its layout is the single route-level boundary for the admin shell and auth guard. Must not duplicate guard logic across individual module pages.
 
-### Dual-Mode Data Layer
+- **`src/features/`** — Owns feature-first UI and feature-specific behavior, for public and admin surfaces alike. Public/shared: home, about, contact, blog, updates, sections, github, admin-auth, admin-shell. Admin modules: dashboard, tasks, habits, learning, calendar, notes, whiteboard, finance, inventory, content, blog-admin, life-updates, navigation, assets, settings, security, focus. Each is a flat directory of kebab-case files with named exports (page components stay default-export). Must not reach into unrelated feature internals; cross-feature behavior should use documented shared contracts.
 
-All API calls check if Supabase is configured. If not, mock data from `src/lib/fallback-data.ts` is returned. This enables zero-config static deployment without a database.
+- **`src/features/admin-shell/`** — Owns the admin shell and client-side admin guard integration. `use-admin-guard.ts` is the single client-side UX guard invoked by the protected admin layout. Must not be treated as the security boundary; database/RLS enforcement remains authoritative.
 
-### State Management (Redux Toolkit + RTK Query)
+- **`src/features/whiteboard/`** — Owns the Excalidraw-backed whiteboard experience, scene serialization/deserialization, theme synchronization, and whiteboard-specific UI. Must not import `@excalidraw/excalidraw` at module scope. Excalidraw must remain client-only and code-split through `excalidraw-canvas-lazy`.
 
-- **`src/store/api/publicApi.ts`** — 6 queries for public content (no auth). Uses `fakeBaseQuery()` with direct Supabase calls.
-- **`src/store/api/adminApi.ts`** — barrel for the admin API. Endpoints live in per-feature slices under `src/store/api/admin/` (tasks, finance, learning, etc.) injected into a shared base via `injectEndpoints`. Always import hooks from the barrel, never from a feature file. Tag-based cache invalidation.
-- **`src/store/api/admin/query-helpers.ts`** — typed `queryFn` factories for standard Supabase CRUD (getAll/insert/update/save/delete); bespoke endpoints (joins, storage side-effects, RPCs) keep hand-written queryFns.
-- **`src/store/slices/`** — Local state for focus timer and learning sessions.
+- **`src/components/layout/`** — Owns shared public/admin chrome and structural layout components. Must not contain feature-specific business logic.
 
-### Routing
+- **`src/components/layout/public-chrome.tsx`** — Owns the shared public chrome composition (site header, footer, maintenance/lockdown gate, noindex helper). Must not become a container for page-specific content or data fetching.
 
-- **App Router** (`src/app/`), static export.
-- **Public** — route group `src/app/(public)/` with shared chrome (`components/layout/public-chrome`): `/`, `/about`, `/projects`, `/showcase`, `/contact`, `/updates`, `/blog`, `/blog/view` (`?slug=`, static-export-friendly), `/[...slug]` (CMS catch-all via `generateStaticParams`). Plus `src/app/not-found.tsx`.
-- **Admin** — `src/app/admin/`: `(auth)` group (login, signup, setup-mfa, mfa-challenge) with no guard; `(protected)` group whose `layout.tsx` runs the guard + Personal OS shell and wraps dashboard + 15 modules (tasks, habits, learning, calendar, notes, whiteboard, finance, inventory, content, blog, updates/life-updates, navigation, assets, settings, security).
-- **Auth guard**: `src/features/admin-shell/use-admin-guard.ts`, invoked once by the `(protected)` layout (replaces the old per-page `withAdminPage` HOC). `src/hooks/use-auth-guard.ts` now only exports the read-only `useSupabaseSession` for chrome.
-- **Feature-first UI**: page-specific logic lives in `src/features/<domain>/` (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell); `src/components/layout/` holds shared chrome; `src/components/ui/` the primitives. Admin _module internals_ still live in `src/components/admin/` (v1 components, token-styled so they inherit the new theme).
+- **`src/components/ui/`** — Owns reusable Shadcn/Radix UI primitives. Must remain generic and theme-token based; feature behavior belongs in `src/features/` or the relevant feature/module component. `Input` and `Textarea` accept `null` for `value` and render it as empty — most columns behind them are nullable and react-hook-form passes the row value straight through. `undefined` is deliberately left alone so uncontrolled usage still works.
 
-### Validation
+- **`src/components/admin/`** — Owns shared admin infrastructure only: `shared/` (PageHeader, ManagerWrapper, StatCard, EmptyState, LoadingState, SearchInput, FormSheet, MobileBottomNav), `novel-editor/` (the TipTap editor and its lazy wrapper), and `LoadingSpinner`. Admin module internals live in `src/features/<domain>/` — do not reintroduce per-module directories here.
 
-Zod schemas in `src/lib/schemas.ts` (50+ schemas) are used with React Hook Form via `@hookform/resolvers`. Types are inferred from schemas with `z.infer<>`.
+- **`src/components/admin/shared/LoadingState.tsx`** — Owns the busy indicator for admin surfaces, with `page`/`section`/`inline` variants and a `role="status"` region. Modules must not hand-roll a spinner; `LoadingSpinner` is a thin delegate kept for `next/dynamic` fallbacks. A `<Loader2>` inside a submit button is a different thing and stays inline at the call site.
 
-### Whiteboard (`src/features/whiteboard/`)
+- **`src/store/api/publicApi.ts`** — Owns public RTK Query data access: ten public endpoints (site identity, nav links, published posts, post by slug, view increment, published life updates, sections by path, GitHub repos, contact submit, lockdown status) over `fakeBaseQuery()` with direct Supabase calls. Every endpoint must keep its `if (!supabase)` fallback branch. Must not contain admin-only mutations or authorization assumptions.
 
-Excalidraw-backed drawing section at `/admin/whiteboard`, backed by the `whiteboards` table and `whiteboardApi`. Four constraints to preserve:
+- **`src/store/api/adminApi.ts` and `src/store/api/admin/`** — Own admin RTK Query endpoints. `adminApi.ts` is the barrel; the shared base slice is `admin/baseApi.ts`, and feature-specific endpoint slices are injected into it. Always import admin hooks from the barrel, never directly from an individual feature slice — the barrel import is what registers the injections. Must preserve tag-based cache invalidation.
 
-- **Excalidraw is client-only and code-split.** It touches `window` on import, so it is reached exclusively through `excalidraw-canvas-lazy` (`next/dynamic`, `ssr: false`). That loader also sets `window.EXCALIDRAW_ASSET_PATH` _before_ awaiting the import, because fonts register during module evaluation. Nothing outside this route may import `@excalidraw/excalidraw` at the top level — it is ~1 MB against a ~90 kB shared bundle.
-- **Fonts are copied, not committed.** `scripts/copy-excalidraw-assets.mjs` (wired to `predev`/`prebuild`) copies 8 Latin families into the gitignored `public/excalidraw/fonts`. Xiaolai (13 MB, CJK) is skipped and falls back to the library's CDN.
-- **The scene is stored in three columns.** `scene-io.ts` maps `serializeAsJSON` output → `elements`/`app_state`/`files` and back, stripping session-only appState (selection, collaborators, `theme`). The gallery query projects those columns away and reads only the SVG `preview`, which is rendered through an `<img>` data URL so it can't execute anything.
-- **The canvas follows the app theme** by reading the lightness of the resolved `--background` token (`whiteboard-theme.ts`), not a list of preset names — that keeps all 32 presets plus custom themes working.
+- **`src/store/api/admin/query-helpers.ts`** — Owns typed standard Supabase CRUD `queryFn` factories. Standard CRUD should use these helpers; bespoke joins, RPCs, and storage side effects may use hand-written query functions.
 
-### Styling
+- **`src/store/slices/`** — Owns local client state such as the focus timer and learning sessions. Must not become a replacement for server-backed RTK Query state.
 
-- Tailwind CSS with token-based theming. The base token scale + prose/motif styles live in `src/styles/globals.css`; the **32 theme presets** (v2 default `theme-ink-light`/`theme-ink-dark`) + 8 typography presets live in `src/styles/themes.css` (raw CSS, deliberately unlayered so Tailwind can't tree-shake runtime-applied classes). Labeled registry in `src/lib/constants.ts` (`THEME_PRESETS`); application logic in `src/lib/themes.ts` + `src/hooks/use-theme-sync.ts`; WCAG AA contrast gate in `src/lib/theme-contrast.test.ts` (parses `themes.css`). Toasts use sonner exclusively.
-- Design language: Space Grotesk headings (`font-heading`), Inter body, JetBrains Mono metadata (`font-mono`); motif helper classes `bg-graph-paper`, `rule-dotted`, `status-line`, `section-label`. Style with token classes only (`bg-card`, `text-primary`, `border-border`…) so all presets keep working.
-- UI primitives from Shadcn/Radix in `src/components/ui/`.
-- Animations via Framer Motion (`MotionConfig reducedMotion="user"` globally; use `whileInView` + `viewport={{ once: true }}`, never hide content behind JS-only animation).
+- **`src/lib/`** — Owns shared configuration, constants, utilities, fallback data, theme logic, schemas, and other domain-independent infrastructure. Must remain the single source for shared business contracts rather than accumulating feature-local duplicates.
 
-### Key Directories
+- **`src/lib/schemas.ts`** — Owns the canonical Zod validation schemas, the shared fragments they are built from (`boundedRequiredString`, `boundedOptionalString`, `money`, `optionalMoney`, `optionalInt`, `hexColor`, `slug`, `tagList`), and the `LIMITS` / `MONEY_MAX_*` ceilings. Must remain the source of truth for validated form/domain shapes; do not create component-local schema variants when an existing schema applies — use `.pick()` when a form only collects part of an entity. Bounds must track `db/schema.sql`: money ceilings mirror the NUMERIC column widths, and ranges mirror the CHECK constraints.
 
-- `src/app/` — App Router route tree (`(public)`, `admin/(auth)`, `admin/(protected)`), root `layout.tsx` + `providers.tsx`.
-- `src/features/` — feature-first UI (home, about, contact, blog, updates, sections, github, admin-auth, admin-shell, plus the admin modules and `whiteboard`).
-- `src/components/layout/` — shared public/admin chrome. `src/components/ui/` — Shadcn UI primitives (40+ components).
-- `src/components/admin/` — Admin module internals (~80 files), organized by feature (tasks/, finance/, habits/, learning/, etc.); rendered inside the new admin shell.
-- `src/lib/` — Config, constants, utilities, Zod schemas, fallback data
-- `src/types/index.ts` — Central TypeScript interfaces (150+ types)
-- `src/supabase/client.ts` — Supabase client initialization
-- `db/schema.sql` — Full database schema (21+ tables with RLS policies)
+- **`src/lib/site-identity-defaults.ts`** — Owns the canonical empty `site_identity` shape. Deliberately free of any Zod import: it is reached from the public data path, and `publicApi` is on every route. `schemas.ts` re-exports it as `siteSettingsDefaultValues` with the type annotation that checks it against the schema.
 
-### Auth & Security
+- **`src/lib/site-identity.ts`** — Owns `normalizeSiteContent`, applied in `publicApi.getSiteIdentity`. `profile_data`/`social_links`/`footer_data` are unconstrained JSONB, so this is the single place that decides what a missing key means. Public renderers must be able to trust the shape `SiteContent` declares; do not add defensive optional chaining in the renderers instead.
 
-Supabase Auth with mandatory MFA/TOTP. Row Level Security on all tables — public read for published content, admin-only write. Session max age: 24 hours.
+- **`src/lib/cn.ts`** — Owns `cn`. Kept separate from `utils.ts`, which re-exports `date-utils` (and therefore date-fns); the package is not marked `sideEffects: false`, so importing `cn` from `utils.ts` pulls date-fns into the chunk. Leaf components on code-split routes should import from here. `utils.ts` re-exports it, so existing call sites are fine.
 
-MFA and single-admin are enforced **at the database level**, not just in the client: write policies require `public.is_admin()` (first registered user + AAL2 session) or `auth.uid() = user_id AND public.is_aal2()`, and a `block_additional_signups` trigger on `auth.users` rejects account creation once an admin exists. The client-side `useAdminGuard` checks are UX, not the security boundary. Blog markdown is sanitized with `rehype-sanitize` (after `rehype-raw`, before prism/slug).
+- **`src/lib/fallback-data.ts`** — Owns mock/fallback data used when Supabase is not configured. Must preserve zero-config static mode and remain compatible with the same contracts used by dynamic data.
 
-### Testing
+- **`src/types/index.ts`** — Owns central TypeScript interfaces and shared application types. Must not be duplicated with incompatible local interfaces.
 
-Vitest + React Testing Library (jsdom). Tests live next to source as `*.test.ts(x)`; shared setup in `src/test/setup.ts`, config in `vitest.config.ts`. CI runs tests before the build in `.github/workflows/next-deploy.yml`.
+- **`src/supabase/client.ts`** — Owns Supabase client initialization. Must not contain hard-coded credentials or application-specific business logic.
 
-### Environment Variables
+- **`db/schema.sql`** — Owns the authoritative database schema and RLS policies. Database-level authorization must remain stronger than client-side assumptions.
 
-Required for dynamic mode:
+- **`src/styles/globals.css`** — Owns the base token scale, prose styles, and motif styles.
 
-```
+- **`src/styles/themes.css`** — Owns the 52 theme presets. It is intentionally raw/unlayered so runtime-applied theme classes are preserved. Do not move runtime theme definitions into a tree-shakeable Tailwind layer. The preset list must stay in sync with `THEME_PRESETS` in `src/lib/constants.ts`.
+
+- **`src/styles/typography.css`** — Owns the 12 typography presets and the shared font stacks. Same raw/unlayered constraint as `themes.css`; imported after it, so it wins at equal specificity. Must stay in sync with `TYPOGRAPHY_PRESETS` in `src/lib/constants.ts`. (`themes.css` still contains a superseded legacy `.typo-*` block — edit typography presets here, not there.)
+
+- **`scripts/copy-excalidraw-assets.mjs`** — Owns copying the required Excalidraw fonts into the generated, gitignored public asset directory. Fonts are copied at `predev`/`prebuild` time and must not be committed.
+
+- **`.github/workflows/`** — Owns CI/deployment automation. Tests must run before the production build in the deployment workflow.
+
+---
+
+## Shared contracts
+
+The following are cross-component contracts and must have one source of truth:
+
+- **Zod schemas** — `src/lib/schemas.ts` is authoritative for validated data shapes. React Hook Form integrations should use `@hookform/resolvers`.
+- **TypeScript interfaces** — `src/types/index.ts` is authoritative for shared application types. A field must be optional/nullable here whenever its column is nullable in `db/schema.sql`, even if the form always supplies it. Typing a nullable column as required does not make it non-null; it only moves the failure from the compiler to the user's screen.
+- **Supabase schema and RLS** — `db/schema.sql` is authoritative for database structure and authorization policies. Zod bounds must not be looser than the column: a value the form accepts and Postgres rejects surfaces as an opaque write failure.
+- **Per-entity display fallbacks** — when a nullable column needs a default for display, that decision lives in one helper next to the feature (`inventory/item-value.ts`, `habits/habit-color.ts`), not re-derived at each call site. Prefer `??` over `||` for anything where `0` or `""` is a real value.
+- **RTK Query APIs** — public data goes through `publicApi`; admin data goes through the admin API barrel and injected feature endpoints.
+- **Fallback/dynamic data contract** — fallback data must satisfy the same public/admin-facing shapes expected by dynamic data.
+- **Theme tokens** — styling must use semantic tokens such as `bg-card`, `text-primary`, and `border-border`, not hard-coded colors that bypass the theme system.
+- **Whiteboard scene format** — `scene-io.ts` is authoritative for mapping Excalidraw scenes to the `elements`, `app_state`, and `files` database columns.
+- **Admin authorization** — database RLS and Supabase Auth/MFA are authoritative. Client guards are UX protections only.
+- **Static export compatibility** — every route must work with `output: "export"`; do not introduce server-only runtime dependencies that require a persistent Next.js server.
+
+---
+
+## Cross-cutting rules (non-negotiable)
+
+- No hard-coded secrets — credentials, keys, URLs, bucket names, and deployment configuration come from environment variables/config.
+- Preserve zero-config mode — when Supabase is not configured, public functionality must continue to work using `src/lib/fallback-data.ts`.
+- Static export is mandatory — changes must remain compatible with `output: "export"` and GitHub Pages deployment.
+- Tests travel with code — every behavior change ships with an appropriate Vitest/React Testing Library test.
+- No silent scope creep — a change scoped to one component must not alter another component's behavior without explicitly surfacing the cross-component impact.
+- Determinism where it matters — fallback data, serialization, validation, theme parsing, and other reproducible behavior must remain deterministic.
+- Database security is authoritative — never rely on client-side guards as a substitute for Supabase RLS, MFA, or database constraints.
+- Preserve mandatory MFA — admin write access requires the database-enforced authenticated/MFA model already defined in `db/schema.sql`.
+- Preserve single-admin enforcement — do not weaken or bypass the `block_additional_signups` database constraint.
+- Never weaken RLS to make a client feature work — fix the client/data contract instead.
+- Do not duplicate auth logic — `use-admin-guard.ts` is invoked once by the protected admin layout; individual pages must not recreate the old per-page guard/HOC architecture.
+- Supabase calls remain client-compatible — interactive Supabase-backed experiences must remain compatible with the static-export architecture.
+- Never top-level import Excalidraw — `@excalidraw/excalidraw` must only be reached through the lazy client-only loader.
+- Preserve Excalidraw asset behavior — required fonts are generated/copy-installed, not committed; `window.EXCALIDRAW_ASSET_PATH` must be configured before the Excalidraw module is evaluated.
+- Preserve whiteboard persistence semantics — scene data remains split across `elements`, `app_state`, and `files`; session-only app state such as selection, collaborators, and theme must not be persisted.
+- Treat whiteboard previews as untrusted data — gallery previews remain SVG data URLs rendered as images rather than executable markup.
+- Theme through tokens — use semantic theme classes and tokens so all 52 presets and custom themes continue to work. `chart-2` is the success accent and `chart-3` the warning accent; literal palette classes such as `text-green-600` or `bg-amber-500` do not move with the presets and must not be reintroduced.
+- Anything that offers a plain light/dark choice must pass a real preset class (`LIGHT_THEME`/`DARK_THEME`). Passing `"light"`, `"dark"` or `"system"` to next-themes strips the active `theme-*` class and leaves the app with no tokens at all.
+- The `dark` class on `<html>` is derived by `applyTheme` from the resolved `--background` lightness, which is what makes `dark:` variants work at all. Do not set it from a preset name list, and do not assume a visitor-facing OS toggle exists — `enableSystem` is `false`.
+- Preserve WCAG AA contrast — theme changes must satisfy the existing contrast test in `src/lib/theme-contrast.test.ts`.
+- Every admin form that persists data must validate against a `src/lib/schemas.ts` schema before the write, including editors built on plain `useState` rather than react-hook-form.
+- Components must survive the data the database can actually return: absent, empty, zero, and far longer than expected. Truncation on a flex child needs `min-w-0` to engage, and clamping does not constrain a single unbroken token — add `break-words`.
+- Never interpolate user-supplied text into a storage key without a sanitiser that rejects traversal segments — see `assets/asset-utils.ts`.
+- Preserve reduced-motion behavior — the global `MotionConfig reducedMotion="user"` contract must remain intact. Do not hide meaningful content behind JavaScript-only animation.
+- Prefer `whileInView` with `viewport={{ once: true }}` for scroll-triggered Framer Motion effects.
+- Toasts use Sonner exclusively — do not introduce another toast/notification system.
+- Avoid unnecessary shared-bundle growth — particularly for large client-only libraries such as Excalidraw. `publicApi` is loaded on every route, so anything it imports lands in every page's first load; keep Zod and other form-layer dependencies out of that path. Check the per-route First Load JS in `npm run build` output after touching a shared module.
+- The package is **not** marked `sideEffects: false`, and marking it so is not a safe drive-by: `src/store/api/adminApi.ts` re-exports modules whose `injectEndpoints()` calls are genuine module-scope side effects, so tree-shaking one would silently unregister admin endpoints at runtime without failing a test.
+- Keep admin API imports consistent — consumers must import admin hooks from the API barrel, not feature endpoint implementation files.
+- Use existing query helpers for standard CRUD — bespoke query functions are reserved for operations that genuinely require joins, RPCs, storage effects, or other non-standard behavior.
+- Report architecture conflicts — if a requested change requires violating one of these rules, stop and surface the conflict rather than introducing a workaround.
+
+---
+
+## Stack conventions
+
+- **Language / runtime:** TypeScript / Node.js / Next.js 14
+- **Framework:** Next.js 14 App Router with `output: "export"`
+- **UI:** React + Tailwind CSS + Shadcn/Radix primitives
+- **State:** Redux Toolkit + RTK Query
+- **Backend:** Supabase Auth, Postgres, RLS, and Storage
+- **Validation:** Zod + React Hook Form + `@hookform/resolvers`
+- **Animation:** Framer Motion
+- **Whiteboard:** Excalidraw, client-only and dynamically imported
+- **Testing:** Vitest + React Testing Library + jsdom
+- **Formatting:** Prettier
+- **Linting:** ESLint
+- **Install:** `npm install`
+- **Development:** `npm run dev` — port `8889`
+- **Production build:** `npm run build` — generates static export in `./out/`
+- **Test:** `npm run test`; use `npx vitest run <path>` for a specific test file
+- **Watch tests:** `npm run test:watch`
+- **Lint:** `npm run lint`
+- **Format:** `npm run format`
+- **Path alias:** `@/*` maps to `./src/*`
+- **Style:** Follow existing patterns in the file being edited and use semantic theme tokens rather than hard-coded visual values.
+
+### Required dynamic-mode environment variables
+
+```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-NEXT_PUBLIC_BUCKET_NAME        # Storage bucket, default "assets"
-NEXT_PUBLIC_SITE_URL           # Deployed URL (required for builds)
+NEXT_PUBLIC_BUCKET_NAME
+NEXT_PUBLIC_SITE_URL
 ```
 
-### Path Alias
+`NEXT_PUBLIC_BUCKET_NAME` defaults to `assets` when applicable. `NEXT_PUBLIC_SITE_URL` is required for production builds.
 
-`@/*` maps to `./src/*` (configured in tsconfig.json).
+---
+
+## How agents work here
+
+1. **Read this file first.** Treat it as the repository contract before inspecting or editing code.
+2. **Inspect the owning component.** Identify the route, feature, API slice, schema, type, or shared primitive that owns the requested behavior.
+3. **Plan before editing anything multi-file.** Confirm the change fits the architecture and identify every shared contract affected.
+4. **Stay in the owning component.** Do not reach into another component's internals to avoid establishing a new dependency.
+5. **Use existing contracts.** Reuse schemas, types, query helpers, theme tokens, API barrels, and shared primitives before creating new abstractions.
+6. **Preserve both modes.** For data-backed changes, verify behavior with Supabase configured and with fallback/mock data when configuration is absent.
+7. **Protect the static-export boundary.** Do not introduce assumptions that require a persistent server, server-side runtime APIs, or dynamic server rendering.
+8. **Protect the security boundary.** Treat RLS, MFA, and database constraints as authoritative; client-side guards are not authorization.
+9. **Run focused tests first.** Add/update tests next to the affected code, then run the relevant test file(s).
+10. **Run repository validation before completion.** At minimum, run tests relevant to the change and lint; for changes affecting build/runtime behavior, run `npm run build`.
+11. **Report obstacles.** If a requirement conflicts with this contract, explain the conflict and stop rather than weakening an architectural rule.
+12. **Surface cross-component impact.** If a task genuinely requires a shared-contract or cross-component change, state the impact explicitly before making it.
+13. **Keep the diff narrow.** Do not refactor unrelated code, rename unrelated APIs, or “clean up” neighboring components without a task requirement.
+14. **Review security-sensitive changes explicitly.** Auth, RLS, MFA, storage access, content sanitization, and admin writes require particular scrutiny before considering the task complete.
+
+---
+
+## Model routing (cost discipline)
+
+- **Local lane (Ollama)** — repository exploration, implementation volume, routine refactors, tests, formatting, and documentation.
+- **Cloud lane (Claude/Pro)** — architecture analysis, design decisions, security review, difficult debugging, and final review.
+- Never set `ANTHROPIC_API_KEY` in the cloud lane; setting it switches the workflow to metered billing.
+- Automated reviewer/security agents are the merge gate. Optimize changes for deterministic validation and machine review.

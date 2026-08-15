@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, Plus, Presentation } from "lucide-react";
+import { Plus, Presentation } from "lucide-react";
 import { toast } from "sonner";
 import type { Whiteboard } from "@/types";
 import {
@@ -14,6 +14,7 @@ import {
   EmptyState,
   ManagerWrapper,
   PageHeader,
+  LoadingState,
 } from "@/components/admin/shared";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
@@ -82,11 +83,7 @@ export default function WhiteboardPage() {
   };
 
   if (isLoading && !boards.length) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (

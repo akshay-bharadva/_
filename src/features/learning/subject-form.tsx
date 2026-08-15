@@ -19,12 +19,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { getErrorMessage } from "@/lib/utils";
-
-const subjectSchema = z.object({
-  name: z.string().min(1, "Subject name is required."),
-  description: z.string().optional(),
-});
-type SubjectFormValues = z.infer<typeof subjectSchema>;
+import {
+  learningSubjectSchema,
+  type LearningSubjectFormValues,
+} from "@/lib/schemas";
 
 interface SubjectFormProps {
   subject: Partial<LearningSubject> | null;
@@ -33,15 +31,15 @@ interface SubjectFormProps {
 
 export function SubjectForm({ subject, onSuccess }: SubjectFormProps) {
   const [saveSubject, { isLoading }] = useSaveSubjectMutation();
-  const form = useForm<SubjectFormValues>({
-    resolver: zodResolver(subjectSchema),
+  const form = useForm<LearningSubjectFormValues>({
+    resolver: zodResolver(learningSubjectSchema),
     defaultValues: {
-      name: subject?.name || "",
-      description: subject?.description || "",
+      name: subject?.name ?? "",
+      description: subject?.description ?? "",
     },
   });
 
-  const handleSubmit = async (values: SubjectFormValues) => {
+  const handleSubmit = async (values: LearningSubjectFormValues) => {
     try {
       await saveSubject({ ...values, id: subject?.id }).unwrap();
       toast.success(`Subject "${values.name}" saved successfully.`);

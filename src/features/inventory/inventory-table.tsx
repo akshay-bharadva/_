@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { getWarrantyStatus } from "./warranty";
+import { currentValue, depreciationPercent, formatValue } from "./item-value";
 import { ItemActions } from "./item-actions";
 
 interface InventoryTableProps {
@@ -44,6 +45,7 @@ export function InventoryTable({
         <TableBody>
           {items.map((item) => {
             const warranty = getWarrantyStatus(item.warranty_expiry);
+            const depreciation = depreciationPercent(item);
             return (
               <TableRow key={item.id} className="group hover:bg-muted/30">
                 <TableCell>
@@ -60,24 +62,35 @@ export function InventoryTable({
                           <Box className="size-5 text-muted-foreground" />
                         )}
                       </div>
-                      <div>
-                        <div className="font-semibold text-foreground">
+                      {/* min-w-0 lets the truncation below actually engage —
+                          without it the flex child refuses to shrink and a long
+                          name widens the whole table instead. */}
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-foreground">
                           {item.name}
                         </div>
                         {item.serial_number && (
                           <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
-                            <Barcode className="size-3" /> {item.serial_number}
+                            <Barcode className="size-3 shrink-0" />
+                            <span className="truncate">
+                              {item.serial_number}
+                            </span>
                           </div>
                         )}
                       </div>
                     </div>
                     {/* Condensed info for mobile widths */}
                     <div className="flex flex-wrap items-center gap-2 pl-12 text-xs sm:hidden">
-                      <Badge variant="outline">{item.category}</Badge>
+                      {item.category && (
+                        <Badge
+                          variant="outline"
+                          className="max-w-[12rem] truncate"
+                        >
+                          {item.category}
+                        </Badge>
+                      )}
                       <div className="font-mono font-bold">
-                        $
-                        {item.current_value?.toLocaleString() ??
-                          item.purchase_price.toLocaleString()}
+                        ${formatValue(currentValue(item))}
                       </div>
                     </div>
                   </div>
@@ -106,22 +119,14 @@ export function InventoryTable({
                 </TableCell>
                 <TableCell className="hidden text-right sm:table-cell">
                   <div className="font-mono font-bold">
-                    $
-                    {item.current_value?.toLocaleString() ??
-                      item.purchase_price.toLocaleString()}
+                    ${formatValue(currentValue(item))}
                   </div>
-                  {item.current_value &&
-                    item.current_value < item.purchase_price && (
-                      <div className="flex items-center justify-end text-[10px] text-destructive">
-                        <TrendingDown className="mr-1 size-3" />
-                        {Math.round(
-                          ((item.purchase_price - item.current_value) /
-                            item.purchase_price) *
-                            100,
-                        )}
-                        %
-                      </div>
-                    )}
+                  {depreciation !== null && (
+                    <div className="flex items-center justify-end text-[10px] text-destructive">
+                      <TrendingDown className="mr-1 size-3" />
+                      {depreciation}%
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <ItemActions

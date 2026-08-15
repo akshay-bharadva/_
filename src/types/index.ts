@@ -262,9 +262,14 @@ export interface Habit {
   id: string;
   user_id?: string;
   title: string;
-  color: string;
-  target_per_week: number;
-  is_active: boolean;
+  /**
+   * `color`, `target_per_week` and `is_active` are nullable columns with
+   * defaults. Rows created through the form always carry them, but the type
+   * described a guarantee the schema does not make.
+   */
+  color?: string | null;
+  target_per_week?: number | null;
+  is_active?: boolean | null;
   created_at?: string;
   habit_logs?: HabitLog[]; // Joined data
 }
@@ -293,9 +298,11 @@ export type LearningStatus =
 export interface LearningTopic {
   id: string;
   user_id?: string;
-  subject_id: string;
+  /** Nullable FK — a topic outlives the module it was filed under. */
+  subject_id?: string | null;
   title: string;
-  status: LearningStatus;
+  /** Nullable column with a default; consumers fall back to "To Learn". */
+  status?: LearningStatus | null;
   core_notes?: string | null;
   resources?: { name: string; url: string }[] | null;
   confidence_score?: number | null;
@@ -395,11 +402,18 @@ export interface InventoryItem {
   id: string;
   user_id?: string;
   name: string;
-  category: string;
+  /**
+   * `category` and `purchase_price` are nullable columns on `inventory_items`.
+   * They were typed as required here, so any row written before the form
+   * enforced them — or inserted outside the app — crashed the table on
+   * `purchase_price.toLocaleString()`. The form still requires both; the type
+   * now describes what the database can actually return.
+   */
+  category?: string | null;
   serial_number?: string | null;
   purchase_date?: string | null;
   warranty_expiry?: string | null;
-  purchase_price: number;
+  purchase_price?: number | null;
   current_value?: number | null;
   image_url?: string | null;
   notes?: string | null;

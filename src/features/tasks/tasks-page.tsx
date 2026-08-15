@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { Task } from "@/types";
 import {
@@ -18,6 +18,7 @@ import {
   FormSheet,
   ManagerWrapper,
   PageHeader,
+  LoadingState,
 } from "@/components/admin/shared";
 import {
   Dialog,
@@ -149,11 +150,7 @@ export default function TasksPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (

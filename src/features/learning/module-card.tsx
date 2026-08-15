@@ -144,8 +144,10 @@ export function ModuleCard({
           ) : (
             <div className="mt-2 space-y-1">
               {topics.map((topic) => {
+                // `status` is a nullable column; "To Learn" is its DB default.
                 const config =
-                  statusConfig[topic.status] || statusConfig["To Learn"];
+                  statusConfig[topic.status ?? "To Learn"] ??
+                  statusConfig["To Learn"];
                 const StatusIcon = config.icon;
                 const isActive = activeSession?.topic_id === topic.id;
                 return (

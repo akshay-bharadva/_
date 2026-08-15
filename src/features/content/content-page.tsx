@@ -19,7 +19,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import {
+  EmptyState,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
 import { getErrorMessage, cn } from "@/lib/utils";
 import type { PathOption, SheetState } from "./content-types";
 import { SectionList } from "./section-list";
@@ -63,11 +67,14 @@ export default function ContentPage() {
   const didInitialSelect = useRef(false);
 
   const [localSections, setLocalSections] = useState<PortfolioSection[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    null,
+  );
   const [sheetState, setSheetState] = useState<SheetState>(null);
   const [query, setQuery] = useState("");
 
-  const { data: sections, isLoading: isLoadingSections } = useGetPortfolioContentQuery();
+  const { data: sections, isLoading: isLoadingSections } =
+    useGetPortfolioContentQuery();
   const { data: navLinks } = useGetNavLinksAdminQuery();
   const [saveSection] = useSaveSectionMutation();
   const [deleteSection] = useDeleteSectionMutation();
@@ -115,11 +122,16 @@ export default function ContentPage() {
    */
   const availablePaths: PathOption[] = useMemo(() => {
     const paths = new Set<string>(["/"]);
-    navLinks?.forEach((link) => link.href?.startsWith("/") && paths.add(link.href));
+    navLinks?.forEach(
+      (link) => link.href?.startsWith("/") && paths.add(link.href),
+    );
     localSections.forEach((s) => s.page_path && paths.add(s.page_path));
     return Array.from(paths)
       .sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)))
-      .map((path) => ({ label: path === "/" ? "/ (home)" : path, value: path }));
+      .map((path) => ({
+        label: path === "/" ? "/ (home)" : path,
+        value: path,
+      }));
   }, [navLinks, localSections]);
 
   /** Sections grouped by page path, "/" first, each group in display order. */
@@ -154,7 +166,8 @@ export default function ContentPage() {
     [groupedSections],
   );
 
-  const selectedSection = localSections.find((s) => s.id === selectedSectionId) ?? null;
+  const selectedSection =
+    localSections.find((s) => s.id === selectedSectionId) ?? null;
 
   /* ── handlers ─────────────────────────────────────────────────────── */
 
@@ -190,7 +203,9 @@ export default function ContentPage() {
         // Roll back to the exact pre-move state rather than the last server
         // payload, which may be staler than what the user was looking at.
         setLocalSections(previous);
-        toast.error("Couldn't reorder sections", { description: getErrorMessage(err) });
+        toast.error("Couldn't reorder sections", {
+          description: getErrorMessage(err),
+        });
       }
     },
     [localSections, updateOrder],
@@ -209,7 +224,9 @@ export default function ContentPage() {
       } catch (err) {
         // Autosave failures must still surface — silent applies to the
         // success path only, never to errors.
-        toast.error("Failed to save section", { description: getErrorMessage(err) });
+        toast.error("Failed to save section", {
+          description: getErrorMessage(err),
+        });
         throw err;
       }
     },
@@ -235,7 +252,9 @@ export default function ContentPage() {
         toast.success("Section deleted");
         setSelectedSectionId(null);
       } catch (err) {
-        toast.error("Failed to delete section", { description: getErrorMessage(err) });
+        toast.error("Failed to delete section", {
+          description: getErrorMessage(err),
+        });
       }
     },
     [confirm, deleteSection, localSections],
@@ -254,7 +273,9 @@ export default function ContentPage() {
           .unwrap()
           .catch(() => undefined);
       } catch (err) {
-        toast.error("Failed to save item", { description: getErrorMessage(err) });
+        toast.error("Failed to save item", {
+          description: getErrorMessage(err),
+        });
       }
     },
     [rescanUsage, saveItem],
@@ -276,7 +297,9 @@ export default function ContentPage() {
           .unwrap()
           .catch(() => undefined);
       } catch (err) {
-        toast.error("Failed to delete item", { description: getErrorMessage(err) });
+        toast.error("Failed to delete item", {
+          description: getErrorMessage(err),
+        });
       }
     },
     [confirm, deleteItem, rescanUsage],
@@ -289,15 +312,19 @@ export default function ContentPage() {
       setSheetState({ type: "edit-section", section }),
     onDeleteSection: handleDeleteSection,
     onSaveContent: handleSaveSection,
-    onNewItem: (sectionId: string) => setSheetState({ type: "new-item", sectionId }),
-    onEditItem: (item: PortfolioItem) => setSheetState({ type: "edit-item", item }),
+    onNewItem: (sectionId: string) =>
+      setSheetState({ type: "new-item", sectionId }),
+    onEditItem: (item: PortfolioItem) =>
+      setSheetState({ type: "edit-item", item }),
     onDeleteItem: handleDeleteItem,
   };
 
   const renderSheet = () => {
     if (sheetState?.type === "new-item" || sheetState?.type === "edit-item") {
       const sectionId =
-        sheetState.type === "new-item" ? sheetState.sectionId : sheetState.item.section_id;
+        sheetState.type === "new-item"
+          ? sheetState.sectionId
+          : sheetState.item.section_id;
       const owningSection = localSections.find((s) => s.id === sectionId);
       return (
         <ItemEditorSheet
@@ -309,10 +336,15 @@ export default function ContentPage() {
         />
       );
     }
-    if (sheetState?.type === "new-section" || sheetState?.type === "edit-section") {
+    if (
+      sheetState?.type === "new-section" ||
+      sheetState?.type === "edit-section"
+    ) {
       return (
         <SectionEditorSheet
-          section={sheetState.type === "edit-section" ? sheetState.section : null}
+          section={
+            sheetState.type === "edit-section" ? sheetState.section : null
+          }
           availablePaths={availablePaths}
           onSave={handleSaveSection}
           onClose={() => setSheetState(null)}
@@ -411,32 +443,33 @@ export default function ContentPage() {
         </div>
 
         {/* ── detail column (desktop) ───────────────────────────────── */}
-        <div className={cn("hidden min-h-0 lg:col-span-8 lg:block xl:col-span-9")}>
+        <div
+          className={cn("hidden min-h-0 lg:col-span-8 lg:block xl:col-span-9")}
+        >
           {selectedSection ? (
             <Card className="h-full overflow-hidden">
               <SectionDetail section={selectedSection} {...detailProps} />
             </Card>
           ) : (
             <Card className="flex h-full items-center justify-center border-dashed">
-              <CardContent className="py-16 text-center">
-                <LayoutTemplate className="mx-auto mb-4 size-12 text-muted-foreground/30" />
-                <p className="mb-1 text-lg font-semibold">
-                  {isEmpty ? "No content yet" : "No section selected"}
-                </p>
-                <p className="mx-auto max-w-xs text-sm text-muted-foreground">
-                  {isEmpty
+              <EmptyState
+                icon={LayoutTemplate}
+                title={isEmpty ? "No content yet" : "No section selected"}
+                description={
+                  isEmpty
                     ? "Sections are the building blocks of every public page. Create your first one to get started."
-                    : "Pick a section on the left to edit its content and items."}
-                </p>
-                {isEmpty && (
-                  <Button
-                    className="mt-5"
-                    onClick={() => setSheetState({ type: "new-section" })}
-                  >
-                    <Plus className="mr-2 size-4" /> Create a section
-                  </Button>
-                )}
-              </CardContent>
+                    : "Pick a section on the left to edit its content and items."
+                }
+                action={
+                  isEmpty
+                    ? {
+                        label: "Create a section",
+                        onClick: () => setSheetState({ type: "new-section" }),
+                        icon: Plus,
+                      }
+                    : undefined
+                }
+              />
             </Card>
           )}
         </div>

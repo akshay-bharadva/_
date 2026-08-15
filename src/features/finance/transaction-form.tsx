@@ -27,15 +27,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
-
-const transactionSchema = z.object({
-  date: z.string().min(1, "Date is required"),
-  description: z.string().min(1, "Description is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
-  type: z.enum(["earning", "expense"]),
-  category: z.string().optional(),
-});
-type TransactionFormValues = z.infer<typeof transactionSchema>;
+import { transactionSchema, type TransactionFormValues } from "@/lib/schemas";
 
 interface TransactionFormProps {
   transaction: Partial<Transaction> | null;
@@ -52,11 +44,11 @@ export function TransactionForm({
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
-      date: transaction?.date || new Date().toISOString().split("T")[0],
-      description: transaction?.description || "",
-      amount: transaction?.amount || 0,
-      type: transaction?.type || "expense",
-      category: transaction?.category || "",
+      date: transaction?.date ?? new Date().toISOString().split("T")[0],
+      description: transaction?.description ?? "",
+      amount: transaction?.amount ?? 0,
+      type: transaction?.type ?? "expense",
+      category: transaction?.category ?? "",
     },
   });
 

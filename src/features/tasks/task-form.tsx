@@ -48,14 +48,7 @@ import {
   TASK_STATUSES,
   TASK_STATUS_META,
 } from "./task-meta";
-
-const taskSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  status: z.enum(["todo", "inprogress", "done"]),
-  priority: z.enum(["low", "medium", "high"]),
-  due_date: z.string().optional().nullable(),
-});
-type TaskFormValues = z.infer<typeof taskSchema>;
+import { taskSchema, type TaskFormValues } from "@/lib/schemas";
 
 interface TaskFormProps {
   task: Partial<Task> | null;

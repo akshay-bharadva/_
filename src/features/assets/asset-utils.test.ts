@@ -12,6 +12,7 @@ import {
   getAllFolderPaths,
   getAssetsForPath,
   getFileIcon,
+  sanitizeFolderName,
 } from "./asset-utils";
 
 type Asset = { file_path: string; file_name: string };
@@ -120,5 +121,35 @@ describe("getAssetsForPath", () => {
     expect(currentFolderAssets.map((a) => a.file_path)).toEqual([
       "projects/hero.jpg",
     ]);
+  });
+});
+
+describe("sanitizeFolderName", () => {
+  it("keeps a normal name", () => {
+    expect(sanitizeFolderName("screenshots")).toBe("screenshots");
+    expect(sanitizeFolderName("my-folder_2")).toBe("my-folder_2");
+  });
+
+  it("replaces characters that are not path-safe", () => {
+    expect(sanitizeFolderName("my folder")).toBe("my_folder");
+    expect(sanitizeFolderName("a/b")).toBe("a_b");
+  });
+
+  it("rejects traversal segments", () => {
+    // `.` is allowlisted by the character filter, so `..` used to survive
+    // untouched and be interpolated straight into the storage key.
+    expect(sanitizeFolderName("..")).toBeNull();
+    expect(sanitizeFolderName(".")).toBeNull();
+    expect(sanitizeFolderName("../..")).toBe("_..");
+  });
+
+  it("strips a leading dot so folders are not hidden", () => {
+    expect(sanitizeFolderName(".hidden")).toBe("hidden");
+  });
+
+  it("rejects names with nothing usable left", () => {
+    expect(sanitizeFolderName("")).toBeNull();
+    expect(sanitizeFolderName("   ")).toBeNull();
+    expect(sanitizeFolderName("///")).toBeNull();
   });
 });

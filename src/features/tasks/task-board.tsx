@@ -199,7 +199,9 @@ function TaskBoardCard({
       >
         <CardContent className="pointer-events-none relative z-10 space-y-3 p-3">
           <div className="flex items-start justify-between gap-2">
-            <span className="line-clamp-2 text-sm font-medium leading-snug text-foreground/90">
+            {/* min-w-0 lets the clamp constrain width; break-words handles a
+                single long unbroken token, which clamping alone does not. */}
+            <span className="min-w-0 flex-1 break-words line-clamp-2 text-sm font-medium leading-snug text-foreground/90">
               {task.title}
             </span>
             <div className="pointer-events-auto">

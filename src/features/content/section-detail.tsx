@@ -12,8 +12,8 @@ import {
   EyeOff,
   Info,
   Link as LinkIcon,
-  Loader2,
   LayoutTemplate,
+  Loader2,
   Lock,
   MoreVertical,
   Plus,
@@ -22,6 +22,7 @@ import {
 import type { PortfolioItem, PortfolioSection } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/admin/shared";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -97,7 +98,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
     dirty: {
       icon: Loader2,
       text: "Unsaved changes",
-      className: "text-amber-600 dark:text-amber-500",
+      className: "text-chart-3",
     },
     saving: {
       icon: Loader2,
@@ -107,7 +108,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
     saved: {
       icon: Check,
       text: "Saved",
-      className: "text-emerald-600 dark:text-emerald-500",
+      className: "text-chart-2",
     },
     error: {
       icon: CloudOff,
@@ -145,7 +146,7 @@ function MetaBadge({
       className={cn(
         "inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[0.6875rem]",
         tone === "default" && "bg-secondary text-muted-foreground",
-        tone === "warn" && "bg-amber-500/10 text-amber-600 dark:text-amber-500",
+        tone === "warn" && "bg-chart-3/10 text-chart-3",
         tone === "danger" && "bg-destructive/10 text-destructive",
       )}
     >
@@ -389,8 +390,8 @@ export function SectionDetail({
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-8">
           {isHidden && (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 text-sm">
-              <EyeOff className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-500" />
+            <div className="flex items-start gap-2 rounded-lg border border-chart-3/30 bg-chart-3/5 px-3 py-2.5 text-sm">
+              <EyeOff className="mt-0.5 size-4 shrink-0 text-chart-3" />
               <p className="text-muted-foreground">
                 This section is hidden, so it does not render on{" "}
                 <span className="font-mono text-foreground">
@@ -461,23 +462,20 @@ export function SectionDetail({
               </div>
 
               {items.length === 0 ? (
-                <div className="rounded-lg border border-dashed bg-muted/10 px-6 py-12 text-center">
-                  <LayoutTemplate className="mx-auto mb-3 size-8 text-muted-foreground/30" />
-                  <p className="text-sm font-medium">No items yet</p>
-                  <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-                    This section renders as{" "}
-                    {layoutMeta?.label ?? section.layout_style} and needs at
-                    least one item. Until then it is skipped on the public site.
-                  </p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-4"
-                    onClick={() => onNewItem(section.id)}
-                  >
-                    <Plus className="mr-2 size-4" /> Add the first item
-                  </Button>
-                </div>
+                <EmptyState
+                  size="compact"
+                  variant="bordered"
+                  icon={LayoutTemplate}
+                  title="No items yet"
+                  description={`This section renders as ${
+                    layoutMeta?.label ?? section.layout_style
+                  } and needs at least one item. Until then it is skipped on the public site.`}
+                  action={{
+                    label: "Add the first item",
+                    onClick: () => onNewItem(section.id),
+                    icon: Plus,
+                  }}
+                />
               ) : (
                 <ul className="grid gap-3">
                   {items.map((item, index) => {

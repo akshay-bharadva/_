@@ -20,9 +20,7 @@ export function CmsPage({
   title: string;
 }) {
   const kicker =
-    pagePath === "/"
-      ? "home"
-      : pagePath.split("/").filter(Boolean).join(" / ");
+    pagePath === "/" ? "home" : pagePath.split("/").filter(Boolean).join(" / ");
 
   return (
     <Container className="py-16 sm:py-20">

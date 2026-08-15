@@ -1,18 +1,12 @@
 // Core utilities - cn() for Tailwind class merging and slugify()
 
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
-
 /**
- * Merge Tailwind CSS classes with proper precedence.
- * Combines clsx for conditional classes and tailwind-merge for deduplication.
- *
- * @param inputs - Class values (strings, objects, arrays)
- * @returns Merged class string
+ * `cn` is defined in `./cn` and re-exported here so the hundreds of existing
+ * `import { cn } from "@/lib/utils"` call sites keep working. Modules that
+ * want *only* class merging should import from `@/lib/cn` — see the note there
+ * about this file's date-fns re-exports.
  */
-export function cn(...inputs: ClassValue[]): string {
-  return twMerge(clsx(inputs));
-}
+export { cn } from "./cn";
 
 /**
  * Convert a string to a URL-friendly slug.

@@ -1,9 +1,11 @@
-import { Loader2 } from "lucide-react";
+import LoadingState from "./shared/LoadingState";
 
+/**
+ * Kept as the `next/dynamic` loading fallback for the code-split admin routes
+ * (dashboard, calendar), where a default-exported component reads better at the
+ * call site than an inline arrow. It delegates so there is still exactly one
+ * spinner implementation — see `shared/LoadingState`.
+ */
 export default function LoadingSpinner() {
-  return (
-    <div className="flex h-[calc(100vh-20rem)] items-center justify-center">
-      <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
-    </div>
-  );
+  return <LoadingState variant="page" />;
 }

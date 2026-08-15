@@ -4,7 +4,12 @@ import { Markdown as MarkdownBase } from "@/components/ui/markdown";
 import { ImageOff } from "lucide-react";
 import type { PortfolioItem } from "@/types";
 import { cn } from "@/lib/utils";
-import { isInternalUrl, markdownUrlTransform, safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
+import {
+  isInternalUrl,
+  markdownUrlTransform,
+  safeImageUrl,
+  safeLinkUrl,
+} from "@/lib/safe-url";
 
 /* ────────────────────────────────────────────────────────────────
  * Sorting
@@ -205,7 +210,10 @@ export function MaybeLink({
   const safe = safeLinkUrl(href);
   if (!safe) return <div className={className}>{children}</div>;
 
-  const classes = cn("group/link block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg", className);
+  const classes = cn(
+    "group/link block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg",
+    className,
+  );
 
   if (isInternalUrl(safe)) {
     return (
@@ -248,7 +256,12 @@ export function TextLink({
     );
   }
   return (
-    <a href={safe} target="_blank" rel="noopener noreferrer" className={className}>
+    <a
+      href={safe}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={className}
+    >
       {children}
     </a>
   );
@@ -334,7 +347,11 @@ export function ItemImage({
  * the section is skipped entirely; in development it says why, so the author
  * can see the section exists and needs items.
  */
-export function EmptySection({ label = "No items in this section yet." }: { label?: string }) {
+export function EmptySection({
+  label = "No items in this section yet.",
+}: {
+  label?: string;
+}) {
   if (process.env.NODE_ENV === "production") return null;
   return (
     <div className="rounded-lg border border-dashed bg-muted/10 px-4 py-8 text-center">

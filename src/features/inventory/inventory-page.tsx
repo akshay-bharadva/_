@@ -7,7 +7,6 @@ import {
   Filter,
   LayoutGrid,
   List,
-  Loader2,
   Plus,
   Receipt,
   TrendingDown,
@@ -43,9 +42,11 @@ import {
   ManagerWrapper,
   PageHeader,
   StatCard,
+  LoadingState,
 } from "@/components/admin/shared";
 import { getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { InventoryForm } from "./inventory-form";
+import { currentValue, purchasePrice } from "./item-value";
 import { InventoryTable } from "./inventory-table";
 import { InventoryGrid } from "./inventory-grid";
 
@@ -66,7 +67,11 @@ export default function InventoryPage() {
   const [deleteItem] = useDeleteInventoryItemMutation();
 
   const categories = useMemo(() => {
-    const cats = new Set(items.map((i) => i.category));
+    // `category` is nullable, and a Radix SelectItem throws on an empty value —
+    // one uncategorised row used to take the whole filter down with it.
+    const cats = new Set(
+      items.map((i) => i.category?.trim()).filter((c): c is string => !!c),
+    );
     return Array.from(cats).sort();
   }, [items]);
 
@@ -82,8 +87,9 @@ export default function InventoryPage() {
     });
 
     filtered.sort((a, b) => {
-      if (sortBy === "value")
-        return (b.current_value || 0) - (a.current_value || 0);
+      // currentValue() falls back to the purchase price, so items that were
+      // never appraised sort by what they cost instead of collapsing to 0.
+      if (sortBy === "value") return currentValue(b) - currentValue(a);
       if (sortBy === "name") return a.name.localeCompare(b.name);
       return (
         parseLocalDate(b.purchase_date).getTime() -
@@ -93,11 +99,11 @@ export default function InventoryPage() {
 
     const totalCount = filtered.length;
     const totalOriginalValue = filtered.reduce(
-      (acc, i) => acc + i.purchase_price,
+      (acc, i) => acc + purchasePrice(i),
       0,
     );
     const totalCurrentValue = filtered.reduce(
-      (acc, i) => acc + (i.current_value ?? i.purchase_price),
+      (acc, i) => acc + currentValue(i),
       0,
     );
     const totalDepreciation = totalOriginalValue - totalCurrentValue;
@@ -234,9 +240,7 @@ export default function InventoryPage() {
 
       <div>
         {isLoading ? (
-          <div className="flex justify-center p-20">
-            <Loader2 className="size-10 animate-spin text-muted-foreground" />
-          </div>
+          <LoadingState />
         ) : processedData.filtered.length === 0 ? (
           <EmptyState
             icon={Box}

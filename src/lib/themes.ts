@@ -1,4 +1,4 @@
-import { hexToHsl } from "./color-utils";
+import { hexToHsl, isDarkBackground } from "./color-utils";
 import { THEME_PRESETS, TYPOGRAPHY_PRESETS } from "./constants";
 import type { SiteContent } from "@/types";
 
@@ -20,6 +20,14 @@ export const TYPOGRAPHY_CLASSES = TYPOGRAPHY_PRESETS.map((t) => t.value);
 
 export const DEFAULT_THEME = "theme-ink-light";
 export const THEME_STORAGE_KEY = "site-theme";
+
+/**
+ * The two presets carrying the v2 "Ink" identity. Anything offering a plain
+ * light/dark choice (the command palette) must pick real preset classes —
+ * setting a bare `light`/`dark` class leaves the app with no tokens at all.
+ */
+export const LIGHT_THEME = "theme-ink-light";
+export const DARK_THEME = "theme-ink-dark";
 
 type CustomThemeColors = NonNullable<
   SiteContent["profile_data"]["custom_theme_colors"]
@@ -88,6 +96,25 @@ export function clearCustomThemeColors(): void {
 }
 
 /**
+ * Mirror the active theme's lightness onto the `dark` class.
+ *
+ * Tailwind is configured `darkMode: ["class"]`, but nothing ever added that
+ * class — `applyTheme` only ever removed it — so every `dark:` variant in the
+ * codebase was dead. That was not merely cosmetic: note cards and the rich
+ * text editor rely on `dark:prose-invert`, so prose kept its light-theme text
+ * colour on all 26 dark presets.
+ *
+ * Derived from the resolved `--background` lightness rather than a list of
+ * preset names, so it holds for custom themes too. Must run after the theme
+ * class is applied, since it reads the computed value.
+ */
+function syncDarkClass(): void {
+  const html = document.documentElement;
+  const background = getComputedStyle(html).getPropertyValue("--background");
+  html.classList.toggle("dark", isDarkBackground(background));
+}
+
+/**
  * Apply a theme + typography preset to <html>: swaps theme/typo classes,
  * applies or clears inline custom colors, and persists the choice.
  */
@@ -114,6 +141,8 @@ export function applyTheme(
   if (typographyPreset && typographyPreset !== "typo-default") {
     html.classList.add(typographyPreset);
   }
+
+  syncDarkClass();
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, themeClass);
   } catch {

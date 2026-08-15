@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { blogPostSchema } from "@/lib/schemas";
 import { cn } from "@/lib/utils";
 import {
   PostSettingsSheet,
@@ -86,15 +87,37 @@ export default function BlogEditor({
     }));
   };
 
+  /**
+   * Field rules come from the shared schema — the slug pattern in particular
+   * was duplicated here character-for-character, so tightening it in one place
+   * silently left the other behind.
+   *
+   * `content` is checked separately: `blogPostSchema` allows an empty body
+   * (a draft row is legitimate), but this editor refuses to save a post with
+   * nothing in it.
+   */
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.slug.trim()) {
-      newErrors.slug = "Slug is required";
-    } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(formData.slug)) {
-      newErrors.slug =
-        "Slug must be lowercase, alphanumeric, with single hyphens.";
+
+    const parsed = blogPostSchema
+      .pick({ title: true, slug: true, excerpt: true, tags: true })
+      .safeParse({
+        title: formData.title,
+        slug: formData.slug,
+        excerpt: formData.excerpt,
+        tags: formData.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      });
+
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = String(issue.path[0] ?? "");
+        if (field && !newErrors[field]) newErrors[field] = issue.message;
+      }
     }
+
     if (!formData.content.trim()) newErrors.content = "Content is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

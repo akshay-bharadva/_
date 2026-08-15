@@ -1,4 +1,33 @@
 /**
+ * Pull the lightness percentage out of an HSL token value such as
+ * `"220 13% 9%"` — the shape every theme preset stores its colours in.
+ * Returns null for anything that is not in that shape.
+ */
+export function lightnessOf(hslToken: string): number | null {
+  const parts = hslToken.trim().split(/\s+/);
+  if (parts.length < 3) return null;
+  const lightness = Number.parseFloat(parts[2]);
+  return Number.isFinite(lightness) ? lightness : null;
+}
+
+/** Below this the surrounding UI reads as dark. */
+export const DARK_LIGHTNESS_THRESHOLD = 50;
+
+/**
+ * Whether a resolved `--background` token reads as a dark surface.
+ *
+ * Derived from lightness rather than a list of preset names, so it holds for
+ * all 52 presets and for custom themes, which have no name at all. An
+ * unreadable token means no theme has been applied yet; light is the app
+ * default and the safer guess.
+ */
+export function isDarkBackground(hslToken: string): boolean {
+  const lightness = lightnessOf(hslToken);
+  if (lightness === null) return false;
+  return lightness < DARK_LIGHTNESS_THRESHOLD;
+}
+
+/**
  * Convert a hex color to HSL format for CSS variables.
  * Supports #RGB and #RRGGBB formats.
  */

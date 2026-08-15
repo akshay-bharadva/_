@@ -36,10 +36,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import LoadingSpinner from "@/components/admin/LoadingSpinner";
-import { PageHeader, StatCard } from "@/components/admin/shared";
+import { LoadingState, PageHeader, StatCard } from "@/components/admin/shared";
 import { cn } from "@/lib/utils";
-import { projectRecurringOccurrences } from "@/lib/finance-utils";
+import {
+  goalProgressPercent,
+  projectRecurringOccurrences,
+} from "@/lib/finance-utils";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -53,7 +55,7 @@ export default function DashboardPage() {
         description="Your portfolio's command center."
       />
       {isLoading || !dashboardData ? (
-        <LoadingSpinner />
+        <LoadingState />
       ) : (
         <DashboardOverview
           dashboardData={dashboardData}
@@ -119,12 +121,7 @@ function DashboardOverview({
       .slice(0, 5); // Limit to top 5 for UI space
   }, [recurring]);
 
-  const goalProgress = primaryGoal
-    ? Math.min(
-        (primaryGoal.current_amount / primaryGoal.target_amount) * 100,
-        100,
-      )
-    : 0;
+  const goalProgress = primaryGoal ? goalProgressPercent(primaryGoal) : 0;
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">

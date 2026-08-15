@@ -5,28 +5,20 @@
  * `--background` token — that works for every preset and for custom themes,
  * which have no name at all.
  */
+import { isDarkBackground, lightnessOf } from "@/lib/color-utils";
+
 export type ExcalidrawTheme = "light" | "dark";
 
 /**
- * Pull the lightness percentage out of an HSL token value such as
- * `"220 13% 9%"`. Returns null for anything that is not in that shape.
+ * Re-exported so the whiteboard's own tests and callers keep one import site.
+ * The implementation moved to `lib/color-utils` once `applyTheme` needed the
+ * same lightness derivation to set the `dark` class — a feature is the wrong
+ * owner for a contract that `lib` depends on.
  */
-export function lightnessOf(hslToken: string): number | null {
-  const parts = hslToken.trim().split(/\s+/);
-  if (parts.length < 3) return null;
-  const lightness = Number.parseFloat(parts[2]);
-  return Number.isFinite(lightness) ? lightness : null;
-}
-
-/** Below this the surrounding UI reads as dark and the canvas should match. */
-const DARK_THRESHOLD = 50;
+export { lightnessOf };
 
 export function themeForBackground(hslToken: string): ExcalidrawTheme {
-  const lightness = lightnessOf(hslToken);
-  // An unreadable token means a theme that has not been applied yet; light is
-  // the app default, so it is the safer guess.
-  if (lightness === null) return "light";
-  return lightness < DARK_THRESHOLD ? "dark" : "light";
+  return isDarkBackground(hslToken) ? "dark" : "light";
 }
 
 /** Read the theme currently applied to <html>. */

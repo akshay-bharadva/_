@@ -28,13 +28,18 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import {
+  LoadingState,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import {
   BUCKET_NAME,
   PLACEHOLDER_FILENAME,
   getAllFolderPaths,
   getAssetsForPath,
+  sanitizeFolderName,
   type StorageAsset,
 } from "./asset-utils";
 import { useAssetOperations } from "./use-asset-operations";
@@ -120,7 +125,13 @@ export default function AssetsPage() {
 
     const pathPrefix =
       currentPath.length > 0 ? currentPath.join("/") + "/" : "";
-    const safeName = newFolderName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const safeName = sanitizeFolderName(newFolderName);
+    if (!safeName) {
+      toast.error("That folder name can't be used", {
+        description: "Use letters, numbers, dots, dashes or underscores.",
+      });
+      return;
+    }
     const fullPath = `${pathPrefix}${safeName}/${PLACEHOLDER_FILENAME}`;
 
     try {
@@ -413,9 +424,7 @@ export default function AssetsPage() {
           )}
 
           {isLoading && !assets.length ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="animate-spin text-muted-foreground" />
-            </div>
+            <LoadingState variant="section" />
           ) : subFolders.length === 0 && currentFolderAssets.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center py-20 text-center text-muted-foreground">
               <div className="mb-4 rounded-full bg-muted/50 p-4">

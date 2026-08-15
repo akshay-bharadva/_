@@ -71,12 +71,19 @@ export function DynamicPageContent({
         )}
       >
         <AlertTriangle className="mx-auto mb-3 size-8 text-destructive/70" />
-        <p className="font-heading font-semibold">This section didn&apos;t load</p>
+        <p className="font-heading font-semibold">
+          This section didn&apos;t load
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
           The content for this page could not be fetched. Everything else on the
           site is unaffected.
         </p>
-        <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          onClick={() => refetch()}
+        >
           Try again
         </Button>
       </div>
@@ -95,10 +102,12 @@ export function DynamicPageContent({
       >
         <FileQuestion className="mx-auto mb-3 size-8 text-muted-foreground/40" />
         <p className="font-mono text-sm text-muted-foreground">
-          No visible sections for <span className="text-foreground">{pagePath}</span>
+          No visible sections for{" "}
+          <span className="text-foreground">{pagePath}</span>
         </p>
         <p className="mt-1 text-xs text-muted-foreground/70">
-          Check the page path and the section&apos;s visibility toggle. Development only.
+          Check the page path and the section&apos;s visibility toggle.
+          Development only.
         </p>
       </div>
     );

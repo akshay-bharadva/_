@@ -7,11 +7,9 @@ import { addDays, format, startOfMonth } from "date-fns";
 import {
   ArrowRightLeft,
   Calendar as CalendarIcon,
-  Loader2,
   Plus,
   Repeat,
   Target,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
@@ -39,15 +37,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import {
+  FormSheet,
+  LoadingState,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
 import { getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { buildForecastData } from "@/lib/finance-utils";
 import type { DialogState } from "./finance-types";
@@ -67,11 +63,7 @@ const Calendar = dynamic(
 // Both chart tabs pull in Recharts; the transaction and recurring tabs don't.
 // Splitting them keeps the table-only views light, and the analytics chunk is
 // only fetched once that tab is actually opened.
-const chartTabLoader = () => (
-  <div className="flex h-64 items-center justify-center">
-    <Loader2 className="size-6 animate-spin text-muted-foreground" />
-  </div>
-);
+const chartTabLoader = () => <LoadingState variant="section" />;
 
 const DashboardTab = dynamic(
   () => import("./dashboard-tab").then((mod) => mod.DashboardTab),
@@ -228,12 +220,7 @@ export default function FinancePage() {
     }
   };
 
-  if (isLoading)
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (isLoading) return <LoadingState />;
   if (error) return <p>Error loading data.</p>;
 
   return (
@@ -396,81 +383,63 @@ export default function FinancePage() {
         }}
       />
 
-      <Sheet
+      {/* Was a hand-rolled Sheet with its own header, close button and scroll
+          container. FormSheet is the same shape and additionally becomes a
+          bottom drawer on mobile, which every other module already did. */}
+      <FormSheet
         open={!!sheetState.type}
         onOpenChange={(open) => !open && handleCloseSheet()}
+        title={
+          sheetState.type === "addFunds"
+            ? "Add Funds"
+            : `${sheetState.data ? "Edit" : "New"} ${sheetState.type ?? ""}`
+        }
       >
-        <SheetContent className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
-          <div className="flex shrink-0 items-center justify-between">
-            <SheetHeader>
-              <SheetTitle className="capitalize">
-                {sheetState.type === "addFunds"
-                  ? "Add Funds"
-                  : `${sheetState.data ? "Edit" : "New"} ${sheetState.type}`}
-              </SheetTitle>
-            </SheetHeader>
-            <SheetClose asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Close"
-              >
-                <X className="size-4" />
+        {sheetState.type === "transaction" && (
+          <TransactionForm
+            transaction={(sheetState.data as Transaction) ?? null}
+            onSuccess={handleCloseSheet}
+            categories={allCategories}
+          />
+        )}
+        {sheetState.type === "recurring" && (
+          <RecurringTransactionForm
+            recurringTransaction={
+              (sheetState.data as RecurringTransaction) ?? null
+            }
+            onSuccess={handleCloseSheet}
+          />
+        )}
+        {sheetState.type === "goal" && (
+          <FinancialGoalForm
+            goal={(sheetState.data as FinancialGoal) ?? null}
+            onSuccess={handleCloseSheet}
+          />
+        )}
+        {sheetState.type === "addFunds" && (
+          <form onSubmit={handleAddFunds} className="space-y-4">
+            <div>
+              <Label htmlFor="add-funds-amount">Amount</Label>
+              <Input
+                id="add-funds-amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                required
+                autoFocus
+                className="text-lg"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="ghost" onClick={handleCloseSheet}>
+                Cancel
               </Button>
-            </SheetClose>
-          </div>
-          <div className="mt-4 flex-1 overflow-y-auto pr-6">
-            {sheetState.type === "transaction" && (
-              <TransactionForm
-                transaction={(sheetState.data as Transaction) ?? null}
-                onSuccess={handleCloseSheet}
-                categories={allCategories}
-              />
-            )}
-            {sheetState.type === "recurring" && (
-              <RecurringTransactionForm
-                recurringTransaction={
-                  (sheetState.data as RecurringTransaction) ?? null
-                }
-                onSuccess={handleCloseSheet}
-              />
-            )}
-            {sheetState.type === "goal" && (
-              <FinancialGoalForm
-                goal={(sheetState.data as FinancialGoal) ?? null}
-                onSuccess={handleCloseSheet}
-              />
-            )}
-            {sheetState.type === "addFunds" && (
-              <form onSubmit={handleAddFunds} className="space-y-4">
-                <div>
-                  <Label htmlFor="add-funds-amount">Amount</Label>
-                  <Input
-                    id="add-funds-amount"
-                    name="amount"
-                    type="number"
-                    step="0.01"
-                    required
-                    autoFocus
-                    className="text-lg"
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleCloseSheet}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Confirm</Button>
-                </div>
-              </form>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+              <Button type="submit">Confirm</Button>
+            </div>
+          </form>
+        )}
+      </FormSheet>
     </ManagerWrapper>
   );
 }

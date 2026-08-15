@@ -1,16 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  BookOpen,
-  ChevronDown,
-  Clock,
-  Layers,
-  Loader2,
-  Plus,
-  X,
-  Zap,
-} from "lucide-react";
+import { BookOpen, ChevronDown, Clock, Layers, Plus, Zap } from "lucide-react";
 import {
   eachDayOfInterval,
   format,
@@ -29,14 +20,6 @@ import { useAppSelector } from "@/store/hooks";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -53,6 +36,8 @@ import {
   ManagerWrapper,
   PageHeader,
   StatCard,
+  FormSheet,
+  LoadingState,
 } from "@/components/admin/shared";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { ModuleCard } from "./module-card";
@@ -173,9 +158,7 @@ export default function LearningPage() {
   if (isLoading) {
     return (
       <ManagerWrapper>
-        <div className="flex h-[80vh] items-center justify-center">
-          <Loader2 className="size-10 animate-spin text-muted-foreground/30" />
-        </div>
+        <LoadingState />
       </ManagerWrapper>
     );
   }
@@ -290,49 +273,37 @@ export default function LearningPage() {
         </div>
       </div>
 
-      <Sheet
+      <FormSheet
         open={!!sheetState}
         onOpenChange={(open) => !open && setSheetState(null)}
+        title={`${sheetState?.type?.includes("create") ? "Create" : "Edit"} ${
+          sheetState?.type?.includes("subject") ? "Module" : "Topic"
+        }`}
+        description="Configure details."
       >
-        <SheetContent className="sm:max-w-lg">
-          <div className="mb-6 flex items-center justify-between">
-            <SheetHeader>
-              <SheetTitle>
-                {sheetState?.type?.includes("create") ? "Create" : "Edit"}{" "}
-                {sheetState?.type?.includes("subject") ? "Module" : "Topic"}
-              </SheetTitle>
-              <SheetDescription>Configure details.</SheetDescription>
-            </SheetHeader>
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon" aria-label="Close">
-                <X className="size-4" />
-              </Button>
-            </SheetClose>
-          </div>
-          {(sheetState?.type === "create-subject" ||
-            sheetState?.type === "edit-subject") && (
-            <SubjectForm
-              subject={
-                sheetState.type === "edit-subject" ? sheetState.data : null
-              }
-              onSuccess={handleSaveSuccess}
-            />
-          )}
-          {(sheetState?.type === "create-topic" ||
-            sheetState?.type === "edit-topic") && (
-            <TopicForm
-              topic={sheetState.type === "edit-topic" ? sheetState.data : null}
-              subjects={subjects}
-              defaultSubjectId={
-                sheetState.type === "create-topic"
-                  ? sheetState.subjectId
-                  : undefined
-              }
-              onSuccess={handleSaveSuccess}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+        {(sheetState?.type === "create-subject" ||
+          sheetState?.type === "edit-subject") && (
+          <SubjectForm
+            subject={
+              sheetState.type === "edit-subject" ? sheetState.data : null
+            }
+            onSuccess={handleSaveSuccess}
+          />
+        )}
+        {(sheetState?.type === "create-topic" ||
+          sheetState?.type === "edit-topic") && (
+          <TopicForm
+            topic={sheetState.type === "edit-topic" ? sheetState.data : null}
+            subjects={subjects}
+            defaultSubjectId={
+              sheetState.type === "create-topic"
+                ? sheetState.subjectId
+                : undefined
+            }
+            onSuccess={handleSaveSuccess}
+          />
+        )}
+      </FormSheet>
     </ManagerWrapper>
   );
 }

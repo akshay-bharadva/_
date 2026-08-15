@@ -30,11 +30,13 @@
    Note CSS custom properties are substituted as raw text, so these compose
    correctly inside a font-family list. */
 :root {
-  --stack-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  --stack-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
   --stack-serif: Iowan Old Style, Palatino, Georgia, "Times New Roman", serif;
-  --stack-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
+  --stack-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
 }
 
 /* =========================================
@@ -325,7 +327,9 @@ pre,
 pre code,
 .font-code {
   font-variant-ligatures: contextual common-ligatures;
-  font-feature-settings: "calt" 1, "liga" 1;
+  font-feature-settings:
+    "calt" 1,
+    "liga" 1;
 }
 
 input,
@@ -333,7 +337,9 @@ textarea,
 [contenteditable="true"],
 .novel-editor .ProseMirror {
   font-variant-ligatures: none;
-  font-feature-settings: "calt" 0, "liga" 0;
+  font-feature-settings:
+    "calt" 0,
+    "liga" 0;
 }
 
 /* --- Numerals ---------------------------------------------------------------
@@ -353,7 +359,9 @@ kbd,
 samp,
 pre {
   font-variant-numeric: tabular-nums slashed-zero;
-  font-feature-settings: "tnum" 1, "zero" 1;
+  font-feature-settings:
+    "tnum" 1,
+    "zero" 1;
 }
 
 /* Headings that are themselves numbers — stat grids, impact figures — want
@@ -362,7 +370,9 @@ pre {
 .stat-figure,
 .font-numeric {
   font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
 }
 
 /* --- Rendering --------------------------------------------------------------

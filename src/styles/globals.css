@@ -172,7 +172,6 @@
     @apply text-muted-foreground;
   }
 
-  
   /* Vertical rhythm and a heading scale for `.markdown`.
 
      Preflight zeroes every margin and collapses headings to `font-size:
@@ -221,7 +220,6 @@
     @apply mt-1;
   }
 
-  
   /* --- Novel Editor (Tiptap) Styles --- */
 
   .novel-editor .ProseMirror {

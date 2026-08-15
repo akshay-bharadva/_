@@ -7,6 +7,7 @@ import {
   MOCK_NAV_LINKS,
   MOCK_LIFE_UPDATES,
 } from "@/lib/fallback-data";
+import { normalizeSiteContent } from "@/lib/site-identity";
 import type {
   BlogPost,
   GitHubRepo,
@@ -34,7 +35,7 @@ export const publicApi = createApi({
       queryFn: async () => {
         // --- MOCK FALLBACK ---
         if (!supabase) {
-          return { data: MOCK_SITE_IDENTITY };
+          return { data: normalizeSiteContent(MOCK_SITE_IDENTITY) };
         }
         // ---------------------
 
@@ -43,7 +44,9 @@ export const publicApi = createApi({
           .select("*")
           .single();
         if (error) return { error };
-        return { data: data as SiteContent };
+        // profile_data is unconstrained JSONB; normalising here means the
+        // public renderers can rely on the shape SiteContent promises.
+        return { data: normalizeSiteContent(data as Partial<SiteContent>) };
       },
       providesTags: ["SiteContent"],
     }),

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { FileText, Loader2, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { BlogPost } from "@/types";
 import {
@@ -25,6 +25,7 @@ import {
   EmptyState,
   ManagerWrapper,
   PageHeader,
+  LoadingState,
 } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import { PostCards, PostsTable } from "./post-list";
@@ -33,11 +34,7 @@ import { PostCards, PostsTable } from "./post-list";
 // is actually opened for editing, so the list view stays light.
 const BlogEditor = dynamic(() => import("./blog-editor"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-96 items-center justify-center">
-      <Loader2 className="size-8 animate-spin text-muted-foreground" />
-    </div>
-  ),
+  loading: () => <LoadingState />,
 });
 
 interface BlogAdminPageProps {
@@ -202,9 +199,7 @@ export default function BlogAdminPage({
       <Card className="flex flex-1 flex-col overflow-hidden border-none bg-transparent shadow-none sm:border sm:bg-card sm:shadow-sm">
         <CardContent className="flex-1 overflow-auto bg-transparent p-0 sm:bg-background/50">
           {isLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <LoadingState variant="section" />
           ) : filteredPosts.length === 0 ? (
             <EmptyState
               icon={FileText}

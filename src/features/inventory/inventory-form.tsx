@@ -30,20 +30,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
+import {
+  inventoryItemSchema,
+  type InventoryItemFormValues,
+} from "@/lib/schemas";
 
-const inventorySchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  category: z.string().min(1, "Category is required"),
-  serial_number: z.string().optional(),
-  purchase_price: z.coerce.number().min(0),
-  current_value: z.coerce.number().optional(),
-  purchase_date: z.string().optional(),
-  warranty_expiry: z.string().optional(),
-  notes: z.string().optional(),
-  image_url: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof inventorySchema>;
+type FormValues = InventoryItemFormValues;
 
 const CATEGORIES = [
   { label: "Hardware", value: "Hardware" },
@@ -62,7 +54,8 @@ function DateField({
   value,
   onChange,
 }: {
-  value?: string;
+  // Nullable: `purchase_date`/`warranty_expiry` are nullable DATE columns.
+  value?: string | null;
   onChange: (value: string) => void;
 }) {
   return (
@@ -104,17 +97,19 @@ export function InventoryForm({ item, onSuccess }: InventoryFormProps) {
   const isLoading = isAdding || isUpdating;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(inventorySchema),
+    resolver: zodResolver(inventoryItemSchema),
+    // `??` throughout: a stored 0 is a real value. Under `||` an item marked as
+    // fully depreciated read back as its original purchase price.
     defaultValues: {
-      name: item?.name || "",
-      category: item?.category || "",
-      serial_number: item?.serial_number || "",
-      purchase_price: item?.purchase_price || 0,
-      current_value: item?.current_value || item?.purchase_price || 0,
-      purchase_date: item?.purchase_date || "",
-      warranty_expiry: item?.warranty_expiry || "",
-      notes: item?.notes || "",
-      image_url: item?.image_url || "",
+      name: item?.name ?? "",
+      category: item?.category ?? "",
+      serial_number: item?.serial_number ?? "",
+      purchase_price: item?.purchase_price ?? 0,
+      current_value: item?.current_value ?? null,
+      purchase_date: item?.purchase_date ?? "",
+      warranty_expiry: item?.warranty_expiry ?? "",
+      notes: item?.notes ?? "",
+      image_url: item?.image_url ?? "",
     },
   });
 
@@ -122,7 +117,10 @@ export function InventoryForm({ item, onSuccess }: InventoryFormProps) {
     try {
       const payload = {
         ...values,
-        current_value: values.current_value || values.purchase_price,
+        // Only fall back to the purchase price when no current value was given
+        // at all. Previously `||` meant an explicit 0 was overwritten, so an
+        // item could never be recorded as worthless.
+        current_value: values.current_value ?? values.purchase_price,
         purchase_date: values.purchase_date || null,
         warranty_expiry: values.warranty_expiry || null,
       };
@@ -214,7 +212,15 @@ export function InventoryForm({ item, onSuccess }: InventoryFormProps) {
               <FormItem>
                 <FormLabel>Current Value ($)</FormLabel>
                 <FormControl>
-                  <Input type="number" step="0.01" {...field} />
+                  {/* Null means "not appraised" and must render as an empty
+                      input, not as React's uncontrolled-input warning. */}
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Same as purchase price"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

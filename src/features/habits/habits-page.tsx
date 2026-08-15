@@ -10,9 +10,9 @@ import {
   useToggleHabitLogMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import LoadingSpinner from "@/components/admin/LoadingSpinner";
 import {
   FormSheet,
+  LoadingState,
   ManagerWrapper,
   PageHeader,
 } from "@/components/admin/shared";
@@ -86,7 +86,7 @@ export default function HabitsPage() {
       {!isDataLoading && habits.length > 0 && <HabitStats habits={habits} />}
 
       {isDataLoading ? (
-        <LoadingSpinner />
+        <LoadingState />
       ) : (
         <HabitGrid
           habits={habits}

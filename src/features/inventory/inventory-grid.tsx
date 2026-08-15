@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { getWarrantyStatus } from "./warranty";
+import { currentValue, formatValue } from "./item-value";
 import { ItemActions } from "./item-actions";
 
 interface InventoryGridProps {
@@ -78,9 +79,7 @@ export function InventoryGrid({ items, onEdit, onDelete }: InventoryGridProps) {
                 <div>
                   <p className="section-label">Value</p>
                   <p className="font-mono text-lg font-bold">
-                    $
-                    {item.current_value?.toLocaleString() ??
-                      item.purchase_price.toLocaleString()}
+                    ${formatValue(currentValue(item))}
                   </p>
                 </div>
                 {item.purchase_date && (

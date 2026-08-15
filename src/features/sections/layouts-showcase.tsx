@@ -1,5 +1,12 @@
 import type { PortfolioItem } from "@/types";
-import { ItemDates, ItemImage, ItemTags, Markdown, PlainText, TextLink } from "./shared";
+import {
+  ItemDates,
+  ItemImage,
+  ItemTags,
+  Markdown,
+  PlainText,
+  TextLink,
+} from "./shared";
 
 type LayoutProps = { items: PortfolioItem[] };
 
@@ -8,7 +15,10 @@ export function CaseStudyLayout({ items }: LayoutProps) {
   return (
     <div className="space-y-16">
       {items.map((item) => (
-        <article key={item.id} className="overflow-hidden rounded-lg border bg-card">
+        <article
+          key={item.id}
+          className="overflow-hidden rounded-lg border bg-card"
+        >
           {/*
             The hero is only rendered when there is a real image. Unlike the
             grid layouts, a case study without one reads fine as a text block —
@@ -26,12 +36,18 @@ export function CaseStudyLayout({ items }: LayoutProps) {
               <h3 className="min-w-0 font-heading text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
                 {item.title}
               </h3>
-              <ItemDates from={item.date_from} to={item.date_to} className="mt-1.5" />
+              <ItemDates
+                from={item.date_from}
+                to={item.date_to}
+                className="mt-1.5"
+              />
             </div>
             <PlainText className="mt-1 text-sm text-muted-foreground" clamp={2}>
               {item.subtitle}
             </PlainText>
-            <Markdown className="mt-4 text-muted-foreground">{item.description}</Markdown>
+            <Markdown className="mt-4 text-muted-foreground">
+              {item.description}
+            </Markdown>
             <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4">
               <ItemTags tags={item.tags} max={10} />
               {/*
@@ -61,16 +77,24 @@ export function ServicesLayout({ items }: LayoutProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
       {items.map((item) => (
-        <div key={item.id} className="flex min-w-0 flex-col rounded-lg border bg-card p-5">
+        <div
+          key={item.id}
+          className="flex min-w-0 flex-col rounded-lg border bg-card p-5"
+        >
           <h3 className="font-heading font-semibold [overflow-wrap:anywhere]">
             <TextLink href={item.link_url} className="hover:text-primary">
               {item.title}
             </TextLink>
           </h3>
-          <PlainText className="mt-0.5 font-mono text-xs text-muted-foreground" clamp={1}>
+          <PlainText
+            className="mt-0.5 font-mono text-xs text-muted-foreground"
+            clamp={1}
+          >
             {item.subtitle}
           </PlainText>
-          <Markdown className="mt-3 text-muted-foreground">{item.description}</Markdown>
+          <Markdown className="mt-3 text-muted-foreground">
+            {item.description}
+          </Markdown>
           {/*
             Tags become a feature checklist here, so they are NOT capped and
             NOT truncated — in this layout they are content, not metadata.
@@ -110,7 +134,10 @@ export function WorkExperienceLayout({ items }: LayoutProps) {
           .charAt(0)
           .toUpperCase();
         return (
-          <article key={item.id} className="grid gap-4 sm:grid-cols-[3rem_1fr] sm:gap-5">
+          <article
+            key={item.id}
+            className="grid gap-4 sm:grid-cols-[3rem_1fr] sm:gap-5"
+          >
             {item.image_url ? (
               <ItemImage
                 src={item.image_url}
@@ -130,12 +157,18 @@ export function WorkExperienceLayout({ items }: LayoutProps) {
                 <h3 className="min-w-0 font-heading font-semibold [overflow-wrap:anywhere]">
                   {item.title}
                 </h3>
-                <ItemDates from={item.date_from} to={item.date_to} className="mt-0.5" />
+                <ItemDates
+                  from={item.date_from}
+                  to={item.date_to}
+                  className="mt-0.5"
+                />
               </div>
               <PlainText className="text-sm text-primary" clamp={2}>
                 {item.subtitle}
               </PlainText>
-              <Markdown className="mt-2 text-muted-foreground">{item.description}</Markdown>
+              <Markdown className="mt-2 text-muted-foreground">
+                {item.description}
+              </Markdown>
               <ItemTags tags={item.tags} className="mt-3" max={8} />
             </div>
           </article>
@@ -162,9 +195,15 @@ export function TestimonialsLayout({ items }: LayoutProps) {
         const isLong = quote.length > 320;
 
         return (
-          <figure key={item.id} className="min-w-0 rounded-lg border bg-card p-6">
+          <figure
+            key={item.id}
+            className="min-w-0 rounded-lg border bg-card p-6"
+          >
             <blockquote className="border-none p-0 text-sm not-italic leading-relaxed [overflow-wrap:anywhere]">
-              <span aria-hidden className="mr-0.5 font-heading text-2xl leading-none text-primary">
+              <span
+                aria-hidden
+                className="mr-0.5 font-heading text-2xl leading-none text-primary"
+              >
                 “
               </span>
               {isLong ? (

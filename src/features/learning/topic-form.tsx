@@ -25,10 +25,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { getErrorMessage } from "@/lib/utils";
+import { learningTopicSchema } from "@/lib/schemas";
 
-const topicSchema = z.object({
-  title: z.string().min(1, "Topic title is required."),
-  subject_id: z.string().min(1, "You must select a subject."),
+/**
+ * Quick-create only collects the two fields needed to make the row exist;
+ * status, notes, confidence and resources are edited later in TopicEditor.
+ * Picked from the shared schema rather than redeclared so the title bound and
+ * message stay in one place.
+ */
+const topicSchema = learningTopicSchema.pick({
+  title: true,
+  subject_id: true,
 });
 type TopicFormValues = z.infer<typeof topicSchema>;
 
@@ -49,8 +56,8 @@ export function TopicForm({
   const form = useForm<TopicFormValues>({
     resolver: zodResolver(topicSchema),
     defaultValues: {
-      title: topic?.title || "",
-      subject_id: topic?.subject_id || defaultSubjectId || "",
+      title: topic?.title ?? "",
+      subject_id: topic?.subject_id ?? defaultSubjectId ?? "",
     },
   });
 

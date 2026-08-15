@@ -6,7 +6,11 @@ import type { PortfolioSection } from "@/types";
 import { cn } from "@/lib/utils";
 import { markdownUrlTransform } from "@/lib/safe-url";
 import { EmptySection, sortedItems } from "./shared";
-import { isKnownLayout, resolveLayout, SELF_SOURCING_LAYOUTS } from "./section-layouts";
+import {
+  isKnownLayout,
+  resolveLayout,
+  SELF_SOURCING_LAYOUTS,
+} from "./section-layouts";
 import { RepoGrid } from "@/features/github/repo-grid";
 
 /** Stable, URL-safe anchor so any section can be deep-linked. */
@@ -16,7 +20,9 @@ function sectionAnchor(section: PortfolioSection) {
     .normalize("NFKD")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  return slug ? `${slug}-${String(section.id).slice(0, 8)}` : `section-${section.id}`;
+  return slug
+    ? `${slug}-${String(section.id).slice(0, 8)}`
+    : `section-${section.id}`;
 }
 
 function SectionBody({ section }: { section: PortfolioSection }) {
@@ -30,11 +36,10 @@ function SectionBody({ section }: { section: PortfolioSection }) {
    * chooses how *items* are arranged, so type wins.
    */
   if (section.type === "markdown") {
-    if (!section.content?.trim()) return <EmptySection label="Markdown section has no content." />;
+    if (!section.content?.trim())
+      return <EmptySection label="Markdown section has no content." />;
     return (
-      <MarkdownBase className="leading-relaxed">
-        {section.content}
-      </MarkdownBase>
+      <MarkdownBase className="leading-relaxed">{section.content}</MarkdownBase>
     );
   }
 
@@ -88,7 +93,9 @@ export default function SectionRenderer({
   const isSelfSourcing =
     !!section.layout_style && SELF_SOURCING_LAYOUTS.has(section.layout_style);
   const hasItems = (section.portfolio_items?.length ?? 0) > 0;
-  const hasBody = isMarkdown ? !!section.content?.trim() : isSelfSourcing || hasItems;
+  const hasBody = isMarkdown
+    ? !!section.content?.trim()
+    : isSelfSourcing || hasItems;
 
   if (!hasBody && process.env.NODE_ENV === "production") return null;
 
@@ -116,7 +123,10 @@ export default function SectionRenderer({
           className="font-heading text-2xl font-bold tracking-tight [overflow-wrap:anywhere]"
         >
           {typeof index === "number" && (
-            <span aria-hidden className="section-label mr-3 align-middle text-primary">
+            <span
+              aria-hidden
+              className="section-label mr-3 align-middle text-primary"
+            >
               {String(index + 1).padStart(2, "0")} /
             </span>
           )}
@@ -133,7 +143,8 @@ export default function SectionRenderer({
           section.type !== "markdown" &&
           !isKnownLayout(section.layout_style) && (
             <p className="mt-2 rounded border border-dashed border-destructive/40 bg-destructive/5 px-2 py-1 font-mono text-xs text-destructive">
-              Unknown layout_style &quot;{section.layout_style}&quot; — falling back to Default List.
+              Unknown layout_style &quot;{section.layout_style}&quot; — falling
+              back to Default List.
             </p>
           )}
 

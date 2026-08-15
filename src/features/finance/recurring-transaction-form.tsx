@@ -35,18 +35,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
-
-const recurringSchema = z.object({
-  description: z.string().min(1, "Description is required"),
-  amount: z.coerce.number().positive("Amount must be positive"),
-  type: z.enum(["expense", "earning"]),
-  category: z.string().optional(),
-  frequency: z.enum(["daily", "weekly", "bi-weekly", "monthly", "yearly"]),
-  start_date: z.string().min(1, "Start date is required"),
-  end_date: z.string().optional().nullable(),
-  occurrence_day: z.coerce.number().optional().nullable(),
-});
-type RecurringFormValues = z.infer<typeof recurringSchema>;
+import {
+  recurringTransactionSchema,
+  type RecurringTransactionFormValues,
+} from "@/lib/schemas";
 
 interface RecurringTransactionFormProps {
   recurringTransaction: Partial<RecurringTransaction> | null;
@@ -58,19 +50,21 @@ export function RecurringTransactionForm({
   onSuccess,
 }: RecurringTransactionFormProps) {
   const [saveRecurring, { isLoading }] = useSaveRecurringMutation();
-  const form = useForm<RecurringFormValues>({
-    resolver: zodResolver(recurringSchema),
+  const form = useForm<RecurringTransactionFormValues>({
+    resolver: zodResolver(recurringTransactionSchema),
     defaultValues: {
-      description: recurringTransaction?.description || "",
-      amount: recurringTransaction?.amount || 0,
-      type: recurringTransaction?.type || "expense",
-      category: recurringTransaction?.category || "",
-      frequency: recurringTransaction?.frequency || "monthly",
+      description: recurringTransaction?.description ?? "",
+      amount: recurringTransaction?.amount ?? 0,
+      type: recurringTransaction?.type ?? "expense",
+      category: recurringTransaction?.category ?? "",
+      frequency: recurringTransaction?.frequency ?? "monthly",
       start_date:
-        recurringTransaction?.start_date ||
+        recurringTransaction?.start_date ??
         new Date().toISOString().split("T")[0],
-      end_date: recurringTransaction?.end_date || null,
-      occurrence_day: recurringTransaction?.occurrence_day,
+      end_date: recurringTransaction?.end_date ?? null,
+      // `?? null` rather than leaving it undefined: day-of-week 0 (Sunday) is a
+      // real value, and an undefined here made the field uncontrolled.
+      occurrence_day: recurringTransaction?.occurrence_day ?? null,
     },
   });
 
@@ -91,7 +85,7 @@ export function RecurringTransactionForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [frequency]);
 
-  const handleSubmit = async (values: RecurringFormValues) => {
+  const handleSubmit = async (values: RecurringTransactionFormValues) => {
     try {
       await saveRecurring({
         ...values,

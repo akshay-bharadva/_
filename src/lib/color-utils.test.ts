@@ -1,5 +1,29 @@
 import { describe, it, expect } from "vitest";
-import { hexToHsl } from "./color-utils";
+import { hexToHsl, isDarkBackground, lightnessOf } from "./color-utils";
+
+describe("lightnessOf", () => {
+  it("reads the lightness out of an HSL token", () => {
+    expect(lightnessOf("220 13% 9%")).toBe(9);
+    expect(lightnessOf("45 25% 97%")).toBe(97);
+  });
+
+  it("returns null for anything that is not an HSL triple", () => {
+    expect(lightnessOf("")).toBeNull();
+    expect(lightnessOf("220 13%")).toBeNull();
+    expect(lightnessOf("not a colour")).toBeNull();
+  });
+});
+
+describe("isDarkBackground", () => {
+  it("classifies by lightness rather than by preset name", () => {
+    expect(isDarkBackground("240 12% 9%")).toBe(true);
+    expect(isDarkBackground("45 25% 97%")).toBe(false);
+  });
+
+  it("treats an unresolved token as light, the app default", () => {
+    expect(isDarkBackground("")).toBe(false);
+  });
+});
 
 describe("hexToHsl", () => {
   it("converts the primary hues at full saturation", () => {

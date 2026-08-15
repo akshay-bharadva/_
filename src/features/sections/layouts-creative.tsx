@@ -1,5 +1,12 @@
 import type { PortfolioItem } from "@/types";
-import { ItemDates, ItemImage, ItemTags, Markdown, MaybeLink, PlainText } from "./shared";
+import {
+  ItemDates,
+  ItemImage,
+  ItemTags,
+  Markdown,
+  MaybeLink,
+  PlainText,
+} from "./shared";
 
 type LayoutProps = { items: PortfolioItem[] };
 
@@ -37,7 +44,9 @@ export function OpenSourceLayout({ items }: LayoutProps) {
                   </span>
                 )}
               </div>
-              <Markdown className="mt-1 text-muted-foreground">{item.description}</Markdown>
+              <Markdown className="mt-1 text-muted-foreground">
+                {item.description}
+              </Markdown>
               <ItemTags tags={item.tags} className="mt-2" max={6} />
             </div>
           </MaybeLink>
@@ -63,9 +72,15 @@ export function SpeakingLayout({ items }: LayoutProps) {
               <h3 className="min-w-0 flex-1 font-heading font-semibold [overflow-wrap:anywhere] group-hover/link:text-primary">
                 {item.title}
               </h3>
-              <ItemDates from={item.date_from} to={item.date_to} className="mt-0.5" />
+              <ItemDates
+                from={item.date_from}
+                to={item.date_to}
+                className="mt-0.5"
+              />
             </div>
-            <Markdown className="mt-2 text-muted-foreground">{item.description}</Markdown>
+            <Markdown className="mt-2 text-muted-foreground">
+              {item.description}
+            </Markdown>
           </MaybeLink>
         </li>
       ))}
@@ -141,19 +156,30 @@ export function NowPageLayout({ items }: LayoutProps) {
   return (
     <ul className="space-y-3">
       {items.map((item) => (
-        <li key={item.id} className="flex items-start gap-3 rounded-lg border bg-card p-4">
+        <li
+          key={item.id}
+          className="flex items-start gap-3 rounded-lg border bg-card p-4"
+        >
           <span
             aria-hidden
             className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
           />
           <div className="min-w-0 flex-1">
-            {item.subtitle?.trim() && <p className="section-label">{item.subtitle}</p>}
+            {item.subtitle?.trim() && (
+              <p className="section-label">{item.subtitle}</p>
+            )}
             <h3 className="mt-0.5 font-heading text-sm font-semibold [overflow-wrap:anywhere]">
               {item.title}
             </h3>
-            <Markdown className="mt-1 text-muted-foreground">{item.description}</Markdown>
+            <Markdown className="mt-1 text-muted-foreground">
+              {item.description}
+            </Markdown>
           </div>
-          <ItemDates from={item.date_from} to={item.date_to} className="mt-0.5" />
+          <ItemDates
+            from={item.date_from}
+            to={item.date_to}
+            className="mt-0.5"
+          />
         </li>
       ))}
     </ul>

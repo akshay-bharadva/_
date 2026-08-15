@@ -11,7 +11,6 @@ import {
   Images,
   LayoutTemplate,
   List,
-  Loader2,
   Plus,
   SearchX,
 } from "lucide-react";
@@ -25,6 +24,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { LAYOUT_OPTIONS } from "@/features/content/layout-registry";
+import { EmptyState, LoadingState } from "@/components/admin/shared";
 import { cn } from "@/lib/utils";
 
 export interface SectionListProps {
@@ -81,53 +81,42 @@ export function SectionList({
   onMoveDown,
 }: SectionListProps) {
   const layoutMeta = useMemo(() => {
-    const map = new Map<string, { label: string; icon: typeof LayoutTemplate }>();
-    for (const opt of LAYOUT_OPTIONS) map.set(opt.value, { label: opt.label, icon: opt.icon });
+    const map = new Map<
+      string,
+      { label: string; icon: typeof LayoutTemplate }
+    >();
+    for (const opt of LAYOUT_OPTIONS)
+      map.set(opt.value, { label: opt.label, icon: opt.icon });
     return map;
   }, []);
 
   const paths = Object.keys(groupedSections);
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center p-8">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        <span className="sr-only">Loading sections</span>
-      </div>
-    );
+    return <LoadingState variant="section" label="Loading sections" />;
   }
 
   if (totalSections === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <LayoutTemplate className="size-10 text-muted-foreground/30" />
-        <div>
-          <p className="text-sm font-medium">No sections yet</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Every public page is built from these.
-          </p>
-        </div>
-        <Button size="sm" variant="outline" onClick={onNewSection}>
-          <Plus className="mr-2 size-4" /> New Section
-        </Button>
-      </div>
+      <EmptyState
+        size="compact"
+        icon={LayoutTemplate}
+        title="No sections yet"
+        description="Every public page is built from these."
+        action={{ label: "New Section", onClick: onNewSection, icon: Plus }}
+      />
     );
   }
 
   if (totalMatches === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <SearchX className="size-9 text-muted-foreground/30" />
-        <div>
-          <p className="text-sm font-medium">No matches</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Nothing matches &ldquo;{query}&rdquo; in {totalSections} sections.
-          </p>
-        </div>
-        <Button size="sm" variant="ghost" onClick={onClearQuery}>
-          Clear search
-        </Button>
-      </div>
+      <EmptyState
+        size="compact"
+        icon={SearchX}
+        title="No matches"
+        description={`Nothing matches “${query}” in ${totalSections} sections.`}
+        action={{ label: "Clear search", onClick: onClearQuery }}
+      />
     );
   }
 
@@ -143,7 +132,9 @@ export function SectionList({
       >
         {paths.map((path) => {
           const sectionsInGroup = groupedSections[path];
-          const hiddenCount = sectionsInGroup.filter((s) => s.is_visible === false).length;
+          const hiddenCount = sectionsInGroup.filter(
+            (s) => s.is_visible === false,
+          ).length;
 
           return (
             <AccordionItem
@@ -217,14 +208,17 @@ export function SectionList({
                               <TypeIcon
                                 className={cn(
                                   "size-3.5 shrink-0",
-                                  isHidden ? "text-muted-foreground/50" : "text-muted-foreground",
+                                  isHidden
+                                    ? "text-muted-foreground/50"
+                                    : "text-muted-foreground",
                                 )}
                               />
                               <span
                                 className={cn(
                                   "truncate text-sm",
                                   isSelected && "font-medium",
-                                  isHidden && "text-muted-foreground line-through decoration-1",
+                                  isHidden &&
+                                    "text-muted-foreground line-through decoration-1",
                                 )}
                                 title={section.title}
                               >
@@ -245,15 +239,23 @@ export function SectionList({
                             </span>
 
                             <span className="flex min-w-0 items-center gap-1.5 pl-5 font-mono text-[0.6875rem] text-muted-foreground">
-                              {LayoutIcon && <LayoutIcon className="size-3 shrink-0" />}
+                              {LayoutIcon && (
+                                <LayoutIcon className="size-3 shrink-0" />
+                              )}
                               <span className="truncate">
-                                {isMarkdown ? "markdown" : (meta?.label ?? section.layout_style)}
+                                {isMarkdown
+                                  ? "markdown"
+                                  : (meta?.label ?? section.layout_style)}
                               </span>
                               {!isMarkdown && (
                                 <>
                                   <span aria-hidden>·</span>
-                                  <span className={cn(isEmpty && "text-amber-600 dark:text-amber-500")}>
-                                    {isEmpty ? "empty" : `${itemCount} item${itemCount === 1 ? "" : "s"}`}
+                                  <span
+                                    className={cn(isEmpty && "text-chart-3")}
+                                  >
+                                    {isEmpty
+                                      ? "empty"
+                                      : `${itemCount} item${itemCount === 1 ? "" : "s"}`}
                                   </span>
                                 </>
                               )}

@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { lifeUpdateSchema } from "@/lib/schemas";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -144,6 +145,22 @@ export function LifeUpdateEditor({
       tags: tagsArray.length > 0 ? tagsArray : null,
       is_published: isPublished,
     };
+
+    /**
+     * Hand-rolled state rather than react-hook-form, so nothing checked length,
+     * tag count, or that `category` was one of the five the column allows —
+     * a bad value reached Postgres and failed its CHECK constraint with an
+     * opaque error. Validating against the shared schema keeps it honest
+     * without rewriting the editor.
+     */
+    const parsed = lifeUpdateSchema.safeParse(data);
+    if (!parsed.success) {
+      toast.error("Update can't be saved", {
+        description:
+          parsed.error.issues[0]?.message ?? "Please check the form.",
+      });
+      return;
+    }
 
     try {
       if (update?.id) {

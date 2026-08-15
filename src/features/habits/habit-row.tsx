@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import confetti from "canvas-confetti";
 import { BarChart2, Edit2, Flame, MoreVertical, Trash2 } from "lucide-react";
 import type { Habit } from "@/types";
+import { habitColor } from "./habit-color";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -52,7 +53,7 @@ export const HabitRow = React.memo(
           particleCount: 50,
           spread: 80,
           origin: { y: 0.6 },
-          colors: [habit.color || "#60a5fa", "#ffffff"],
+          colors: [habitColor(habit), "#ffffff"],
           disableForReducedMotion: true,
         });
       }
@@ -71,7 +72,8 @@ export const HabitRow = React.memo(
               {habit.title}
             </p>
             <p className="font-mono text-[10px] text-muted-foreground">
-              {habit.target_per_week}/wk • {completionRate}%
+              {/* Nullable column — without a fallback this read as "/wk". */}
+              {habit.target_per_week ?? 7}/wk • {completionRate}%
             </p>
           </div>
         </TableCell>
@@ -86,7 +88,7 @@ export const HabitRow = React.memo(
               <HabitCell
                 dateStr={dateStr}
                 isCompleted={completedDatesSet.has(dateStr)}
-                color={habit.color}
+                color={habitColor(habit)}
                 onToggle={() => handleCheck(dateStr)}
                 isToday={date.toDateString() === new Date().toDateString()}
               />

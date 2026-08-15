@@ -43,9 +43,15 @@ export function DefaultListLayout({ items }: LayoutProps) {
                   {item.subtitle}
                 </PlainText>
               </div>
-              <ItemDates from={item.date_from} to={item.date_to} className="mt-0.5" />
+              <ItemDates
+                from={item.date_from}
+                to={item.date_to}
+                className="mt-0.5"
+              />
             </div>
-            <Markdown className="mt-2 text-muted-foreground">{item.description}</Markdown>
+            <Markdown className="mt-2 text-muted-foreground">
+              {item.description}
+            </Markdown>
             <ItemTags tags={item.tags} className="mt-2.5" max={8} />
           </MaybeLink>
         </li>
@@ -73,7 +79,9 @@ export function TimelineLayout({ items }: LayoutProps) {
           <PlainText className="text-sm text-muted-foreground" clamp={2}>
             {item.subtitle}
           </PlainText>
-          <Markdown className="mt-2 text-muted-foreground">{item.description}</Markdown>
+          <Markdown className="mt-2 text-muted-foreground">
+            {item.description}
+          </Markdown>
           <ItemTags tags={item.tags} className="mt-2.5" max={8} />
         </li>
       ))}
@@ -96,7 +104,9 @@ function GridCard({ item }: { item: PortfolioItem }) {
       <PlainText className="mt-0.5 text-sm text-muted-foreground" clamp={2}>
         {item.subtitle}
       </PlainText>
-      <Markdown className="mt-2 text-muted-foreground">{item.description}</Markdown>
+      <Markdown className="mt-2 text-muted-foreground">
+        {item.description}
+      </Markdown>
       {/* mt-auto pins tags to the bottom so cards in a row line up. */}
       <ItemTags tags={item.tags} className="mt-3 pt-1" max={6} />
     </MaybeLink>
@@ -143,10 +153,15 @@ export function CardsWithImageLayout({ items }: LayoutProps) {
             <h3 className="font-heading font-semibold [overflow-wrap:anywhere] group-hover/link:text-primary">
               {item.title}
             </h3>
-            <PlainText className="mt-0.5 text-sm text-muted-foreground" clamp={2}>
+            <PlainText
+              className="mt-0.5 text-sm text-muted-foreground"
+              clamp={2}
+            >
               {item.subtitle}
             </PlainText>
-            <Markdown className="mt-2 text-muted-foreground">{item.description}</Markdown>
+            <Markdown className="mt-2 text-muted-foreground">
+              {item.description}
+            </Markdown>
             <ItemTags tags={item.tags} className="mt-3 pt-1" max={6} />
           </div>
         </MaybeLink>
@@ -192,7 +207,10 @@ export function StatsGridLayout({ items }: LayoutProps) {
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
       {items.map((item) => (
-        <div key={item.id} className="rounded-lg border bg-card p-5 text-center">
+        <div
+          key={item.id}
+          className="rounded-lg border bg-card p-5 text-center"
+        >
           <p className="font-mono text-3xl font-bold tracking-tight text-primary [overflow-wrap:anywhere]">
             {item.title}
           </p>
@@ -237,7 +255,9 @@ export function MasonryLayout({ items }: LayoutProps) {
               <h3 className="font-heading text-sm font-semibold [overflow-wrap:anywhere] group-hover/link:text-primary">
                 {item.title}
               </h3>
-              <Markdown className="mt-1 text-muted-foreground">{item.description}</Markdown>
+              <Markdown className="mt-1 text-muted-foreground">
+                {item.description}
+              </Markdown>
               <ItemTags tags={item.tags} className="mt-2.5" max={5} />
             </div>
           </MaybeLink>
@@ -270,7 +290,10 @@ export function FeatureAlternatingLayout({ items }: LayoutProps) {
       {items.map((item, index) => {
         const flip = index % 2 === 1;
         return (
-          <article key={item.id} className="grid items-center gap-6 md:grid-cols-2 md:gap-10">
+          <article
+            key={item.id}
+            className="grid items-center gap-6 md:grid-cols-2 md:gap-10"
+          >
             <MaybeLink
               href={item.link_url}
               className={cn(
@@ -301,7 +324,9 @@ export function FeatureAlternatingLayout({ items }: LayoutProps) {
                 to={item.date_to}
                 className="mt-1 block"
               />
-              <Markdown className="mt-3 text-muted-foreground">{item.description}</Markdown>
+              <Markdown className="mt-3 text-muted-foreground">
+                {item.description}
+              </Markdown>
               <ItemTags tags={item.tags} className="mt-4" max={8} />
             </div>
           </article>

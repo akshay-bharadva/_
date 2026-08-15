@@ -22,6 +22,26 @@ export type StorageAsset = {
 export const BUCKET_NAME = process.env.NEXT_PUBLIC_BUCKET_NAME || "assets";
 export const PLACEHOLDER_FILENAME = ".emptyFolderPlaceholder";
 
+/**
+ * Turn a typed folder name into one safe path segment.
+ *
+ * The previous rule was `replace(/[^a-zA-Z0-9._-]/g, "_")`, which allowlists
+ * `.` — so `..` passed through completely unchanged and was interpolated
+ * straight into the storage key as `parent/../.emptyFolderPlaceholder`. A name
+ * of `.` or `..` is a traversal segment, not a folder, and a leading dot also
+ * produces a hidden entry the browser cannot navigate back out of.
+ *
+ * Returns null when nothing usable remains, so callers can reject rather than
+ * silently create a folder under a name the user did not choose.
+ */
+export function sanitizeFolderName(raw: string): string | null {
+  const collapsed = raw.trim().replace(/[^a-zA-Z0-9._-]/g, "_");
+  // Strip leading dots: kills "." and ".." outright, and prevents hidden dirs.
+  const withoutLeadingDots = collapsed.replace(/^\.+/, "");
+  if (!withoutLeadingDots || /^_+$/.test(withoutLeadingDots)) return null;
+  return withoutLeadingDots;
+}
+
 export const getFileIcon = (mimeType: string | null, className?: string) => {
   if (!mimeType) return React.createElement(FileIcon, { className });
   if (mimeType.startsWith("image/")) return null;

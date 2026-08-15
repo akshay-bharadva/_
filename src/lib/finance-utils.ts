@@ -328,3 +328,22 @@ export function buildForecastData(
     };
   });
 }
+
+/**
+ * How far a savings goal has progressed, as a 0–100 percentage.
+ *
+ * `target_amount` is NOT NULL but carries no CHECK, so a legacy or
+ * externally-inserted goal can hold 0. The two call sites both divided by it
+ * directly: `0 / 0` produced `NaN`, which rendered to the user as "NaN%", and a
+ * non-zero current amount over a zero target produced `Infinity`, which
+ * `Math.min(_, 100)` quietly turned into a goal that claimed to be complete.
+ */
+export function goalProgressPercent(goal: {
+  current_amount?: number | null;
+  target_amount?: number | null;
+}): number {
+  const target = goal.target_amount ?? 0;
+  const current = goal.current_amount ?? 0;
+  if (target <= 0) return 0;
+  return Math.min(Math.max((current / target) * 100, 0), 100);
+}

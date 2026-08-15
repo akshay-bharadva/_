@@ -2,6 +2,7 @@
 
 import { eachDayOfInterval, endOfYear, format, startOfYear } from "date-fns";
 import type { Habit } from "@/types";
+import { habitColor } from "./habit-color";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +46,7 @@ export function HabitHeatmapModal({
           <DialogTitle className="flex items-center gap-2">
             <div
               className="size-3 rounded-full"
-              style={{ backgroundColor: habit.color }}
+              style={{ backgroundColor: habitColor(habit) }}
             />
             {habit.title}
           </DialogTitle>
@@ -73,7 +74,9 @@ export function HabitHeatmapModal({
                               : "bg-muted",
                         )}
                         style={{
-                          backgroundColor: isDone ? habit.color : undefined,
+                          backgroundColor: isDone
+                            ? habitColor(habit)
+                            : undefined,
                         }}
                       />
                     </TooltipTrigger>

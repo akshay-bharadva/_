@@ -4,6 +4,7 @@
 
 import { motion } from "framer-motion";
 import { MoreHorizontal, Plus } from "lucide-react";
+import { goalProgressPercent } from "@/lib/finance-utils";
 import type { FinancialGoal } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,10 +34,7 @@ export function GoalCard({
   onEdit,
   onDelete,
 }: GoalCardProps) {
-  const percentage = Math.min(
-    (goal.current_amount / goal.target_amount) * 100,
-    100,
-  );
+  const percentage = goalProgressPercent(goal);
 
   return (
     <Card className="group relative flex h-[320px] flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -54,8 +52,11 @@ export function GoalCard({
       {/* Content Layer */}
       <div className="relative z-20 flex h-full flex-col">
         <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
-            <CardTitle className="truncate pr-4 leading-tight text-foreground drop-shadow-md">
+          <div className="flex items-start justify-between gap-2">
+            {/* min-w-0: a flex child will not shrink below its content width,
+                so `truncate` alone let a long goal name push the menu button
+                off the card. */}
+            <CardTitle className="min-w-0 flex-1 truncate leading-tight text-foreground drop-shadow-md">
               {goal.name}
             </CardTitle>
             <DropdownMenu>

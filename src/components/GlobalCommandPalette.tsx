@@ -7,6 +7,7 @@ import { supabase } from "@/supabase/client";
 import { useAppDispatch } from "@/store/hooks";
 import { startFocus } from "@/store/slices/focusSlice";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DARK_THEME, LIGHT_THEME } from "@/lib/themes";
 import { cn } from "@/lib/utils"; // Ensure you have this utility
 import { Button } from "@/components/ui/button"; // Import Button for the mobile trigger
 import {
@@ -20,7 +21,6 @@ import {
   LogOut,
   Moon,
   Sun,
-  Laptop,
   Plus,
   StickyNote,
   Zap,
@@ -177,7 +177,7 @@ export default function GlobalCommandPalette() {
                   <span>Jot Note</span>
                 </CommandItem>
                 <CommandItem onSelect={() => runCommand(handleQuickFocus)}>
-                  <Zap className="mr-2 h-4 w-4 text-yellow-500" />
+                  <Zap className="mr-2 h-4 w-4 text-chart-3" />
                   <span>Start Focus Timer</span>
                 </CommandItem>
               </CommandGroup>
@@ -264,17 +264,25 @@ export default function GlobalCommandPalette() {
           <CommandSeparator />
 
           <CommandGroup heading="System">
-            <CommandItem onSelect={() => runCommand(() => setTheme("light"))}>
+            {/*
+              These used to call setTheme("light" | "dark" | "system"). None of
+              those are members of VALID_THEMES, so next-themes stripped the
+              active `theme-*` class and replaced it with a class that defines
+              no tokens — the site lost its palette until reload. "System" was
+              doubly dead, since the provider runs `enableSystem={false}`.
+              They now select the two real presets that carry the v2 identity.
+            */}
+            <CommandItem
+              onSelect={() => runCommand(() => setTheme(LIGHT_THEME))}
+            >
               <Sun className="mr-2 h-4 w-4" />
               <span>Light Mode</span>
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => setTheme("dark"))}>
+            <CommandItem
+              onSelect={() => runCommand(() => setTheme(DARK_THEME))}
+            >
               <Moon className="mr-2 h-4 w-4" />
               <span>Dark Mode</span>
-            </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => setTheme("system"))}>
-              <Laptop className="mr-2 h-4 w-4" />
-              <span>System Theme</span>
             </CommandItem>
             <CommandItem onSelect={() => runCommand(copyCurrentUrl)}>
               <Copy className="mr-2 h-4 w-4" />

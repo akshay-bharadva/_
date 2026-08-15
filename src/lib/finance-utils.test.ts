@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildForecastData } from "./finance-utils";
+import { buildForecastData, goalProgressPercent } from "./finance-utils";
 import type { RecurringTransaction } from "@/types";
 
 const dailyRule = (
@@ -56,5 +56,39 @@ describe("buildForecastData", () => {
     );
     // Occurrences on Jan 1 and Jan 2 only; balance flat afterwards.
     expect(points.map((p) => p.balance)).toEqual([-10, -20, -20, -20]);
+  });
+});
+
+describe("goalProgressPercent", () => {
+  it("reports normal progress", () => {
+    expect(
+      goalProgressPercent({ current_amount: 250, target_amount: 1000 }),
+    ).toBe(25);
+  });
+
+  it("clamps at 100 once the goal is met or exceeded", () => {
+    expect(
+      goalProgressPercent({ current_amount: 1500, target_amount: 1000 }),
+    ).toBe(100);
+  });
+
+  it("returns 0 rather than NaN for a zero target", () => {
+    // `0 / 0` used to render to the user as "NaN%".
+    expect(goalProgressPercent({ current_amount: 0, target_amount: 0 })).toBe(
+      0,
+    );
+  });
+
+  it("returns 0 rather than Infinity when the target is zero but funds exist", () => {
+    // Math.min(Infinity, 100) used to claim the goal was complete.
+    expect(goalProgressPercent({ current_amount: 500, target_amount: 0 })).toBe(
+      0,
+    );
+  });
+
+  it("survives null amounts", () => {
+    expect(
+      goalProgressPercent({ current_amount: null, target_amount: null }),
+    ).toBe(0);
   });
 });

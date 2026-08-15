@@ -19,14 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { FormSheet } from "@/components/admin/shared";
 import {
   Dialog,
   DialogContent,
@@ -91,159 +84,144 @@ export function SectionEditorSheet({
 
   return (
     <>
-      <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="flex w-full flex-col sm:max-w-lg">
-          <div className="flex items-center justify-between">
-            <SheetHeader>
-              <SheetTitle>
-                {section?.id ? "Edit Section" : "Create New Section"}
-              </SheetTitle>
-              <SheetDescription>
-                Configure the section&apos;s properties and placement.
-              </SheetDescription>
-            </SheetHeader>
-            <SheetClose asChild>
-              <Button type="button" variant="ghost">
-                <X />
-              </Button>
-            </SheetClose>
+      <FormSheet
+        open={true}
+        onOpenChange={(open) => !open && onClose()}
+        title={section?.id ? "Edit Section" : "Create New Section"}
+        description="Configure the section's properties and placement."
+      >
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex-1 space-y-4 overflow-y-auto"
+        >
+          <div className="space-y-1">
+            <Label htmlFor="title">Title *</Label>
+            <Input id="title" {...register("title")} />
+            {errors.title && (
+              <p className="text-xs text-destructive">{errors.title.message}</p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label>Page Path *</Label>
+            <Controller
+              name="page_path"
+              control={control}
+              render={({ field }) => (
+                <Combobox
+                  options={availablePaths}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select or create path..."
+                  searchPlaceholder="Search paths..."
+                  emptyPlaceholder="No paths."
+                />
+              )}
+            />
+            {errors.page_path && (
+              <p className="text-xs text-destructive">
+                {errors.page_path.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="type">Content Type</Label>
+            <Controller
+              name="type"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="markdown">Markdown</SelectItem>
+                    <SelectItem value="list_items">List of Items</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex-1 space-y-4 overflow-y-auto pt-6"
-          >
-            <div className="space-y-1">
-              <Label htmlFor="title">Title *</Label>
-              <Input id="title" {...register("title")} />
-              {errors.title && (
-                <p className="text-xs text-destructive">
-                  {errors.title.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label>Page Path *</Label>
-              <Controller
-                name="page_path"
-                control={control}
-                render={({ field }) => (
-                  <Combobox
-                    options={availablePaths}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select or create path..."
-                    searchPlaceholder="Search paths..."
-                    emptyPlaceholder="No paths."
-                  />
-                )}
-              />
-              {errors.page_path && (
-                <p className="text-xs text-destructive">
-                  {errors.page_path.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="type">Content Type</Label>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="markdown">Markdown</SelectItem>
-                      <SelectItem value="list_items">List of Items</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {/* Layout picker */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Layout Style</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1.5 text-xs"
-                  onClick={() => setPreviewOpen(true)}
-                >
-                  <Eye className="size-3.5" /> Preview All
-                </Button>
-              </div>
-              <Controller
-                name="layout_style"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {LAYOUT_GROUPS.map((group) => {
-                        const groupItems = LAYOUT_OPTIONS.filter(
-                          (o) => o.group === group,
-                        );
-                        return (
-                          <div key={group}>
-                            <div className="section-label px-2 py-1.5">
-                              {group}
-                            </div>
-                            {groupItems.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <span className="flex items-center gap-2">
-                                  <opt.icon className="size-3.5 text-muted-foreground" />
-                                  {opt.label}
-                                </span>
-                              </SelectItem>
-                            ))}
-                          </div>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-
-              {/* Inline preview */}
-              {selectedOption && (
-                <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/20 p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-                      <selectedOption.icon className="size-3.5 text-primary" />
-                      {selectedOption.label}
-                    </span>
-                    <span
-                      className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold ${GROUP_BADGE[selectedOption.group]}`}
-                    >
-                      {selectedOption.group}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {selectedOption.description}
-                  </p>
-                  <div className="border-t border-border/30 pt-2">
-                    <LayoutPreview layout={selectedLayout} />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Cancel
+          {/* Layout picker */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Layout Style</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="size-3.5" /> Preview All
               </Button>
-              <Button type="submit">Save Section</Button>
             </div>
-          </form>
-        </SheetContent>
-      </Sheet>
+            <Controller
+              name="layout_style"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LAYOUT_GROUPS.map((group) => {
+                      const groupItems = LAYOUT_OPTIONS.filter(
+                        (o) => o.group === group,
+                      );
+                      return (
+                        <div key={group}>
+                          <div className="section-label px-2 py-1.5">
+                            {group}
+                          </div>
+                          {groupItems.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              <span className="flex items-center gap-2">
+                                <opt.icon className="size-3.5 text-muted-foreground" />
+                                {opt.label}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+
+            {/* Inline preview */}
+            {selectedOption && (
+              <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/20 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                    <selectedOption.icon className="size-3.5 text-primary" />
+                    {selectedOption.label}
+                  </span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold ${GROUP_BADGE[selectedOption.group]}`}
+                  >
+                    {selectedOption.group}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {selectedOption.description}
+                </p>
+                <div className="border-t border-border/30 pt-2">
+                  <LayoutPreview layout={selectedLayout} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">Save Section</Button>
+          </div>
+        </form>
+      </FormSheet>
 
       {/* Preview All dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
