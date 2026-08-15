@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { ADMIN_MANAGER } from "@/lib/constants";
 
 interface ManagerWrapperProps {
   children: ReactNode;
@@ -16,13 +15,7 @@ export default function ManagerWrapper({
   className,
 }: ManagerWrapperProps) {
   return (
-    <div
-      className={cn(
-        ADMIN_MANAGER.CONTENT_SPACING,
-        ADMIN_MANAGER.MOBILE_BOTTOM_PADDING,
-        className,
-      )}
-    >
+    <div className={cn("space-y-s5", "pb-20 md:pb-0", className)}>
       {children}
     </div>
   );

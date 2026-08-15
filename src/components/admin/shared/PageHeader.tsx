@@ -33,19 +33,16 @@ export default function PageHeader({
   return (
     <div
       className={cn(
-        "space-y-4",
-        sticky &&
-          "sticky top-0 z-20 bg-secondary/30 backdrop-blur border-b pb-4",
+        "space-y-s4",
+        sticky && "sticky top-0 z-20 bg-background/85 backdrop-blur pb-s4",
         className,
       )}
     >
       {/* Title Row */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-s4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           {kicker && <p className="t-eyebrow">{kicker}</p>}
-          <h1 className="font-heading text-2xl font-bold tracking-tight">
-            {title}
-          </h1>
+          <h1 className="t-heading">{title}</h1>
           {description && (
             <div className="text-sm text-muted-foreground">
               {typeof description === "string" ? (

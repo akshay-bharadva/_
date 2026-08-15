@@ -8,15 +8,11 @@ import { useAppDispatch } from "@/store/hooks";
 import { startFocus } from "@/store/slices/focusSlice";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DARK_THEME, LIGHT_THEME } from "@/lib/themes";
+import { NAV_GROUPS } from "@/features/admin-shell/nav-config";
 import { cn } from "@/lib/utils"; // Ensure you have this utility
 import { Button } from "@/components/ui/button"; // Import Button for the mobile trigger
 import {
-  Calculator,
-  Calendar,
-  CreditCard,
-  Settings,
   User,
-  LayoutDashboard,
   FileText,
   LogOut,
   Moon,
@@ -184,46 +180,26 @@ export default function GlobalCommandPalette() {
 
               <CommandSeparator />
 
-              <CommandGroup heading="Admin Navigation">
-                <CommandItem
-                  onSelect={() => runCommand(() => router.push("/admin"))}
-                >
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  <span>Dashboard</span>
-                </CommandItem>
-                <CommandItem
-                  onSelect={() =>
-                    runCommand(() => router.push("/admin/finance"))
-                  }
-                >
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  <span>Finance</span>
-                </CommandItem>
-                <CommandItem
-                  onSelect={() =>
-                    runCommand(() => router.push("/admin/calendar"))
-                  }
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  <span>Calendar</span>
-                </CommandItem>
-                <CommandItem
-                  onSelect={() =>
-                    runCommand(() => router.push("/admin/learning"))
-                  }
-                >
-                  <Calculator className="mr-2 h-4 w-4" />
-                  <span>Learning</span>
-                </CommandItem>
-                <CommandItem
-                  onSelect={() =>
-                    runCommand(() => router.push("/admin/settings"))
-                  }
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </CommandItem>
-              </CommandGroup>
+              {/*
+                This palette is the admin's module switcher — v3 removed the
+                sidebar rail, so every module has to be reachable from here.
+                Driven from NAV_GROUPS rather than a hand-written subset, which
+                previously listed only five of the sixteen.
+              */}
+              {NAV_GROUPS.map((group) => (
+                <CommandGroup key={group.label} heading={group.label}>
+                  {group.items.map((item) => (
+                    <CommandItem
+                      key={item.href}
+                      value={`${group.label} ${item.name}`}
+                      onSelect={() => runCommand(() => router.push(item.href))}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      <span>{item.name}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ))}
               <CommandSeparator />
             </>
           )}
