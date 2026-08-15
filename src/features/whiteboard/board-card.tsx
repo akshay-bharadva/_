@@ -35,7 +35,7 @@ export function BoardCard({
         onClick={onOpen}
         className="block w-full overflow-hidden rounded-lg border bg-card text-left transition-colors hover:border-primary/50"
       >
-        <span className="bg-graph-paper block h-36 w-full overflow-hidden">
+        <span className="block bg-secondary h-36 w-full overflow-hidden">
           {board.preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

@@ -85,14 +85,14 @@ export function EventDetailsContent({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-chart-2/20 bg-chart-2/10 p-3 text-center">
-            <span className="section-label">Income</span>
+            <span className="t-micro">Income</span>
             <div className="flex items-center justify-center gap-1 font-mono text-xl font-bold text-chart-2">
               <ArrowUpRight className="size-5" />$
               {total_earning?.toLocaleString()}
             </div>
           </div>
           <div className="rounded-lg border border-chart-5/20 bg-chart-5/10 p-3 text-center">
-            <span className="section-label">Expenses</span>
+            <span className="t-micro">Expenses</span>
             <div className="flex items-center justify-center gap-1 font-mono text-xl font-bold text-chart-5">
               <ArrowDownLeft className="size-5" />$
               {total_expense?.toLocaleString()}
@@ -100,7 +100,7 @@ export function EventDetailsContent({
           </div>
         </div>
 
-        <div className="section-label mt-2">Breakdown</div>
+        <div className="t-micro mt-2">Breakdown</div>
         <ScrollArea className="h-[180px] pr-4">
           <div className="flex flex-col gap-2">
             {transactions?.map((t, i) => (
@@ -165,13 +165,13 @@ export function EventDetailsContent({
         {type === "task" && (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <span className="section-label">Status</span>
+              <span className="t-micro">Status</span>
               <Badge variant={status === "done" ? "default" : "secondary"}>
                 {status}
               </Badge>
             </div>
             <div className="space-y-1">
-              <span className="section-label">Priority</span>
+              <span className="t-micro">Priority</span>
               <div className="flex items-center gap-2 font-medium">
                 <div
                   className={cn(
@@ -192,7 +192,7 @@ export function EventDetailsContent({
         {(type === "transaction" || type === "forecast") && (
           <div className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
             <div>
-              <span className="section-label mb-1 block">Amount</span>
+              <span className="t-micro mb-1 block">Amount</span>
               <div
                 className={cn(
                   "flex items-center gap-1 font-mono text-2xl font-bold",

@@ -23,7 +23,7 @@ export function TimelineLayout({ updates }: { updates: LifeUpdate[] }) {
     <div className="space-y-12">
       {Array.from(groups.entries()).map(([month, monthUpdates]) => (
         <section key={month} aria-label={month}>
-          <h2 className="section-label mb-6">{month}</h2>
+          <h2 className="t-eyebrow mb-s5">{month}</h2>
           <ol className="relative space-y-8 border-l-2 border-dotted border-border pl-6">
             {monthUpdates.map((update) => {
               const option = categoryOption(update.category);

@@ -23,10 +23,10 @@ function useDocumentTitle() {
 
 function ShellLoading() {
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background bg-graph-paper">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
         <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
-        <p className="status-line">authorizing…</p>
+        <p className="t-micro">authorizing…</p>
       </div>
     </div>
   );

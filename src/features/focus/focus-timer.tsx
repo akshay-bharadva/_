@@ -77,7 +77,7 @@ export function FocusTimer() {
       >
         <Card className="flex items-center gap-4 border-primary/20 bg-background/80 p-3 shadow-2xl backdrop-blur">
           <div className="flex flex-col">
-            <span className="section-label">
+            <span className="t-micro">
               {mode === "work" ? "Focusing" : "Break"}
             </span>
             <span className="font-mono text-xl font-bold tabular-nums">

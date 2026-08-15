@@ -63,9 +63,13 @@ function SectionBody({ section }: { section: PortfolioSection }) {
 }
 
 /**
- * Renders one CMS section: numbered mono ordinal, heading, dotted rule, body.
+ * Renders one CMS section: heading, then body.
  *
- * Changes from the previous version:
+ * v3 removed the numbered mono ordinal and the dotted rule that used to sit
+ * under every heading — separation now comes from space and from the fact that
+ * each layout puts its items on their own surfaces.
+ *
+ * Retained from the previous version:
  *  - `aria-labelledby` points at the real heading instead of duplicating the
  *    title in an `aria-label`, so screen readers announce it once.
  *  - `scroll-mt-24` + an id make every section deep-linkable without the
@@ -117,19 +121,13 @@ export default function SectionRenderer({
       aria-labelledby={headingId}
       className={cn("scroll-mt-24", className)}
     >
-      <header className="mb-6">
-        <h2
-          id={headingId}
-          className="font-heading text-2xl font-bold tracking-tight [overflow-wrap:anywhere]"
-        >
-          {typeof index === "number" && (
-            <span
-              aria-hidden
-              className="section-label mr-3 align-middle text-primary"
-            >
-              {String(index + 1).padStart(2, "0")} /
-            </span>
-          )}
+      <header className="mb-s6">
+        {/*
+          The `01 /` mono ordinal is a v2 mannerism and is retired. `index` is
+          still accepted so callers do not have to change, but a section's
+          position is now conveyed by document order alone.
+        */}
+        <h2 id={headingId} className="t-heading [overflow-wrap:anywhere]">
           {section.title}
         </h2>
 
@@ -147,8 +145,6 @@ export default function SectionRenderer({
               back to Default List.
             </p>
           )}
-
-        <hr className="rule-dotted mt-4" aria-hidden />
       </header>
 
       <SectionBody section={section} />

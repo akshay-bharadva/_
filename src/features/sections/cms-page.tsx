@@ -1,6 +1,6 @@
 "use client";
 
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { DynamicPageContent } from "./dynamic-page-content";
 
@@ -23,9 +23,9 @@ export function CmsPage({
     pagePath === "/" ? "home" : pagePath.split("/").filter(Boolean).join(" / ");
 
   return (
-    <Container className="py-16 sm:py-20">
+    <Band weight="content" className="density-comfortable">
       <PageHeader kicker={kicker} title={title} />
       <DynamicPageContent pagePath={pagePath} className="mt-12 sm:mt-16" />
-    </Container>
+    </Band>
   );
 }

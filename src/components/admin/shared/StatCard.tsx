@@ -119,7 +119,7 @@ export default function StatCard({
       >
         <CardTitle
           className={cn(
-            "section-label font-normal",
+            "t-micro font-normal",
             highlight ? "text-primary" : "text-muted-foreground",
           )}
         >

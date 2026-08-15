@@ -165,7 +165,7 @@ function DashboardOverview({
               {overdueTasks.length === 0 &&
               tasksDueToday.length === 0 &&
               pinnedNotes.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed bg-graph-paper p-8 text-center text-muted-foreground">
+                <div className="flex h-full flex-col items-center justify-center rounded-surface border border-dashed bg-secondary/40 p-8 text-center text-muted-foreground">
                   <CheckCircle className="mx-auto mb-4 size-12 text-primary opacity-80" />
                   <p className="font-heading font-semibold tracking-tight text-foreground">
                     Inbox Zero
@@ -334,7 +334,7 @@ function DashboardOverview({
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h4 className="section-label mb-3 flex items-center gap-2">
+                <h4 className="t-micro mb-3 flex items-center gap-2">
                   <CalendarClock className="size-3" /> Upcoming Tasks
                 </h4>
                 {tasksDueSoon.length > 0 ? (
@@ -363,7 +363,7 @@ function DashboardOverview({
               <Separator />
 
               <div>
-                <h4 className="section-label mb-3 flex items-center gap-2">
+                <h4 className="t-micro mb-3 flex items-center gap-2">
                   <Repeat className="size-3" /> Projected Finance
                 </h4>
                 {upcomingRecurring.length > 0 ? (

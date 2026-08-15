@@ -311,9 +311,7 @@ export function FeatureAlternatingLayout({ items }: LayoutProps) {
             </MaybeLink>
 
             <div className={cn("min-w-0", flip ? "md:order-1" : "md:order-2")}>
-              <p className="section-label text-primary">
-                {item.subtitle?.trim() || "Featured"}
-              </p>
+              <p className="t-eyebrow">{item.subtitle?.trim() || "Featured"}</p>
               <h3 className="mt-2 font-heading text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
                 <TextLink href={item.link_url} className="hover:text-primary">
                   {item.title}

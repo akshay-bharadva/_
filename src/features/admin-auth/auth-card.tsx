@@ -32,7 +32,7 @@ export function AuthCard({
     >
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="section-label">{step}</span>
+          <span className="t-micro">{step}</span>
           <span
             className="flex size-9 items-center justify-center rounded-md border border-border bg-secondary"
             aria-hidden="true"
@@ -47,7 +47,7 @@ export function AuthCard({
           <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
         </div>
       </div>
-      <hr className="rule-dotted" />
+      <div className="h-px w-full bg-border/60" aria-hidden />
       {children}
     </div>
   );

@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background bg-graph-paper px-6 text-center text-foreground">
-      <p className="status-line">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background px-6 text-center text-foreground">
+      <p className="t-micro">
         <span aria-hidden className="text-destructive">
           ●{" "}
         </span>

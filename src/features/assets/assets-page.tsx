@@ -449,7 +449,7 @@ export default function AssetsPage() {
               {currentFolderAssets.length > 0 && (
                 <div>
                   {subFolders.length > 0 && (
-                    <h3 className="section-label mb-3">Files</h3>
+                    <h3 className="t-micro mb-3">Files</h3>
                   )}
 
                   {effectiveViewMode === "grid" ? (

@@ -19,7 +19,7 @@ export function StatsRow({ updates }: { updates: LifeUpdate[] }) {
       {stats.map((s) => (
         <Card key={s.label} className="shadow-sm">
           <CardContent className="flex items-center justify-between p-3">
-            <span className="section-label">{s.label}</span>
+            <span className="t-micro">{s.label}</span>
             <span className={cn("font-mono text-lg font-bold", s.accent)}>
               {s.value}
             </span>

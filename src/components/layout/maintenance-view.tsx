@@ -9,7 +9,7 @@ import { ShieldAlert, Wrench } from "lucide-react";
 export default function MaintenanceView({ level }: { level: number }) {
   const isLockdown = level >= 2;
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background bg-graph-paper p-6 text-center text-foreground">
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background p-6 text-center text-foreground">
       <div className="mb-8 rounded-full border border-border bg-card p-6">
         {isLockdown ? (
           <ShieldAlert className="size-12 text-destructive" aria-hidden />
@@ -17,7 +17,7 @@ export default function MaintenanceView({ level }: { level: number }) {
           <Wrench className="size-12 text-primary" aria-hidden />
         )}
       </div>
-      <p className="status-line mb-3">
+      <p className="t-micro mb-s3">
         <span aria-hidden className="text-primary">
           ●{" "}
         </span>

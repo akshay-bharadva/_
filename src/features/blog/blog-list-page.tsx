@@ -8,7 +8,7 @@ import { useGetPublishedBlogPostsQuery } from "@/store/api/publicApi";
 import type { BlogPost } from "@/types";
 import { calculateReadTime, readTimeFromWordCount } from "@/lib/utils";
 import { siteContent } from "@/lib/site-content";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -104,7 +104,7 @@ export function BlogListPage() {
   }, [posts, searchTerm]);
 
   return (
-    <Container className="py-16 sm:py-20">
+    <Band weight="content" className="density-comfortable">
       <PageHeader
         kicker="Writing"
         title={siteContent.pages.blog.title}
@@ -133,7 +133,7 @@ export function BlogListPage() {
           ))}
         </div>
       ) : isError ? (
-        <p className="status-line">
+        <p className="t-micro">
           <span aria-hidden>▲ </span>
           Couldn&apos;t load posts right now — try again shortly.
         </p>
@@ -159,6 +159,6 @@ export function BlogListPage() {
           ))}
         </ul>
       )}
-    </Container>
+    </Band>
   );
 }

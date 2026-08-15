@@ -87,7 +87,7 @@ export function RepoGrid() {
 
   if (isError || !repos?.length) {
     return (
-      <p className="status-line">
+      <p className="t-micro">
         <span aria-hidden>▲ </span>
         Could not load repositories from GitHub right now.
       </p>

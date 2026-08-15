@@ -7,10 +7,17 @@ import { Markdown } from "@/components/ui/markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
+import { Band } from "@/components/layout/band";
+import { safeLinkUrl } from "@/lib/safe-url";
 
 /**
- * Footer — status-line motif, markdown copyright, social icons, and the
- * 5-click "©" easter egg that opens /admin.
+ * Footer.
+ *
+ * v3: a quiet closing band. The v2 terminal status line and dotted rule are
+ * gone; separation from the page above is space plus the band's own ground.
+ *
+ * Kept: the markdown copyright and the 5-click "©" easter egg that opens
+ * /admin — both are behaviour, not decoration.
  */
 export default function PublicFooter() {
   const router = useRouter();
@@ -31,81 +38,71 @@ export default function PublicFooter() {
 
   if (isLoading || !identity) {
     return (
-      <footer className="border-t border-border py-10">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+      <Band as="footer" weight="content" className="py-s8">
+        <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-48" />
-          <div className="flex gap-4">
-            <Skeleton className="size-4 rounded-full" />
-            <Skeleton className="size-4 rounded-full" />
+          <div className="flex gap-s3">
+            <Skeleton className="size-8 rounded-full" />
+            <Skeleton className="size-8 rounded-full" />
           </div>
         </div>
-      </footer>
+      </Band>
     );
   }
 
   const { profile_data, social_links, footer_data } = identity;
-  const availability = profile_data.status_panel?.availability;
 
   return (
-    <footer className="border-t border-border">
-      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
-        {availability && (
-          <p className="status-line mb-6 flex items-center gap-2">
-            <span aria-hidden className="text-primary">
-              ●
+    <Band as="footer" weight="content" className="py-s8">
+      <div className="flex flex-col gap-s5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p>
+            <span
+              onClick={() => setClickCount((count) => count + 1)}
+              className="cursor-default select-none"
+            >
+              &copy; {currentYear}
+            </span>{" "}
+            <span className="font-medium text-foreground">
+              {profile_data.name}
             </span>
-            {availability}
           </p>
-        )}
+          {footer_data.copyright_text && (
+            // Opts out of the `.markdown` defaults it shouldn't inherit: the
+            // copyright line stays muted, full-width, and underlines its
+            // links on hover only.
+            <Markdown className="max-w-none text-sm text-muted-foreground [&_a]:text-primary [&_a]:no-underline [&_a]:underline-offset-4 [&_a:hover]:underline [&_p]:m-0">
+              {footer_data.copyright_text}
+            </Markdown>
+          )}
+        </div>
 
-        <hr className="rule-dotted mb-6" aria-hidden />
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1 text-sm text-muted-foreground">
-            <p>
-              <span
-                onClick={() => setClickCount((count) => count + 1)}
-                className="cursor-default select-none"
-              >
-                &copy; {currentYear}
-              </span>{" "}
-              <span className="font-medium text-foreground">
-                {profile_data.name}
-              </span>
-            </p>
-            {footer_data.copyright_text && (
-              // Opts out of the `.markdown` defaults it shouldn't inherit: the
-              // copyright line stays muted, full-width, and underlines its
-              // links on hover only.
-              <Markdown className="max-w-none text-sm text-muted-foreground [&_a]:text-primary [&_a]:no-underline [&_a]:underline-offset-4 [&_a:hover]:underline [&_p]:m-0">
-                {footer_data.copyright_text}
-              </Markdown>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4">
-            {social_links
-              .filter((social) => social.is_visible)
-              .map((social) => {
-                const Icon = SOCIAL_ICONS[social.id.toLowerCase()];
-                if (!Icon) return null;
-                return (
+        <ul className="flex items-center gap-s2">
+          {social_links
+            .filter((social) => social.is_visible)
+            .map((social) => {
+              const Icon = SOCIAL_ICONS[social.id.toLowerCase()];
+              const href = safeLinkUrl(social.url);
+              if (!Icon || !href) return null;
+              const external = !href.startsWith("/") && !href.startsWith("#");
+              return (
+                <li key={social.url}>
                   <a
-                    key={social.url}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={href}
+                    {...(external
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     aria-label={social.label}
                     title={social.label}
-                    className="text-muted-foreground transition-colors hover:text-primary"
+                    className="flex size-9 items-center justify-center rounded-full bg-card text-muted-foreground shadow-e1 transition-[box-shadow,transform,color] duration-200 ease-enter hover:-translate-y-0.5 hover:text-primary hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:hover:translate-y-0"
                   >
                     <Icon className="size-4" aria-hidden />
                   </a>
-                );
-              })}
-          </div>
-        </div>
+                </li>
+              );
+            })}
+        </ul>
       </div>
-    </footer>
+    </Band>
   );
 }

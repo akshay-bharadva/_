@@ -171,9 +171,7 @@ export function SectionEditorSheet({
                       );
                       return (
                         <div key={group}>
-                          <div className="section-label px-2 py-1.5">
-                            {group}
-                          </div>
+                          <div className="t-micro px-2 py-1.5">{group}</div>
                           {groupItems.map((opt) => (
                             <SelectItem key={opt.value} value={opt.value}>
                               <span className="flex items-center gap-2">

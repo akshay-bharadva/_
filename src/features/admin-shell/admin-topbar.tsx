@@ -119,9 +119,7 @@ export function AdminTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="section-label">
-              Quick add
-            </DropdownMenuLabel>
+            <DropdownMenuLabel className="t-micro">Quick add</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => router.push("/admin/tasks")}>
               <ListTodo className="mr-2 size-4" aria-hidden /> New task

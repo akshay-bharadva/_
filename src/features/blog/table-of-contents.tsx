@@ -111,7 +111,7 @@ export function TableOfContents({ articleId }: { articleId: string }) {
       {/* Desktop rail */}
       <nav aria-label="Table of contents" className="hidden lg:block">
         <div className="sticky top-24">
-          <p className="section-label mb-4">On this page</p>
+          <p className="t-eyebrow mb-s4">On this page</p>
           <TocList headings={headings} activeId={activeId} />
         </div>
       </nav>
@@ -130,7 +130,7 @@ export function TableOfContents({ articleId }: { articleId: string }) {
           </SheetTrigger>
           <SheetContent side="bottom" className="max-h-[70dvh] overflow-y-auto">
             <SheetHeader>
-              <SheetTitle className="section-label text-left">
+              <SheetTitle className="t-eyebrow text-left">
                 On this page
               </SheetTitle>
             </SheetHeader>

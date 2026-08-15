@@ -42,7 +42,7 @@ export default function PageHeader({
       {/* Title Row */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          {kicker && <p className="section-label text-primary">{kicker}</p>}
+          {kicker && <p className="t-eyebrow">{kicker}</p>}
           <h1 className="font-heading text-2xl font-bold tracking-tight">
             {title}
           </h1>

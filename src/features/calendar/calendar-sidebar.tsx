@@ -52,7 +52,7 @@ export function CalendarSidebar({
 
       {/* Filter checkboxes — fixed */}
       <div className="shrink-0 px-3 py-2">
-        <p className="section-label mb-2 px-2">Calendars</p>
+        <p className="t-micro mb-2 px-2">Calendars</p>
         {FILTER_ITEMS.map((item) => {
           const active = filters.includes(item.key);
           const Icon = item.icon;
@@ -88,7 +88,7 @@ export function CalendarSidebar({
 
       {/* Upcoming — takes remaining space, only this scrolls */}
       <div className="flex min-h-0 flex-1 flex-col px-3 py-2">
-        <p className="section-label mb-2 shrink-0 px-2">Upcoming</p>
+        <p className="t-micro mb-2 shrink-0 px-2">Upcoming</p>
         <div className="flex-1 space-y-1 overflow-y-auto">
           {upcomingEvents.map((e) => {
             const color = getEventColor(e);

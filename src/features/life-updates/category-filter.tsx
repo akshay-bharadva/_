@@ -21,7 +21,7 @@ export function CategorySidebar({
 }: CategoryFilterProps) {
   return (
     <aside className="sticky top-20 hidden w-44 shrink-0 md:block">
-      <h4 className="section-label mb-2 px-2">Categories</h4>
+      <h4 className="t-micro mb-2 px-2">Categories</h4>
       <div className="flex flex-col gap-0.5">
         <Button
           variant={!selectedCategory ? "secondary" : "ghost"}

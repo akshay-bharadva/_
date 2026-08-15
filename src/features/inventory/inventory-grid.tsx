@@ -77,14 +77,14 @@ export function InventoryGrid({ items, onEdit, onDelete }: InventoryGridProps) {
               </div>
               <div className="mt-auto flex items-end justify-between border-t pt-3">
                 <div>
-                  <p className="section-label">Value</p>
+                  <p className="t-micro">Value</p>
                   <p className="font-mono text-lg font-bold">
                     ${formatValue(currentValue(item))}
                   </p>
                 </div>
                 {item.purchase_date && (
                   <div className="text-right">
-                    <p className="section-label">Purchased</p>
+                    <p className="t-micro">Purchased</p>
                     <p className="text-xs">
                       {format(parseLocalDate(item.purchase_date), "MMM yyyy")}
                     </p>

@@ -25,7 +25,7 @@ export function FolderGrid({
   if (folders.length === 0) return null;
   return (
     <div className="mb-6">
-      <h3 className="section-label mb-3">Folders</h3>
+      <h3 className="t-micro mb-3">Folders</h3>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
         {folders.map((folder) => (
           <div

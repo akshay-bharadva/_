@@ -9,7 +9,7 @@ import {
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 import type { LifeUpdate, LifeUpdateCategory } from "@/types";
 import { cn } from "@/lib/utils";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,7 +49,7 @@ export function UpdatesPage() {
   }, [updates, searchTerm, category]);
 
   return (
-    <Container className="py-16 sm:py-20">
+    <Band weight="content" className="density-comfortable">
       <PageHeader
         kicker="Field notes"
         title="Updates"
@@ -141,6 +141,6 @@ export function UpdatesPage() {
       ) : (
         <ScrapbookLayout updates={filtered} />
       )}
-    </Container>
+    </Band>
   );
 }

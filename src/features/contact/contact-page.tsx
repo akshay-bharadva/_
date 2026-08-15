@@ -3,7 +3,7 @@
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { SOCIAL_ICONS } from "@/lib/social-icons";
 import { siteContent } from "@/lib/site-content";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { DynamicPageContent } from "@/features/sections/dynamic-page-content";
 import { ContactForm } from "./contact-form";
@@ -20,7 +20,7 @@ export function ContactPage() {
   );
 
   return (
-    <Container className="py-16 sm:py-20">
+    <Band weight="content" className="density-comfortable">
       <PageHeader
         kicker="Open channel"
         title={siteContent.pages.contact.heading}
@@ -36,7 +36,7 @@ export function ContactPage() {
 
         <aside className={showForm ? "" : "lg:col-span-2"}>
           {showBadge && (
-            <p className="status-line mb-6 flex items-center gap-2.5">
+            <p className="t-micro mb-s5 flex items-center gap-2.5">
               <span aria-hidden className="relative flex size-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
                 <span className="relative inline-flex size-2 rounded-full bg-primary" />
@@ -46,7 +46,7 @@ export function ContactPage() {
             </p>
           )}
 
-          <h2 className="section-label mb-4">Direct lines</h2>
+          <h2 className="t-eyebrow mb-s4">Direct lines</h2>
           <ul className="space-y-2.5">
             {socials.map((social) => {
               const Icon = SOCIAL_ICONS[social.id.toLowerCase()];
@@ -79,6 +79,6 @@ export function ContactPage() {
           <DynamicPageContent pagePath="/contact" />
         </div>
       )}
-    </Container>
+    </Band>
   );
 }

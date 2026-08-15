@@ -95,7 +95,7 @@ export function TaskBoard({
             )}
           >
             <div className="flex items-center justify-between border-b border-dotted border-border px-3 py-2.5">
-              <div className="section-label flex items-center gap-2 text-foreground">
+              <div className="t-micro flex items-center gap-2 text-foreground">
                 <span
                   aria-hidden
                   className={cn("size-2 rounded-full", meta.dot)}

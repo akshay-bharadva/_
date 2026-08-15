@@ -303,13 +303,16 @@ export function ItemImage({
       <div
         aria-hidden
         className={cn(
-          "flex items-center justify-center bg-graph-paper text-border",
+          // A plain tinted surface. The v2 placeholder was a graph-paper
+          // ground, which read as an intentional texture rather than as a
+          // missing image.
+          "flex items-center justify-center bg-secondary text-muted-foreground/60",
           className,
           placeholderClassName,
         )}
       >
         {fallbackLabel ? (
-          <span className="font-mono text-2xl">{fallbackLabel}</span>
+          <span className="text-2xl font-semibold">{fallbackLabel}</span>
         ) : (
           <ImageOff className="size-6" />
         )}
@@ -329,7 +332,7 @@ export function ItemImage({
       onError={(e) => {
         const el = e.currentTarget;
         el.style.visibility = "hidden";
-        el.parentElement?.classList.add("bg-graph-paper");
+        el.parentElement?.classList.add("bg-secondary");
       }}
     />
   );

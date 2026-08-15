@@ -62,7 +62,8 @@ export default function EmptyState({
 
   const variantClasses = {
     default: "",
-    bordered: "border border-dashed border-border rounded-lg bg-graph-paper",
+    bordered:
+      "border border-dashed border-border rounded-surface bg-secondary/40",
     card: "bg-card border border-border rounded-lg shadow-sm",
   };
 

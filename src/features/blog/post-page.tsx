@@ -12,7 +12,7 @@ import {
   useIncrementPostViewMutation,
 } from "@/store/api/publicApi";
 import { isSupabaseConfigured } from "@/lib/config";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { Skeleton } from "@/components/ui/skeleton";
 import { readTime } from "./blog-list-page";
 import { ReadingProgress } from "./reading-progress";
@@ -42,8 +42,8 @@ const PostContent = dynamic(
 
 function NotFoundView() {
   return (
-    <Container className="py-24 text-center">
-      <p className="status-line justify-center">
+    <Band weight="content" className="text-center">
+      <p className="t-micro justify-center">
         <span aria-hidden className="text-destructive">
           ●{" "}
         </span>
@@ -58,7 +58,7 @@ function NotFoundView() {
       >
         ← All posts
       </Link>
-    </Container>
+    </Band>
   );
 }
 
@@ -96,11 +96,11 @@ export function PostPage() {
 
   if (isLoading || !post) {
     return (
-      <Container className="max-w-3xl py-16" aria-busy>
+      <Band weight="content" width="prose" aria-busy>
         <Skeleton className="h-4 w-40" />
         <Skeleton className="mt-5 h-12 w-3/4" />
         <Skeleton className="mt-8 h-64 w-full rounded-lg" />
-      </Container>
+      </Band>
     );
   }
 
@@ -129,7 +129,7 @@ export function PostPage() {
   return (
     <>
       <ReadingProgress />
-      <Container className="py-12 sm:py-16">
+      <Band weight="content" width="wide">
         <nav aria-label="Breadcrumb" className="mb-8">
           <ol className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
             <li>
@@ -186,7 +186,7 @@ export function PostPage() {
                   className="mt-8 w-full rounded-lg border object-cover"
                 />
               )}
-              <hr className="rule-dotted my-8" aria-hidden />
+              <div className="mt-s6 h-px w-16 bg-primary/40" aria-hidden />
             </header>
 
             <PostContent content={post.content ?? ""} />
@@ -234,7 +234,7 @@ export function PostPage() {
 
           {post.show_toc && <TableOfContents articleId={ARTICLE_ID} />}
         </div>
-      </Container>
+      </Band>
     </>
   );
 }

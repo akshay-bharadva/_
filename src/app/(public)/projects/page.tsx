@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { siteContent } from "@/lib/site-content";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { DynamicPageContent } from "@/features/sections/dynamic-page-content";
 import { RepoGrid } from "@/features/github/repo-grid";
@@ -10,28 +10,29 @@ export const metadata: Metadata = {
   description: siteContent.pages.projects.description,
 };
 
+/** Bands: content (featured work) → content (repos), per the v3 IA. */
 export default function Page() {
   return (
-    <Container className="py-16 sm:py-20">
-      <PageHeader
-        kicker="Build log"
-        title={siteContent.pages.projects.heading}
-        subheading={siteContent.pages.projects.description}
-      />
-      <DynamicPageContent pagePath="/projects" />
-      <section aria-label="GitHub repositories" className="mt-16">
-        <h2 className="font-heading text-2xl font-bold tracking-tight">
-          <span
-            aria-hidden
-            className="section-label mr-3 align-middle text-primary"
-          >
-            gh /
-          </span>
-          Open source & experiments
+    <>
+      <Band weight="content" className="density-comfortable pb-s6">
+        <PageHeader
+          kicker="Build log"
+          title={siteContent.pages.projects.heading}
+          subheading={siteContent.pages.projects.description}
+        />
+        <div className="mt-s8">
+          <DynamicPageContent pagePath="/projects" />
+        </div>
+      </Band>
+
+      <Band weight="content" aria-labelledby="repos-heading" className="pt-0">
+        <h2 id="repos-heading" className="t-heading">
+          Open source &amp; experiments
         </h2>
-        <hr className="rule-dotted mb-8 mt-4" aria-hidden />
-        <RepoGrid />
-      </section>
-    </Container>
+        <div className="mt-s6">
+          <RepoGrid />
+        </div>
+      </Band>
+    </>
   );
 }

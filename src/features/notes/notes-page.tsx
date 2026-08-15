@@ -129,7 +129,7 @@ export default function NotesPage() {
       <div className="flex flex-col items-start gap-6 md:flex-row">
         {/* Desktop tag rail */}
         <aside className="sticky top-20 hidden w-48 shrink-0 md:block">
-          <h4 className="section-label mb-3 px-2">Labels</h4>
+          <h4 className="t-micro mb-3 px-2">Labels</h4>
           <div className="flex flex-col gap-1">
             <Button
               variant={!selectedTag ? "secondary" : "ghost"}

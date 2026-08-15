@@ -2,7 +2,7 @@
 
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { Markdown } from "@/components/ui/markdown";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DynamicPageContent } from "@/features/sections/dynamic-page-content";
@@ -11,7 +11,7 @@ export function AboutPage() {
   const { data: identity, isLoading } = useGetSiteIdentityQuery();
 
   return (
-    <Container className="py-16 sm:py-20">
+    <Band weight="content" className="density-comfortable">
       <PageHeader kicker="whoami" title="About" />
 
       {isLoading || !identity ? (
@@ -50,6 +50,6 @@ export function AboutPage() {
       <div className="mt-16">
         <DynamicPageContent pagePath="/about" />
       </div>
-    </Container>
+    </Band>
   );
 }

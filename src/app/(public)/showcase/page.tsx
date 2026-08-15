@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { siteContent } from "@/lib/site-content";
-import { Container } from "@/components/layout/container";
+import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { DynamicPageContent } from "@/features/sections/dynamic-page-content";
 
@@ -11,13 +11,13 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <Container className="py-16 sm:py-20">
+    <Band weight="content" className="density-comfortable">
       <PageHeader
         kicker="Selected work"
         title={siteContent.pages.showcase.heading}
         subheading={siteContent.pages.showcase.subheading}
       />
       <DynamicPageContent pagePath="/showcase" />
-    </Container>
+    </Band>
   );
 }

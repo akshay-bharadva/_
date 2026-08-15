@@ -196,7 +196,7 @@ export function MfaSetup() {
             )}
           </section>
 
-          <hr className="rule-dotted" />
+          <div className="h-px w-full bg-border/60" aria-hidden />
 
           <section className="space-y-3" aria-labelledby="mfa-step-manual">
             <div id="mfa-step-manual">
@@ -236,7 +236,7 @@ export function MfaSetup() {
             </div>
           </section>
 
-          <hr className="rule-dotted" />
+          <div className="h-px w-full bg-border/60" aria-hidden />
 
           <section className="space-y-3" aria-labelledby="mfa-step-verify">
             <div id="mfa-step-verify">

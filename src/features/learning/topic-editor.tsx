@@ -158,7 +158,7 @@ const ResourceList = ({
 }) => (
   <>
     <div className="mb-4 flex items-center justify-between">
-      <div className="section-label flex items-center gap-2">
+      <div className="t-micro flex items-center gap-2">
         <Layers className="size-3.5" /> Resources{" "}
         <Badge
           variant="secondary"
@@ -364,7 +364,7 @@ export function TopicEditor({
             {isMobile && (
               <div className="px-4 pb-2 pt-6">
                 <div className="mb-6 rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-sm">
-                  <div className="section-label mb-3 flex items-center gap-2">
+                  <div className="t-micro mb-3 flex items-center gap-2">
                     <Hourglass className="size-3.5" /> Study Session
                   </div>
                   <SessionTracker topic={topic} />
@@ -400,7 +400,7 @@ export function TopicEditor({
             <div className="w-80 shrink-0 overflow-y-auto border-l bg-muted/5 xl:w-96">
               <div className="p-4">
                 <div className="rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-sm">
-                  <div className="section-label mb-3 flex items-center gap-2">
+                  <div className="t-micro mb-3 flex items-center gap-2">
                     <Hourglass className="size-3.5" /> Study Session
                   </div>
                   <SessionTracker topic={topic} />

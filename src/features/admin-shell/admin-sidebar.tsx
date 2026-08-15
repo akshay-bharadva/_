@@ -156,7 +156,7 @@ export function AdminSidebar({
               {collapsed ? (
                 <div className="mx-1 mb-2 border-t border-dotted border-border" />
               ) : (
-                <p className="section-label mb-1.5 px-3">{group.label}</p>
+                <p className="t-micro mb-1.5 px-3">{group.label}</p>
               )}
               <ul className="space-y-0.5">
                 {group.items.map((item) => (
