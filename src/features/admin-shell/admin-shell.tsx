@@ -49,7 +49,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   if (state !== "authorized") return <ShellLoading />;
 
   return (
-    <div className="density-compact min-h-[100dvh] bg-background">
+    // A tinted ground, not the page background: surfaces need something to
+    // float *on*. Card fill and page background are near-identical on most
+    // presets, so on a plain ground the cards read as flat regions.
+    <div className="density-compact min-h-[100dvh] bg-secondary/30">
       <FocusTimer />
       <AdminTopbar />
       <main className="mx-auto w-full max-w-wide px-s4 py-s6">{children}</main>

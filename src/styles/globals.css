@@ -53,23 +53,60 @@
     --t-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
     --t-micro: 0.8125rem;
 
-    /* Elevation — one shadow hue derived from the theme's own foreground, so
-       depth reads correctly on light and dark presets alike. */
-    --e-shadow: var(--foreground);
+    /**
+     * Elevation.
+     *
+     * The shadow hue is a near-black keyed to the theme's own hue, NOT the
+     * foreground. Deriving it from `--foreground` meant that on the 26 dark
+     * presets — where the foreground is near-white — every "shadow" rendered
+     * as a white glow.
+     *
+     * A shadow also has to be strong enough to replace the border it stands
+     * in for. The first attempt sat at 5–6% opacity, which gave a card *less*
+     * definition than the bordered version it replaced, so the redesign read
+     * as no change at all.
+     */
+    --e-shadow: 240 40% 4%;
     --e-0: none;
     --e-1:
-      0 1px 2px hsl(var(--e-shadow) / 0.05),
-      0 1px 3px hsl(var(--e-shadow) / 0.06);
+      0 1px 2px -1px hsl(var(--e-shadow) / 0.12),
+      0 4px 10px -2px hsl(var(--e-shadow) / 0.1);
     --e-2:
-      0 2px 4px hsl(var(--e-shadow) / 0.05),
-      0 8px 16px -4px hsl(var(--e-shadow) / 0.1);
+      0 2px 6px -2px hsl(var(--e-shadow) / 0.14),
+      0 12px 24px -6px hsl(var(--e-shadow) / 0.16);
     --e-3:
-      0 4px 8px hsl(var(--e-shadow) / 0.06),
-      0 24px 48px -12px hsl(var(--e-shadow) / 0.18);
+      0 8px 20px -8px hsl(var(--e-shadow) / 0.2),
+      0 32px 64px -16px hsl(var(--e-shadow) / 0.3);
 
     /* Motion — exits are always faster than entrances. */
     --m-enter: 220ms cubic-bezier(0.32, 0.72, 0, 1);
     --m-exit: 140ms cubic-bezier(0.4, 0, 1, 1);
+  }
+
+  /**
+   * Dark presets need a different mechanism.
+   *
+   * A near-black shadow cannot separate a dark surface from a dark ground —
+   * there is no contrast left to cast. Dark UIs solve this with a light edge
+   * instead, so elevation there is a deeper shadow *plus* a hairline highlight
+   * along the top of the surface.
+   *
+   * `.dark` is set by `applyTheme` from the resolved `--background` lightness,
+   * so this follows any preset and any custom theme without a name list.
+   */
+  :root.dark {
+    --e-1:
+      0 1px 2px -1px hsl(var(--e-shadow) / 0.6),
+      0 4px 10px -2px hsl(var(--e-shadow) / 0.5),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.06);
+    --e-2:
+      0 2px 6px -2px hsl(var(--e-shadow) / 0.7),
+      0 12px 24px -6px hsl(var(--e-shadow) / 0.6),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.08);
+    --e-3:
+      0 8px 20px -8px hsl(var(--e-shadow) / 0.8),
+      0 32px 64px -16px hsl(var(--e-shadow) / 0.7),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.1);
   }
 
   /* Density is a property of a container, not a prop threaded through every
