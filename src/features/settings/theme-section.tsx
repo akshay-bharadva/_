@@ -142,7 +142,7 @@ export function ThemeSection({ form }: ThemeSectionProps) {
 
             {/* Live preview painted with the user's chosen colors */}
             <div
-              className="mt-4 rounded-surface border p-4 shadow-lg"
+              className="mt-4 rounded-surface border p-4 shadow-e3"
               style={{
                 backgroundColor: form.watch(
                   "profile_data.custom_theme_colors.background",

@@ -97,7 +97,7 @@ export function GoalCard({
         </CardContent>
 
         <CardFooter className="px-4 pb-4 pt-0">
-          <Button size="sm" className="w-full shadow-lg" onClick={onAddFunds}>
+          <Button size="sm" className="w-full shadow-e3" onClick={onAddFunds}>
             <Plus className="mr-2 size-4" /> Add Funds
           </Button>
         </CardFooter>

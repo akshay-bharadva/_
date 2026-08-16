@@ -18,7 +18,7 @@ This repository is a personal portfolio website and headless CMS / “Personal O
 
 - **`src/features/`** — Owns feature-first UI and feature-specific behavior, for public and admin surfaces alike. Public/shared: home, about, contact, blog, updates, sections, github, admin-auth, admin-shell. Admin modules: dashboard, tasks, habits, learning, calendar, notes, whiteboard, finance, inventory, content, blog-admin, life-updates, navigation, assets, settings, security, focus. Each is a flat directory of kebab-case files with named exports (page components stay default-export). Must not reach into unrelated feature internals; cross-feature behavior should use documented shared contracts.
 
-- **`src/features/admin-shell/`** — Owns the admin shell and client-side admin guard integration. `use-admin-guard.ts` is the single client-side UX guard invoked by the protected admin layout. Must not be treated as the security boundary; database/RLS enforcement remains authoritative.
+- **`src/features/admin-shell/`** — Owns the admin shell and client-side admin guard integration. `use-admin-guard.ts` is the single client-side UX guard invoked by the protected admin layout. Must not be treated as the security boundary; database/RLS enforcement remains authoritative. The shell is a single floating top bar over a full-width main — there is no sidebar rail. Module navigation goes through `GlobalCommandPalette`, which is driven from `NAV_GROUPS`: do not add a second navigation overlay, and do not hand-write a module list that can drift from the nav config.
 
 - **`src/features/whiteboard/`** — Owns the Excalidraw-backed whiteboard experience, scene serialization/deserialization, theme synchronization, and whiteboard-specific UI. Must not import `@excalidraw/excalidraw` at module scope. Excalidraw must remain client-only and code-split through `excalidraw-canvas-lazy`.
 
@@ -58,7 +58,9 @@ This repository is a personal portfolio website and headless CMS / “Personal O
 
 - **`db/schema.sql`** — Owns the authoritative database schema and RLS policies. Database-level authorization must remain stronger than client-side assumptions.
 
-- **`src/styles/globals.css`** — Owns the base token scale, prose styles, and motif styles.
+- **`src/styles/globals.css`** — Owns the v3 "Surface" design system: the shape (`--r-surface`/`--r-control`), space (`--s-*`), fluid type (`--t-*`), measure (`--w-*`), elevation (`--e-1..3`) and motion (`--m-enter`/`--m-exit`) tokens; the density modes; the `.band-*`, `.surface*` and `.t-*` utility classes; and prose styles. **Colour must never appear here** — the presets own it and are contrast-gated, so a raw hex would sit outside that gate and would not move when the visitor switches theme. Guarded by `src/styles/design-system.test.ts`.
+
+- **`src/components/layout/band.tsx` and `surface.tsx`** — Own the two v3 layout primitives. A public page is a sequence of full-bleed `Band`s whose weights alternate (`feature`/`content`/`accent`); a `Surface` is a fill plus an elevation, where elevation encodes interaction state rather than decoration. Compose these rather than re-deriving padded containers and bordered cards per page.
 
 - **`src/styles/themes.css`** — Owns the 52 theme presets. It is intentionally raw/unlayered so runtime-applied theme classes are preserved. Do not move runtime theme definitions into a tree-shakeable Tailwind layer. The preset list must stay in sync with `THEME_PRESETS` in `src/lib/constants.ts`.
 
@@ -106,6 +108,8 @@ The following are cross-component contracts and must have one source of truth:
 - Preserve whiteboard persistence semantics — scene data remains split across `elements`, `app_state`, and `files`; session-only app state such as selection, collaborators, and theme must not be persisted.
 - Treat whiteboard previews as untrusted data — gallery previews remain SVG data URLs rendered as images rather than executable markup.
 - Theme through tokens — use semantic theme classes and tokens so all 52 presets and custom themes continue to work. `chart-2` is the success accent and `chart-3` the warning accent; literal palette classes such as `text-green-600` or `bg-amber-500` do not move with the presets and must not be reintroduced.
+- **The v3 identity is "Surface" — see `docs/redesign/v3-design-vision.md`.** Hierarchy comes from elevation, size and space, not from labels and lines. Use `shadow-e1/e2/e3` rather than Tailwind's default shadow scale, `rounded-surface` for panels and `rounded-control` for controls, and the `--s-*` space scale. A surface is a fill plus a shadow: do not give it both a border and an elevation.
+- **The v2 "Precision Instrument" grammar is retired and must not return**: graph-paper grounds, dotted rules as separators, numbered mono section labels (`01 / Work`), the terminal status line, monospace as a decorative metadata voice (mono is for code, and for the terminal status-panel variant whose whole purpose is to look like a terminal), and a left icon-rail as the admin's primary navigation. `src/styles/design-system.test.ts` fails the build if any of these reappear.
 - Anything that offers a plain light/dark choice must pass a real preset class (`LIGHT_THEME`/`DARK_THEME`). Passing `"light"`, `"dark"` or `"system"` to next-themes strips the active `theme-*` class and leaves the app with no tokens at all.
 - The `dark` class on `<html>` is derived by `applyTheme` from the resolved `--background` lightness, which is what makes `dark:` variants work at all. Do not set it from a preset name list, and do not assume a visitor-facing OS toggle exists — `enableSystem` is `false`.
 - Preserve WCAG AA contrast — theme changes must satisfy the existing contrast test in `src/lib/theme-contrast.test.ts`.

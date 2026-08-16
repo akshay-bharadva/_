@@ -311,7 +311,7 @@ export function TopicEditor({
     <div
       className={cn(
         "flex h-full flex-col overflow-hidden bg-background",
-        !isMobile && "rounded-xl border shadow-lg",
+        !isMobile && "rounded-xl border shadow-e3",
       )}
     >
       {/* Fixed header */}

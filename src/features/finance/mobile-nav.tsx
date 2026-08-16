@@ -69,7 +69,7 @@ export function MobileBottomNav({
       />
       <div className="relative -top-5 flex justify-center">
         <Button
-          className="h-14 w-14 rounded-full border-4 border-background bg-primary shadow-lg hover:bg-primary/90"
+          className="h-14 w-14 rounded-full border-4 border-background bg-primary shadow-e3 hover:bg-primary/90"
           onClick={onAddNew}
         >
           <Plus className="size-6 text-primary-foreground" />

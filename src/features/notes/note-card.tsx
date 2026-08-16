@@ -38,7 +38,7 @@ export function NoteCard({
       className="mb-4 break-inside-avoid"
     >
       <Card
-        className="relative flex flex-col overflow-hidden border-border/60 transition-all duration-300 hover:shadow-lg"
+        className="relative flex flex-col overflow-hidden border-border/60 transition-all duration-300 hover:shadow-e3"
         style={{
           // note.color is per-note user data from the DB, not a theme token
           backgroundColor: note.color ? `${note.color}15` : undefined,

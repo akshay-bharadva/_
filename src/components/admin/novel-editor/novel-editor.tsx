@@ -788,7 +788,7 @@ export default function NovelEditor({
       {showSlashMenu && filteredCommands.length > 0 && (
         <div
           ref={slashMenuRef}
-          className="fixed z-50 w-64 rounded-lg border bg-popover p-1 shadow-lg"
+          className="fixed z-50 w-64 rounded-lg border bg-popover p-1 shadow-e3"
           style={{
             left: Math.min(slashMenuPosition.x, window.innerWidth - 280),
             top: Math.min(slashMenuPosition.y, window.innerHeight - 400),
@@ -846,7 +846,7 @@ export default function NovelEditor({
 
       {/* Upload indicator */}
       {isUploading && (
-        <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-xs font-medium shadow-lg backdrop-blur">
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-xs font-medium shadow-e3 backdrop-blur">
           <Loader2 className="size-3 animate-spin" />
           Uploading image...
         </div>
