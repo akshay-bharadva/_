@@ -56,7 +56,7 @@ export function ContactPage() {
                     href={social.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm transition-colors hover:border-primary/50 hover:text-primary"
+                    className="flex items-center gap-3 rounded-surface bg-card shadow-e1 px-4 py-3 text-sm transition-colors hover:border-primary/50 hover:text-primary"
                   >
                     {Icon && <Icon className="size-4" aria-hidden />}
                     {social.label}

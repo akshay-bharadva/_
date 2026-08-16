@@ -31,7 +31,7 @@ export function AboutPage() {
               <img
                 src={identity.profile_data.profile_picture_url}
                 alt={identity.profile_data.name}
-                className="size-32 rounded-lg border object-cover"
+                className="size-32 rounded-surface border object-cover"
               />
             )}
           <div className="space-y-4 leading-relaxed [&_strong]:text-foreground">

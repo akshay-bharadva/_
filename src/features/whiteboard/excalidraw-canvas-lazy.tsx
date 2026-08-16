@@ -30,7 +30,7 @@ const ExcalidrawCanvasLazy = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex size-full items-center justify-center rounded-lg border bg-card">
+      <div className="flex size-full items-center justify-center rounded-surface bg-card shadow-e1">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
         <span className="sr-only">Loading whiteboard editor</span>
       </div>

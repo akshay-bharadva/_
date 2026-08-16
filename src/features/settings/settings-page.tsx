@@ -189,7 +189,7 @@ export default function SettingsPage() {
           <Button
             onClick={form.handleSubmit(onSubmit)}
             disabled={isSubmitting}
-            className="w-full shadow-md sm:w-auto"
+            className="w-full shadow-e2 sm:w-auto"
           >
             {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}{" "}
             Save Changes

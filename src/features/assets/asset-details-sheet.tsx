@@ -75,7 +75,7 @@ export function AssetDetailsSheet({
 
         {asset && (
           <div className="flex-1 space-y-6 overflow-y-auto p-4">
-            <div className="flex min-h-[200px] items-center justify-center rounded-lg border bg-secondary/20 p-2">
+            <div className="flex min-h-[200px] items-center justify-center rounded-surface border bg-secondary/20 p-2">
               <AssetPreview asset={asset} onDownload={onDownload} />
             </div>
 

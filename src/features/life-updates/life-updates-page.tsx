@@ -131,7 +131,7 @@ export default function LifeUpdatesPage() {
         actions={
           <div className="flex w-full items-center gap-2 sm:w-auto">
             {/* View toggle */}
-            <div className="hidden items-center rounded-lg border bg-secondary/30 p-0.5 sm:flex">
+            <div className="hidden items-center rounded-surface border bg-secondary/30 p-0.5 sm:flex">
               <Button
                 variant={viewMode === "board" ? "secondary" : "ghost"}
                 size="icon"
@@ -209,7 +209,7 @@ export default function LifeUpdatesPage() {
             </div>
           ) : (
             /* ── List View ── */
-            <Card className="shadow-sm">
+            <Card className="shadow-e1">
               <div className="p-1">
                 <AnimatePresence>
                   {filteredUpdates.map((update) => (

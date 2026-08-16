@@ -165,7 +165,7 @@ export default function TasksPage() {
           <Button
             onClick={() => handleCreateTask("todo")}
             size="sm"
-            className="h-9 shadow-sm"
+            className="h-9 shadow-e1"
           >
             <Plus className="mr-2 size-4" /> New Task
           </Button>
@@ -175,7 +175,7 @@ export default function TasksPage() {
       {/* flex-1 min-h-0 keeps the board filling available space with internal scroll */}
       <div
         className={cn(
-          "relative mt-4 flex min-h-0 flex-1 flex-col rounded-lg border border-border/40 bg-secondary/5",
+          "relative mt-4 flex min-h-0 flex-1 flex-col rounded-surface border border-border/40 bg-secondary/5",
           isMobile ? "overflow-hidden" : "overflow-visible",
         )}
       >

@@ -76,7 +76,7 @@ export default function HabitsPage() {
         actions={
           <>
             <PerfectDayBadge habits={habits} />
-            <Button onClick={openCreate} size="sm" className="h-9 shadow-sm">
+            <Button onClick={openCreate} size="sm" className="h-9 shadow-e1">
               <Plus className="mr-2 size-4" /> New Habit
             </Button>
           </>

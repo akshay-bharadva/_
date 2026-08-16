@@ -64,7 +64,7 @@ const LOCKDOWN_LEVELS: {
     icon: Globe,
     title: "Level 0: Normal",
     description: "Public site is live.",
-    activeClass: "border-chart-2 bg-chart-2/10 shadow-sm",
+    activeClass: "border-chart-2 bg-chart-2/10 shadow-e1",
     idleClass:
       "border-border bg-background hover:border-chart-2/50 hover:bg-chart-2/5",
     activeIconClass: "text-chart-2",
@@ -74,7 +74,7 @@ const LOCKDOWN_LEVELS: {
     icon: Lock,
     title: "Level 1: Maintenance",
     description: "Public site hidden. Admin accessible.",
-    activeClass: "border-chart-3 bg-chart-3/10 shadow-sm",
+    activeClass: "border-chart-3 bg-chart-3/10 shadow-e1",
     idleClass:
       "border-border bg-background hover:border-chart-3/50 hover:bg-chart-3/5",
     activeIconClass: "text-chart-3",
@@ -85,7 +85,7 @@ const LOCKDOWN_LEVELS: {
     title: "Level 2: Lockdown",
     titleClass: "text-destructive",
     description: "API Read-Only. No edits allowed.",
-    activeClass: "border-destructive bg-destructive/20 shadow-sm",
+    activeClass: "border-destructive bg-destructive/20 shadow-e1",
     idleClass:
       "border-border bg-background hover:border-destructive/50 hover:bg-destructive/5",
     activeIconClass: "text-destructive",
@@ -260,7 +260,7 @@ export default function SecurityPage() {
         </CardHeader>
         <CardContent>
           {!mfaEnabled && !isLoading && (
-            <div className="rounded-lg border bg-secondary/30 p-6 text-center">
+            <div className="rounded-surface border bg-secondary/30 p-6 text-center">
               <h3 className="font-semibold">2FA is not active</h3>
               <p className="mb-4 mt-1 text-sm text-muted-foreground">
                 Protect your account from unauthorized access.

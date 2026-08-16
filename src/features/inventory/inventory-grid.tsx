@@ -24,7 +24,7 @@ export function InventoryGrid({ items, onEdit, onDelete }: InventoryGridProps) {
         return (
           <Card
             key={item.id}
-            className="group flex flex-col transition-all hover:border-primary/50 hover:shadow-md"
+            className="group flex flex-col transition-all hover:border-primary/50 hover:shadow-e2"
           >
             <div className="relative aspect-video w-full overflow-hidden border-b bg-secondary/30">
               {item.image_url ? (
@@ -41,7 +41,7 @@ export function InventoryGrid({ items, onEdit, onDelete }: InventoryGridProps) {
               <div className="absolute right-2 top-2">
                 <Badge
                   variant="secondary"
-                  className="bg-background/80 shadow-sm backdrop-blur-sm"
+                  className="bg-background/80 shadow-e1 backdrop-blur-sm"
                 >
                   {item.category}
                 </Badge>

@@ -140,7 +140,7 @@ export function SectionList({
             <AccordionItem
               value={path}
               key={path}
-              className="overflow-hidden rounded-lg border bg-background shadow-sm"
+              className="overflow-hidden rounded-surface border bg-background shadow-e1"
             >
               <AccordionTrigger className="px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-muted/50 hover:no-underline">
                 <span className="flex min-w-0 flex-1 items-center gap-2">

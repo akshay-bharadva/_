@@ -39,7 +39,7 @@ function EventListContent({
         <div
           key={i}
           onClick={() => onEventClick(event)}
-          className="cursor-pointer rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
+          className="cursor-pointer rounded-surface bg-card shadow-e1 p-3 transition-colors hover:bg-accent"
         >
           <div className="flex items-center gap-3">
             <BadgeTypeIcon type={event.type} />

@@ -61,7 +61,7 @@ export function TimelineLayout({ updates }: { updates: LifeUpdate[] }) {
                       src={update.image_url}
                       alt={update.title ?? ""}
                       loading="lazy"
-                      className="mt-3 max-h-72 rounded-lg border object-cover"
+                      className="mt-3 max-h-72 rounded-surface border object-cover"
                     />
                   )}
                   {update.tags && update.tags.length > 0 && (

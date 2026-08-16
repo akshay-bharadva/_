@@ -16,7 +16,7 @@ function RepoCard({ repo }: { repo: GitHubRepo }) {
       href={repo.html_url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex h-full flex-col rounded-lg border bg-card p-4 transition-colors hover:border-primary/50"
+      className="group flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-colors hover:border-primary/50"
     >
       <p className="truncate font-mono text-sm font-medium group-hover:text-primary">
         {repo.name}

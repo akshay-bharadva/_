@@ -87,7 +87,7 @@ export function TaskBoard({
             key={status}
             ref={columnRefs[status]}
             className={cn(
-              "flex min-w-[300px] flex-1 flex-col rounded-lg border bg-secondary/20 transition-all duration-300",
+              "flex min-w-[300px] flex-1 flex-col rounded-surface border bg-secondary/20 transition-all duration-300",
               isDragging
                 ? "border-dashed border-primary/50"
                 : "border-border/60",
@@ -134,7 +134,7 @@ export function TaskBoard({
                 />
               ))}
               {columnTasks.length === 0 && (
-                <div className="flex min-h-24 flex-1 items-center justify-center rounded-lg border border-dashed border-muted-foreground/15 text-sm font-medium text-muted-foreground/50">
+                <div className="flex min-h-24 flex-1 items-center justify-center rounded-surface border border-dashed border-muted-foreground/15 text-sm font-medium text-muted-foreground/50">
                   Drop tasks here
                 </div>
               )}
@@ -193,7 +193,7 @@ function TaskBoardCard({
     >
       <Card
         className={cn(
-          "group relative border-l-[3px] transition-all duration-200 hover:shadow-md",
+          "group relative border-l-[3px] transition-all duration-200 hover:shadow-e2",
           priorityMeta.edge,
         )}
       >

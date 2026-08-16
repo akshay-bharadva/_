@@ -190,7 +190,7 @@ export function SectionEditorSheet({
 
             {/* Inline preview */}
             {selectedOption && (
-              <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/20 p-4">
+              <div className="space-y-2 rounded-surface border border-border/50 bg-secondary/20 p-4">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
                     <selectedOption.icon className="size-3.5 text-primary" />
@@ -250,9 +250,9 @@ export function SectionEditorSheet({
                           });
                           setPreviewOpen(false);
                         }}
-                        className={`space-y-3 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                        className={`space-y-3 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-e2 ${
                           selectedLayout === opt.value
-                            ? "border-primary bg-primary/5 shadow-sm"
+                            ? "border-primary bg-primary/5 shadow-e1"
                             : "border-border/50 bg-card hover:border-primary/30"
                         }`}
                       >

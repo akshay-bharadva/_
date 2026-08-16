@@ -30,7 +30,7 @@ export function ContactPageSection({ form }: ContactPageSectionProps) {
           control={form.control}
           name="profile_data.contact_page.show_contact_form"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-surface border bg-secondary/10 p-3 shadow-e1">
               <div className="space-y-0.5">
                 <FormLabel>Contact Form</FormLabel>
                 <FormDescription>
@@ -50,7 +50,7 @@ export function ContactPageSection({ form }: ContactPageSectionProps) {
           control={form.control}
           name="profile_data.contact_page.show_availability_badge"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-surface border bg-secondary/10 p-3 shadow-e1">
               <div className="space-y-0.5">
                 <FormLabel>Availability Badge</FormLabel>
                 <FormDescription>
@@ -70,7 +70,7 @@ export function ContactPageSection({ form }: ContactPageSectionProps) {
           control={form.control}
           name="profile_data.contact_page.show_services"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-surface border bg-secondary/10 p-3 shadow-e1">
               <div className="space-y-0.5">
                 <FormLabel>Services Section</FormLabel>
                 <FormDescription>

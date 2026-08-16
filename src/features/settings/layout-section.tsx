@@ -89,7 +89,7 @@ export function LayoutSection({ form }: LayoutSectionProps) {
                           className="peer sr-only"
                         />
                       </FormControl>
-                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
+                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-surface border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
                         <BookImage className="size-8 text-muted-foreground peer-data-[state=checked]:text-primary" />
                         <div className="text-center">
                           <p className="text-sm font-medium">Scrapbook</p>
@@ -107,7 +107,7 @@ export function LayoutSection({ form }: LayoutSectionProps) {
                           className="peer sr-only"
                         />
                       </FormControl>
-                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
+                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-surface border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
                         <Clock className="size-8 text-muted-foreground peer-data-[state=checked]:text-primary" />
                         <div className="text-center">
                           <p className="text-sm font-medium">Timeline</p>

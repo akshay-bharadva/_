@@ -390,7 +390,7 @@ export function SectionDetail({
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-8">
           {isHidden && (
-            <div className="flex items-start gap-2 rounded-lg border border-chart-3/30 bg-chart-3/5 px-3 py-2.5 text-sm">
+            <div className="flex items-start gap-2 rounded-surface border border-chart-3/30 bg-chart-3/5 px-3 py-2.5 text-sm">
               <EyeOff className="mt-0.5 size-4 shrink-0 text-chart-3" />
               <p className="text-muted-foreground">
                 This section is hidden, so it does not render on{" "}
@@ -403,7 +403,7 @@ export function SectionDetail({
           )}
 
           {unknownLayout && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm">
+            <div className="flex items-start gap-2 rounded-surface border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm">
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
               <p className="text-muted-foreground">
                 Layout{" "}
@@ -423,7 +423,7 @@ export function SectionDetail({
                 <Label className="text-base">Content</Label>
                 <SaveIndicator state={saveState} />
               </div>
-              <div className="min-h-[500px] w-full max-w-full overflow-hidden rounded-lg border">
+              <div className="min-h-[500px] w-full max-w-full overflow-hidden rounded-surface border">
                 <NovelEditor
                   value={content}
                   onChange={setContent}
@@ -442,7 +442,7 @@ export function SectionDetail({
           {(section.type === "list_items" || section.type === "gallery") && (
             <div className="space-y-4">
               {hint && (
-                <div className="flex items-start gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
+                <div className="flex items-start gap-2 rounded-surface border bg-muted/30 px-3 py-2.5 text-sm">
                   <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                   <p className="text-muted-foreground">{hint}</p>
                 </div>

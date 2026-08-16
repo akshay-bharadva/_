@@ -107,7 +107,7 @@ export function AssetGrid({
               variant="secondary"
               size="icon"
               aria-label="Download asset"
-              className="absolute right-1.5 top-1.5 z-20 h-7 w-7 rounded-full opacity-0 shadow-md transition-opacity group-hover:opacity-100"
+              className="absolute right-1.5 top-1.5 z-20 h-7 w-7 rounded-full opacity-0 shadow-e2 transition-opacity group-hover:opacity-100"
               onClick={(e) => {
                 e.stopPropagation();
                 onDownload(asset);
@@ -119,7 +119,7 @@ export function AssetGrid({
           )}
 
           {asset.used_in && asset.used_in.length > 0 && (
-            <div className="absolute left-1.5 top-1.5 z-10 rounded-full bg-primary/90 p-1 shadow-sm">
+            <div className="absolute left-1.5 top-1.5 z-10 rounded-full bg-primary/90 p-1 shadow-e1">
               <LinkIcon className="size-2.5 text-primary-foreground" />
             </div>
           )}

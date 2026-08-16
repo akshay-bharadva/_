@@ -51,11 +51,11 @@ export function EventDetailsContent({
             {event.completed_habits?.map((h, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/50 p-2"
+                className="flex items-center justify-between gap-3 rounded-surface border border-border/50 bg-secondary/50 p-2"
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className="size-3 rounded-full shadow-sm ring-2 ring-background"
+                    className="size-3 rounded-full shadow-e1 ring-2 ring-background"
                     style={{ backgroundColor: h.color }}
                   />
                   <span className="text-sm font-medium">{h.title}</span>
@@ -84,14 +84,14 @@ export function EventDetailsContent({
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-chart-2/20 bg-chart-2/10 p-3 text-center">
+          <div className="rounded-surface border border-chart-2/20 bg-chart-2/10 p-3 text-center">
             <span className="t-micro">Income</span>
             <div className="flex items-center justify-center gap-1 font-mono text-xl font-bold text-chart-2">
               <ArrowUpRight className="size-5" />$
               {total_earning?.toLocaleString()}
             </div>
           </div>
-          <div className="rounded-lg border border-chart-5/20 bg-chart-5/10 p-3 text-center">
+          <div className="rounded-surface border border-chart-5/20 bg-chart-5/10 p-3 text-center">
             <span className="t-micro">Expenses</span>
             <div className="flex items-center justify-center gap-1 font-mono text-xl font-bold text-chart-5">
               <ArrowDownLeft className="size-5" />$
@@ -106,7 +106,7 @@ export function EventDetailsContent({
             {transactions?.map((t, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-lg border bg-card/40 p-2.5 text-sm"
+                className="flex items-center justify-between rounded-surface bg-card shadow-e1/40 p-2.5 text-sm"
               >
                 <span className="max-w-[180px] truncate font-medium">
                   {t.description}
@@ -190,7 +190,7 @@ export function EventDetailsContent({
         )}
 
         {(type === "transaction" || type === "forecast") && (
-          <div className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-sm">
+          <div className="flex items-center justify-between rounded-surface bg-card shadow-e1 p-3 shadow-e1">
             <div>
               <span className="t-micro mb-1 block">Amount</span>
               <div

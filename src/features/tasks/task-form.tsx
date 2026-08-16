@@ -240,7 +240,7 @@ export function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
               <Label className="mb-3 block text-base font-semibold">
                 Subtasks
               </Label>
-              <div className="space-y-2 rounded-lg border bg-secondary/20 p-3">
+              <div className="space-y-2 rounded-surface border bg-secondary/20 p-3">
                 {task.sub_tasks?.map((sub: SubTask) => (
                   <div
                     key={sub.id}

@@ -33,7 +33,7 @@ function PostCard({ post }: { post: BlogPost }) {
     <li>
       <Link
         href={`/blog/view?slug=${post.slug}`}
-        className="group grid gap-5 rounded-lg border bg-card p-5 transition-colors hover:border-primary/50 sm:grid-cols-[1fr_auto]"
+        className="group grid gap-5 rounded-surface bg-card shadow-e1 p-5 transition-colors hover:border-primary/50 sm:grid-cols-[1fr_auto]"
       >
         <div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">
@@ -138,7 +138,7 @@ export function BlogListPage() {
           Couldn&apos;t load posts right now — try again shortly.
         </p>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed py-16 text-center">
+        <div className="rounded-surface border border-dashed py-16 text-center">
           <p className="font-mono text-sm text-muted-foreground">
             {searchTerm ? "No posts match." : "Nothing published yet."}
           </p>

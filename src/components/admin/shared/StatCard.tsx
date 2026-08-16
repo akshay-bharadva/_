@@ -105,9 +105,10 @@ export default function StatCard({
   return (
     <Card
       className={cn(
-        "overflow-hidden transition-all",
-        highlight &&
-          "bg-gradient-to-br from-primary/5 to-transparent border-primary/20",
+        "overflow-hidden transition-[box-shadow] duration-200 ease-enter",
+        // A highlighted gauge is raised rather than tinted with a gradient and
+        // a coloured border — elevation is how v3 says "this one matters".
+        highlight && "shadow-e2",
         className,
       )}
     >

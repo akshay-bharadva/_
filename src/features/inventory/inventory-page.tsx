@@ -197,7 +197,7 @@ export default function InventoryPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             {/* Hide view toggle on mobile (grid is forced there) */}
-            <div className="hidden items-center gap-2 rounded-lg border bg-muted/50 p-1 sm:flex">
+            <div className="hidden items-center gap-2 rounded-surface border bg-muted/50 p-1 sm:flex">
               <ToggleGroup
                 type="single"
                 value={viewMode}

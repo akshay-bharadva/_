@@ -26,7 +26,7 @@ export function AuthCard({
   return (
     <div
       className={cn(
-        "w-full space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm sm:p-8",
+        "w-full space-y-6 rounded-surface bg-card shadow-e1 p-6 shadow-e1 sm:p-8",
         size === "sm" ? "max-w-sm" : "max-w-lg",
       )}
     >

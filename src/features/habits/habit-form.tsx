@@ -87,7 +87,7 @@ export function HabitForm({
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        className="size-10 rounded-full border-2 shadow-sm ring-primary transition-transform hover:scale-105 focus:outline-none focus:ring-2 ring-offset-2"
+                        className="size-10 rounded-full border-2 shadow-e1 ring-primary transition-transform hover:scale-105 focus:outline-none focus:ring-2 ring-offset-2"
                         style={{
                           backgroundColor: field.value,
                           borderColor: field.value,

@@ -220,7 +220,7 @@ export default function BlogEditor({
           <Button
             onClick={() => handleSubmit()}
             disabled={isSaving || isUploading}
-            className="flex-1 shadow-sm sm:flex-none"
+            className="flex-1 shadow-e1 sm:flex-none"
           >
             {isSaving ? (
               <>
@@ -255,9 +255,9 @@ export default function BlogEditor({
           )}
         </div>
 
-        <div className="relative mb-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-sm">
+        <div className="relative mb-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-surface bg-card shadow-e1 shadow-e1">
           {isUploading && (
-            <div className="absolute right-2 top-2 z-20 flex items-center rounded-full border bg-background/80 px-3 py-1 text-xs font-medium shadow-sm backdrop-blur">
+            <div className="absolute right-2 top-2 z-20 flex items-center rounded-full border bg-background/80 px-3 py-1 text-xs font-medium shadow-e1 backdrop-blur">
               <Loader2 className="mr-2 size-3 animate-spin" /> Uploading
               image...
             </div>

@@ -432,7 +432,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
           {[0, 1].map((i) => (
             <div key={i} className="grid grid-cols-[48px_1fr] gap-2">
               <div className="space-y-1.5">
-                <div className="size-8 rounded-lg border border-border/50 bg-card" />
+                <div className="size-8 rounded-surface border border-border/50 bg-card" />
                 <div className={`${sbar} w-full`} />
               </div>
               <div className="space-y-1 pt-0.5">
@@ -470,7 +470,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
       );
     case "impact-numbers":
       return (
-        <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-border/50 bg-border/30">
+        <div className="grid grid-cols-4 gap-px overflow-hidden rounded-surface border border-border/50 bg-border/30">
           {["60%", "12k", "4yr", "30+"].map((v) => (
             <div key={v} className="bg-card p-2.5 text-center">
               <div className="text-sm font-bold text-foreground">{v}</div>

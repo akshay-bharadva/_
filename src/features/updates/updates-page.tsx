@@ -118,7 +118,7 @@ export function UpdatesPage() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed py-16 text-center">
+        <div className="rounded-surface border border-dashed py-16 text-center">
           <p className="font-mono text-sm text-muted-foreground">
             No updates match.
           </p>

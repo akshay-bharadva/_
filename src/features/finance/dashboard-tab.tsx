@@ -62,7 +62,7 @@ export function DashboardTab({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ForecastChart data={forecastData} />
-        <Card className="shadow-sm">
+        <Card className="shadow-e1">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Clock className="size-4 text-primary" /> Upcoming
@@ -82,7 +82,7 @@ export function DashboardTab({
 
 function ForecastChart({ data }: { data: ForecastDataPoint[] }) {
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-e1">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">30-Day Forecast</CardTitle>
       </CardHeader>

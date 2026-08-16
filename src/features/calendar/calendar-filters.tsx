@@ -25,7 +25,7 @@ export function CalendarFilters({
       onValueChange={onFiltersChange}
       size="sm"
       // Full width with spread items on mobile, compact on desktop
-      className="flex w-full justify-between rounded-lg border border-border/50 bg-secondary/50 p-1 sm:w-auto sm:justify-start"
+      className="flex w-full justify-between rounded-surface border border-border/50 bg-secondary/50 p-1 sm:w-auto sm:justify-start"
     >
       <ToggleGroupItem
         value="event"

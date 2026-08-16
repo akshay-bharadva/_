@@ -132,7 +132,7 @@ export function SessionTracker({ topic }: SessionTrackerProps) {
   const isCurrentTopicSessionActive = activeSession?.topic_id === topic.id;
 
   return (
-    <div className="space-y-4 rounded-lg border bg-secondary/30 p-4">
+    <div className="space-y-4 rounded-surface border bg-secondary/30 p-4">
       <h4 className="flex items-center gap-2 font-semibold text-foreground">
         <Timer className="size-5 text-primary" />
         <span>Learning Session</span>

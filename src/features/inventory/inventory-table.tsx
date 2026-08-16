@@ -29,7 +29,7 @@ export function InventoryTable({
   onDelete,
 }: InventoryTableProps) {
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
+    <div className="overflow-hidden rounded-surface bg-card shadow-e1">
       <Table>
         <TableHeader className="bg-muted/40">
           <TableRow>

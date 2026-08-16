@@ -88,7 +88,7 @@ export function PostSettingsSheet({
         <ScrollArea className="mt-6 h-[calc(100vh-8rem)] pr-4">
           <div className="space-y-6">
             {/* Publication Toggle */}
-            <div className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-4 shadow-sm">
+            <div className="flex flex-row items-center justify-between rounded-surface bg-secondary/40 p-4">
               <div className="space-y-0.5">
                 <Label className="text-base">Publish Post</Label>
                 <p className="text-xs text-muted-foreground">
@@ -101,7 +101,7 @@ export function PostSettingsSheet({
               />
             </div>
 
-            <div className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-4 shadow-sm">
+            <div className="flex flex-row items-center justify-between rounded-surface bg-secondary/40 p-4">
               <div className="space-y-0.5">
                 <Label className="text-base">Show Table of Contents</Label>
                 <p className="text-xs text-muted-foreground">
@@ -119,7 +119,7 @@ export function PostSettingsSheet({
               <Label htmlFor="slug" className="flex items-center gap-2">
                 <Globe className="size-3.5" /> Slug URL
               </Label>
-              <div className="flex rounded-md shadow-sm">
+              <div className="flex rounded-md shadow-e1">
                 <span className="inline-flex items-center rounded-l-md border border-r-0 bg-muted px-3 text-xs text-muted-foreground">
                   /blog/
                 </span>
@@ -203,7 +203,7 @@ export function PostSettingsSheet({
 
                 <TabsContent value="upload">
                   <div
-                    className="cursor-pointer rounded-lg border border-dashed p-4 text-center transition-colors hover:bg-muted/50"
+                    className="cursor-pointer rounded-surface border border-dashed p-4 text-center transition-colors hover:bg-muted/50"
                     onClick={() => coverImageInputRef.current?.click()}
                   >
                     <div className="flex flex-col items-center justify-center py-2">

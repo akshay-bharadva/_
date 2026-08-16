@@ -50,7 +50,7 @@ export const HabitCell = React.memo(
                 className={cn(
                   "flex size-8 items-center justify-center rounded-[8px] border transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   isCompleted
-                    ? "border-transparent text-white shadow-sm"
+                    ? "border-transparent text-white shadow-e1"
                     : "border-border/40 bg-transparent hover:border-primary/30 hover:bg-secondary/50",
                 )}
                 style={{

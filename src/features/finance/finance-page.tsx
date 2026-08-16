@@ -350,7 +350,7 @@ export default function FinancePage() {
               />
             ))}
             {goals.length === 0 && (
-              <div className="col-span-full rounded-lg border border-dashed py-12 text-center text-muted-foreground">
+              <div className="col-span-full rounded-surface border border-dashed py-12 text-center text-muted-foreground">
                 No goals yet.
               </div>
             )}

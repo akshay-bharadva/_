@@ -17,7 +17,7 @@ export function StatsRow({ updates }: { updates: LifeUpdate[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {stats.map((s) => (
-        <Card key={s.label} className="shadow-sm">
+        <Card key={s.label} className="shadow-e1">
           <CardContent className="flex items-center justify-between p-3">
             <span className="t-micro">{s.label}</span>
             <span className={cn("font-mono text-lg font-bold", s.accent)}>

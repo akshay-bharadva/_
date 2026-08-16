@@ -27,7 +27,7 @@ export function ExcalidrawCanvas({
   onChange,
 }: ExcalidrawCanvasProps) {
   return (
-    <div className="size-full overflow-hidden rounded-lg border">
+    <div className="size-full overflow-hidden rounded-surface border">
       <Excalidraw
         // The library reads initialData once; the editor remounts it with a
         // key when a different board is opened.

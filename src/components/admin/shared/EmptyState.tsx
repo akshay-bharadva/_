@@ -64,7 +64,7 @@ export default function EmptyState({
     default: "",
     bordered:
       "border border-dashed border-border rounded-surface bg-secondary/40",
-    card: "bg-card border border-border rounded-lg shadow-sm",
+    card: "bg-card rounded-surface shadow-e1",
   };
 
   return (

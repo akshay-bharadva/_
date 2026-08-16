@@ -17,7 +17,7 @@ export function CaseStudyLayout({ items }: LayoutProps) {
       {items.map((item) => (
         <article
           key={item.id}
-          className="overflow-hidden rounded-lg border bg-card"
+          className="overflow-hidden rounded-surface bg-card shadow-e1"
         >
           {/*
             The hero is only rendered when there is a real image. Unlike the
@@ -79,7 +79,7 @@ export function ServicesLayout({ items }: LayoutProps) {
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex min-w-0 flex-col rounded-lg border bg-card p-5"
+          className="flex min-w-0 flex-col rounded-surface bg-card shadow-e1 p-5"
         >
           <h3 className="font-heading font-semibold [overflow-wrap:anywhere]">
             <TextLink href={item.link_url} className="hover:text-primary">
@@ -142,12 +142,12 @@ export function WorkExperienceLayout({ items }: LayoutProps) {
               <ItemImage
                 src={item.image_url}
                 alt=""
-                className="hidden size-12 rounded-lg border object-cover sm:block"
+                className="hidden size-12 rounded-surface border object-cover sm:block"
               />
             ) : (
               <div
                 aria-hidden
-                className="hidden size-12 items-center justify-center rounded-lg border bg-secondary font-heading font-bold text-muted-foreground sm:flex"
+                className="hidden size-12 items-center justify-center rounded-surface border bg-secondary font-heading font-bold text-muted-foreground sm:flex"
               >
                 {monogram}
               </div>
@@ -197,7 +197,7 @@ export function TestimonialsLayout({ items }: LayoutProps) {
         return (
           <figure
             key={item.id}
-            className="min-w-0 rounded-lg border bg-card p-6"
+            className="min-w-0 rounded-surface bg-card shadow-e1 p-6"
           >
             <blockquote className="border-none p-0 text-sm not-italic leading-relaxed [overflow-wrap:anywhere]">
               <span
@@ -256,7 +256,7 @@ export function TestimonialsLayout({ items }: LayoutProps) {
  */
 export function ImpactNumbersLayout({ items }: LayoutProps) {
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-surface border bg-border md:grid-cols-4">
       {items.map((item) => (
         <div key={item.id} className="min-w-0 bg-card p-6 text-center">
           <p className="font-mono text-3xl font-bold tracking-tight text-primary [overflow-wrap:anywhere]">

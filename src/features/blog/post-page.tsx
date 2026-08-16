@@ -183,7 +183,7 @@ export function PostPage() {
                 <img
                   src={post.cover_image_url}
                   alt=""
-                  className="mt-8 w-full rounded-lg border object-cover"
+                  className="mt-8 w-full rounded-surface border object-cover"
                 />
               )}
               <div className="mt-s6 h-px w-16 bg-primary/40" aria-hidden />

@@ -116,7 +116,7 @@ export function CalendarTopBar({
               className={cn(
                 "rounded-md px-3 py-1 text-xs font-medium transition-colors",
                 activeView === view.key
-                  ? "bg-primary text-primary-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-e1"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
               )}
             >
@@ -128,7 +128,7 @@ export function CalendarTopBar({
         <Button
           onClick={onAddNewEvent}
           size="sm"
-          className="h-9 gap-2 rounded-full px-4 shadow-md"
+          className="h-9 gap-2 rounded-full px-4 shadow-e2"
         >
           <Plus className="size-4" />
           <span className="hidden sm:inline">Create</span>

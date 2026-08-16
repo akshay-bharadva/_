@@ -86,7 +86,7 @@ export function BrandIdentitySection({ form }: BrandIdentitySectionProps) {
           control={form.control}
           name="profile_data.show_profile_picture"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-surface border bg-secondary/10 p-3 shadow-e1">
               <div className="space-y-0.5">
                 <FormLabel>Show Profile Picture</FormLabel>
                 <FormDescription>

@@ -199,7 +199,7 @@ export function BoardCard({
         {/* Pinned indicator */}
         {update.is_pinned && (
           <div className="absolute -top-0.5 right-1.5 z-20">
-            <div className="flex size-5 items-center justify-center rounded-full bg-destructive shadow-md">
+            <div className="flex size-5 items-center justify-center rounded-full bg-destructive shadow-e2">
               <Pin
                 className="size-2.5 rotate-45 text-destructive-foreground"
                 fill="currentColor"
@@ -308,7 +308,7 @@ export function ListRow({
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        "group flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors hover:border-border/40 hover:bg-secondary/40",
+        "group flex cursor-pointer items-center gap-3 rounded-surface border border-transparent px-3 py-2.5 transition-colors hover:border-border/40 hover:bg-secondary/40",
         !update.is_published && "opacity-55",
       )}
       onClick={onEdit}

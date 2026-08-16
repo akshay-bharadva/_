@@ -642,7 +642,7 @@ export function ItemEditorSheet({
                   placeholder={hints.image_url?.placeholder ?? "https://..."}
                 />
                 {formData.image_url && (
-                  <div className="mt-2 aspect-video overflow-hidden rounded-lg border border-border/50 bg-secondary/20">
+                  <div className="mt-2 aspect-video overflow-hidden rounded-surface border border-border/50 bg-secondary/20">
                     <img
                       src={formData.image_url}
                       alt="Preview"

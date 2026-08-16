@@ -28,7 +28,7 @@ export function PerfectDayBadge({ habits }: { habits: Habit[] }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
-          className="mx-auto flex w-fit items-center gap-2 rounded-full border border-chart-3/30 bg-chart-3/10 px-6 py-2 text-chart-3 shadow-sm"
+          className="mx-auto flex w-fit items-center gap-2 rounded-full border border-chart-3/30 bg-chart-3/10 px-6 py-2 text-chart-3 shadow-e1"
         >
           <Crown className="size-5 fill-current" />
           <span className="text-sm font-bold uppercase tracking-wide">

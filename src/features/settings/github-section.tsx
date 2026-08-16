@@ -44,7 +44,7 @@ export function GitHubSection({ form }: GitHubSectionProps) {
           control={form.control}
           name="profile_data.github_projects_config.show"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border bg-secondary/10 p-3 shadow-sm">
+            <FormItem className="flex flex-row items-center justify-between rounded-surface border bg-secondary/10 p-3 shadow-e1">
               <div className="space-y-0.5">
                 <FormLabel>Show GitHub Section</FormLabel>
               </div>

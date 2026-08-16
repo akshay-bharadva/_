@@ -53,7 +53,7 @@ export function HabitGrid({
   }, [habits, daysToShow]);
 
   return (
-    <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+    <div className="overflow-hidden rounded-surface bg-card shadow-e1 shadow-e1">
       <ScrollArea className="w-full whitespace-nowrap">
         <div
           className="inline-block min-w-full align-middle"

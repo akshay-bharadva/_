@@ -93,7 +93,7 @@ function GridCard({ item }: { item: PortfolioItem }) {
   return (
     <MaybeLink
       href={item.link_url}
-      className="flex h-full flex-col rounded-lg border bg-card p-5 transition-colors hover:border-primary/50"
+      className="flex h-full flex-col rounded-surface bg-card shadow-e1 p-5 transition-colors hover:border-primary/50"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="min-w-0 font-heading font-semibold [overflow-wrap:anywhere] group-hover/link:text-primary">
@@ -141,7 +141,7 @@ export function CardsWithImageLayout({ items }: LayoutProps) {
         <MaybeLink
           key={item.id}
           href={item.link_url}
-          className="flex flex-col overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/50"
+          className="flex flex-col overflow-hidden rounded-surface bg-card shadow-e1 transition-colors hover:border-primary/50"
         >
           <ItemImage
             src={item.image_url}
@@ -209,7 +209,7 @@ export function StatsGridLayout({ items }: LayoutProps) {
       {items.map((item) => (
         <div
           key={item.id}
-          className="rounded-lg border bg-card p-5 text-center"
+          className="rounded-surface bg-card shadow-e1 p-5 text-center"
         >
           <p className="font-mono text-3xl font-bold tracking-tight text-primary [overflow-wrap:anywhere]">
             {item.title}
@@ -243,7 +243,7 @@ export function MasonryLayout({ items }: LayoutProps) {
         >
           <MaybeLink
             href={item.link_url}
-            className="overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/50"
+            className="overflow-hidden rounded-surface bg-card shadow-e1 transition-colors hover:border-primary/50"
           >
             <ItemImage
               src={item.image_url}
@@ -297,7 +297,7 @@ export function FeatureAlternatingLayout({ items }: LayoutProps) {
             <MaybeLink
               href={item.link_url}
               className={cn(
-                "overflow-hidden rounded-lg border",
+                "overflow-hidden rounded-surface border",
                 flip ? "md:order-2" : "md:order-1",
               )}
               ariaLabel={item.title}

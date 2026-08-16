@@ -357,7 +357,7 @@ export function EmptySection({
 }) {
   if (process.env.NODE_ENV === "production") return null;
   return (
-    <div className="rounded-lg border border-dashed bg-muted/10 px-4 py-8 text-center">
+    <div className="rounded-surface border border-dashed bg-muted/10 px-4 py-8 text-center">
       <p className="font-mono text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-xs text-muted-foreground/70">
         Visible in development only.

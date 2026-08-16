@@ -50,7 +50,7 @@ const StatusPipeline = ({
   current: LearningStatus;
   onChange: (s: LearningStatus) => void;
 }) => (
-  <div className="flex items-center rounded-lg border border-border/50 bg-secondary/40 p-1">
+  <div className="flex items-center rounded-surface border border-border/50 bg-secondary/40 p-1">
     {STATUS_STEPS.map((step) => (
       <button
         key={step.value}
@@ -58,7 +58,7 @@ const StatusPipeline = ({
         className={cn(
           "relative rounded-md px-3 py-1 text-[10px] font-semibold transition-all duration-200 sm:text-xs",
           current === step.value
-            ? "bg-background text-foreground shadow-sm ring-1 ring-border/50"
+            ? "bg-background text-foreground shadow-e1 ring-1 ring-border/50"
             : "text-muted-foreground hover:bg-background/40 hover:text-foreground/80",
         )}
       >
@@ -112,8 +112,8 @@ const ResourceCard = ({
 }) => {
   const { type, title } = parseResource(resource.name);
   return (
-    <div className="group relative flex items-start gap-3 rounded-lg border bg-card/50 p-3 transition-all duration-200 hover:border-primary/20 hover:bg-card hover:shadow-sm">
-      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background shadow-sm">
+    <div className="group relative flex items-start gap-3 rounded-surface bg-card shadow-e1/50 p-3 transition-all duration-200 hover:border-primary/20 hover:bg-card hover:shadow-e1">
+      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-surface border border-border bg-background shadow-e1">
         {getResourceIcon(type)}
       </div>
       <div className="min-w-0 flex-1 pr-6">
@@ -363,7 +363,7 @@ export function TopicEditor({
             {/* Mobile-only: timer above editor */}
             {isMobile && (
               <div className="px-4 pb-2 pt-6">
-                <div className="mb-6 rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-sm">
+                <div className="mb-6 rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-e1">
                   <div className="t-micro mb-3 flex items-center gap-2">
                     <Hourglass className="size-3.5" /> Study Session
                   </div>
@@ -399,7 +399,7 @@ export function TopicEditor({
           {!isMobile && (
             <div className="w-80 shrink-0 overflow-y-auto border-l bg-muted/5 xl:w-96">
               <div className="p-4">
-                <div className="rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-sm">
+                <div className="rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-e1">
                   <div className="t-micro mb-3 flex items-center gap-2">
                     <Hourglass className="size-3.5" /> Study Session
                   </div>

@@ -101,7 +101,7 @@ export function UpcomingRecurringList({
 
   if (upcomingItems.length === 0) {
     return (
-      <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 p-8 text-center text-muted-foreground">
+      <div className="flex h-full flex-col items-center justify-center rounded-surface border border-dashed bg-muted/20 p-8 text-center text-muted-foreground">
         <CalendarIcon className="mb-3 size-10 opacity-20" />
         <p className="text-sm">No upcoming recurring payments.</p>
       </div>
@@ -114,7 +114,7 @@ export function UpcomingRecurringList({
         <div
           key={`${rule.id}-${date.toISOString()}-${index}`}
           className={cn(
-            "flex items-center justify-between rounded-lg border p-3 shadow-sm transition-all hover:bg-secondary/40",
+            "flex items-center justify-between rounded-surface border p-3 shadow-e1 transition-all hover:bg-secondary/40",
             status === "overdue" && "border-destructive/30 bg-destructive/5",
             status === "due" && "border-primary/30 bg-primary/5",
           )}

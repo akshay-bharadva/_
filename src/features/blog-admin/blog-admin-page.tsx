@@ -196,7 +196,7 @@ export default function BlogAdminPage({
         }
       />
 
-      <Card className="flex flex-1 flex-col overflow-hidden border-none bg-transparent shadow-none sm:border sm:bg-card sm:shadow-sm">
+      <Card className="flex flex-1 flex-col overflow-hidden border-none bg-transparent shadow-none sm:border sm:bg-card sm:shadow-e1">
         <CardContent className="flex-1 overflow-auto bg-transparent p-0 sm:bg-background/50">
           {isLoading ? (
             <LoadingState variant="section" />
@@ -218,7 +218,7 @@ export default function BlogAdminPage({
                     }
                   : undefined
               }
-              className="mx-0 my-4 h-64 rounded-lg border border-dashed bg-muted/10 sm:mx-4"
+              className="mx-0 my-4 h-64 rounded-surface border border-dashed bg-muted/10 sm:mx-4"
             />
           ) : (
             <>

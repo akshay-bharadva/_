@@ -33,7 +33,7 @@ export function BoardCard({
       <button
         type="button"
         onClick={onOpen}
-        className="block w-full overflow-hidden rounded-lg border bg-card text-left transition-colors hover:border-primary/50"
+        className="block w-full overflow-hidden rounded-surface bg-card shadow-e1 text-left transition-colors hover:border-primary/50"
       >
         <span className="block bg-secondary h-36 w-full overflow-hidden">
           {board.preview ? (

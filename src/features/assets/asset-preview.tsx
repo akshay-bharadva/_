@@ -19,7 +19,7 @@ export function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
       <img
         src={url}
         alt={asset.alt_text || asset.file_name}
-        className="max-h-[300px] w-auto rounded-md object-contain shadow-sm"
+        className="max-h-[300px] w-auto rounded-md object-contain shadow-e1"
       />
     );
   }
@@ -29,7 +29,7 @@ export function AssetPreview({ asset, onDownload }: AssetPreviewProps) {
       <video
         src={url}
         controls
-        className="max-h-[300px] w-full rounded-md bg-black shadow-sm"
+        className="max-h-[300px] w-full rounded-md bg-black shadow-e1"
       />
     );
   }

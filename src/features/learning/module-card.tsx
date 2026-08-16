@@ -62,7 +62,7 @@ export function ModuleCard({
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
   return (
-    <Card className="overflow-hidden shadow-sm">
+    <Card className="overflow-hidden shadow-e1">
       <CardHeader
         className="cursor-pointer p-3 transition-colors hover:bg-muted/50 sm:p-4"
         onClick={() => setIsExpanded(!isExpanded)}

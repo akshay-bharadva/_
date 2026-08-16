@@ -54,7 +54,7 @@ export function TypographySection({ form }: TypographySectionProps) {
                         key={preset.value}
                         onClick={() => field.onChange(preset.value)}
                         className={cn(
-                          "group relative rounded-lg border-2 p-3.5 text-left transition-all",
+                          "group relative rounded-surface border-2 p-3.5 text-left transition-all",
                           isActive
                             ? "border-primary bg-primary/5 ring-1 ring-primary/20"
                             : "border-border hover:border-muted-foreground/30 hover:bg-accent/20",

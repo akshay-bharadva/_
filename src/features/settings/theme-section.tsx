@@ -87,7 +87,7 @@ export function ThemeSection({ form }: ThemeSectionProps) {
           </TabsContent>
 
           <TabsContent value="custom" className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border bg-secondary/30 p-3">
+            <div className="flex items-center justify-between rounded-surface border bg-secondary/30 p-3">
               <Label
                 className="cursor-pointer text-sm"
                 onClick={() =>
@@ -142,7 +142,7 @@ export function ThemeSection({ form }: ThemeSectionProps) {
 
             {/* Live preview painted with the user's chosen colors */}
             <div
-              className="mt-4 rounded-lg border p-4 shadow-lg"
+              className="mt-4 rounded-surface border p-4 shadow-lg"
               style={{
                 backgroundColor: form.watch(
                   "profile_data.custom_theme_colors.background",

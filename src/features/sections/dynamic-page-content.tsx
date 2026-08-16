@@ -66,7 +66,7 @@ export function DynamicPageContent({
       <div
         role="alert"
         className={cn(
-          "rounded-lg border border-dashed border-destructive/40 bg-destructive/5 px-6 py-10 text-center",
+          "rounded-surface border border-dashed border-destructive/40 bg-destructive/5 px-6 py-10 text-center",
           className,
         )}
       >
@@ -96,7 +96,7 @@ export function DynamicPageContent({
     return (
       <div
         className={cn(
-          "rounded-lg border border-dashed bg-muted/10 px-6 py-10 text-center",
+          "rounded-surface border border-dashed bg-muted/10 px-6 py-10 text-center",
           className,
         )}
       >

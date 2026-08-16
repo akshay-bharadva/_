@@ -25,7 +25,7 @@ export function AnnualCumulativeTooltip({
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border bg-background p-3 text-sm shadow-sm">
+      <div className="rounded-surface border bg-background p-3 text-sm shadow-e1">
         <p className="mb-1 font-bold">{label}</p>
         <p
           className={cn(
@@ -69,7 +69,7 @@ export function ForecastTooltip({
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-lg border bg-background p-3 text-sm shadow-sm">
+      <div className="rounded-surface border bg-background p-3 text-sm shadow-e1">
         <p className="mb-1 font-bold">{label}</p>
         <p
           className={cn(
