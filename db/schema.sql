@@ -450,6 +450,11 @@ CREATE TABLE IF NOT EXISTS learning_subjects (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
   name TEXT NOT NULL UNIQUE,
   description TEXT,
+  color TEXT CHECK (color IS NULL OR color ~ '^#[0-9A-Fa-f]{6}$'),
+  -- Weekly, not daily: a daily target turns one bad Tuesday into a failure.
+  target_minutes_per_week INT CHECK (target_minutes_per_week IS NULL OR (target_minutes_per_week >= 5 AND target_minutes_per_week <= 10080)),
+  archived_at TIMESTAMPTZ,
+  display_order INT4 DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
@@ -468,9 +473,20 @@ CREATE TABLE IF NOT EXISTS learning_topics (
   core_notes TEXT,
   resources JSONB,
   confidence_score INT2 CHECK (confidence_score BETWEEN 1 AND 5),
+  -- Spaced review. `due_date` NULL means never reviewed — new, not overdue.
+  ease NUMERIC NOT NULL DEFAULT 2.5 CHECK (ease >= 1.3 AND ease <= 3.5),
+  interval_days INT NOT NULL DEFAULT 0 CHECK (interval_days >= 0 AND interval_days <= 3650),
+  due_date DATE,
+  last_reviewed_at TIMESTAMPTZ,
+  review_count INT NOT NULL DEFAULT 0 CHECK (review_count >= 0),
+  lapses INT NOT NULL DEFAULT 0 CHECK (lapses >= 0),
+  archived_at TIMESTAMPTZ,
+  display_order INT4 DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS learning_topics_due_date_idx ON learning_topics(due_date);
+CREATE INDEX IF NOT EXISTS learning_topics_archived_at_idx ON learning_topics(archived_at);
 ALTER TABLE learning_topics ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage topics" ON learning_topics;
 CREATE POLICY "Admin manage topics" ON learning_topics FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
@@ -483,10 +499,32 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
   topic_id UUID NOT NULL REFERENCES learning_topics(id) ON DELETE CASCADE,
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ,
-  duration_minutes INT,
+  duration_minutes INT CHECK (duration_minutes IS NULL OR (duration_minutes >= 0 AND duration_minutes <= 1440)),
   journal_notes TEXT,
+  ended_early BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS learning_sessions_topic_id_idx ON learning_sessions(topic_id);
+CREATE INDEX IF NOT EXISTS learning_sessions_start_time_idx ON learning_sessions(start_time);
+
+-- Review history, kept apart from the topic's current state so the schedule can
+-- be recomputed and retention is answerable.
+CREATE TABLE IF NOT EXISTS learning_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+  topic_id UUID NOT NULL REFERENCES learning_topics(id) ON DELETE CASCADE,
+  reviewed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  rating TEXT NOT NULL CHECK (rating IN ('again', 'hard', 'good', 'easy')),
+  interval_before INT,
+  interval_after INT,
+  ease_after NUMERIC,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+ALTER TABLE learning_reviews ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admin manage learning reviews" ON learning_reviews;
+CREATE POLICY "Admin manage learning reviews" ON learning_reviews FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
+CREATE INDEX IF NOT EXISTS learning_reviews_topic_id_idx ON learning_reviews(topic_id);
+CREATE INDEX IF NOT EXISTS learning_reviews_reviewed_at_idx ON learning_reviews(reviewed_at);
 ALTER TABLE learning_sessions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage sessions" ON learning_sessions;
 CREATE POLICY "Admin manage sessions" ON learning_sessions FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
@@ -708,6 +746,72 @@ BEGIN
   FOR i IN 1..array_length(habit_ids, 1) LOOP
     UPDATE habits SET display_order = i WHERE id = habit_ids[i] AND user_id = auth.uid();
   END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
+-- Spaced review. The schedule is computed here so a review and the topic
+-- state it produces can never disagree: the client sends a rating, not an
+-- interval.
+CREATE OR REPLACE FUNCTION record_learning_review(
+  target_topic_id UUID,
+  new_rating TEXT
+)
+RETURNS learning_topics AS $$
+DECLARE
+  t learning_topics;
+  next_ease NUMERIC;
+  next_interval INT;
+  next_lapses INT;
+BEGIN
+  SELECT * INTO t FROM learning_topics
+  WHERE id = target_topic_id AND user_id = auth.uid();
+  IF NOT FOUND THEN RAISE EXCEPTION 'Topic not found'; END IF;
+
+  next_ease := t.ease;
+  next_lapses := t.lapses;
+
+  IF new_rating = 'again' THEN
+    -- Back to tomorrow, and the topic is marked as harder than assumed.
+    next_ease := GREATEST(1.3, t.ease - 0.2);
+    next_interval := 1;
+    next_lapses := t.lapses + 1;
+  ELSIF new_rating = 'hard' THEN
+    next_ease := GREATEST(1.3, t.ease - 0.15);
+    next_interval := GREATEST(1, CEIL(GREATEST(t.interval_days, 1) * 1.2)::INT);
+  ELSIF new_rating = 'good' THEN
+    next_interval := CASE
+      WHEN t.interval_days = 0 THEN 1
+      WHEN t.interval_days = 1 THEN 3
+      ELSE CEIL(t.interval_days * t.ease)::INT
+    END;
+  ELSIF new_rating = 'easy' THEN
+    next_ease := LEAST(3.5, t.ease + 0.15);
+    next_interval := CASE
+      WHEN t.interval_days = 0 THEN 4
+      ELSE CEIL(GREATEST(t.interval_days, 1) * t.ease * 1.3)::INT
+    END;
+  ELSE
+    RAISE EXCEPTION 'Unknown rating %', new_rating;
+  END IF;
+
+  next_interval := LEAST(next_interval, 3650);
+
+  INSERT INTO learning_reviews
+    (topic_id, rating, interval_before, interval_after, ease_after)
+  VALUES
+    (target_topic_id, new_rating, t.interval_days, next_interval, next_ease);
+
+  UPDATE learning_topics SET
+    ease = next_ease,
+    interval_days = next_interval,
+    lapses = next_lapses,
+    review_count = t.review_count + 1,
+    last_reviewed_at = now(),
+    due_date = (CURRENT_DATE + next_interval)::DATE
+  WHERE id = target_topic_id
+  RETURNING * INTO t;
+
+  RETURN t;
 END;
 $$ LANGUAGE plpgsql SECURITY INVOKER;
 

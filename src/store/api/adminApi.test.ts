@@ -86,6 +86,8 @@ const EXPECTED_HOOKS = [
   "useGetHabitsQuery",
   "useSaveHabitMutation",
   "useDeleteHabitMutation",
+  "useRecordReviewMutation",
+  "useArchiveTopicMutation",
   "useSetHabitLogMutation",
   "useArchiveHabitMutation",
   "useUpdateHabitOrderMutation",

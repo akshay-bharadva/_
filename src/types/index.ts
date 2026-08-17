@@ -349,6 +349,11 @@ export interface LearningSubject {
   user_id?: string;
   name: string;
   description?: string | null;
+  color?: string | null;
+  /** Weekly, not daily: a daily target turns one bad day into a failure. */
+  target_minutes_per_week?: number | null;
+  archived_at?: string | null;
+  display_order?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -370,8 +375,31 @@ export interface LearningTopic {
   core_notes?: string | null;
   resources?: { name: string; url: string }[] | null;
   confidence_score?: number | null;
+  /** Spaced review state. `due_date` null means never reviewed — new, not
+      overdue; the distinction is what stops the queue reading as debt. */
+  ease?: number | null;
+  interval_days?: number | null;
+  due_date?: string | null;
+  last_reviewed_at?: string | null;
+  review_count?: number | null;
+  lapses?: number | null;
+  archived_at?: string | null;
+  display_order?: number | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export type LearningReviewRating = "again" | "hard" | "good" | "easy";
+
+export interface LearningReview {
+  id: string;
+  user_id?: string;
+  topic_id: string;
+  reviewed_at: string;
+  rating: LearningReviewRating;
+  interval_before?: number | null;
+  interval_after?: number | null;
+  ease_after?: number | null;
 }
 
 export interface LearningSession {

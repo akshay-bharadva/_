@@ -13,7 +13,8 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import type { LearningSession, LearningSubject, LearningTopic } from "@/types";
+import type { LearningSubject, LearningTopic } from "@/types";
+import { isDue } from "./spaced-review";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -27,12 +28,13 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ModuleCardProps {
-  subject: LearningSubject;
+  /** Null for the unfiled group — a topic does not need a module. */
+  subject: LearningSubject | null;
   topics: LearningTopic[];
-  activeSession: LearningSession | null;
+  today: string;
   onTopicClick: (topic: LearningTopic) => void;
-  onEditSubject: () => void;
-  onDeleteSubject: () => void;
+  onEditSubject?: () => void;
+  onDeleteSubject?: () => void;
   onAddTopic: () => void;
   onEditTopic: (topic: LearningTopic) => void;
   onDeleteTopic: (topicId: string) => void;
@@ -48,7 +50,7 @@ const statusConfig = {
 export function ModuleCard({
   subject,
   topics,
-  activeSession,
+  today,
   onTopicClick,
   onEditSubject,
   onDeleteSubject,
@@ -57,7 +59,9 @@ export function ModuleCard({
   onDeleteTopic,
 }: ModuleCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const completed = topics.filter((t) => t.status === "Mastered").length;
+  // "Settled" is a topic on a three-week-plus interval — earned by recall
+  // rather than declared by hand, which is what "Mastered" was.
+  const completed = topics.filter((t) => (t.interval_days ?? 0) >= 21).length;
   const total = topics.length;
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
@@ -83,12 +87,12 @@ export function ModuleCard({
             </div>
             <div className="min-w-0 flex-1">
               <CardTitle className="truncate text-base font-bold">
-                {subject.name}
+                {subject?.name ?? "Unfiled"}
               </CardTitle>
               {/* Desktop Progress */}
               <div className="mt-1 hidden items-center gap-2 sm:flex">
                 <span className="text-xs text-muted-foreground">
-                  {completed}/{total} topics
+                  {completed}/{total} settled
                 </span>
                 <Progress value={progress} className="h-1.5 w-20" />
                 <span className="text-xs font-medium text-primary">
@@ -113,18 +117,22 @@ export function ModuleCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEditSubject}>
-                <Edit className="mr-2 size-4" /> Edit Module
-              </DropdownMenuItem>
+              {onEditSubject && (
+                <DropdownMenuItem onClick={onEditSubject}>
+                  <Edit className="mr-2 size-4" /> Edit module
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={onAddTopic}>
-                <Plus className="mr-2 size-4" /> Add Topic
+                <Plus className="mr-2 size-4" /> Add topic
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={onDeleteSubject}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 size-4" /> Delete Module
-              </DropdownMenuItem>
+              {onDeleteSubject && (
+                <DropdownMenuItem
+                  onClick={onDeleteSubject}
+                  className="text-destructive"
+                >
+                  <Trash2 className="mr-2 size-4" /> Delete module
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -149,7 +157,7 @@ export function ModuleCard({
                   statusConfig[topic.status ?? "To Learn"] ??
                   statusConfig["To Learn"];
                 const StatusIcon = config.icon;
-                const isActive = activeSession?.topic_id === topic.id;
+                const isActive = isDue(topic, today);
                 return (
                   <div
                     key={topic.id}
