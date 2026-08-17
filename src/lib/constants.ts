@@ -449,3 +449,48 @@ export const THEME_PRESETS = [
   { value: "theme-aaa-light", label: "Accessible Light" },
   { value: "theme-aaa-dark", label: "Accessible Dark" },
 ] as const;
+
+// =============================================================================
+// PUBLIC ROUTING CONTRACT
+// =============================================================================
+
+/**
+ * Path segments the CMS catch-all must never generate.
+ *
+ * `(public)/[...slug]` turns every visible nav link into a prerendered route.
+ * A segment listed here either already has a hand-written route file or is a
+ * framework sentinel, so generating it would collide. This list used to live
+ * inside the route file, which meant the admin had no way to tell the owner
+ * that a path behaves differently — hence the move to shared constants.
+ */
+export const RESERVED_SEGMENTS = [
+  "admin",
+  "blog",
+  "projects",
+  "about",
+  "contact",
+  "showcase",
+  "experience",
+  "updates",
+  "404",
+  "500",
+] as const;
+
+/**
+ * Public paths backed by a real route file under `src/app/(public)/`.
+ *
+ * Deliberately *not* the same as `RESERVED_SEGMENTS`. Reserving a segment only
+ * stops the catch-all from generating it; it does not create a page. Three
+ * reserved segments — `experience`, `404`, `500` — have no route, so a nav link
+ * pointing at one renders a menu entry that 404s. The navigation admin uses the
+ * difference between these two lists to say so.
+ */
+export const BUILTIN_ROUTES = [
+  "/",
+  "/about",
+  "/blog",
+  "/contact",
+  "/projects",
+  "/showcase",
+  "/updates",
+] as const;

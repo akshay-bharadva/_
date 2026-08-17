@@ -2,21 +2,8 @@ import type { Metadata } from "next";
 import { isSupabaseConfigured } from "@/lib/config";
 import { supabase } from "@/supabase/client";
 import { MOCK_NAV_LINKS } from "@/lib/fallback-data";
+import { RESERVED_SEGMENTS } from "@/lib/constants";
 import { CmsPage } from "@/features/sections/cms-page";
-
-// Static pages that have dedicated routes and must never be generated here.
-const RESERVED_SEGMENTS = [
-  "admin",
-  "blog",
-  "projects",
-  "about",
-  "contact",
-  "showcase",
-  "experience",
-  "updates",
-  "404",
-  "500",
-];
 
 // Static export: only build-time params exist; anything else 404s.
 export const dynamicParams = false;
@@ -35,7 +22,8 @@ async function getNavLinks(): Promise<{ label: string; href: string }[]> {
 function toSlug(href: string): string[] | null {
   const clean = href.replace(/^\//, "");
   const root = clean.split("/")[0];
-  if (href === "/" || !clean || RESERVED_SEGMENTS.includes(root)) return null;
+  const reserved: readonly string[] = RESERVED_SEGMENTS;
+  if (href === "/" || !clean || reserved.includes(root)) return null;
   return clean.split("/");
 }
 
