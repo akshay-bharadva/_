@@ -112,6 +112,7 @@ export const DEFAULT_NOTE_COLOR = "#facc15";
 export const TASK_STATUS = {
   TODO: "todo",
   IN_PROGRESS: "inprogress",
+  REVIEW: "review",
   DONE: "done",
 } as const;
 
@@ -120,8 +121,34 @@ export type TaskStatusValue = (typeof TASK_STATUS)[keyof typeof TASK_STATUS];
 export const TASK_STATUS_OPTIONS = [
   { value: TASK_STATUS.TODO, label: "To Do" },
   { value: TASK_STATUS.IN_PROGRESS, label: "In Progress" },
+  { value: TASK_STATUS.REVIEW, label: "In Review" },
   { value: TASK_STATUS.DONE, label: "Done" },
 ] as const;
+
+/**
+ * Repeat rules. Stored as a plain string plus an interval rather than an RRULE:
+ * the column's CHECK constraint enumerates exactly these three, and a personal
+ * task list does not need the rest of the iCalendar grammar.
+ */
+export const TASK_RECURRENCE = {
+  DAILY: "daily",
+  WEEKLY: "weekly",
+  MONTHLY: "monthly",
+} as const;
+
+export type TaskRecurrenceValue =
+  (typeof TASK_RECURRENCE)[keyof typeof TASK_RECURRENCE];
+
+export const TASK_RECURRENCE_OPTIONS = [
+  { value: TASK_RECURRENCE.DAILY, label: "Daily" },
+  { value: TASK_RECURRENCE.WEEKLY, label: "Weekly" },
+  { value: TASK_RECURRENCE.MONTHLY, label: "Monthly" },
+] as const;
+
+/** Mirrors the tasks_estimate_nonneg / tasks_tracked_nonneg CHECK bounds. */
+export const TASK_MINUTES_MAX = 100000;
+/** Mirrors tasks_recurrence_interval_valid. */
+export const TASK_RECURRENCE_INTERVAL_MAX = 365;
 
 export const TASK_PRIORITY = {
   LOW: "low",

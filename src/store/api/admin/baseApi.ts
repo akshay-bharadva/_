@@ -15,6 +15,8 @@ export const adminApi = createApi({
     "Notes",
     "Whiteboards",
     "Tasks",
+    "TaskProjects",
+    "TaskDependencies",
     "Transactions",
     "Recurring",
     "Goals",

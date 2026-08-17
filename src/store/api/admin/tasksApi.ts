@@ -1,7 +1,13 @@
 import { supabase } from "@/supabase/client";
-import type { SubTask, Task } from "@/types";
+import type { SubTask, Task, TaskDependency, TaskProject } from "@/types";
 import { adminApi } from "./baseApi";
-import { NO_DB_ERROR, deleteQueryFn } from "./query-helpers";
+import {
+  NO_DB_ERROR,
+  deleteQueryFn,
+  getAllQueryFn,
+  insertQueryFn,
+  updateQueryFn,
+} from "./query-helpers";
 
 /**
  * Tasks + subtasks. These endpoints keep the task list responsive with
@@ -16,6 +22,9 @@ export const tasksApi = adminApi.injectEndpoints({
         const { data, error } = await supabase
           .from("tasks")
           .select("*, sub_tasks(*)")
+          // Manual rank first so drag-to-reorder sticks; creation date only
+          // breaks ties between rows that have never been dragged.
+          .order("display_order", { ascending: true })
           .order("created_at", { ascending: false });
         if (error) return { error };
         return { data };
@@ -187,6 +196,60 @@ export const tasksApi = adminApi.injectEndpoints({
         }
       },
     }),
+    /* ── Projects ─────────────────────────────────────────────────────── */
+    getTaskProjects: builder.query<TaskProject[], void>({
+      queryFn: getAllQueryFn<TaskProject>("task_projects", [
+        { column: "display_order" },
+        { column: "created_at" },
+      ]),
+      providesTags: ["TaskProjects"],
+    }),
+    addTaskProject: builder.mutation<TaskProject, Partial<TaskProject>>({
+      queryFn: insertQueryFn<TaskProject>("task_projects"),
+      invalidatesTags: ["TaskProjects"],
+    }),
+    updateTaskProject: builder.mutation<TaskProject, Partial<TaskProject>>({
+      queryFn: updateQueryFn<TaskProject>("task_projects"),
+      invalidatesTags: ["TaskProjects"],
+    }),
+    deleteTaskProject: builder.mutation<{ id: string }, string>({
+      queryFn: deleteQueryFn("task_projects"),
+      // `tasks.project_id` is ON DELETE SET NULL, so the tasks survive and
+      // move to "No project" — the task list has to be refetched to show it.
+      invalidatesTags: ["TaskProjects", "Tasks"],
+    }),
+
+    /* ── Dependencies ─────────────────────────────────────────────────── */
+    getTaskDependencies: builder.query<TaskDependency[], void>({
+      queryFn: getAllQueryFn<TaskDependency>("task_dependencies"),
+      providesTags: ["TaskDependencies"],
+    }),
+    addTaskDependency: builder.mutation<
+      TaskDependency,
+      { task_id: string; depends_on_id: string }
+    >({
+      queryFn: insertQueryFn<TaskDependency>("task_dependencies"),
+      invalidatesTags: ["TaskDependencies"],
+    }),
+    deleteTaskDependency: builder.mutation<{ id: string }, string>({
+      queryFn: deleteQueryFn("task_dependencies"),
+      invalidatesTags: ["TaskDependencies"],
+    }),
+
+    /* ── Manual ordering ──────────────────────────────────────────────── */
+    updateTaskOrder: builder.mutation<null, string[]>({
+      queryFn: async (taskIds) => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        // One transaction in the database rather than N round trips, so a
+        // half-applied order is not possible.
+        const { error } = await supabase.rpc("update_task_order", {
+          task_ids: taskIds,
+        });
+        if (error) return { error };
+        return { data: null };
+      },
+      invalidatesTags: ["Tasks"],
+    }),
   }),
 });
 
@@ -198,4 +261,12 @@ export const {
   useAddSubTaskMutation,
   useUpdateSubTaskMutation,
   useDeleteSubTaskMutation,
+  useGetTaskProjectsQuery,
+  useAddTaskProjectMutation,
+  useUpdateTaskProjectMutation,
+  useDeleteTaskProjectMutation,
+  useGetTaskDependenciesQuery,
+  useAddTaskDependencyMutation,
+  useDeleteTaskDependencyMutation,
+  useUpdateTaskOrderMutation,
 } = tasksApi;

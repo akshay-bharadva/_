@@ -2,6 +2,7 @@ import {
   CheckCircle2,
   Circle,
   Clock,
+  Eye,
   SignalHigh,
   SignalLow,
   SignalMedium,
@@ -12,7 +13,12 @@ import type { Task } from "@/types";
 export type TaskStatus = NonNullable<Task["status"]>;
 export type TaskPriority = NonNullable<Task["priority"]>;
 
-export const TASK_STATUSES: TaskStatus[] = ["todo", "inprogress", "done"];
+export const TASK_STATUSES: TaskStatus[] = [
+  "todo",
+  "inprogress",
+  "review",
+  "done",
+];
 export const TASK_PRIORITIES: TaskPriority[] = ["low", "medium", "high"];
 
 interface StatusMeta {
@@ -36,6 +42,12 @@ export const TASK_STATUS_META: Record<TaskStatus, StatusMeta> = {
     icon: Clock,
     dot: "bg-primary",
     pill: "bg-primary/15 text-primary hover:bg-primary/25",
+  },
+  review: {
+    label: "In Review",
+    icon: Eye,
+    dot: "bg-chart-4",
+    pill: "bg-chart-4/15 text-chart-4 hover:bg-chart-4/25",
   },
   done: {
     label: "Done",

@@ -4,6 +4,9 @@ import { z } from "zod";
 import {
   TASK_STATUS,
   TASK_PRIORITY,
+  TASK_RECURRENCE,
+  TASK_MINUTES_MAX,
+  TASK_RECURRENCE_INTERVAL_MAX,
   TRANSACTION_TYPE,
   FREQUENCY,
   LEARNING_STATUS,
@@ -167,18 +170,72 @@ export const requiredDateString = z.string().min(1, "Date is required");
 // TASK SCHEMAS
 // =============================================================================
 
-export const taskSchema = z.object({
-  title: boundedRequiredString(LIMITS.TITLE, "Title"),
-  status: z.enum([TASK_STATUS.TODO, TASK_STATUS.IN_PROGRESS, TASK_STATUS.DONE]),
-  priority: z.enum([
-    TASK_PRIORITY.LOW,
-    TASK_PRIORITY.MEDIUM,
-    TASK_PRIORITY.HIGH,
-  ]),
-  due_date: z.string().optional().nullable(),
-});
+/**
+ * Every bound here mirrors a CHECK constraint on `tasks` — see
+ * `db/migrations/001-tasks-projects-dependencies.sql`. A value this schema
+ * accepts and Postgres rejects surfaces as an opaque write failure.
+ */
+export const taskSchema = z
+  .object({
+    title: boundedRequiredString(LIMITS.TITLE, "Title"),
+    description: boundedOptionalString(LIMITS.BODY, "Description"),
+    project_id: z.string().uuid().optional().nullable(),
+    status: z.enum([
+      TASK_STATUS.TODO,
+      TASK_STATUS.IN_PROGRESS,
+      TASK_STATUS.REVIEW,
+      TASK_STATUS.DONE,
+    ]),
+    priority: z.enum([
+      TASK_PRIORITY.LOW,
+      TASK_PRIORITY.MEDIUM,
+      TASK_PRIORITY.HIGH,
+    ]),
+    start_date: optionalString,
+    due_date: optionalString,
+    tags: tagList,
+    estimate_minutes: optionalInt(0, TASK_MINUTES_MAX, "Estimate"),
+    recurrence: z
+      .enum([
+        TASK_RECURRENCE.DAILY,
+        TASK_RECURRENCE.WEEKLY,
+        TASK_RECURRENCE.MONTHLY,
+      ])
+      .optional()
+      .nullable(),
+    recurrence_interval: optionalInt(
+      1,
+      TASK_RECURRENCE_INTERVAL_MAX,
+      "Repeat interval",
+    ),
+  })
+  // Mirrors tasks_dates_ordered. A task ending before it starts renders as a
+  // zero- or negative-width bar on the timeline.
+  .refine(
+    (data) =>
+      !data.start_date ||
+      !data.due_date ||
+      new Date(String(data.start_date)) <= new Date(String(data.due_date)),
+    {
+      message: "Due date must be on or after the start date",
+      path: ["due_date"],
+    },
+  )
+  // Mirrors tasks_recurrence_needs_due_date. Without a due date there is no
+  // anchor to advance, so the next instance would have no date at all.
+  .refine((data) => !data.recurrence || !!data.due_date, {
+    message: "A repeating task needs a due date to repeat from",
+    path: ["due_date"],
+  });
 
 export type TaskFormValues = z.infer<typeof taskSchema>;
+
+export const taskProjectSchema = z.object({
+  name: boundedRequiredString(120, "Project name"),
+  color: hexColor.optional().nullable(),
+});
+
+export type TaskProjectFormValues = z.infer<typeof taskProjectSchema>;
 
 export const subTaskSchema = z.object({
   task_id: z.string(),

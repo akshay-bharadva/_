@@ -205,13 +205,50 @@ export interface SubTask {
   created_at?: string;
 }
 
+export type TaskRecurrence = "daily" | "weekly" | "monthly";
+
+export interface TaskProject {
+  id: string;
+  user_id?: string;
+  name: string;
+  color?: string | null;
+  display_order?: number;
+  is_archived?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** `task_id` is blocked by `depends_on_id`. */
+export interface TaskDependency {
+  id: string;
+  user_id?: string;
+  task_id: string;
+  depends_on_id: string;
+  created_at?: string;
+}
+
 export interface Task {
   id: string;
   user_id?: string;
+  project_id?: string | null;
   title: string;
-  status?: "todo" | "inprogress" | "done";
-  due_date?: string | null;
+  description?: string | null;
+  /**
+   * "blocked" is absent on purpose — it is derived from unmet dependencies
+   * rather than stored, so a saved value could disagree with the graph.
+   */
+  status?: "todo" | "inprogress" | "review" | "done";
   priority?: "low" | "medium" | "high";
+  start_date?: string | null;
+  due_date?: string | null;
+  tags?: string[] | null;
+  display_order?: number;
+  estimate_minutes?: number | null;
+  tracked_minutes?: number | null;
+  completed_at?: string | null;
+  recurrence?: TaskRecurrence | null;
+  recurrence_interval?: number | null;
+  recurrence_parent_id?: string | null;
   created_at?: string;
   updated_at?: string;
   sub_tasks?: SubTask[];

@@ -1,28 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { format } from "date-fns";
-import { CalendarIcon, Loader2, X } from "lucide-react";
+import { CircleSlash, Loader2, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { SubTask, Task } from "@/types";
-import {
-  useAddSubTaskMutation,
-  useAddTaskMutation,
-  useDeleteSubTaskMutation,
-  useUpdateSubTaskMutation,
-  useUpdateTaskMutation,
-} from "@/store/api/adminApi";
+import type { SubTask, Task, TaskProject } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -36,284 +28,496 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
-import {
-  TASK_PRIORITIES,
-  TASK_PRIORITY_META,
-  TASK_STATUSES,
-  TASK_STATUS_META,
-} from "./task-meta";
+  TASK_PRIORITY_OPTIONS,
+  TASK_RECURRENCE_OPTIONS,
+  TASK_STATUS_OPTIONS,
+} from "@/lib/constants";
 import { taskSchema, type TaskFormValues } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
-interface TaskFormProps {
+/** Sentinel for "no project" — Radix Select cannot hold an empty string value. */
+const NO_PROJECT = "__none__";
+const NO_REPEAT = "__never__";
+
+export interface TaskFormProps {
   task: Partial<Task> | null;
-  onSuccess: () => void;
-  onClose: () => void;
+  projects: TaskProject[];
+  /** Tasks that may block this one without closing a dependency loop. */
+  eligibleBlockers: Task[];
+  /** Blockers already attached, resolved to tasks. */
+  blockers: Task[];
+  onSave: (values: Partial<Task>) => Promise<void>;
+  onAddSubtask: (title: string) => Promise<void>;
+  onToggleSubtask: (subtask: SubTask) => void;
+  onDeleteSubtask: (id: string) => void;
+  onAddBlocker: (dependsOnId: string) => Promise<void>;
+  onRemoveBlocker: (dependsOnId: string) => void;
+  onCancel: () => void;
 }
 
-export function TaskForm({ task, onSuccess, onClose }: TaskFormProps) {
-  const [addTask, { isLoading: isAdding }] = useAddTaskMutation();
-  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
-  const [addSubTask, { isLoading: isAddingSubtask }] = useAddSubTaskMutation();
-  const [updateSubTask] = useUpdateSubTaskMutation();
-  const [deleteSubTask] = useDeleteSubTaskMutation();
-
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
-  const isLoading = isAdding || isUpdating;
+export function TaskForm({
+  task,
+  projects,
+  eligibleBlockers,
+  blockers,
+  onSave,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onAddBlocker,
+  onRemoveBlocker,
+  onCancel,
+}: TaskFormProps) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const [blockerChoice, setBlockerChoice] = useState("");
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
+    // Seeded from the prop rather than an effect: the sheet keys this component
+    // per task, so an effect would only repeat the first render with the right
+    // values one commit later.
     defaultValues: {
-      title: task?.title || "",
-      status: task?.status || "todo",
-      priority: task?.priority || "medium",
-      due_date: task?.due_date || null,
+      title: task?.title ?? "",
+      description: task?.description ?? "",
+      project_id: task?.project_id ?? null,
+      status: task?.status ?? "todo",
+      priority: task?.priority ?? "medium",
+      start_date: task?.start_date ?? "",
+      due_date: task?.due_date ?? "",
+      tags: task?.tags ?? [],
+      estimate_minutes: task?.estimate_minutes ?? null,
+      recurrence: task?.recurrence ?? null,
+      recurrence_interval: task?.recurrence_interval ?? null,
     },
   });
 
-  useEffect(() => {
-    if (task) {
-      form.reset({
-        title: task.title || "",
-        status: task.status || "todo",
-        priority: task.priority || "medium",
-        due_date: task.due_date || null,
-      });
-    }
-  }, [task, form]);
+  const tags = form.watch("tags") ?? [];
+  const recurrence = form.watch("recurrence");
+  const subtasks = useMemo(() => task?.sub_tasks ?? [], [task?.sub_tasks]);
 
-  const handleSave = async (values: TaskFormValues) => {
+  const handleSubmit = async (values: TaskFormValues) => {
+    setIsSaving(true);
     try {
-      const payload = {
+      await onSave({
         ...values,
+        // Empty date inputs give "", which Postgres rejects for a DATE column.
+        start_date: values.start_date || null,
         due_date: values.due_date || null,
-      };
-      if (task?.id) {
-        await updateTask({ id: task.id, ...payload }).unwrap();
-      } else {
-        await addTask(payload).unwrap();
-      }
-      toast.success("Task saved successfully.");
-      onSuccess();
-    } catch (err: unknown) {
-      toast.error("Failed to save task", { description: getErrorMessage(err) });
+        description: values.description || null,
+      });
+    } catch (err) {
+      toast.error("Couldn't save the task", {
+        description: getErrorMessage(err),
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleAddSubtask = async () => {
-    if (!task?.id || !newSubtaskTitle.trim()) return;
-    try {
-      await addSubTask({ task_id: task.id, title: newSubtaskTitle }).unwrap();
-      setNewSubtaskTitle("");
-    } catch {
-      toast.error("Failed to add sub-task");
-    }
+  const submitSubtask = async () => {
+    const title = subtaskTitle.trim();
+    if (!title) return;
+    await onAddSubtask(title);
+    setSubtaskTitle("");
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSave)} className="mt-6 space-y-6">
-        <div className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="space-y-5 pt-2"
+      >
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input {...field} autoFocus placeholder="What needs doing?" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  rows={3}
+                  placeholder="Any detail worth keeping"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
-            name="title"
+            name="project_id"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Title</FormLabel>
+                <FormLabel>Project</FormLabel>
+                <Select
+                  value={field.value ?? NO_PROJECT}
+                  onValueChange={(v) =>
+                    field.onChange(v === NO_PROJECT ? null : v)
+                  }
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_PROJECT}>No project</SelectItem>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TASK_STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="priority"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {TASK_PRIORITY_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="estimate_minutes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Estimate (minutes)</FormLabel>
                 <FormControl>
-                  <Input {...field} autoFocus />
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    type="number"
+                    min={0}
+                    placeholder="60"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TASK_STATUSES.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {TASK_STATUS_META[status].label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="priority"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Priority</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {TASK_PRIORITIES.map((priority) => (
-                        <SelectItem key={priority} value={priority}>
-                          {TASK_PRIORITY_META[priority].label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+
+          <FormField
+            control={form.control}
+            name="start_date"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Start date</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} type="date" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="due_date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Due Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        type="button"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !field.value && "text-muted-foreground",
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? (
-                          format(parseLocalDate(field.value), "PPP")
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        field.value ? parseLocalDate(field.value) : undefined
-                      }
-                      onSelect={(date) =>
-                        field.onChange(date ? format(date, "yyyy-MM-dd") : null)
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormLabel>Due date</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value ?? ""} type="date" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
+        {/* Tags — comma separated in, array out. */}
+        <FormItem>
+          <FormLabel htmlFor="task-tags">Tags</FormLabel>
+          <Input
+            id="task-tags"
+            value={tags.join(", ")}
+            onChange={(e) =>
+              form.setValue(
+                "tags",
+                e.target.value
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean),
+                { shouldValidate: true },
+              )
+            }
+            placeholder="errands, admin"
+          />
+          <FormDescription>Comma separated.</FormDescription>
+        </FormItem>
+
+        {/* Repeat */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="recurrence"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Repeats</FormLabel>
+                <Select
+                  value={field.value ?? NO_REPEAT}
+                  onValueChange={(v) =>
+                    field.onChange(v === NO_REPEAT ? null : v)
+                  }
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_REPEAT}>Never</SelectItem>
+                    {TASK_RECURRENCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {recurrence && (
+            <FormField
+              control={form.control}
+              name="recurrence_interval"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Every</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="number"
+                      min={1}
+                      placeholder="1"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Completing it creates the next one.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+
+        {/* Subtasks and dependencies only exist once the task does. */}
         {task?.id && (
           <>
-            <Separator />
-            <div>
-              <Label className="mb-3 block text-base font-semibold">
-                Subtasks
-              </Label>
-              <div className="space-y-2 rounded-surface border bg-secondary/20 p-3">
-                {task.sub_tasks?.map((sub: SubTask) => (
-                  <div
-                    key={sub.id}
-                    className="group flex items-center gap-3 rounded-md p-2 transition-colors hover:bg-background"
-                  >
-                    <Checkbox
-                      checked={sub.is_completed}
-                      onCheckedChange={(c) =>
-                        updateSubTask({ id: sub.id, is_completed: !!c })
-                      }
-                    />
-                    <span
-                      className={cn(
-                        "flex-grow text-sm",
-                        sub.is_completed &&
-                          "text-muted-foreground line-through",
-                      )}
-                    >
-                      {sub.title}
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Remove subtask"
-                      className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                      onClick={() => deleteSubTask(sub.id)}
-                    >
-                      <X className="size-3.5" />
-                    </Button>
-                  </div>
-                ))}
-
-                {/* Plain div + button, not a nested <form> */}
-                <div className="mt-2 flex gap-2 border-t pt-3">
-                  <Input
-                    value={newSubtaskTitle}
-                    onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                    placeholder="Add a subtask..."
-                    className="h-8 text-sm"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddSubtask();
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddSubtask}
-                    size="sm"
-                    className="h-8"
-                    disabled={!newSubtaskTitle.trim() || isAddingSubtask}
-                  >
-                    {isAddingSubtask ? (
-                      <Loader2 className="size-3 animate-spin" />
-                    ) : (
-                      "Add"
-                    )}
-                  </Button>
-                </div>
+            <section className="space-y-2 border-t pt-4">
+              <Label>Subtasks</Label>
+              {subtasks.length > 0 && (
+                <ul className="space-y-1">
+                  {subtasks.map((subtask) => (
+                    <li key={subtask.id} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={subtask.is_completed}
+                        onCheckedChange={() => onToggleSubtask(subtask)}
+                        aria-label={subtask.title}
+                      />
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 break-words text-sm",
+                          subtask.is_completed &&
+                            "text-muted-foreground line-through",
+                        )}
+                      >
+                        {subtask.title}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 shrink-0"
+                        aria-label={`Delete subtask ${subtask.title}`}
+                        onClick={() => onDeleteSubtask(subtask.id)}
+                      >
+                        <Trash2 className="size-3.5" aria-hidden />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex gap-2">
+                <Input
+                  value={subtaskTitle}
+                  onChange={(e) => setSubtaskTitle(e.target.value)}
+                  placeholder="Add a subtask"
+                  aria-label="New subtask"
+                  onKeyDown={(e) => {
+                    // Enter inside a nested field would submit the whole task.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void submitSubtask();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Add subtask"
+                  onClick={() => void submitSubtask()}
+                >
+                  <Plus className="size-4" aria-hidden />
+                </Button>
               </div>
-            </div>
+            </section>
+
+            <section className="space-y-2 border-t pt-4">
+              <Label>Blocked by</Label>
+              {blockers.length > 0 ? (
+                <ul className="space-y-1">
+                  {blockers.map((blocker) => (
+                    <li
+                      key={blocker.id}
+                      className="flex items-center gap-2 rounded-control bg-secondary/50 px-2 py-1.5 text-sm"
+                    >
+                      <CircleSlash
+                        aria-hidden
+                        className={cn(
+                          "size-3.5 shrink-0",
+                          blocker.status === "done"
+                            ? "text-muted-foreground"
+                            : "text-destructive",
+                        )}
+                      />
+                      <span className="min-w-0 flex-1 break-words">
+                        {blocker.title}
+                      </span>
+                      {blocker.status === "done" && (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          done
+                        </span>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 shrink-0"
+                        aria-label={`Remove blocker ${blocker.title}`}
+                        onClick={() => onRemoveBlocker(blocker.id)}
+                      >
+                        <X className="size-3.5" aria-hidden />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Nothing is holding this task up.
+                </p>
+              )}
+
+              {eligibleBlockers.length > 0 && (
+                <div className="flex gap-2">
+                  <Select
+                    value={blockerChoice}
+                    onValueChange={async (value) => {
+                      setBlockerChoice("");
+                      await onAddBlocker(value);
+                    }}
+                  >
+                    <SelectTrigger aria-label="Add a blocking task">
+                      <SelectValue placeholder="Add a blocking task…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Only tasks that cannot close a loop are offered, so
+                          the database's cycle check is never the first time
+                          the owner hears "no". */}
+                      {eligibleBlockers.map((candidate) => (
+                        <SelectItem key={candidate.id} value={candidate.id}>
+                          {candidate.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </section>
           </>
         )}
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
+        <div className="flex justify-end gap-2 border-t pt-4">
+          <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}Save
-            Task
+          <Button type="submit" disabled={isSaving}>
+            {isSaving && (
+              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+            )}
+            Save task
           </Button>
         </div>
       </form>

@@ -1,254 +1,445 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Columns3,
+  GanttChartSquare,
+  ListTodo,
+  Plus,
+  Table2,
+} from "lucide-react";
 import { toast } from "sonner";
-import type { Task } from "@/types";
+import type { SubTask, Task } from "@/types";
 import {
   useAddSubTaskMutation,
+  useAddTaskDependencyMutation,
+  useAddTaskMutation,
   useDeleteSubTaskMutation,
-  useDeleteTaskMutation,
+  useDeleteTaskDependencyMutation,
+  useGetTaskDependenciesQuery,
+  useGetTaskProjectsQuery,
   useGetTasksQuery,
   useUpdateSubTaskMutation,
   useUpdateTaskMutation,
 } from "@/store/api/adminApi";
-import { useAppDispatch } from "@/store/hooks";
-import { startFocus } from "@/store/slices/focusSlice";
-import {
-  FormSheet,
-  ManagerWrapper,
-  PageHeader,
-  LoadingState,
-} from "@/components/admin/shared";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  EmptyState,
+  FormSheet,
+  LoadingState,
+  ManagerWrapper,
+  PageHeader,
+} from "@/components/admin/shared";
+import { getErrorMessage } from "@/lib/utils";
+import { TASK_STATUS_META, type TaskStatus } from "./task-meta";
+import {
+  eligibleBlockers as computeEligibleBlockers,
+  indexDependencies,
+  indexTasks,
+  unmetBlockers,
+} from "./task-dependencies";
+import {
+  DEFAULT_FILTERS,
+  collectTags,
+  filterTasks,
+  groupTasks,
+  sortTasks,
+  type TaskFilters,
+  type TaskGroupBy,
+} from "./task-filters";
+import { nextOccurrence } from "./task-recurrence";
 import { TaskBoard } from "./task-board";
-import { TaskList } from "./task-list";
+import { TaskTable } from "./task-table";
+import { TaskTimelineView } from "./task-timeline-view";
 import { TaskForm } from "./task-form";
-import type { TaskStatus } from "./task-meta";
+
+type ViewMode = "board" | "list" | "table" | "timeline";
 
 export default function TasksPage() {
   const confirm = useConfirm();
-  const isMobile = useIsMobile();
-  const dispatch = useAppDispatch();
-  const [searchTerm, setSearchTerm] = useState("");
+
+  const [view, setView] = useState<ViewMode>("board");
+  const [groupBy, setGroupBy] = useState<TaskGroupBy>("status");
+  const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [newTaskDefaults, setNewTaskDefaults] = useState<Partial<Task> | null>(
+  const [draftDefaults, setDraftDefaults] = useState<Partial<Task> | null>(
     null,
   );
-
-  const [isSubtaskDialogOpen, setIsSubtaskDialogOpen] = useState(false);
-  const [activeParentTaskId, setActiveParentTaskId] = useState<string | null>(
-    null,
-  );
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
 
   const { data: tasks = [], isLoading } = useGetTasksQuery();
+  const { data: projects = [] } = useGetTaskProjectsQuery();
+  const { data: dependencies = [] } = useGetTaskDependenciesQuery();
+
+  const [addTask] = useAddTaskMutation();
   const [updateTask] = useUpdateTaskMutation();
-  const [deleteTask] = useDeleteTaskMutation();
   const [addSubTask] = useAddSubTaskMutation();
   const [updateSubTask] = useUpdateSubTaskMutation();
   const [deleteSubTask] = useDeleteSubTaskMutation();
+  const [addDependency] = useAddTaskDependencyMutation();
+  const [deleteDependency] = useDeleteTaskDependencyMutation();
 
-  const editingTask = useMemo(() => {
-    if (editingTaskId) {
-      return tasks.find((t) => t.id === editingTaskId) || null;
-    }
-    return newTaskDefaults || null;
-  }, [tasks, editingTaskId, newTaskDefaults]);
+  const byId = useMemo(() => indexTasks(tasks), [tasks]);
+  const depIndex = useMemo(
+    () => indexDependencies(dependencies),
+    [dependencies],
+  );
+  const projectsById = useMemo(
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects],
+  );
 
-  const filteredTasks = useMemo(() => {
-    const filtered = tasks.filter((t) =>
-      t.title.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-    return [...filtered].sort(
-      (a, b) =>
-        new Date(b.created_at || 0).getTime() -
-        new Date(a.created_at || 0).getTime(),
-    );
-  }, [tasks, searchTerm]);
+  const blockersFor = useMemo(
+    () => (task: Task) => unmetBlockers(task.id, depIndex, byId),
+    [depIndex, byId],
+  );
 
-  const handleCreateTask = (initialStatus: TaskStatus = "todo") => {
+  const visible = useMemo(
+    () => sortTasks(filterTasks(tasks, filters, depIndex, byId), "manual"),
+    [tasks, filters, depIndex, byId],
+  );
+
+  const groups = useMemo(
+    () =>
+      groupTasks(
+        visible,
+        groupBy,
+        projects,
+        (status) => TASK_STATUS_META[status].label,
+      ),
+    [visible, groupBy, projects],
+  );
+
+  const editingTask = useMemo(
+    () => (editingTaskId ? (byId.get(editingTaskId) ?? null) : draftDefaults),
+    [editingTaskId, byId, draftDefaults],
+  );
+
+  const tags = useMemo(() => collectTags(tasks), [tasks]);
+
+  const openNew = (status: TaskStatus = "todo") => {
     setEditingTaskId(null);
-    setNewTaskDefaults({ status: initialStatus });
-    setIsSheetOpen(true);
-  };
-
-  const handleEditTask = (task: Task) => {
-    setEditingTaskId(task.id);
-    setNewTaskDefaults(null);
-    setIsSheetOpen(true);
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    const ok = await confirm({
-      title: "Delete Task?",
-      description: "This will permanently remove the task and all subtasks.",
-      variant: "destructive",
+    setDraftDefaults({
+      status,
+      project_id:
+        filters.projectId !== "all" && filters.projectId !== "none"
+          ? filters.projectId
+          : null,
     });
-    if (!ok) return;
+    setIsSheetOpen(true);
+  };
 
+  const openTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setDraftDefaults(null);
+    setIsSheetOpen(true);
+  };
+
+  /**
+   * Completing a repeating task creates the next instance rather than resetting
+   * this one, so what was actually finished stays in the history.
+   */
+  const applyStatus = async (task: Task, status: TaskStatus) => {
     try {
-      await deleteTask(id).unwrap();
-      toast.success("Task deleted");
-      if (editingTaskId === id) setIsSheetOpen(false);
+      await updateTask({ id: task.id, status }).unwrap();
+
+      if (status === "done" && task.recurrence) {
+        const next = nextOccurrence(task);
+        if (next) {
+          await addTask(next).unwrap();
+          toast.success("Completed — next one scheduled", {
+            description: `Due ${next.due_date}`,
+          });
+          return;
+        }
+      }
     } catch (err) {
-      toast.error("Failed to delete task", {
+      toast.error("Couldn't update the task", {
         description: getErrorMessage(err),
       });
     }
   };
 
-  const handleStartFocus = (task: Task) => {
-    dispatch(
-      startFocus({
-        durationMinutes: 25,
-        taskTitle: task.title,
-        taskId: task.id,
-      }),
-    );
-    toast.success("Focus timer started for task");
+  const handleSave = async (values: Partial<Task>) => {
+    if (editingTaskId) {
+      await updateTask({ id: editingTaskId, ...values }).unwrap();
+      toast.success("Task saved.");
+    } else {
+      await addTask(values).unwrap();
+      toast.success("Task created.");
+    }
+    setIsSheetOpen(false);
   };
 
-  const openSubtaskDialog = (taskId: string) => {
-    setActiveParentTaskId(taskId);
-    setNewSubtaskTitle("");
-    setIsSubtaskDialogOpen(true);
-  };
-
-  const handleCreateSubtask = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!activeParentTaskId || !newSubtaskTitle.trim()) return;
+  const handleAddBlocker = async (dependsOnId: string) => {
+    if (!editingTaskId) return;
     try {
-      await addSubTask({
-        task_id: activeParentTaskId,
-        title: newSubtaskTitle,
-        is_completed: false,
+      await addDependency({
+        task_id: editingTaskId,
+        depends_on_id: dependsOnId,
       }).unwrap();
-      toast.success("Subtask added");
-      setIsSubtaskDialogOpen(false);
     } catch (err) {
-      toast.error("Failed to add subtask", {
+      // The database rejects cycles too; this is the message if one slips past
+      // the client-side filter (a concurrent edit, for instance).
+      toast.error("Couldn't add that dependency", {
         description: getErrorMessage(err),
       });
     }
   };
 
-  if (isLoading) {
-    return <LoadingState />;
-  }
+  const handleRemoveBlocker = async (dependsOnId: string) => {
+    const edge = dependencies.find(
+      (d) => d.task_id === editingTaskId && d.depends_on_id === dependsOnId,
+    );
+    if (!edge) return;
+    try {
+      await deleteDependency(edge.id).unwrap();
+    } catch (err) {
+      toast.error("Couldn't remove that dependency", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
+
+  const handleToggleSubtask = (subtask: SubTask) => {
+    updateSubTask({ id: subtask.id, is_completed: !subtask.is_completed });
+  };
+
+  const activeFilterCount =
+    (filters.status !== "all" ? 1 : 0) +
+    (filters.priority !== "all" ? 1 : 0) +
+    (filters.tag !== "all" ? 1 : 0) +
+    (filters.blockedOnly ? 1 : 0) +
+    (filters.overdueOnly ? 1 : 0);
+
+  if (isLoading) return <LoadingState label="Loading tasks" />;
 
   return (
-    <ManagerWrapper className="flex h-[calc(100vh-4rem)] flex-col md:h-auto">
+    <ManagerWrapper>
       <PageHeader
         title="Tasks"
-        description="Manage projects, track progress, and organize your workflow"
-        searchValue={searchTerm}
-        onSearch={setSearchTerm}
-        searchPlaceholder="Filter tasks..."
+        description="Plan, schedule and track what you're working on."
         actions={
-          <Button
-            onClick={() => handleCreateTask("todo")}
-            size="sm"
-            className="h-9 shadow-e1"
-          >
-            <Plus className="mr-2 size-4" /> New Task
+          <Button onClick={() => openNew("todo")} className="w-full sm:w-auto">
+            <Plus className="mr-2 size-4" aria-hidden /> New task
           </Button>
         }
       />
 
-      {/* flex-1 min-h-0 keeps the board filling available space with internal scroll */}
-      <div
-        className={cn(
-          "relative mt-4 flex min-h-0 flex-1 flex-col rounded-surface border border-border/40 bg-secondary/5",
-          isMobile ? "overflow-hidden" : "overflow-visible",
-        )}
-      >
-        {isMobile ? (
-          <div className="h-full w-full overflow-auto bg-background">
-            <TaskList
-              tasks={filteredTasks}
-              onUpdateTask={(id, updates) => updateTask({ id, ...updates })}
-              onEditTask={handleEditTask}
-              onDeleteTask={handleDeleteTask}
-              onStartFocus={handleStartFocus}
-              onAddSubTask={openSubtaskDialog}
-              onUpdateSubTask={(id, completed) =>
-                updateSubTask({ id, is_completed: completed })
+      <div className="mb-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            type="search"
+            value={filters.search}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, search: e.target.value }))
+            }
+            placeholder="Search tasks…"
+            aria-label="Search tasks"
+            className="w-full sm:max-w-xs"
+          />
+
+          <ToggleGroup
+            type="single"
+            value={view}
+            onValueChange={(v) => v && setView(v as ViewMode)}
+            size="sm"
+            className="ml-auto"
+          >
+            <ToggleGroupItem value="board" aria-label="Board view">
+              <Columns3 className="size-4" aria-hidden />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="List view">
+              <ListTodo className="size-4" aria-hidden />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="table" aria-label="Table view">
+              <Table2 className="size-4" aria-hidden />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="timeline" aria-label="Timeline view">
+              <GanttChartSquare className="size-4" aria-hidden />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        <FilterBar label="Filter by project">
+          <FilterChip
+            active={filters.projectId === "all"}
+            count={tasks.length}
+            onClick={() => setFilters((f) => ({ ...f, projectId: "all" }))}
+          >
+            All
+          </FilterChip>
+          {projects.map((project) => (
+            <FilterChip
+              key={project.id}
+              active={filters.projectId === project.id}
+              count={tasks.filter((t) => t.project_id === project.id).length}
+              onClick={() =>
+                setFilters((f) => ({ ...f, projectId: project.id }))
               }
-              onDeleteSubTask={(id) => deleteSubTask(id)}
-            />
-          </div>
-        ) : (
-          <div className="h-full w-full p-2">
-            <TaskBoard
-              tasks={filteredTasks}
-              onUpdateTask={(id, updates) => updateTask({ id, ...updates })}
-              onEditTask={handleEditTask}
-              onDeleteTask={handleDeleteTask}
-              onStartFocus={handleStartFocus}
-              onNewTask={handleCreateTask}
-            />
-          </div>
+            >
+              {project.name}
+            </FilterChip>
+          ))}
+          <FilterChip
+            active={filters.projectId === "none"}
+            count={tasks.filter((t) => !t.project_id).length}
+            onClick={() => setFilters((f) => ({ ...f, projectId: "none" }))}
+          >
+            No project
+          </FilterChip>
+        </FilterBar>
+
+        <FilterBar label="Refine">
+          <FilterChip
+            active={filters.overdueOnly}
+            onClick={() =>
+              setFilters((f) => ({ ...f, overdueOnly: !f.overdueOnly }))
+            }
+          >
+            Overdue
+          </FilterChip>
+          <FilterChip
+            active={filters.blockedOnly}
+            onClick={() =>
+              setFilters((f) => ({ ...f, blockedOnly: !f.blockedOnly }))
+            }
+          >
+            Blocked
+          </FilterChip>
+          <FilterChip
+            active={!filters.showDone}
+            onClick={() => setFilters((f) => ({ ...f, showDone: !f.showDone }))}
+          >
+            Hide done
+          </FilterChip>
+          {tags.map((tag) => (
+            <FilterChip
+              key={tag}
+              active={filters.tag === tag}
+              onClick={() =>
+                setFilters((f) => ({ ...f, tag: f.tag === tag ? "all" : tag }))
+              }
+            >
+              {tag}
+            </FilterChip>
+          ))}
+        </FilterBar>
+
+        {(view === "list" || view === "table") && (
+          <FilterBar label="Group by">
+            {(["status", "priority", "project", "due"] as TaskGroupBy[]).map(
+              (option) => (
+                <FilterChip
+                  key={option}
+                  active={groupBy === option}
+                  onClick={() => setGroupBy(option)}
+                >
+                  {option === "due" ? "Due date" : option}
+                </FilterChip>
+              ),
+            )}
+          </FilterBar>
         )}
       </div>
+
+      {tasks.length === 0 ? (
+        <EmptyState
+          icon={ListTodo}
+          variant="card"
+          title="No tasks yet"
+          description="Add the first one. Group them into projects, schedule them, and mark what blocks what."
+          action={{ label: "New task", onClick: () => openNew(), icon: Plus }}
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={ListTodo}
+          variant="card"
+          title="Nothing matches"
+          description={
+            activeFilterCount > 0 || filters.search
+              ? "No task matches the current filters."
+              : "Every task is complete."
+          }
+          action={{
+            label: "Clear filters",
+            onClick: () => setFilters(DEFAULT_FILTERS),
+          }}
+        />
+      ) : view === "board" ? (
+        <TaskBoard
+          tasks={visible}
+          projectsById={projectsById}
+          blockersFor={blockersFor}
+          onOpenTask={openTask}
+          onChangeStatus={applyStatus}
+          onNewTask={openNew}
+        />
+      ) : view === "timeline" ? (
+        <TaskTimelineView
+          tasks={visible}
+          projectsById={projectsById}
+          onOpenTask={openTask}
+        />
+      ) : (
+        <TaskTable
+          groups={groups}
+          projectsById={projectsById}
+          blockersFor={blockersFor}
+          onOpenTask={openTask}
+        />
+      )}
 
       <FormSheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
-        title={editingTask?.id ? "Edit Task" : "Create Task"}
-        description="Manage task details and subtasks."
+        title={editingTaskId ? "Edit task" : "New task"}
+        description="Details, schedule, subtasks and what blocks it."
       >
         <TaskForm
-          key={editingTask?.id || "new"}
+          key={editingTaskId ?? "new"}
           task={editingTask}
-          onSuccess={() => setIsSheetOpen(false)}
-          onClose={() => setIsSheetOpen(false)}
+          projects={projects}
+          blockers={
+            editingTaskId
+              ? (depIndex.blockedBy.get(editingTaskId) ?? [])
+                  .map((id) => byId.get(id))
+                  .filter((t): t is Task => !!t)
+              : []
+          }
+          eligibleBlockers={
+            editingTaskId
+              ? computeEligibleBlockers(editingTaskId, tasks, depIndex)
+              : []
+          }
+          onSave={handleSave}
+          onAddSubtask={async (title) => {
+            if (!editingTaskId) return;
+            await addSubTask({
+              task_id: editingTaskId,
+              title,
+              is_completed: false,
+            }).unwrap();
+          }}
+          onToggleSubtask={handleToggleSubtask}
+          onDeleteSubtask={async (id) => {
+            const ok = await confirm({
+              title: "Delete subtask?",
+              description: "This cannot be undone.",
+              variant: "destructive",
+            });
+            if (ok) deleteSubTask(id);
+          }}
+          onAddBlocker={handleAddBlocker}
+          onRemoveBlocker={handleRemoveBlocker}
+          onCancel={() => setIsSheetOpen(false)}
         />
       </FormSheet>
-
-      <Dialog open={isSubtaskDialogOpen} onOpenChange={setIsSubtaskDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Subtask</DialogTitle>
-            <DialogDescription>Quickly add a sub-item.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateSubtask} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="subtask-title">Title</Label>
-              <Input
-                id="subtask-title"
-                value={newSubtaskTitle}
-                onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button type="button" variant="ghost">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit">Add</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </ManagerWrapper>
   );
 }

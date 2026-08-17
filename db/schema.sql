@@ -89,7 +89,10 @@ CREATE TRIGGER block_additional_signups
 -- 2. CUSTOM ENUM TYPES (idempotent)
 -- =========================================================
 
-DO $$ BEGIN CREATE TYPE task_status AS ENUM ('todo', 'inprogress', 'done'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TYPE task_status AS ENUM ('todo', 'inprogress', 'review', 'done'); EXCEPTION WHEN duplicate_object THEN null; END $$;
+-- Existing databases pick this up via db/migrations/001-tasks-projects-dependencies.sql.
+-- 'blocked' is deliberately absent: it is derived from unmet dependencies, so a
+-- stored value could disagree with the dependency graph.
 DO $$ BEGIN CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE transaction_type AS ENUM ('earning', 'expense'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TYPE transaction_frequency AS ENUM ('daily', 'weekly', 'bi-weekly', 'monthly', 'yearly'); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -240,16 +243,51 @@ CREATE TRIGGER update_blog_posts_updated_at BEFORE UPDATE ON blog_posts FOR EACH
 -- 5. ADMIN TOOLS — Tasks, Notes, Events
 -- =========================================================
 
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE IF NOT EXISTS task_projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
-  title TEXT NOT NULL,
-  status task_status DEFAULT 'todo',
-  due_date DATE,
-  priority task_priority DEFAULT 'medium',
+  name TEXT NOT NULL CHECK (length(trim(name)) > 0 AND length(name) <= 120),
+  color TEXT CHECK (color IS NULL OR color ~ '^#[0-9A-Fa-f]{6}$'),
+  display_order INT4 DEFAULT 0,
+  is_archived BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE task_projects ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admin manage task projects" ON task_projects;
+CREATE POLICY "Admin manage task projects" ON task_projects FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
+DROP TRIGGER IF EXISTS update_task_projects_updated_at ON task_projects;
+CREATE TRIGGER update_task_projects_updated_at BEFORE UPDATE ON task_projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+  project_id UUID REFERENCES task_projects(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  status task_status DEFAULT 'todo',
+  priority task_priority DEFAULT 'medium',
+  start_date DATE,
+  due_date DATE,
+  tags TEXT[],
+  display_order INT4 DEFAULT 0,
+  estimate_minutes INT4,
+  tracked_minutes INT4 DEFAULT 0,
+  completed_at TIMESTAMPTZ,
+  recurrence TEXT,
+  recurrence_interval INT4,
+  recurrence_parent_id UUID REFERENCES tasks(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT tasks_dates_ordered CHECK (start_date IS NULL OR due_date IS NULL OR start_date <= due_date),
+  CONSTRAINT tasks_estimate_nonneg CHECK (estimate_minutes IS NULL OR (estimate_minutes >= 0 AND estimate_minutes <= 100000)),
+  CONSTRAINT tasks_tracked_nonneg CHECK (tracked_minutes IS NULL OR (tracked_minutes >= 0 AND tracked_minutes <= 100000)),
+  CONSTRAINT tasks_recurrence_valid CHECK (recurrence IS NULL OR recurrence IN ('daily', 'weekly', 'monthly')),
+  CONSTRAINT tasks_recurrence_interval_valid CHECK (recurrence_interval IS NULL OR (recurrence_interval >= 1 AND recurrence_interval <= 365)),
+  CONSTRAINT tasks_recurrence_needs_due_date CHECK (recurrence IS NULL OR due_date IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS tasks_project_id_idx ON tasks(project_id);
+CREATE INDEX IF NOT EXISTS tasks_due_date_idx ON tasks(due_date);
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage tasks" ON tasks;
 CREATE POLICY "Admin manage tasks" ON tasks FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
@@ -267,6 +305,22 @@ CREATE TABLE IF NOT EXISTS sub_tasks (
 ALTER TABLE sub_tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage subtasks" ON sub_tasks;
 CREATE POLICY "Admin manage subtasks" ON sub_tasks FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
+
+-- `task_id` is blocked by `depends_on_id`.
+CREATE TABLE IF NOT EXISTS task_dependencies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  depends_on_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (task_id, depends_on_id),
+  CHECK (task_id <> depends_on_id)
+);
+ALTER TABLE task_dependencies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admin manage task dependencies" ON task_dependencies;
+CREATE POLICY "Admin manage task dependencies" ON task_dependencies FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
+CREATE INDEX IF NOT EXISTS task_dependencies_task_id_idx ON task_dependencies(task_id);
+CREATE INDEX IF NOT EXISTS task_dependencies_depends_on_id_idx ON task_dependencies(depends_on_id);
 
 CREATE TABLE IF NOT EXISTS notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -591,6 +645,55 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION increment_blog_post_view(UUID) TO anon, authenticated;
+
+-- Task Reordering
+CREATE OR REPLACE FUNCTION update_task_order(task_ids UUID[])
+RETURNS void AS $$
+BEGIN
+  FOR i IN 1..array_length(task_ids, 1) LOOP
+    UPDATE tasks SET display_order = i WHERE id = task_ids[i] AND user_id = auth.uid();
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
+-- A dependency cycle makes "is this task blocked?" non-terminating, so it is
+-- rejected by the database rather than only by the client.
+CREATE OR REPLACE FUNCTION reject_dependency_cycle()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF EXISTS (
+    WITH RECURSIVE chain(id) AS (
+      SELECT NEW.depends_on_id
+      UNION
+      SELECT d.depends_on_id FROM task_dependencies d JOIN chain c ON d.task_id = c.id
+    )
+    SELECT 1 FROM chain WHERE id = NEW.task_id
+  ) THEN
+    RAISE EXCEPTION 'Dependency would create a cycle';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS task_dependencies_no_cycle ON task_dependencies;
+CREATE TRIGGER task_dependencies_no_cycle BEFORE INSERT OR UPDATE ON task_dependencies FOR EACH ROW EXECUTE FUNCTION reject_dependency_cycle();
+
+-- Completion time is set in one place so every write path agrees, including
+-- drag-to-column on the board and bulk status changes.
+CREATE OR REPLACE FUNCTION sync_task_completed_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'done' AND (OLD.status IS DISTINCT FROM 'done') THEN
+    NEW.completed_at := now();
+  ELSIF NEW.status <> 'done' THEN
+    NEW.completed_at := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS tasks_sync_completed_at ON tasks;
+CREATE TRIGGER tasks_sync_completed_at BEFORE INSERT OR UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION sync_task_completed_at();
 
 -- Section Reordering
 CREATE OR REPLACE FUNCTION update_section_order(section_ids UUID[])
