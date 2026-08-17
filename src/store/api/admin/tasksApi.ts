@@ -236,6 +236,22 @@ export const tasksApi = adminApi.injectEndpoints({
       invalidatesTags: ["TaskDependencies"],
     }),
 
+    /* ── Time tracking ────────────────────────────────────────────────── */
+    addTaskTime: builder.mutation<null, { taskId: string; minutes: number }>({
+      queryFn: async ({ taskId, minutes }) => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        // Incremented in the database. A client-side read-modify-write would
+        // lose a session whenever two finish against the same stale row.
+        const { error } = await supabase.rpc("add_task_time", {
+          target_task_id: taskId,
+          minutes,
+        });
+        if (error) return { error };
+        return { data: null };
+      },
+      invalidatesTags: ["Tasks"],
+    }),
+
     /* ── Manual ordering ──────────────────────────────────────────────── */
     updateTaskOrder: builder.mutation<null, string[]>({
       queryFn: async (taskIds) => {
@@ -269,4 +285,5 @@ export const {
   useAddTaskDependencyMutation,
   useDeleteTaskDependencyMutation,
   useUpdateTaskOrderMutation,
+  useAddTaskTimeMutation,
 } = tasksApi;

@@ -53,6 +53,8 @@ export interface TaskFormProps {
   onDeleteSubtask: (id: string) => void;
   onAddBlocker: (dependsOnId: string) => Promise<void>;
   onRemoveBlocker: (dependsOnId: string) => void;
+  /** Absent for a task that does not exist yet. */
+  onDelete?: () => void;
   onCancel: () => void;
 }
 
@@ -67,6 +69,7 @@ export function TaskForm({
   onDeleteSubtask,
   onAddBlocker,
   onRemoveBlocker,
+  onDelete,
   onCancel,
 }: TaskFormProps) {
   const [isSaving, setIsSaving] = useState(false);
@@ -509,8 +512,23 @@ export function TaskForm({
           </>
         )}
 
-        <div className="flex justify-end gap-2 border-t pt-4">
-          <Button type="button" variant="ghost" onClick={onCancel}>
+        <div className="flex items-center gap-2 border-t pt-4">
+          {onDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onDelete}
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="mr-2 size-4" aria-hidden /> Delete
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancel}
+            className="ml-auto"
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={isSaving}>

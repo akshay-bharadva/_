@@ -188,3 +188,19 @@ WITH ordered AS (
 )
 UPDATE tasks SET display_order = ordered.rn
 FROM ordered WHERE tasks.id = ordered.id AND tasks.display_order = 0;
+
+
+-- ── 7. Time tracking ────────────────────────────────────────────────────────
+-- Incremented in the database rather than read-modify-written by the client:
+-- a focus session finishing while another tab holds a stale task row would
+-- otherwise overwrite the other session's minutes with its own total.
+
+CREATE OR REPLACE FUNCTION add_task_time(target_task_id UUID, minutes INT)
+RETURNS void AS $$
+BEGIN
+  IF minutes IS NULL OR minutes <= 0 THEN RETURN; END IF;
+  UPDATE tasks
+  SET tracked_minutes = LEAST(COALESCE(tracked_minutes, 0) + minutes, 100000)
+  WHERE id = target_task_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;

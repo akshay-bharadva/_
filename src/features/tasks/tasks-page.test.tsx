@@ -6,10 +6,31 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import focusReducer from "@/store/slices/focusSlice";
 import type { Task, TaskDependency, TaskProject } from "@/types";
 import TasksPage from "./tasks-page";
 
-const updateTask = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
+/**
+ * Only the focus slice, which is what the page dispatches to when starting a
+ * timer on a task. The real store wires in adminApi, and adminApi is mocked
+ * here, so its reducerPath would be undefined.
+ */
+const renderPage = () =>
+  render(
+    <Provider store={configureStore({ reducer: { focus: focusReducer } })}>
+      <TasksPage />
+    </Provider>,
+  );
+
+const updateTask = vi.fn<
+  (task: Partial<Task>) => { unwrap: () => Promise<unknown> }
+>(() => ({ unwrap: () => Promise.resolve({}) }));
+const deleteTask = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
+const addProject = vi.fn<
+  (project: { name: string }) => { unwrap: () => Promise<unknown> }
+>(() => ({ unwrap: () => Promise.resolve({}) }));
 const addTask = vi.fn<
   (task: Partial<Task>) => { unwrap: () => Promise<unknown> }
 >(() => ({ unwrap: () => Promise.resolve({}) }));
@@ -25,6 +46,10 @@ vi.mock("@/store/api/adminApi", () => ({
   useGetTaskDependenciesQuery: () => ({ data: dependencies }),
   useAddTaskMutation: () => [addTask],
   useUpdateTaskMutation: () => [updateTask],
+  useDeleteTaskMutation: () => [deleteTask],
+  useAddTaskProjectMutation: () => [addProject],
+  useUpdateTaskProjectMutation: () => [vi.fn(noop)],
+  useDeleteTaskProjectMutation: () => [vi.fn(noop)],
   useAddSubTaskMutation: () => [vi.fn(noop)],
   useUpdateSubTaskMutation: () => [vi.fn(noop)],
   useDeleteSubTaskMutation: () => [vi.fn(noop)],
@@ -32,8 +57,13 @@ vi.mock("@/store/api/adminApi", () => ({
   useDeleteTaskDependencyMutation: () => [vi.fn(noop)],
 }));
 
+const confirmSpy =
+  vi.fn<
+    (options: { title: string; description: string }) => Promise<boolean>
+  >();
+
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
-  useConfirm: () => vi.fn(() => Promise.resolve(true)),
+  useConfirm: () => confirmSpy,
 }));
 
 const task = (overrides: Partial<Task> = {}): Task => ({
@@ -47,6 +77,7 @@ const task = (overrides: Partial<Task> = {}): Task => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  confirmSpy.mockResolvedValue(true);
   tasks = [];
   projects = [];
   dependencies = [];
@@ -54,13 +85,13 @@ beforeEach(() => {
 
 describe("TasksPage", () => {
   it("shows an empty state with no tasks", () => {
-    render(<TasksPage />);
+    renderPage();
     expect(screen.getByText("No tasks yet")).toBeInTheDocument();
   });
 
   it("renders a column per status, including empty ones", () => {
     tasks = [task()];
-    render(<TasksPage />);
+    renderPage();
     for (const label of ["To Do", "In Progress", "In Review", "Done"]) {
       expect(screen.getByRole("region", { name: label })).toBeInTheDocument();
     }
@@ -73,7 +104,7 @@ describe("TasksPage", () => {
       task({ id: "b", title: "Paint wall" }),
     ];
     dependencies = [{ id: "d1", task_id: "b", depends_on_id: "a" }];
-    render(<TasksPage />);
+    renderPage();
     expect(screen.getByText(/Blocked by Buy paint/)).toBeInTheDocument();
   });
 
@@ -83,7 +114,7 @@ describe("TasksPage", () => {
       task({ id: "b", title: "Paint wall" }),
     ];
     dependencies = [{ id: "d1", task_id: "b", depends_on_id: "a" }];
-    render(<TasksPage />);
+    renderPage();
     expect(screen.queryByText(/Blocked by/)).not.toBeInTheDocument();
   });
 
@@ -93,8 +124,9 @@ describe("TasksPage", () => {
       task({ id: "b", title: "Paint wall" }),
     ];
     dependencies = [{ id: "d1", task_id: "b", depends_on_id: "a" }];
-    render(<TasksPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Blocked/ }));
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    fireEvent.click(screen.getByLabelText("Blocked"));
     expect(screen.getByLabelText("Paint wall")).toBeInTheDocument();
     expect(screen.queryByLabelText("Buy paint")).not.toBeInTheDocument();
   });
@@ -104,8 +136,9 @@ describe("TasksPage", () => {
       task({ id: "a", title: "Done thing", status: "done" }),
       task({ id: "b", title: "Open thing" }),
     ];
-    render(<TasksPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Hide done/ }));
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    fireEvent.click(screen.getByLabelText("Hide completed"));
     expect(screen.queryByLabelText("Done thing")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Open thing")).toBeInTheDocument();
   });
@@ -115,7 +148,7 @@ describe("TasksPage", () => {
       task({ id: "a", title: "Renew passport" }),
       task({ id: "b", title: "Buy milk" }),
     ];
-    render(<TasksPage />);
+    renderPage();
     fireEvent.change(screen.getByLabelText("Search tasks"), {
       target: { value: "passport" },
     });
@@ -125,7 +158,7 @@ describe("TasksPage", () => {
 
   it("switches between the four views", () => {
     tasks = [task({ due_date: "2026-06-15" })];
-    render(<TasksPage />);
+    renderPage();
     fireEvent.click(screen.getByLabelText("Table view"));
     expect(screen.getByRole("table")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Timeline view"));
@@ -134,19 +167,18 @@ describe("TasksPage", () => {
 
   it("says why nothing is on the timeline when no task has a due date", () => {
     tasks = [task({ due_date: null })];
-    render(<TasksPage />);
+    renderPage();
     fireEvent.click(screen.getByLabelText("Timeline view"));
     expect(screen.getByText(/needs a due date/)).toBeInTheDocument();
   });
 
   it("offers grouping only for the grouped views", () => {
     tasks = [task()];
-    render(<TasksPage />);
-    expect(
-      screen.queryByRole("group", { name: "Group by" }),
-    ).not.toBeInTheDocument();
+    renderPage();
+    // Grouping is meaningless on a board, whose columns are the grouping.
+    expect(screen.queryByLabelText("Group by")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Table view"));
-    expect(screen.getByRole("group", { name: "Group by" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Group by")).toBeInTheDocument();
   });
 
   /**
@@ -164,7 +196,7 @@ describe("TasksPage", () => {
         recurrence_interval: 1,
       }),
     ];
-    render(<TasksPage />);
+    renderPage();
 
     const card = screen.getByLabelText("Water plants");
     fireEvent.dragStart(card);
@@ -183,7 +215,7 @@ describe("TasksPage", () => {
 
   it("does not schedule anything when a one-off task is completed", async () => {
     tasks = [task({ id: "o1", title: "One off", due_date: "2026-06-15" })];
-    render(<TasksPage />);
+    renderPage();
 
     fireEvent.dragStart(screen.getByLabelText("One off"));
     const doneColumn = screen.getByRole("region", { name: "Done" });
@@ -194,22 +226,126 @@ describe("TasksPage", () => {
     expect(addTask).not.toHaveBeenCalled();
   });
 
-  it("groups by project and separates unassigned tasks", () => {
+  it("offers projects as navigation with counts", () => {
     projects = [{ id: "p1", name: "House" }];
     tasks = [
       task({ id: "a", title: "Fix door", project_id: "p1" }),
       task({ id: "b", title: "Loose end", project_id: null }),
     ];
-    render(<TasksPage />);
-    fireEvent.click(screen.getByLabelText("Table view"));
-    const groupBy = screen.getByRole("group", { name: "Group by" });
-    fireEvent.click(within(groupBy).getByRole("button", { name: "project" }));
-    // The group header rows, not the Project column cells or the filter chips.
-    const table = screen.getByRole("table");
-    const headers = within(table)
-      .getAllByRole("columnheader")
-      .map((el) => el.textContent ?? "");
-    expect(headers.some((h) => h.startsWith("House"))).toBe(true);
-    expect(headers.some((h) => h.startsWith("No project"))).toBe(true);
+    renderPage();
+    const rail = screen.getByRole("navigation", { name: "Projects" });
+    expect(
+      within(rail).getByRole("button", { name: /House/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(rail).getByRole("button", { name: /No project/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("filters to a project from the rail", () => {
+    projects = [{ id: "p1", name: "House" }];
+    tasks = [
+      task({ id: "a", title: "Fix door", project_id: "p1" }),
+      task({ id: "b", title: "Loose end", project_id: null }),
+    ];
+    renderPage();
+    const rail = screen.getByRole("navigation", { name: "Projects" });
+    fireEvent.click(within(rail).getByRole("button", { name: /House/ }));
+    expect(screen.getByLabelText("Fix door")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Loose end")).not.toBeInTheDocument();
+  });
+  /* ── Regressions from the first pass of this rebuild ───────────────── */
+
+  /**
+   * The List toggle fell through to the table renderer: the projects CRUD API
+   * was wired with no UI, and task deletion was dropped entirely.
+   */
+  it("renders a list, not the table, in list view", () => {
+    tasks = [task({ title: "Walk dog" })];
+    renderPage();
+    fireEvent.click(screen.getByLabelText("List view"));
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Complete Walk dog")).toBeInTheDocument();
+  });
+
+  it("completes a task from the list without opening the panel", async () => {
+    tasks = [task({ id: "a", title: "Walk dog" })];
+    renderPage();
+    fireEvent.click(screen.getByLabelText("List view"));
+    fireEvent.click(screen.getByLabelText("Complete Walk dog"));
+    await waitFor(() => expect(updateTask).toHaveBeenCalled());
+    expect(updateTask.mock.calls[0]?.[0]).toMatchObject({ status: "done" });
+  });
+
+  it("reopens a completed task from its checkbox", async () => {
+    tasks = [task({ id: "a", title: "Walk dog", status: "done" })];
+    renderPage();
+    fireEvent.click(screen.getByLabelText("List view"));
+    fireEvent.click(screen.getByLabelText("Reopen Walk dog"));
+    await waitFor(() => expect(updateTask).toHaveBeenCalled());
+    expect(updateTask.mock.calls[0]?.[0]).toMatchObject({ status: "todo" });
+  });
+
+  it("opens a way to create a project", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Projects/ }));
+    expect(screen.getByLabelText("New project")).toBeInTheDocument();
+  });
+
+  it("creates a project", async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Projects/ }));
+    fireEvent.change(screen.getByLabelText("New project"), {
+      target: { value: "House" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add project" }));
+    await waitFor(() => expect(addProject).toHaveBeenCalled());
+    expect(addProject.mock.calls[0]?.[0]).toMatchObject({ name: "House" });
+  });
+
+  it("refuses to create a project with a blank name", async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Projects/ }));
+    expect(screen.getByRole("button", { name: "Add project" })).toBeDisabled();
+    expect(addProject).not.toHaveBeenCalled();
+  });
+
+  it("offers every project when choosing one for a task", () => {
+    projects = [{ id: "p1", name: "House" }];
+    // A task exists so the empty state (which has its own "New task") is gone.
+    tasks = [task()];
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "New task" }));
+    expect(
+      screen.getByRole("combobox", { name: /Project/ }),
+    ).toBeInTheDocument();
+  });
+
+  /**
+   * Deletion was dropped entirely in the first pass of this rebuild. Asserted
+   * through the task panel rather than the card's dropdown, which needs real
+   * pointer events jsdom does not implement.
+   */
+  it("deletes a task from the task panel", async () => {
+    tasks = [task({ id: "a", title: "Walk dog" })];
+    renderPage();
+    fireEvent.click(screen.getByLabelText("Walk dog"));
+    fireEvent.click(await screen.findByRole("button", { name: /Delete/ }));
+    await waitFor(() => expect(deleteTask).toHaveBeenCalledWith("a"));
+  });
+
+  it("warns that deleting a task unblocks whatever waits on it", async () => {
+    tasks = [
+      task({ id: "a", title: "Buy paint" }),
+      task({ id: "b", title: "Paint wall" }),
+    ];
+    dependencies = [{ id: "d1", task_id: "b", depends_on_id: "a" }];
+    renderPage();
+    fireEvent.click(screen.getByLabelText("Buy paint"));
+    fireEvent.click(await screen.findByRole("button", { name: /Delete/ }));
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
+    expect(confirmSpy.mock.calls[0]?.[0]?.description).toMatch(
+      /will no longer be blocked/,
+    );
   });
 });

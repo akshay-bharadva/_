@@ -11,7 +11,10 @@ import {
   stopFocus,
   tick,
 } from "@/store/slices/focusSlice";
-import { useLogFocusSessionMutation } from "@/store/api/adminApi";
+import {
+  useAddTaskTimeMutation,
+  useLogFocusSessionMutation,
+} from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -29,6 +32,7 @@ export function FocusTimer() {
   const { isActive, isPaused, timeLeft, duration, taskTitle, taskId, mode } =
     useAppSelector((state) => state.focus);
   const [logSession] = useLogFocusSessionMutation();
+  const [addTaskTime] = useAddTaskTimeMutation();
   const [isMinimized, setIsMinimized] = React.useState(false);
 
   // Timer tick loop; completion fires when the countdown hits zero
@@ -45,23 +49,60 @@ export function FocusTimer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, isPaused, timeLeft, dispatch]);
 
-  const handleComplete = async () => {
+  /**
+   * Record the work that actually happened, then clear the timer.
+   *
+   * Elapsed time is derived from what is left on the clock rather than assumed
+   * to be the full duration, so stopping early logs the minutes worked instead
+   * of logging nothing — which is what it used to do. A break is never logged
+   * against a task.
+   */
+  const finishSession = async (reason: "completed" | "stopped") => {
+    const elapsedMinutes = Math.round((duration * 60 - timeLeft) / 60);
+    const wasWork = mode === "work";
+    const trackedTaskId = taskId;
+
     dispatch(stopFocus());
+
+    if (!wasWork) {
+      if (reason === "completed") toast.info("Break over. Back to work!");
+      return;
+    }
+
+    // Nothing worth recording — a session stopped within the first minute.
+    if (elapsedMinutes < 1) {
+      if (reason === "completed") toast.success("Focus session complete.");
+      return;
+    }
+
     try {
-      if (mode === "work") {
-        await logSession({
-          duration_minutes: duration,
-          task_id: taskId,
-          mode,
+      await logSession({
+        duration_minutes: elapsedMinutes,
+        task_id: trackedTaskId,
+        mode,
+      }).unwrap();
+
+      if (trackedTaskId) {
+        await addTaskTime({
+          taskId: trackedTaskId,
+          minutes: elapsedMinutes,
         }).unwrap();
-        toast.success("Focus session complete! Take a break.");
-      } else {
-        toast.info("Break over. Back to work!");
       }
+
+      toast.success(
+        reason === "completed"
+          ? `Focus session complete — ${elapsedMinutes}m logged.`
+          : `${elapsedMinutes}m logged.`,
+        trackedTaskId && taskTitle
+          ? { description: `Added to "${taskTitle}"` }
+          : undefined,
+      );
     } catch {
-      toast.error("Failed to log session.");
+      toast.error("Couldn't log the session.");
     }
   };
+
+  const handleComplete = () => finishSession("completed");
 
   if (!isActive) return null;
 
@@ -183,7 +224,7 @@ export function FocusTimer() {
               size="lg"
               variant="destructive"
               className="h-14 w-32 gap-2 text-lg"
-              onClick={() => dispatch(stopFocus())}
+              onClick={() => void finishSession("stopped")}
             >
               <Square className="size-5 fill-current" /> Stop
             </Button>

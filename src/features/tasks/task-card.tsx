@@ -5,11 +5,28 @@ import {
   CircleSlash,
   Clock,
   ListChecks,
+  MoreHorizontal,
+  Play,
   Repeat,
+  Trash2,
 } from "lucide-react";
 import type { Task, TaskProject } from "@/types";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/cn";
-import { TASK_PRIORITY_META, type TaskPriority } from "./task-meta";
+import {
+  TASK_PRIORITY_META,
+  TASK_STATUSES,
+  TASK_STATUS_META,
+  type TaskPriority,
+  type TaskStatus,
+} from "./task-meta";
 import { describeRecurrence } from "./task-recurrence";
 import { isOverdue } from "./task-filters";
 
@@ -50,6 +67,9 @@ export interface TaskCardProps {
   /** Blockers that are not yet done. Empty means the task is free to start. */
   blockers: Task[];
   onOpen: () => void;
+  onChangeStatus: (status: TaskStatus) => void;
+  onStartTimer: () => void;
+  onDelete: () => void;
   draggable?: boolean;
   onDragStart?: () => void;
   className?: string;
@@ -67,6 +87,9 @@ export function TaskCard({
   project,
   blockers,
   onOpen,
+  onChangeStatus,
+  onStartTimer,
+  onDelete,
   draggable,
   onDragStart,
   className,
@@ -112,14 +135,52 @@ export function TaskCard({
         </p>
       )}
 
-      <p
-        className={cn(
-          "break-words text-sm font-medium",
-          task.status === "done" && "line-through",
-        )}
-      >
-        {task.title}
-      </p>
+      <div className="flex items-start gap-2">
+        <p
+          className={cn(
+            "min-w-0 flex-1 break-words text-sm font-medium",
+            task.status === "done" && "line-through",
+          )}
+        >
+          {task.title}
+        </p>
+
+        <span onClick={(e) => e.stopPropagation()} className="shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                aria-label={`Actions for ${task.title}`}
+              >
+                <MoreHorizontal className="size-3.5" aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={onStartTimer}>
+                <Play className="mr-2 size-4" aria-hidden /> Start focus timer
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {TASK_STATUSES.filter((s) => s !== task.status).map((status) => (
+                <DropdownMenuItem
+                  key={status}
+                  onSelect={() => onChangeStatus(status)}
+                >
+                  Move to {TASK_STATUS_META[status].label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive"
+                onSelect={onDelete}
+              >
+                <Trash2 className="mr-2 size-4" aria-hidden /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </span>
+      </div>
 
       {project && (
         <span className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">

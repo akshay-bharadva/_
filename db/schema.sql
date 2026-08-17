@@ -646,6 +646,18 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION increment_blog_post_view(UUID) TO anon, authenticated;
 
+-- Focus time is added in the database, not read-modify-written by the client:
+-- a session finishing while another tab holds a stale task row would otherwise
+-- overwrite the other session's minutes.
+CREATE OR REPLACE FUNCTION add_task_time(target_task_id UUID, minutes INT)
+RETURNS void AS $$
+BEGIN
+  IF minutes IS NULL OR minutes <= 0 THEN RETURN; END IF;
+  UPDATE tasks SET tracked_minutes = LEAST(COALESCE(tracked_minutes, 0) + minutes, 100000)
+  WHERE id = target_task_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
 -- Task Reordering
 CREATE OR REPLACE FUNCTION update_task_order(task_ids UUID[])
 RETURNS void AS $$

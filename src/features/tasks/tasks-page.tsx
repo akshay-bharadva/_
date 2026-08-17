@@ -1,13 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Columns3,
-  GanttChartSquare,
-  ListTodo,
-  Plus,
-  Table2,
-} from "lucide-react";
+import { FolderKanban, ListTodo, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { SubTask, Task } from "@/types";
 import {
@@ -16,6 +10,7 @@ import {
   useAddTaskMutation,
   useDeleteSubTaskMutation,
   useDeleteTaskDependencyMutation,
+  useDeleteTaskMutation,
   useGetTaskDependenciesQuery,
   useGetTaskProjectsQuery,
   useGetTasksQuery,
@@ -23,9 +18,6 @@ import {
   useUpdateTaskMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import {
   EmptyState,
@@ -34,6 +26,8 @@ import {
   ManagerWrapper,
   PageHeader,
 } from "@/components/admin/shared";
+import { useAppDispatch } from "@/store/hooks";
+import { startFocus } from "@/store/slices/focusSlice";
 import { getErrorMessage } from "@/lib/utils";
 import { TASK_STATUS_META, type TaskStatus } from "./task-meta";
 import {
@@ -50,23 +44,29 @@ import {
   sortTasks,
   type TaskFilters,
   type TaskGroupBy,
+  type TaskSortBy,
 } from "./task-filters";
 import { nextOccurrence } from "./task-recurrence";
 import { TaskBoard } from "./task-board";
+import { TaskList } from "./task-list";
 import { TaskTable } from "./task-table";
+import { TaskProjectsSheet } from "./task-projects-sheet";
+import { TaskProjectRail } from "./task-project-rail";
+import { TaskToolbar, type ViewMode } from "./task-toolbar";
 import { TaskTimelineView } from "./task-timeline-view";
 import { TaskForm } from "./task-form";
 
-type ViewMode = "board" | "list" | "table" | "timeline";
-
 export default function TasksPage() {
   const confirm = useConfirm();
+  const dispatch = useAppDispatch();
 
   const [view, setView] = useState<ViewMode>("board");
   const [groupBy, setGroupBy] = useState<TaskGroupBy>("status");
+  const [sortBy, setSortBy] = useState<TaskSortBy>("manual");
   const [filters, setFilters] = useState<TaskFilters>(DEFAULT_FILTERS);
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [draftDefaults, setDraftDefaults] = useState<Partial<Task> | null>(
     null,
@@ -78,6 +78,7 @@ export default function TasksPage() {
 
   const [addTask] = useAddTaskMutation();
   const [updateTask] = useUpdateTaskMutation();
+  const [deleteTask] = useDeleteTaskMutation();
   const [addSubTask] = useAddSubTaskMutation();
   const [updateSubTask] = useUpdateSubTaskMutation();
   const [deleteSubTask] = useDeleteSubTaskMutation();
@@ -100,8 +101,8 @@ export default function TasksPage() {
   );
 
   const visible = useMemo(
-    () => sortTasks(filterTasks(tasks, filters, depIndex, byId), "manual"),
-    [tasks, filters, depIndex, byId],
+    () => sortTasks(filterTasks(tasks, filters, depIndex, byId), sortBy),
+    [tasks, filters, depIndex, byId, sortBy],
   );
 
   const groups = useMemo(
@@ -121,6 +122,15 @@ export default function TasksPage() {
   );
 
   const tags = useMemo(() => collectTags(tasks), [tasks]);
+
+  const taskCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const task of tasks) {
+      if (!task.project_id) continue;
+      counts.set(task.project_id, (counts.get(task.project_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [tasks]);
 
   const openNew = (status: TaskStatus = "todo") => {
     setEditingTaskId(null);
@@ -160,6 +170,45 @@ export default function TasksPage() {
       }
     } catch (err) {
       toast.error("Couldn't update the task", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
+
+  const handleStartTimer = (task: Task) => {
+    dispatch(
+      startFocus({
+        durationMinutes: 25,
+        taskTitle: task.title,
+        taskId: task.id,
+      }),
+    );
+    toast.success("Focus timer started", { description: task.title });
+  };
+
+  const toggleComplete = (task: Task) =>
+    applyStatus(task, task.status === "done" ? "todo" : "done");
+
+  const handleDeleteTask = async (task: Task) => {
+    const dependents = depIndex.blocks.get(task.id) ?? [];
+    const ok = await confirm({
+      title: `Delete "${task.title}"?`,
+      description:
+        dependents.length > 0
+          ? // The edges cascade, so those tasks silently stop being blocked.
+            `${dependents.length} task${dependents.length === 1 ? " is" : "s are"} waiting on this one and will no longer be blocked. Its subtasks are deleted too. This cannot be undone.`
+          : "Its subtasks are deleted too. This cannot be undone.",
+      variant: "destructive",
+      confirmText: "Delete",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteTask(task.id).unwrap();
+      toast.success("Task deleted.");
+      if (editingTaskId === task.id) setIsSheetOpen(false);
+    } catch (err) {
+      toast.error("Couldn't delete the task", {
         description: getErrorMessage(err),
       });
     }
@@ -225,175 +274,108 @@ export default function TasksPage() {
         title="Tasks"
         description="Plan, schedule and track what you're working on."
         actions={
-          <Button onClick={() => openNew("todo")} className="w-full sm:w-auto">
-            <Plus className="mr-2 size-4" aria-hidden /> New task
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setIsProjectsOpen(true)}>
+              <FolderKanban className="mr-2 size-4" aria-hidden /> Projects
+              {projects.length > 0 && (
+                <span className="ml-1.5 tabular-nums text-muted-foreground">
+                  {projects.length}
+                </span>
+              )}
+            </Button>
+            <Button onClick={() => openNew("todo")}>
+              <Plus className="mr-2 size-4" aria-hidden /> New task
+            </Button>
+          </div>
         }
       />
 
-      <div className="mb-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            type="search"
-            value={filters.search}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, search: e.target.value }))
-            }
-            placeholder="Search tasks…"
-            aria-label="Search tasks"
-            className="w-full sm:max-w-xs"
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <TaskProjectRail
+          projects={projects}
+          counts={taskCounts}
+          totalCount={tasks.length}
+          unassignedCount={tasks.filter((t) => !t.project_id).length}
+          selected={filters.projectId}
+          onSelect={(projectId) => setFilters((f) => ({ ...f, projectId }))}
+          onManage={() => setIsProjectsOpen(true)}
+        />
+
+        <div className="min-w-0 flex-1">
+          <TaskToolbar
+            view={view}
+            onViewChange={setView}
+            groupBy={groupBy}
+            onGroupByChange={setGroupBy}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            filters={filters}
+            onFiltersChange={setFilters}
+            tags={tags}
           />
 
-          <ToggleGroup
-            type="single"
-            value={view}
-            onValueChange={(v) => v && setView(v as ViewMode)}
-            size="sm"
-            className="ml-auto"
-          >
-            <ToggleGroupItem value="board" aria-label="Board view">
-              <Columns3 className="size-4" aria-hidden />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label="List view">
-              <ListTodo className="size-4" aria-hidden />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="table" aria-label="Table view">
-              <Table2 className="size-4" aria-hidden />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="timeline" aria-label="Timeline view">
-              <GanttChartSquare className="size-4" aria-hidden />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          {tasks.length === 0 ? (
+            <EmptyState
+              icon={ListTodo}
+              variant="card"
+              title="No tasks yet"
+              description="Add the first one. Group them into projects, schedule them, and mark what blocks what."
+              action={{
+                label: "New task",
+                onClick: () => openNew(),
+                icon: Plus,
+              }}
+            />
+          ) : visible.length === 0 ? (
+            <EmptyState
+              icon={ListTodo}
+              variant="card"
+              title="Nothing matches"
+              description={
+                activeFilterCount > 0 || filters.search
+                  ? "No task matches the current filters."
+                  : "Every task is complete."
+              }
+              action={{
+                label: "Clear filters",
+                onClick: () => setFilters(DEFAULT_FILTERS),
+              }}
+            />
+          ) : view === "board" ? (
+            <TaskBoard
+              tasks={visible}
+              projectsById={projectsById}
+              blockersFor={blockersFor}
+              onOpenTask={openTask}
+              onChangeStatus={applyStatus}
+              onStartTimer={handleStartTimer}
+              onDeleteTask={handleDeleteTask}
+              onNewTask={openNew}
+            />
+          ) : view === "timeline" ? (
+            <TaskTimelineView
+              tasks={visible}
+              projectsById={projectsById}
+              onOpenTask={openTask}
+            />
+          ) : view === "list" ? (
+            <TaskList
+              groups={groups}
+              projectsById={projectsById}
+              blockersFor={blockersFor}
+              onOpenTask={openTask}
+              onToggleComplete={toggleComplete}
+            />
+          ) : (
+            <TaskTable
+              groups={groups}
+              projectsById={projectsById}
+              blockersFor={blockersFor}
+              onOpenTask={openTask}
+            />
+          )}
         </div>
-
-        <FilterBar label="Filter by project">
-          <FilterChip
-            active={filters.projectId === "all"}
-            count={tasks.length}
-            onClick={() => setFilters((f) => ({ ...f, projectId: "all" }))}
-          >
-            All
-          </FilterChip>
-          {projects.map((project) => (
-            <FilterChip
-              key={project.id}
-              active={filters.projectId === project.id}
-              count={tasks.filter((t) => t.project_id === project.id).length}
-              onClick={() =>
-                setFilters((f) => ({ ...f, projectId: project.id }))
-              }
-            >
-              {project.name}
-            </FilterChip>
-          ))}
-          <FilterChip
-            active={filters.projectId === "none"}
-            count={tasks.filter((t) => !t.project_id).length}
-            onClick={() => setFilters((f) => ({ ...f, projectId: "none" }))}
-          >
-            No project
-          </FilterChip>
-        </FilterBar>
-
-        <FilterBar label="Refine">
-          <FilterChip
-            active={filters.overdueOnly}
-            onClick={() =>
-              setFilters((f) => ({ ...f, overdueOnly: !f.overdueOnly }))
-            }
-          >
-            Overdue
-          </FilterChip>
-          <FilterChip
-            active={filters.blockedOnly}
-            onClick={() =>
-              setFilters((f) => ({ ...f, blockedOnly: !f.blockedOnly }))
-            }
-          >
-            Blocked
-          </FilterChip>
-          <FilterChip
-            active={!filters.showDone}
-            onClick={() => setFilters((f) => ({ ...f, showDone: !f.showDone }))}
-          >
-            Hide done
-          </FilterChip>
-          {tags.map((tag) => (
-            <FilterChip
-              key={tag}
-              active={filters.tag === tag}
-              onClick={() =>
-                setFilters((f) => ({ ...f, tag: f.tag === tag ? "all" : tag }))
-              }
-            >
-              {tag}
-            </FilterChip>
-          ))}
-        </FilterBar>
-
-        {(view === "list" || view === "table") && (
-          <FilterBar label="Group by">
-            {(["status", "priority", "project", "due"] as TaskGroupBy[]).map(
-              (option) => (
-                <FilterChip
-                  key={option}
-                  active={groupBy === option}
-                  onClick={() => setGroupBy(option)}
-                >
-                  {option === "due" ? "Due date" : option}
-                </FilterChip>
-              ),
-            )}
-          </FilterBar>
-        )}
       </div>
-
-      {tasks.length === 0 ? (
-        <EmptyState
-          icon={ListTodo}
-          variant="card"
-          title="No tasks yet"
-          description="Add the first one. Group them into projects, schedule them, and mark what blocks what."
-          action={{ label: "New task", onClick: () => openNew(), icon: Plus }}
-        />
-      ) : visible.length === 0 ? (
-        <EmptyState
-          icon={ListTodo}
-          variant="card"
-          title="Nothing matches"
-          description={
-            activeFilterCount > 0 || filters.search
-              ? "No task matches the current filters."
-              : "Every task is complete."
-          }
-          action={{
-            label: "Clear filters",
-            onClick: () => setFilters(DEFAULT_FILTERS),
-          }}
-        />
-      ) : view === "board" ? (
-        <TaskBoard
-          tasks={visible}
-          projectsById={projectsById}
-          blockersFor={blockersFor}
-          onOpenTask={openTask}
-          onChangeStatus={applyStatus}
-          onNewTask={openNew}
-        />
-      ) : view === "timeline" ? (
-        <TaskTimelineView
-          tasks={visible}
-          projectsById={projectsById}
-          onOpenTask={openTask}
-        />
-      ) : (
-        <TaskTable
-          groups={groups}
-          projectsById={projectsById}
-          blockersFor={blockersFor}
-          onOpenTask={openTask}
-        />
-      )}
 
       <FormSheet
         open={isSheetOpen}
@@ -437,9 +419,21 @@ export default function TasksPage() {
           }}
           onAddBlocker={handleAddBlocker}
           onRemoveBlocker={handleRemoveBlocker}
+          onDelete={
+            editingTask && editingTaskId
+              ? () => handleDeleteTask(editingTask as Task)
+              : undefined
+          }
           onCancel={() => setIsSheetOpen(false)}
         />
       </FormSheet>
+
+      <TaskProjectsSheet
+        open={isProjectsOpen}
+        onOpenChange={setIsProjectsOpen}
+        projects={projects}
+        taskCounts={taskCounts}
+      />
     </ManagerWrapper>
   );
 }

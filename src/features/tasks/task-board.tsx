@@ -14,6 +14,8 @@ export interface TaskBoardProps {
   blockersFor: (task: Task) => Task[];
   onOpenTask: (task: Task) => void;
   onChangeStatus: (task: Task, status: TaskStatus) => void;
+  onStartTimer: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
   onNewTask: (status: TaskStatus) => void;
 }
 
@@ -29,6 +31,8 @@ export function TaskBoard({
   blockersFor,
   onOpenTask,
   onChangeStatus,
+  onStartTimer,
+  onDeleteTask,
   onNewTask,
 }: TaskBoardProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -105,6 +109,9 @@ export function TaskBoard({
                   }
                   blockers={blockersFor(task)}
                   onOpen={() => onOpenTask(task)}
+                  onChangeStatus={(status) => onChangeStatus(task, status)}
+                  onStartTimer={() => onStartTimer(task)}
+                  onDelete={() => onDeleteTask(task)}
                   draggable
                   onDragStart={() => setDraggedId(task.id)}
                   className={draggedId === task.id ? "opacity-50" : undefined}
