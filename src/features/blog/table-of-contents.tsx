@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -130,21 +130,76 @@ function scrollToHeading(id: string) {
   });
 }
 
+/**
+ * The `scrollTop` that brings an entry into view, or null when it already is.
+ *
+ * Deliberately not `scrollIntoView({ block: "nearest" })`: that walks up to
+ * whichever ancestor happens to be scrollable, so on a short list — where the
+ * rail does not scroll — it moves the *page* instead, yanking the reader away
+ * from the paragraph they were on.
+ */
+export function scrollTopForEntry(view: {
+  scrollTop: number;
+  clientHeight: number;
+  entryTop: number;
+  entryHeight: number;
+}): number | null {
+  const { scrollTop, clientHeight, entryTop, entryHeight } = view;
+  if (clientHeight <= 0) return null;
+
+  if (entryTop < scrollTop) return entryTop;
+
+  const entryBottom = entryTop + entryHeight;
+  if (entryBottom > scrollTop + clientHeight) return entryBottom - clientHeight;
+
+  return null;
+}
+
 function TocList({
   headings,
   activeId,
   onNavigate,
+  scrollRef,
 }: {
   headings: Heading[];
   activeId: string;
   onNavigate?: () => void;
+  /** The scrolling ancestor, when the list lives in one. */
+  scrollRef?: RefObject<HTMLElement>;
 }) {
+  /**
+   * Keep the active entry visible inside the rail.
+   *
+   * On a long post the rail scrolls independently of the page, so the
+   * highlighted entry drifts out of its own viewport as the reader moves down
+   * the article — the highlight is then invisible, which is worse than not
+   * having one.
+   */
+  useEffect(() => {
+    const container = scrollRef?.current;
+    if (!container || !activeId) return;
+
+    const entry = container.querySelector<HTMLElement>(
+      `[data-heading="${CSS.escape(activeId)}"]`,
+    );
+    if (!entry) return;
+
+    const next = scrollTopForEntry({
+      scrollTop: container.scrollTop,
+      clientHeight: container.clientHeight,
+      entryTop: entry.offsetTop,
+      entryHeight: entry.offsetHeight,
+    });
+    if (next !== null) container.scrollTop = next;
+  }, [activeId, scrollRef]);
+
   return (
     <ul className="space-y-0.5 border-l-2 border-dotted border-border">
       {headings.map((heading) => (
         <li key={heading.id}>
           <button
             type="button"
+            data-heading={heading.id}
             onClick={() => {
               scrollToHeading(heading.id);
               onNavigate?.();
@@ -181,6 +236,8 @@ export function TableOfContents({
   activeId: string;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const railRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   if (headings.length === 0) return null;
 
@@ -188,9 +245,29 @@ export function TableOfContents({
     <>
       {/* Desktop rail */}
       <nav aria-label="Table of contents" className="hidden lg:block">
-        <div className="sticky top-24">
-          <p className="t-eyebrow mb-4">On this page</p>
-          <TocList headings={headings} activeId={activeId} />
+        {/*
+          `sticky` alone was the bug. With no height bound the rail extended
+          past the bottom of the viewport and stayed pinned there, so on a long
+          post the last entries were unreachable — scrolling the page moved the
+          article, never the rail.
+
+          `flex` + `min-h-0` is what lets the list shrink inside the bounded
+          column; without it the list keeps its intrinsic height and overflows
+          again. `overscroll-contain` stops a flick at the end of the rail from
+          chaining into the page.
+        */}
+        <div className="sticky top-24 flex max-h-[calc(100dvh-8rem)] flex-col">
+          <p className="t-eyebrow mb-4 shrink-0">On this page</p>
+          <div
+            ref={railRef}
+            className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain"
+          >
+            <TocList
+              headings={headings}
+              activeId={activeId}
+              scrollRef={railRef}
+            />
+          </div>
         </div>
       </nav>
 
@@ -212,10 +289,11 @@ export function TableOfContents({
                 On this page
               </SheetTitle>
             </SheetHeader>
-            <div className="mt-4">
+            <div ref={sheetRef} className="mt-4">
               <TocList
                 headings={headings}
                 activeId={activeId}
+                scrollRef={sheetRef}
                 onNavigate={() => setSheetOpen(false)}
               />
             </div>

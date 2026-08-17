@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { useHeadings } from "./table-of-contents";
+import { scrollTopForEntry, useHeadings } from "./table-of-contents";
 
 const ARTICLE_ID = "post-article";
 
@@ -117,5 +117,46 @@ describe("useHeadings", () => {
   it("returns nothing when the container is absent", () => {
     const { result } = renderHook(() => useHeadings("does-not-exist"));
     expect(result.current.headings).toEqual([]);
+  });
+});
+
+/**
+ * The rail scrolls independently of the page once a post has more headings
+ * than fit on screen. Before that it had no height bound at all: the list ran
+ * past the bottom of the viewport and stayed pinned there, so the last entries
+ * could not be reached by scrolling either the page or the rail.
+ */
+describe("scrollTopForEntry", () => {
+  const view = {
+    scrollTop: 0,
+    clientHeight: 300,
+    entryTop: 0,
+    entryHeight: 24,
+  };
+
+  it("returns null when the entry is already visible", () => {
+    expect(scrollTopForEntry({ ...view, entryTop: 100 })).toBeNull();
+  });
+
+  it("scrolls up to reveal an entry above the viewport", () => {
+    expect(scrollTopForEntry({ ...view, scrollTop: 200, entryTop: 100 })).toBe(
+      100,
+    );
+  });
+
+  it("scrolls down just enough to reveal an entry below the viewport", () => {
+    // entry ends at 424; container shows 0..300, so it must end flush at 424.
+    expect(scrollTopForEntry({ ...view, entryTop: 400 })).toBe(124);
+  });
+
+  it("leaves an entry flush with the bottom edge alone", () => {
+    expect(scrollTopForEntry({ ...view, entryTop: 276 })).toBeNull();
+  });
+
+  it("does nothing when the container has no measurable height", () => {
+    // A collapsed or not-yet-laid-out rail must not yank the page.
+    expect(
+      scrollTopForEntry({ ...view, clientHeight: 0, entryTop: 400 }),
+    ).toBeNull();
   });
 });
