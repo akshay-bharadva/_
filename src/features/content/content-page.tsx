@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, LayoutTemplate, Plus, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronsUpDown, LayoutTemplate, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioItem, PortfolioSection } from "@/types";
 import {
@@ -15,7 +15,12 @@ import {
   useUpdateSectionOrderMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import {
   EmptyState,
@@ -25,47 +30,46 @@ import {
 } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import type { PathOption, SheetState } from "./content-types";
-import { PageRail, type PageSummary } from "./page-rail";
-import { SectionRow } from "./section-row";
+import { ContentTree, type TreePage } from "./content-tree";
 import { SectionDetail } from "./section-detail";
 import { SectionEditorSheet } from "./section-editor-sheet";
 import { ItemEditorSheet } from "./item-editor-sheet";
 
 /**
- * Admin → Content.
+ * Admin → Content: a tree of pages and their sections, beside an editor.
  *
- * Rebuilt against `docs/redesign/v3-admin-interaction-standard.md`. What the
- * previous structure got wrong, and what replaced it:
+ * The tree never leaves the screen, so selecting a section swaps the editor
+ * rather than replacing the page — no back step, and no losing your place in a
+ * list of fifty sections. The hierarchy in the tree *is* the hierarchy of the
+ * public site, which is what makes it navigable: pages contain sections,
+ * sections contain items.
+ *
+ * What the previous structures got wrong, kept here so they are not rebuilt:
  *
  * 1. **Two primary actions.** "New Section" appeared in the page header *and*
- *    again as a full-width button inside the list column. Now exactly one, in
- *    the header.
+ *    again as a full-width button inside the list column, ~200px apart. Now
+ *    once in the header, plus a per-page `+` in the tree that pre-fills which
+ *    page it lands on.
  *
- * 2. **The wrong primary object.** Sections were primary and pages were an
- *    accordion grouping, so a page was never something you could select or
- *    reason about. The page is now the object you pick first, which is how the
- *    content is actually authored.
+ * 2. **Pages were invisible.** Sections were primary and pages were only
+ *    accordion group headings, so a page was never a thing you could select,
+ *    count, or move a section between.
  *
- * 3. **A two-pane split locked to `h-[calc(100vh-13rem)]`.** The magic number
- *    broke the moment the shell's header height changed, and the desktop
- *    resting state spent the larger half of the screen on an empty placeholder.
- *    It is now a normally-scrolling list that opens into a detail view, with
- *    the same shape at every width.
+ * 3. **`h-[calc(100vh-13rem)]` on the whole grid.** That magic number broke
+ *    whenever the shell header changed height and created nested scroll
+ *    regions that fought the page scrollbar. Only the tree is sticky now; the
+ *    page scrolls normally.
  *
- * 4. **Creating a section left you where you were.** It now opens the section
- *    it just created.
- *
- * 5. **Hover-only reorder controls**, invisible on touch and to keyboard users.
- *    Now always visible, with the ordering scope stated in the button labels.
+ * 4. **Creating a section left you where you were.** It now opens what it just
+ *    created.
  */
 export default function ContentPage() {
   const confirm = useConfirm();
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [openSectionId, setOpenSectionId] = useState<string | null>(null);
   const [sheetState, setSheetState] = useState<SheetState>(null);
-  const [query, setQuery] = useState("");
+  const [treeOpen, setTreeOpen] = useState(false);
   const [localSections, setLocalSections] = useState<PortfolioSection[]>([]);
 
   const { data: sections, isLoading, error } = useGetPortfolioContentQuery();
@@ -82,7 +86,7 @@ export default function ContentPage() {
   }, [sections]);
 
   /** Every path that has content, or that a nav link points at. */
-  const pages: PageSummary[] = useMemo(() => {
+  const pages = useMemo(() => {
     const paths = new Set<string>(["/"]);
     navLinks?.forEach(
       (link) => link.href?.startsWith("/") && paths.add(link.href),
@@ -118,59 +122,37 @@ export default function ContentPage() {
     setSelectedPath((pages.find((p) => p.sectionCount > 0) ?? pages[0]).path);
   }, [pages, selectedPath]);
 
-  /** Sections on the selected page, in display order, filtered by the query. */
-  const visibleSections = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return localSections
-      .filter((s) => s.page_path === selectedPath)
-      .filter(
-        (s) =>
-          !needle ||
-          s.title?.toLowerCase().includes(needle) ||
-          s.layout_style?.toLowerCase().includes(needle) ||
-          s.type?.toLowerCase().includes(needle),
-      )
-      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
-  }, [localSections, selectedPath, query]);
-
   const openSection = localSections.find((s) => s.id === openSectionId) ?? null;
 
-  /* ── "/" focuses search, Escape clears it ─────────────────────────── */
+  // Open on something rather than an empty editor pane.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      const typing =
-        target?.tagName === "INPUT" ||
-        target?.tagName === "TEXTAREA" ||
-        target?.isContentEditable;
-      if (e.key === "/" && !typing && !openSectionId) {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-      if (e.key === "Escape" && target === searchRef.current) setQuery("");
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [openSectionId]);
+    if (openSectionId || localSections.length === 0) return;
+    const first = [...localSections].sort(
+      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
+    )[0];
+    setOpenSectionId(first.id);
+  }, [localSections, openSectionId]);
 
   /* ── handlers ─────────────────────────────────────────────────────── */
 
-  const handleMove = useCallback(
-    async (sectionId: string, direction: "up" | "down") => {
+  /** Drop `sectionId` onto `targetSectionId`, taking its position. */
+  const handleReorderTo = useCallback(
+    async (sectionId: string, targetSectionId: string) => {
       const section = localSections.find((s) => s.id === sectionId);
-      if (!section) return;
+      const target = localSections.find((s) => s.id === targetSectionId);
+      if (!section || !target || section.page_path !== target.page_path) return;
 
       const samePage = localSections
         .filter((s) => s.page_path === section.page_path)
         .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
 
-      const currentIndex = samePage.findIndex((s) => s.id === sectionId);
-      const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-      if (newIndex < 0 || newIndex >= samePage.length) return;
+      const from = samePage.findIndex((s) => s.id === sectionId);
+      const to = samePage.findIndex((s) => s.id === targetSectionId);
+      if (from === -1 || to === -1 || from === to) return;
 
       const reordered = [...samePage];
-      const [moved] = reordered.splice(currentIndex, 1);
-      reordered.splice(newIndex, 0, moved);
+      const [moved] = reordered.splice(from, 1);
+      reordered.splice(to, 0, moved);
 
       const previous = localSections;
       setLocalSections((current) =>
@@ -193,6 +175,38 @@ export default function ContentPage() {
       }
     },
     [localSections, updateOrder],
+  );
+
+  /**
+   * Move a section to another page by dropping it on that page's header.
+   *
+   * `page_path` is what decides which public route renders a section, so this
+   * is a real move, not a reorder — it goes through saveSection rather than
+   * update_section_order.
+   */
+  const handleMoveToPage = useCallback(
+    async (sectionId: string, path: string) => {
+      const section = localSections.find((s) => s.id === sectionId);
+      if (!section || section.page_path === path) return;
+
+      const previous = localSections;
+      setLocalSections((current) =>
+        current.map((s) =>
+          s.id === sectionId ? { ...s, page_path: path } : s,
+        ),
+      );
+
+      try {
+        await saveSection({ id: sectionId, page_path: path }).unwrap();
+        toast.success(`Moved to ${path === "/" ? "Home" : path}`);
+      } catch (err) {
+        setLocalSections(previous);
+        toast.error("Couldn't move the section", {
+          description: getErrorMessage(err),
+        });
+      }
+    },
+    [localSections, saveSection],
   );
 
   const handleSaveSection = useCallback(
@@ -343,58 +357,71 @@ export default function ContentPage() {
     );
   })();
 
-  /* ── detail view ──────────────────────────────────────────────────── */
+  /* ── render ───────────────────────────────────────────────────────── */
 
-  if (openSection) {
+  const treePages: TreePage[] = useMemo(
+    () =>
+      pages.map((p) => ({
+        path: p.path,
+        label: p.label,
+        sections: localSections
+          .filter((s) => s.page_path === p.path)
+          .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
+      })),
+    [pages, localSections],
+  );
+
+  const tree = (
+    <ContentTree
+      pages={treePages}
+      selectedSectionId={openSectionId}
+      onSelectSection={(id) => {
+        setOpenSectionId(id);
+        setTreeOpen(false);
+      }}
+      onNewSection={(path) => {
+        setSelectedPath(path);
+        setSheetState({ type: "new-section" });
+      }}
+      onReorder={handleReorderTo}
+      onMoveToPage={handleMoveToPage}
+    />
+  );
+
+  if (isLoading) {
     return (
       <ManagerWrapper>
-        <SectionDetail
-          section={openSection}
-          isMobile={false}
-          onBack={() => setOpenSectionId(null)}
-          onEditSection={(section) =>
-            setSheetState({ type: "edit-section", section })
-          }
-          onDeleteSection={handleDeleteSection}
-          onSaveContent={handleSaveSection}
-          onNewItem={(sectionId) =>
-            setSheetState({ type: "new-item", sectionId })
-          }
-          onEditItem={(item) => setSheetState({ type: "edit-item", item })}
-          onDeleteItem={handleDeleteItem}
-        />
-        {sheet}
+        <PageHeader title="Content" />
+        <LoadingState label="Loading content" />
       </ManagerWrapper>
     );
   }
 
-  /* ── list view ────────────────────────────────────────────────────── */
-
-  const selectedPage = pages.find((p) => p.path === selectedPath);
-  const hasAnyContent = localSections.length > 0;
-
-  return (
-    <ManagerWrapper>
-      <PageHeader
-        title="Content"
-        description="Every public page is built from the sections below."
-        actions={
-          <Button onClick={() => setSheetState({ type: "new-section" })}>
-            <Plus className="mr-2 size-4" aria-hidden /> New section
-          </Button>
-        }
-      />
-
-      {isLoading ? (
-        <LoadingState label="Loading content" />
-      ) : error ? (
+  if (error) {
+    return (
+      <ManagerWrapper>
+        <PageHeader title="Content" />
         <EmptyState
           variant="card"
           icon={LayoutTemplate}
           title="Couldn't load content"
           description="The sections could not be fetched. Check your connection and try again."
         />
-      ) : !hasAnyContent ? (
+      </ManagerWrapper>
+    );
+  }
+
+  if (localSections.length === 0) {
+    return (
+      <ManagerWrapper>
+        <PageHeader
+          title="Content"
+          actions={
+            <Button onClick={() => setSheetState({ type: "new-section" })}>
+              <Plus className="mr-2 size-4" aria-hidden /> New section
+            </Button>
+          }
+        />
         <EmptyState
           variant="card"
           icon={LayoutTemplate}
@@ -406,113 +433,85 @@ export default function ContentPage() {
             icon: Plus,
           }}
         />
-      ) : (
-        <div className="space-y-4">
-          <PageRail
-            pages={pages}
-            selectedPath={selectedPath}
-            onSelect={(path) => {
-              setSelectedPath(path);
-              setQuery("");
-            }}
-          />
+        {sheet}
+      </ManagerWrapper>
+    );
+  }
 
-          {/* Status and filtering sit together, directly above what they
-              filter — not split between a page-header subtitle and a control
-              buried inside a card. */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">
-              {visibleSections.length}
-              {query ? ` of ${selectedPage?.sectionCount ?? 0}` : ""} section
-              {visibleSections.length === 1 ? "" : "s"} on{" "}
-              <span className="font-medium text-foreground">
-                {selectedPage?.label ?? selectedPath}
-              </span>
-            </p>
-            <div className="relative sm:w-72">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden
-              />
-              <Input
-                ref={searchRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Filter sections…"
-                aria-label="Filter sections on this page"
-                className="h-9 pl-8 pr-8"
-              />
-              {query && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Clear filter"
-                  className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2"
-                  onClick={() => {
-                    setQuery("");
-                    searchRef.current?.focus();
-                  }}
-                >
-                  <X className="size-3.5" />
-                </Button>
-              )}
-            </div>
+  return (
+    <ManagerWrapper>
+      <PageHeader
+        title="Content"
+        description="Every public page is built from these sections."
+        actions={
+          <Button onClick={() => setSheetState({ type: "new-section" })}>
+            <Plus className="mr-2 size-4" aria-hidden /> New section
+          </Button>
+        }
+      />
+
+      {/*
+        Two panes, but the page still scrolls. The tree is `sticky` with its own
+        overflow rather than the whole grid being pinned to a
+        `h-[calc(100vh-13rem)]` box — that is what previously created nested
+        scroll regions fighting the page scrollbar, and it broke whenever the
+        shell header changed height.
+      */}
+      <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        {/* Mobile: the same tree, in a sheet. One model at both widths — pick a
+            section, edit it; only the chooser's presentation differs. */}
+        <div className="lg:hidden">
+          <Sheet open={treeOpen} onOpenChange={setTreeOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span className="truncate">
+                  {openSection?.title ?? "Choose a section"}
+                </span>
+                <ChevronsUpDown className="size-4 shrink-0" aria-hidden />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80 overflow-y-auto">
+              <SheetTitle className="mb-4">Pages &amp; sections</SheetTitle>
+              {tree}
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 max-h-[calc(100dvh-7rem)] overflow-y-auto rounded-surface bg-card p-2 shadow-e1">
+            {tree}
           </div>
+        </aside>
 
-          {visibleSections.length === 0 ? (
-            <EmptyState
-              variant="card"
-              size="compact"
-              icon={query ? Search : LayoutTemplate}
-              title={query ? "No matches" : "Nothing on this page yet"}
-              description={
-                query
-                  ? `Nothing on ${selectedPage?.label} matches “${query}”.`
-                  : "Add a section to start building this page."
+        <div className="min-w-0">
+          {openSection ? (
+            <SectionDetail
+              section={openSection}
+              isMobile={false}
+              onBack={() => setOpenSectionId(null)}
+              onEditSection={(section) =>
+                setSheetState({ type: "edit-section", section })
               }
-              action={
-                query
-                  ? { label: "Clear filter", onClick: () => setQuery("") }
-                  : {
-                      label: "New section",
-                      onClick: () => setSheetState({ type: "new-section" }),
-                      icon: Plus,
-                    }
+              onDeleteSection={handleDeleteSection}
+              onSaveContent={handleSaveSection}
+              onNewItem={(sectionId) =>
+                setSheetState({ type: "new-item", sectionId })
               }
+              onEditItem={(item) => setSheetState({ type: "edit-item", item })}
+              onDeleteItem={handleDeleteItem}
             />
           ) : (
-            <ul className="space-y-2">
-              {visibleSections.map((section, index) => (
-                <SectionRow
-                  key={section.id}
-                  section={section}
-                  index={index}
-                  total={visibleSections.length}
-                  onOpen={() => setOpenSectionId(section.id)}
-                  onEdit={() =>
-                    setSheetState({ type: "edit-section", section })
-                  }
-                  onDelete={() => handleDeleteSection(section.id)}
-                  onToggleVisible={() => handleToggleVisible(section)}
-                  onMoveUp={() => handleMove(section.id, "up")}
-                  onMoveDown={() => handleMove(section.id, "down")}
-                />
-              ))}
-            </ul>
+            <EmptyState
+              variant="card"
+              icon={LayoutTemplate}
+              title="Choose a section"
+              description="Pick a section from the tree to edit its content and items."
+            />
           )}
         </div>
-      )}
+      </div>
 
       {sheet}
     </ManagerWrapper>
-  );
-}
-
-/** Back control shared by the detail view. Exported for reuse by SectionDetail. */
-export function BackToList({ onBack }: { onBack: () => void }) {
-  return (
-    <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
-      <ArrowLeft className="mr-2 size-4" aria-hidden /> All sections
-    </Button>
   );
 }

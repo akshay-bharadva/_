@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   Calendar,
   Check,
   CloudOff,
@@ -39,7 +38,8 @@ import { cn } from "@/lib/utils";
 export interface SectionDetailProps {
   section: PortfolioSection | null;
   isMobile: boolean;
-  onBack: () => void;
+  /** Retained for callers that still present the editor as its own screen. */
+  onBack?: () => void;
   onEditSection: (section: PortfolioSection) => void;
   onDeleteSection: (id: string) => void;
   onSaveContent: (
@@ -157,7 +157,7 @@ function MetaBadge({
 export function SectionDetail({
   section,
   isMobile,
-  onBack,
+  onBack: _onBack,
   onEditSection,
   onDeleteSection,
   onSaveContent,
@@ -281,21 +281,6 @@ export function SectionDetail({
       <div className="border-b">
         <div className="flex items-start justify-between gap-4 p-4">
           <div className="flex min-w-0 items-start gap-3">
-            {/*
-              Always present, not mobile-only. The detail view replaces the
-              list at every width now, so leaving desktop without a back
-              control would strand the user on a screen with no way out except
-              the browser button.
-            */}
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Back to all sections"
-              onClick={onBack}
-              className="-ml-2 shrink-0"
-            >
-              <ArrowLeft className="size-5" />
-            </Button>
             <div className="min-w-0">
               <h2 className="truncate font-heading text-xl font-bold tracking-tight">
                 {section.title}
