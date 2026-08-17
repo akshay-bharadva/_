@@ -65,36 +65,12 @@ describe("NotesPage", () => {
     expect(screen.getByText("No notes yet")).toBeInTheDocument();
   });
 
-  /**
-   * The friction this module had: every note started with a sheet and a rich
-   * editor, which is a lot of ceremony for a thought you wanted out of your
-   * head.
-   */
-  it("creates a note from the capture box without opening an editor", async () => {
+  it("opens the drawer to write a new note", () => {
+    // A note exists so the empty state's own "New note" action is not present.
+    notes = [note({ id: "a", title: "Alpha" })];
     render(<NotesPage />);
-    fireEvent.change(screen.getByLabelText("Quick capture"), {
-      target: { value: "Ring the dentist" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add note" }));
-
-    await waitFor(() => expect(addNote).toHaveBeenCalled());
-    expect(addNote.mock.calls[0]?.[0]).toMatchObject({
-      title: "Ring the dentist",
-    });
-    expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
-  });
-
-  it("will not capture an empty thought", () => {
-    render(<NotesPage />);
-    expect(screen.getByRole("button", { name: "Add note" })).toBeDisabled();
-  });
-
-  it("clears the capture box after saving", async () => {
-    render(<NotesPage />);
-    const input = screen.getByLabelText("Quick capture");
-    fireEvent.change(input, { target: { value: "A thought" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add note" }));
-    await waitFor(() => expect(input).toHaveValue(""));
+    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
+    expect(screen.getByTestId("note-editor")).toBeInTheDocument();
   });
 
   it("opens a note to read rather than to edit", () => {
@@ -201,16 +177,43 @@ describe("NotesPage", () => {
     expect(screen.getByLabelText("Open Dentist")).toBeInTheDocument();
   });
 
-  it("filters by tag from one control", () => {
+  it("filters by tag from the Filters popover", () => {
     notes = [
       note({ id: "a", title: "Alpha", tags: ["work"] }),
       note({ id: "b", title: "Beta", tags: ["home"] }),
     ];
     render(<NotesPage />);
-    const tags = screen.getByRole("group", { name: "Filter by tag" });
-    fireEvent.click(within(tags).getByRole("button", { name: /work/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^work/ }));
     expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
     expect(screen.queryByLabelText("Open Beta")).not.toBeInTheDocument();
+  });
+
+  it("filters to pinned notes", () => {
+    notes = [
+      note({ id: "a", title: "Alpha", is_pinned: true }),
+      note({ id: "b", title: "Beta" }),
+    ];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    fireEvent.click(screen.getByLabelText("Pinned"));
+    expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Open Beta")).not.toBeInTheDocument();
+  });
+
+  /** Only meaningful now that notes link to each other. */
+  it("filters to notes that take part in the link graph", () => {
+    notes = [
+      note({ id: "a", title: "Alpha", content: "see [[Beta]]" }),
+      note({ id: "b", title: "Beta" }),
+      note({ id: "c", title: "Orphan" }),
+    ];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
+    fireEvent.click(screen.getByLabelText("Connected to another note"));
+    expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
+    expect(screen.getByLabelText("Open Beta")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Open Orphan")).not.toBeInTheDocument();
   });
 
   it("keeps pinned notes first", () => {

@@ -101,19 +101,22 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
   return (
     <div className="flex h-full w-full flex-col">
       {/* Header — fixed */}
-      <SheetHeader className="shrink-0 space-y-0 border-b py-4">
+      <SheetHeader className="shrink-0 space-y-0 border-b px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1 text-left">
-            <SheetTitle>
-              {note?.id ? "Edit Note" : "Create New Note"}
-            </SheetTitle>
+            <SheetTitle>{note?.id ? "Edit note" : "New note"}</SheetTitle>
             <SheetDescription className="text-xs">
-              Capture your ideas.
+              A title is enough to start.
             </SheetDescription>
           </div>
           <SheetClose asChild>
-            <Button type="button" variant="ghost">
-              <X />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Close"
+            >
+              <X className="size-4" aria-hidden />
             </Button>
           </SheetClose>
         </div>
@@ -121,7 +124,7 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
 
       <form
         onSubmit={handleSubmit}
-        className="flex min-h-0 flex-1 flex-col pt-4"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-6 pt-4"
       >
         {/* Title & color row */}
         <div className="mb-4 flex shrink-0 items-center gap-2">
