@@ -44,11 +44,26 @@ export function NoteCard({
       className=""
     >
       <Card
-        className="relative flex flex-col overflow-hidden border-border/60 transition-all duration-300 hover:shadow-e3"
+        /*
+         * Colour is a spine, not a wash.
+         *
+         * It used to tint the surface at `${color}15` and the border at
+         * `${color}50` — two diluted derivations of one value, both mixed with
+         * whatever the theme puts behind them. On a dark preset a red note and
+         * a blue note converge on the same murky grey, so the colour stopped
+         * being a label. A solid 3px edge never mixes with the background, so
+         * it reads identically across all 52 presets.
+         *
+         * `border-0` first: a surface is a fill plus an elevation, and giving
+         * it a full border as well is what the v3 rules rule out. The spine is
+         * a mark on the card, not a frame around it.
+         */
+        className="relative flex flex-col overflow-hidden border-0 border-l-[3px] shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2"
         style={{
-          // note.color is per-note user data from the DB, not a theme token
-          backgroundColor: note.color ? `${note.color}15` : undefined,
-          borderColor: note.color ? `${note.color}50` : undefined,
+          // note.color is per-note user data from the DB, not a theme token.
+          // Absent colour falls back to the border token so every card keeps
+          // the same silhouette and only the hue is missing.
+          borderLeftColor: note.color || "hsl(var(--border))",
         }}
       >
         <button
@@ -101,7 +116,7 @@ export function NoteCard({
                 <Badge
                   key={tag}
                   variant="secondary"
-                  className="h-5 bg-background/50 px-1.5 text-[10px] hover:bg-background/80"
+                  className="h-5 bg-secondary px-1.5 text-[10px] text-muted-foreground"
                 >
                   #{tag}
                 </Badge>
@@ -109,7 +124,7 @@ export function NoteCard({
             </div>
           )}
 
-          <div className="mt-1 flex w-full items-center justify-between border-t border-black/5 pt-2 opacity-80 group-hover:opacity-100 dark:border-white/5">
+          <div className="mt-1 flex w-full items-center justify-between border-t pt-2">
             <span className="font-mono text-[10px] text-muted-foreground">
               {note.updated_at &&
                 formatDistanceToNow(new Date(note.updated_at), {
@@ -122,7 +137,7 @@ export function NoteCard({
                 variant="ghost"
                 size="icon"
                 aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
-                className="h-7 w-7 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                className="h-7 w-7 rounded-full"
                 onClick={(e) => {
                   e.stopPropagation();
                   onTogglePin();
@@ -139,7 +154,7 @@ export function NoteCard({
                 variant="ghost"
                 size="icon"
                 aria-label={note.archived_at ? "Restore note" : "Archive note"}
-                className="h-7 w-7 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                className="h-7 w-7 rounded-full"
                 onClick={(e) => {
                   e.stopPropagation();
                   onArchive();
@@ -152,7 +167,7 @@ export function NoteCard({
                 variant="ghost"
                 size="icon"
                 aria-label="Edit note"
-                className="h-7 w-7 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                className="h-7 w-7 rounded-full"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit();

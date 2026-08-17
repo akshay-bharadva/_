@@ -230,3 +230,32 @@ describe("NotesPage", () => {
     expect(opened[0]).toBe("Open Pinned");
   });
 });
+
+describe("NoteCard colour", () => {
+  /**
+   * The card used to tint its surface and border with two diluted derivations
+   * of one value, both mixed with the theme's background — so on a dark preset
+   * a red note and a blue note converged on the same murky grey and the colour
+   * stopped being a label.
+   */
+  it("carries the note colour as a solid spine, not a background wash", () => {
+    notes = [note({ id: "a", title: "Alpha", color: "#e11d48" })];
+    const { container } = render(<NotesPage />);
+    const spined = Array.from(
+      container.querySelectorAll<HTMLElement>("*"),
+    ).find((el) => el.style.borderLeftColor === "rgb(225, 29, 72)");
+
+    expect(spined).toBeTruthy();
+    // The value is used once. A tinted surface is what made it unreadable.
+    expect(spined?.style.backgroundColor).toBe("");
+  });
+
+  it("keeps the silhouette when a note has no colour", () => {
+    notes = [note({ id: "a", title: "Alpha", color: null })];
+    const { container } = render(<NotesPage />);
+    const spined = Array.from(
+      container.querySelectorAll<HTMLElement>("*"),
+    ).find((el) => el.style.borderLeftColor !== "");
+    expect(spined?.style.borderLeftColor).toContain("--border");
+  });
+});
