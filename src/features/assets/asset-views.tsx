@@ -51,6 +51,9 @@ export interface AssetViewProps {
   onToggleSelect: (id: string) => void;
   onSelect: (asset: StorageAsset) => void;
   onDownload: (asset: StorageAsset) => void;
+  /** Both views delete. It used to exist only in the table, so which actions
+      an asset had depended on which view happened to be selected. */
+  onDelete: (asset: StorageAsset) => void;
 }
 
 export function AssetGrid({
@@ -60,6 +63,7 @@ export function AssetGrid({
   onToggleSelect,
   onSelect,
   onDownload,
+  onDelete,
 }: AssetViewProps) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -103,24 +107,48 @@ export function AssetGrid({
           </div>
 
           {!isBulkSelectMode && (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Download asset"
-              className="absolute right-1.5 top-1.5 z-20 h-7 w-7 rounded-full opacity-0 shadow-e2 transition-opacity group-hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDownload(asset);
-              }}
-              title="Download"
-            >
-              <Download className="size-3.5" />
-            </Button>
+            <div className="absolute right-1.5 top-1.5 z-20 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <Button
+                variant="secondary"
+                size="icon"
+                aria-label={`Download ${asset.file_name}`}
+                className="h-7 w-7 rounded-full shadow-e2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload(asset);
+                }}
+              >
+                <Download className="size-3.5" aria-hidden />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                aria-label={`Delete ${asset.file_name}`}
+                className="h-7 w-7 rounded-full shadow-e2 hover:bg-destructive hover:text-destructive-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(asset);
+                }}
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+              </Button>
+            </div>
           )}
 
           {asset.used_in && asset.used_in.length > 0 && (
-            <div className="absolute left-1.5 top-1.5 z-10 rounded-full bg-primary/90 p-1 shadow-e1">
-              <LinkIcon className="size-2.5 text-primary-foreground" />
+            // Announced, not just drawn: this marker is the only warning that
+            // deleting or moving the asset will break a published page.
+            <div
+              className="absolute left-1.5 top-1.5 z-10 rounded-full bg-primary/90 p-1 shadow-e1"
+              title={`In use in ${asset.used_in.length} place(s)`}
+            >
+              <LinkIcon
+                className="size-2.5 text-primary-foreground"
+                aria-hidden
+              />
+              <span className="sr-only">
+                In use in {asset.used_in.length} place(s)
+              </span>
             </div>
           )}
         </div>
@@ -137,7 +165,7 @@ export function AssetTable({
   onSelect,
   onDownload,
   onDelete,
-}: AssetViewProps & { onDelete: (asset: StorageAsset) => void }) {
+}: AssetViewProps) {
   return (
     <div className="overflow-x-auto rounded-md border">
       <Table>
@@ -192,14 +220,19 @@ export function AssetTable({
               </TableCell>
               <TableCell>
                 {asset.used_in && asset.used_in.length > 0 && (
-                  <LinkIcon className="size-3.5 text-primary" />
+                  <span title={`In use in ${asset.used_in.length} place(s)`}>
+                    <LinkIcon className="size-3.5 text-primary" aria-hidden />
+                    <span className="sr-only">
+                      In use in {asset.used_in.length} place(s)
+                    </span>
+                  </span>
                 )}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <Button
                     size="icon"
-                    aria-label="Download asset"
+                    aria-label={`Download ${asset.file_name}`}
                     variant="ghost"
                     className="h-7 w-7"
                     onClick={(e) => {
@@ -212,7 +245,7 @@ export function AssetTable({
                   </Button>
                   <Button
                     size="icon"
-                    aria-label="Delete asset"
+                    aria-label={`Delete ${asset.file_name}`}
                     variant="ghost"
                     className="h-7 w-7"
                     onClick={(e) => {

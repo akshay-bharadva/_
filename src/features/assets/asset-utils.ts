@@ -42,6 +42,46 @@ export function sanitizeFolderName(raw: string): string | null {
   return withoutLeadingDots;
 }
 
+/**
+ * The name the file actually has in the bucket.
+ *
+ * `file_name` is the *original* name the browser reported at upload and is only
+ * for display; the stored key is `<timestamp>_<sanitized name>`. Anything that
+ * builds a storage path has to derive it from `file_path`, never from
+ * `file_name` — see `targetPathForMove`.
+ */
+export function assetBasename(filePath: string): string {
+  return filePath.split("/").pop() ?? filePath;
+}
+
+/**
+ * Where a move should put an asset.
+ *
+ * The move dialog used to build this from `file_name`, which quietly renamed
+ * the object: `photos/1712_holiday_snap.png` moved to the root became
+ * `holiday snap.png`. That drops the timestamp that keeps names unique and the
+ * sanitisation that keeps them path-safe, so two assets uploaded under the same
+ * original name collide on `file_path` — which is UNIQUE. The storage move runs
+ * before the database update, so the collision fails *after* the object has
+ * already moved, leaving the row pointing at a key that no longer exists.
+ *
+ * Keeping the stored basename makes a move a move rather than a rename.
+ */
+export function targetPathForMove(
+  asset: { file_path: string },
+  targetFolder: string,
+): string {
+  const name = assetBasename(asset.file_path);
+  return targetFolder === "root" ? name : `${targetFolder}/${name}`;
+}
+
+/** Assets referenced by published content, per the last usage rescan. */
+export function assetsInUse<T extends { used_in: unknown[] | null }>(
+  assets: T[],
+): T[] {
+  return assets.filter((asset) => (asset.used_in?.length ?? 0) > 0);
+}
+
 export const getFileIcon = (mimeType: string | null, className?: string) => {
   if (!mimeType) return React.createElement(FileIcon, { className });
   if (mimeType.startsWith("image/")) return null;

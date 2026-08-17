@@ -9,10 +9,13 @@ import {
 } from "lucide-react";
 import {
   PLACEHOLDER_FILENAME,
+  assetBasename,
+  assetsInUse,
   getAllFolderPaths,
   getAssetsForPath,
   getFileIcon,
   sanitizeFolderName,
+  targetPathForMove,
 } from "./asset-utils";
 
 type Asset = { file_path: string; file_name: string };
@@ -151,5 +154,65 @@ describe("sanitizeFolderName", () => {
     expect(sanitizeFolderName("")).toBeNull();
     expect(sanitizeFolderName("   ")).toBeNull();
     expect(sanitizeFolderName("///")).toBeNull();
+  });
+});
+
+describe("assetBasename", () => {
+  it("returns the stored name from a nested key", () => {
+    expect(assetBasename("photos/2024/1712_shot.png")).toBe("1712_shot.png");
+  });
+
+  it("returns the key itself when it is already at the root", () => {
+    expect(assetBasename("1712_shot.png")).toBe("1712_shot.png");
+  });
+});
+
+describe("targetPathForMove", () => {
+  /**
+   * The move dialog built this from `file_name` — the original browser-reported
+   * name — which renamed the object mid-move, dropping the uniqueness timestamp
+   * and the path sanitisation applied at upload.
+   */
+  it("keeps the stored name rather than the display name", () => {
+    const asset = {
+      file_path: "photos/1712_holiday_snap.png",
+      file_name: "holiday snap.png",
+    };
+    expect(targetPathForMove(asset, "archive")).toBe(
+      "archive/1712_holiday_snap.png",
+    );
+  });
+
+  it("moves to the bucket root without a leading slash", () => {
+    const asset = { file_path: "photos/1712_shot.png" };
+    expect(targetPathForMove(asset, "root")).toBe("1712_shot.png");
+  });
+
+  it("keeps two same-named uploads distinct after a move", () => {
+    const a = { file_path: "a/1_shot.png", file_name: "shot.png" };
+    const b = { file_path: "b/2_shot.png", file_name: "shot.png" };
+    expect(targetPathForMove(a, "archive")).not.toBe(
+      targetPathForMove(b, "archive"),
+    );
+  });
+
+  it("handles a nested target folder", () => {
+    const asset = { file_path: "1712_shot.png" };
+    expect(targetPathForMove(asset, "photos/2024")).toBe(
+      "photos/2024/1712_shot.png",
+    );
+  });
+});
+
+describe("assetsInUse", () => {
+  it("selects only assets with recorded references", () => {
+    const used = { used_in: [{ type: "Blog Cover", id: "b1" }] };
+    const unused = { used_in: [] };
+    const never = { used_in: null };
+    expect(assetsInUse([used, unused, never])).toEqual([used]);
+  });
+
+  it("returns nothing when no asset is referenced", () => {
+    expect(assetsInUse([{ used_in: null }])).toEqual([]);
   });
 });

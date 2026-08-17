@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from "react";
 import {
-  CheckSquare,
-  ChevronRight,
+  ChevronLeft,
   FolderPlus,
+  ImageOff,
   LayoutGrid,
   List,
   Loader2,
@@ -24,11 +24,10 @@ import {
   useUpdateAssetMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  EmptyState,
   LoadingState,
   ManagerWrapper,
   PageHeader,
@@ -37,9 +36,11 @@ import { getErrorMessage } from "@/lib/utils";
 import {
   BUCKET_NAME,
   PLACEHOLDER_FILENAME,
+  assetsInUse,
   getAllFolderPaths,
   getAssetsForPath,
   sanitizeFolderName,
+  targetPathForMove,
   type StorageAsset,
 } from "./asset-utils";
 import { useAssetOperations } from "./use-asset-operations";
@@ -48,17 +49,38 @@ import { AssetGrid, AssetTable, FolderGrid } from "./asset-views";
 import { CreateFolderDialog, MoveAssetsDialog } from "./folder-dialogs";
 import { AssetDetailsSheet } from "./asset-details-sheet";
 
+/** "3 assets" / "1 asset" — the count appears in several confirm bodies. */
+function pluralAssets(count: number): string {
+  return `${count} asset${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * Names the content that references a set of assets, for a confirm body.
+ *
+ * `used_in` is what the `update_asset_usage` RPC last recorded — it matches
+ * blog covers, blog content and portfolio items by path substring. It is the
+ * only signal available that a delete or a move will break a live page, and
+ * until now nothing in this screen used it for anything but a small badge.
+ */
+function describeUsage(assets: StorageAsset[]): string {
+  const inUse = assetsInUse(assets);
+  if (inUse.length === 0) return "";
+  const places = new Set<string>();
+  for (const asset of inUse) {
+    for (const use of asset.used_in ?? []) places.add(use.type);
+  }
+  const where = Array.from(places).sort().join(", ");
+  return `${pluralAssets(inUse.length)} ${inUse.length === 1 ? "is" : "are"} still referenced by published content (${where}).`;
+}
+
 export default function AssetsPage() {
-  const isMobile = useIsMobile();
   const confirm = useConfirm();
   const [selectedAsset, setSelectedAsset] = useState<StorageAsset | null>(null);
 
-  // Folder Logic
   const [currentPath, setCurrentPath] = useState<string[]>([]);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
-  // Selection & Move
   const [isBulkSelectMode, setIsBulkSelectMode] = useState(false);
   const [bulkSelectedIds, setBulkSelectedIds] = useState<Set<string>>(
     new Set(),
@@ -85,7 +107,6 @@ export default function AssetsPage() {
     downloadAsset,
   } = useAssetOperations(currentPath);
 
-  // --- DERIVED DATA ---
   const allAvailableFolders = useMemo(
     () => getAllFolderPaths(assets),
     [assets],
@@ -96,28 +117,30 @@ export default function AssetsPage() {
     [assets, currentPath],
   );
 
-  // --- NAVIGATION ---
+  const selectedAssets = useMemo(
+    () => currentFolderAssets.filter((a) => bulkSelectedIds.has(a.id)),
+    [currentFolderAssets, bulkSelectedIds],
+  );
+
+  const clearSelection = () => setBulkSelectedIds(new Set());
+
   const navigateToFolder = (folderName: string) => {
     setCurrentPath((prev) => [...prev, folderName]);
-    setBulkSelectedIds(new Set());
+    clearSelection();
   };
-
   const navigateUp = () => {
     setCurrentPath((prev) => prev.slice(0, -1));
-    setBulkSelectedIds(new Set());
+    clearSelection();
   };
-
   const navigateToBreadcrumb = (index: number) => {
     setCurrentPath((prev) => prev.slice(0, index + 1));
-    setBulkSelectedIds(new Set());
+    clearSelection();
   };
-
   const navigateRoot = () => {
     setCurrentPath([]);
-    setBulkSelectedIds(new Set());
+    clearSelection();
   };
 
-  // --- ACTIONS ---
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
@@ -132,6 +155,12 @@ export default function AssetsPage() {
       });
       return;
     }
+
+    if (subFolders.includes(safeName)) {
+      toast.error("That folder already exists here");
+      return;
+    }
+
     const fullPath = `${pathPrefix}${safeName}/${PLACEHOLDER_FILENAME}`;
 
     try {
@@ -141,7 +170,6 @@ export default function AssetsPage() {
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(fullPath, dummyFile);
-
       if (uploadError) throw uploadError;
 
       await addAsset({
@@ -151,46 +179,51 @@ export default function AssetsPage() {
         size_kb: 0,
       }).unwrap();
 
-      toast.success("Folder created");
+      toast.success(`Folder "${safeName}" created`);
       setIsCreateFolderOpen(false);
       setNewFolderName("");
     } catch (err) {
-      toast.error("Failed to create folder", {
+      toast.error("Couldn't create the folder", {
         description: getErrorMessage(err),
       });
     }
   };
 
   const handleMoveAssets = async () => {
-    const assetsToMove = currentFolderAssets.filter((a) =>
-      bulkSelectedIds.has(a.id),
-    );
-    if (assetsToMove.length === 0) return;
+    if (selectedAssets.length === 0) return;
+
+    // A move rewrites `file_path`, and every reference in published content
+    // points at the old path. Nothing rewrites those references, so this is a
+    // breaking change to live pages whenever the asset is in use.
+    const usage = describeUsage(selectedAssets);
+    if (usage) {
+      const ok = await confirm({
+        title: `Move ${pluralAssets(selectedAssets.length)}?`,
+        description: `${usage} Moving changes their URLs, and the existing references are not updated — those pages will show a broken image until you point them at the new path.`,
+        confirmText: "Move anyway",
+      });
+      if (!ok) return;
+    }
 
     try {
-      const movePromises = assetsToMove.map((asset) => {
-        const fileName = asset.file_name;
-        const newPath =
-          targetMoveFolder === "root"
-            ? fileName
-            : `${targetMoveFolder}/${fileName}`;
-
-        if (newPath === asset.file_path) return Promise.resolve();
-
-        return moveAsset({
-          assetId: asset.id,
-          oldPath: asset.file_path,
-          newPath: newPath,
-        }).unwrap();
-      });
-
-      await Promise.all(movePromises);
-      toast.success(`Moved ${assetsToMove.length} items`);
-      setBulkSelectedIds(new Set());
+      await Promise.all(
+        selectedAssets.map((asset) => {
+          const newPath = targetPathForMove(asset, targetMoveFolder);
+          if (newPath === asset.file_path) return Promise.resolve();
+          return moveAsset({
+            assetId: asset.id,
+            oldPath: asset.file_path,
+            newPath,
+          }).unwrap();
+        }),
+      );
+      toast.success(`Moved ${pluralAssets(selectedAssets.length)}`);
+      clearSelection();
       setIsMoveDialogOpen(false);
       setIsBulkSelectMode(false);
+      await handleRescanUsage(true);
     } catch (err) {
-      toast.error("Failed to move assets", {
+      toast.error("Couldn't move every asset", {
         description: getErrorMessage(err),
       });
     }
@@ -199,11 +232,14 @@ export default function AssetsPage() {
   const handleDeleteAssets = async (assetsToDelete: StorageAsset[]) => {
     if (assetsToDelete.length === 0) return;
 
+    const usage = describeUsage(assetsToDelete);
     const ok = await confirm({
-      title: "Are you absolutely sure?",
-      description: `This action cannot be undone. This will permanently delete ${assetsToDelete.length} asset(s).`,
+      title: `Delete ${pluralAssets(assetsToDelete.length)}?`,
+      description: usage
+        ? `${usage} Deleting removes the file from storage, so those pages will show a broken image. This cannot be undone.`
+        : "This removes the file from storage permanently and cannot be undone.",
       variant: "destructive",
-      confirmText: "Confirm Delete",
+      confirmText: "Delete",
     });
     if (!ok) return;
 
@@ -211,24 +247,20 @@ export default function AssetsPage() {
       await Promise.all(
         assetsToDelete.map((asset) => deleteAsset(asset).unwrap()),
       );
-      toast.success(`${assetsToDelete.length} asset(s) deleted.`);
+      toast.success(`Deleted ${pluralAssets(assetsToDelete.length)}`);
+      if (
+        selectedAsset &&
+        assetsToDelete.some((a) => a.id === selectedAsset.id)
+      )
+        setSelectedAsset(null);
       if (isBulkSelectMode) {
         setIsBulkSelectMode(false);
-        setBulkSelectedIds(new Set());
+        clearSelection();
       }
     } catch (err) {
-      toast.error("Failed to delete one or more assets", {
+      toast.error("Couldn't delete every asset", {
         description: getErrorMessage(err),
       });
-    }
-  };
-
-  const handleBulkDelete = () => {
-    const toDelete = currentFolderAssets.filter((asset) =>
-      bulkSelectedIds.has(asset.id),
-    );
-    if (toDelete.length > 0) {
-      handleDeleteAssets(toDelete);
     }
   };
 
@@ -243,23 +275,23 @@ export default function AssetsPage() {
         id: selectedAsset.id,
         alt_text,
       }).unwrap();
-      toast.success("Alt text updated.");
+      toast.success("Alt text saved.");
       setSelectedAsset(updated);
     } catch (err) {
-      toast.error("Failed to update alt text", {
+      toast.error("Couldn't save the alt text", {
         description: getErrorMessage(err),
       });
     }
   };
 
   const toggleBulkSelect = (id: string) => {
-    const newSet = new Set(bulkSelectedIds);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setBulkSelectedIds(newSet);
+    setBulkSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
-
-  const effectiveViewMode = isMobile ? "grid" : viewMode;
 
   const viewProps = {
     assets: currentFolderAssets,
@@ -268,12 +300,16 @@ export default function AssetsPage() {
     onToggleSelect: toggleBulkSelect,
     onSelect: setSelectedAsset,
     onDownload: downloadAsset,
+    onDelete: (asset: StorageAsset) => handleDeleteAssets([asset]),
   };
 
+  const isEmptyFolder =
+    subFolders.length === 0 && currentFolderAssets.length === 0;
+
   return (
-    <ManagerWrapper className="flex h-full flex-col">
+    <ManagerWrapper>
       <PageHeader
-        title="Asset Manager"
+        title="Assets"
         description={
           <AssetBreadcrumbs
             currentPath={currentPath}
@@ -282,74 +318,37 @@ export default function AssetsPage() {
           />
         }
         actions={
+          /* Every control is available at every width. Creating a folder and
+             rescanning used to be `hidden sm:flex`, so on a phone neither was
+             reachable at all. */
           <div className="flex flex-wrap gap-2">
-            {isBulkSelectMode ? (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMoveDialogOpen(true)}
-                  disabled={bulkSelectedIds.size === 0}
-                  className="flex-1 sm:flex-none"
-                >
-                  <Move className="mr-2 size-4" /> Move ({bulkSelectedIds.size})
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  disabled={bulkSelectedIds.size === 0}
-                  className="flex-1 sm:flex-none"
-                >
-                  <Trash2 className="mr-2 size-4" /> Delete (
-                  {bulkSelectedIds.size})
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsBulkSelectMode(false);
-                    setBulkSelectedIds(new Set());
-                  }}
-                  className="flex-1 sm:flex-none"
-                >
-                  <X className="mr-2 size-4" /> Cancel
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCreateFolderOpen(true)}
-                  className="hidden sm:flex"
-                >
-                  <FolderPlus className="mr-2 size-4" /> New Folder
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleRescanUsage()}
-                  disabled={isLoading}
-                  className="hidden sm:flex"
-                >
-                  <RefreshCw className="mr-2 size-4" /> Rescan
-                </Button>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  size="sm"
-                  className="flex-1 sm:flex-none"
-                >
-                  {isUploading ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                  ) : (
-                    <Upload className="mr-2 size-4" />
-                  )}{" "}
-                  Upload
-                </Button>
-              </>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsCreateFolderOpen(true)}
+            >
+              <FolderPlus className="mr-2 size-4" aria-hidden /> New folder
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRescanUsage()}
+              disabled={isLoading}
+            >
+              <RefreshCw className="mr-2 size-4" aria-hidden /> Rescan usage
+            </Button>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              size="sm"
+            >
+              {isUploading ? (
+                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              ) : (
+                <Upload className="mr-2 size-4" aria-hidden />
+              )}
+              Upload
+            </Button>
           </div>
         }
       />
@@ -359,115 +358,133 @@ export default function AssetsPage() {
         ref={fileInputRef}
         multiple
         onChange={handleFileSelect}
-        className="hidden"
+        aria-label="Upload assets"
+        className="sr-only"
       />
 
-      <Card
-        className="flex min-h-[500px] flex-1 flex-col"
+      <div
+        className="relative"
         onDragEnter={(e) => handleDragEvents(e, true)}
         onDragLeave={(e) => handleDragEvents(e, false)}
         onDragOver={(e) => handleDragEvents(e, true)}
         onDrop={handleDrop}
       >
-        <CardHeader className="shrink-0 border-b p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {currentPath.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={navigateUp}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronRight className="size-4 rotate-180" />
-                </Button>
-              )}
-              <Button
-                variant={isBulkSelectMode ? "secondary" : "outline"}
-                size="sm"
-                onClick={() => setIsBulkSelectMode(!isBulkSelectMode)}
-                className="h-8 text-xs"
-              >
-                <CheckSquare className="mr-2 size-3.5" />
-                {isMobile ? "Select" : "Select Files"}
-              </Button>
-            </div>
+        {isDragging && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-surface border border-dashed border-primary bg-primary/10 backdrop-blur-sm">
+            <Upload className="mb-2 size-10 text-primary" aria-hidden />
+            <p className="font-medium text-primary">
+              Drop to upload into this folder
+            </p>
+          </div>
+        )}
 
-            {!isMobile && (
-              <ToggleGroup
-                type="single"
-                value={viewMode}
-                onValueChange={(value) => {
-                  if (value) setViewMode(value as "grid" | "list");
-                }}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {currentPath.length > 0 && (
+              <Button
+                variant="ghost"
                 size="sm"
+                onClick={navigateUp}
+                aria-label="Go to parent folder"
               >
-                <ToggleGroupItem value="list" aria-label="List view">
-                  <List className="h-4 w-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="grid" aria-label="Grid view">
-                  <LayoutGrid className="h-4 w-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
+                <ChevronLeft className="size-4" aria-hidden />
+              </Button>
+            )}
+            <Button
+              variant={isBulkSelectMode ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => {
+                setIsBulkSelectMode(!isBulkSelectMode);
+                clearSelection();
+              }}
+            >
+              {isBulkSelectMode ? "Done selecting" : "Select"}
+            </Button>
+
+            {/* The selection actions live next to the selection, and say how
+                many they act on. */}
+            {isBulkSelectMode && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsMoveDialogOpen(true)}
+                  disabled={selectedAssets.length === 0}
+                >
+                  <Move className="mr-2 size-4" aria-hidden /> Move
+                  {selectedAssets.length > 0 && ` (${selectedAssets.length})`}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDeleteAssets(selectedAssets)}
+                  disabled={selectedAssets.length === 0}
+                >
+                  <Trash2 className="mr-2 size-4" aria-hidden /> Delete
+                  {selectedAssets.length > 0 && ` (${selectedAssets.length})`}
+                </Button>
+                {selectedAssets.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearSelection}>
+                    <X className="mr-2 size-4" aria-hidden /> Clear
+                  </Button>
+                )}
+              </>
             )}
           </div>
-        </CardHeader>
 
-        <CardContent className="relative flex-1 overflow-y-auto p-4">
-          {isDragging && (
-            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-b-lg border border-dashed border-primary bg-primary/10 backdrop-blur-sm">
-              <Upload className="mb-2 size-10 text-primary" />
-              <p className="font-semibold text-primary">
-                Drop files to upload to current folder
-              </p>
-            </div>
-          )}
+          <ToggleGroup
+            type="single"
+            value={viewMode}
+            onValueChange={(value) => {
+              if (value) setViewMode(value as "grid" | "list");
+            }}
+            size="sm"
+          >
+            <ToggleGroupItem value="list" aria-label="List view">
+              <List className="size-4" aria-hidden />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="grid" aria-label="Grid view">
+              <LayoutGrid className="size-4" aria-hidden />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
 
-          {isLoading && !assets.length ? (
-            <LoadingState variant="section" />
-          ) : subFolders.length === 0 && currentFolderAssets.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center py-20 text-center text-muted-foreground">
-              <div className="mb-4 rounded-full bg-muted/50 p-4">
-                <LayoutGrid className="size-8 opacity-20" />
+        {isLoading && assets.length === 0 ? (
+          <LoadingState variant="section" label="Loading assets" />
+        ) : isEmptyFolder ? (
+          <EmptyState
+            icon={ImageOff}
+            variant="card"
+            title={
+              currentPath.length > 0 ? "This folder is empty" : "No assets yet"
+            }
+            description="Upload files by dropping them here, or create a folder to organise them first."
+            action={{
+              label: "New folder",
+              onClick: () => setIsCreateFolderOpen(true),
+              icon: FolderPlus,
+            }}
+          />
+        ) : (
+          <>
+            <FolderGrid folders={subFolders} onOpen={navigateToFolder} />
+
+            {currentFolderAssets.length > 0 && (
+              <div>
+                {subFolders.length > 0 && (
+                  <h3 className="t-micro mb-3">Files</h3>
+                )}
+                {viewMode === "grid" ? (
+                  <AssetGrid {...viewProps} />
+                ) : (
+                  <AssetTable {...viewProps} />
+                )}
               </div>
-              <h3 className="text-lg font-semibold">Empty Folder</h3>
-              <p className="mt-1 text-sm">
-                Upload files or create a subfolder.
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => setIsCreateFolderOpen(true)}
-              >
-                <FolderPlus className="mr-2 size-4" /> Create Folder
-              </Button>
-            </div>
-          ) : (
-            <>
-              <FolderGrid folders={subFolders} onOpen={navigateToFolder} />
+            )}
+          </>
+        )}
+      </div>
 
-              {currentFolderAssets.length > 0 && (
-                <div>
-                  {subFolders.length > 0 && (
-                    <h3 className="t-micro mb-3">Files</h3>
-                  )}
-
-                  {effectiveViewMode === "grid" ? (
-                    <AssetGrid {...viewProps} />
-                  ) : (
-                    <AssetTable
-                      {...viewProps}
-                      onDelete={(asset) => handleDeleteAssets([asset])}
-                    />
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* --- DIALOGS --- */}
       <CreateFolderDialog
         open={isCreateFolderOpen}
         onOpenChange={setIsCreateFolderOpen}
@@ -480,7 +497,7 @@ export default function AssetsPage() {
       <MoveAssetsDialog
         open={isMoveDialogOpen}
         onOpenChange={setIsMoveDialogOpen}
-        selectedCount={bulkSelectedIds.size}
+        selectedCount={selectedAssets.length}
         availableFolders={allAvailableFolders}
         targetFolder={targetMoveFolder}
         onTargetFolderChange={setTargetMoveFolder}
@@ -492,6 +509,7 @@ export default function AssetsPage() {
         onClose={() => setSelectedAsset(null)}
         onUpdateAltText={handleUpdateAltText}
         onDownload={downloadAsset}
+        onDelete={(asset) => handleDeleteAssets([asset])}
       />
     </ManagerWrapper>
   );

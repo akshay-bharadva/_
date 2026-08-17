@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { Copy, Download, ExternalLink, X } from "lucide-react";
+import { Copy, Download, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -24,6 +23,7 @@ export interface AssetDetailsSheetProps {
   onClose: () => void;
   onUpdateAltText: (e: React.FormEvent<HTMLFormElement>) => void;
   onDownload: (asset: StorageAsset) => void;
+  onDelete: (asset: StorageAsset) => void;
 }
 
 export function AssetDetailsSheet({
@@ -31,6 +31,7 @@ export function AssetDetailsSheet({
   onClose,
   onUpdateAltText,
   onDownload,
+  onDelete,
 }: AssetDetailsSheetProps) {
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
@@ -50,15 +51,27 @@ export function AssetDetailsSheet({
 
           <div className="flex items-center gap-1">
             {asset && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Download asset"
-                onClick={() => onDownload(asset)}
-                title="Download"
-              >
-                <Download className="size-4" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Download asset"
+                  onClick={() => onDownload(asset)}
+                  title="Download"
+                >
+                  <Download className="size-4" aria-hidden />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Delete asset"
+                  className="hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => onDelete(asset)}
+                  title="Delete"
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
+              </>
             )}
             <SheetClose asChild>
               <Button
@@ -146,25 +159,35 @@ export function AssetDetailsSheet({
             </div>
 
             <div className="space-y-3">
-              <Label>Used In</Label>
+              <Label>Used in</Label>
               {asset.used_in && asset.used_in.length > 0 ? (
-                <div className="space-y-2">
+                <ul className="space-y-2">
+                  {/*
+                    These were rendered as links to `href="#"` — styled with a
+                    hover state and an external-link icon, so they looked
+                    navigable and did nothing. `used_in` records a content type
+                    and a row id, which is not enough to build an admin URL, so
+                    this states the reference rather than pretending to be one.
+                  */}
                   {asset.used_in.map((use, i) => (
-                    <Link
-                      key={i}
-                      href="#"
-                      className="group flex items-center justify-between rounded-md border bg-card p-3 text-sm transition-colors hover:bg-accent"
+                    <li
+                      key={`${use.type}-${use.id}-${i}`}
+                      className="rounded-surface bg-card p-3 text-sm shadow-e1"
                     >
                       <span className="font-medium">{use.type}</span>
-                      <ExternalLink className="size-4 text-muted-foreground group-hover:text-primary" />
-                    </Link>
+                    </li>
                   ))}
-                </div>
+                </ul>
               ) : (
-                <div className="rounded-md border border-dashed bg-muted/10 p-4 text-center text-sm text-muted-foreground">
-                  Not currently used in any known content.
-                </div>
+                <p className="rounded-surface bg-secondary/40 p-4 text-center text-sm text-muted-foreground">
+                  Not referenced by any content.
+                </p>
               )}
+              <p className="text-xs text-muted-foreground">
+                Usage is recorded by the last rescan, not live — run{" "}
+                <strong className="font-medium">Rescan usage</strong> after
+                editing content to refresh it.
+              </p>
             </div>
           </div>
         )}
