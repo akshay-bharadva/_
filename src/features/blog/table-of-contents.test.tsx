@@ -52,6 +52,46 @@ describe("useHeadings", () => {
     );
   });
 
+  /**
+   * The case the first fix missed.
+   *
+   * The post is fetched client-side, so the page shows a skeleton and the
+   * `<article>` does not exist when this effect runs. Returning early there
+   * meant the scan never happened at all — `containerId` never changes, so the
+   * effect never re-ran once the article finally mounted.
+   */
+  it("waits for the container itself to appear", async () => {
+    const { result } = renderHook(() => useHeadings(ARTICLE_ID));
+    expect(result.current.headings).toEqual([]);
+
+    await act(async () => {
+      mountArticle('<h2 id="after">Mounted after the query</h2>');
+    });
+
+    await waitFor(() =>
+      expect(result.current.headings).toEqual([
+        { id: "after", text: "Mounted after the query", level: 2 },
+      ]),
+    );
+  });
+
+  it("still picks up content added to a late-arriving container", async () => {
+    const { result } = renderHook(() => useHeadings(ARTICLE_ID));
+
+    let article!: HTMLElement;
+    await act(async () => {
+      article = mountArticle();
+    });
+
+    await act(async () => {
+      article.innerHTML = '<h2 id="body">Body</h2>';
+    });
+
+    await waitFor(() =>
+      expect(result.current.headings.map((h) => h.id)).toEqual(["body"]),
+    );
+  });
+
   it("ignores headings without an id, which cannot be linked to", () => {
     mountArticle('<h2 id="linkable">Linkable</h2><h2>No id</h2>');
     const { result } = renderHook(() => useHeadings(ARTICLE_ID));

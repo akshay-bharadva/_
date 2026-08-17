@@ -22,35 +22,37 @@ const SCROLL_OFFSET = 96;
 /**
  * Extracts h2/h3 from the rendered article and tracks the active heading.
  *
- * The scan cannot be a one-shot on mount. The markdown pipeline
- * (raw → sanitize → prism → slug) is code-split and loads *after* this
- * component mounts, so on a cold chunk the article is still empty when the
- * effect runs — the scan finds nothing, never re-runs, and the table of
- * contents silently never appears. On a warm chunk it happens to find the
- * headings. That race is why the TOC showed up only sometimes.
+ * The scan cannot be a one-shot on mount, because on /blog/view two separate
+ * things arrive after this effect first runs:
  *
- * A MutationObserver re-scans whenever the article's subtree changes, which
- * covers the chunk arriving, images resolving, and any later edit.
+ *  1. **The article itself.** The post is fetched client-side, so the page
+ *     renders a skeleton and `<article id>` does not exist yet.
+ *  2. **Its content.** The markdown pipeline (raw → sanitize → prism → slug)
+ *     is code-split, so the body lands later still.
+ *
+ * `containerId` never changes, so the effect never re-runs on its own — a scan
+ * that gives up on either miss produces no table of contents at all. Both are
+ * watched: one observer waits for the article to appear, then hands over to a
+ * second that re-scans as its subtree fills in.
  */
 export function useHeadings(containerId: string) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
     let intersection: IntersectionObserver | null = null;
+    let contentWatcher: MutationObserver | null = null;
+    let arrivalWatcher: MutationObserver | null = null;
 
-    const scan = () => {
+    const scan = (container: HTMLElement) => {
       const elements = Array.from(
         container.querySelectorAll<HTMLElement>("h2[id], h3[id]"),
       );
 
       setHeadings((previous) => {
-        // Bail when nothing changed: setState with a fresh array on every
-        // mutation would re-render the article's siblings continuously while
-        // the editor or the chunk is still settling.
+        // Bail when nothing changed: a fresh array on every mutation would
+        // re-render the article's siblings continuously while the chunk or an
+        // image is still settling.
         const same =
           previous.length === elements.length &&
           previous.every((h, i) => h.id === elements[i].id);
@@ -75,13 +77,43 @@ export function useHeadings(containerId: string) {
       elements.forEach((el) => intersection!.observe(el));
     };
 
-    scan();
+    const attach = (container: HTMLElement) => {
+      scan(container);
+      contentWatcher = new MutationObserver(() => scan(container));
+      contentWatcher.observe(container, { childList: true, subtree: true });
+    };
 
-    const mutations = new MutationObserver(scan);
-    mutations.observe(container, { childList: true, subtree: true });
+    const existing = document.getElementById(containerId);
+    if (existing) {
+      attach(existing);
+    } else {
+      /**
+       * The container itself arrives late.
+       *
+       * The post is fetched client-side, so the page renders a skeleton first
+       * and `<article id>` does not exist yet when this effect runs. Bailing
+       * out here — which is what the first version did — meant the scan never
+       * happened at all, because `containerId` never changes and the effect
+       * never re-runs. Watching for the article to appear is what makes the
+       * table of contents show up reliably rather than only when the markdown
+       * chunk and the query both happened to resolve before mount.
+       */
+      arrivalWatcher = new MutationObserver(() => {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        arrivalWatcher?.disconnect();
+        arrivalWatcher = null;
+        attach(container);
+      });
+      arrivalWatcher.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
 
     return () => {
-      mutations.disconnect();
+      arrivalWatcher?.disconnect();
+      contentWatcher?.disconnect();
       intersection?.disconnect();
     };
   }, [containerId]);
