@@ -14,6 +14,8 @@ import {
   DAY_OF_WEEK_MAX,
   DAY_OF_MONTH_MIN,
   DAY_OF_MONTH_MAX,
+  HABIT_VALUE_MAX,
+  HABIT_NOTE_MAX,
 } from "./constants";
 import { SITE_IDENTITY_DEFAULTS } from "./site-identity-defaults";
 
@@ -343,14 +345,66 @@ export type FinancialGoalFormValues = z.infer<typeof financialGoalSchema>;
 // HABIT SCHEMAS
 // =============================================================================
 
-export const habitSchema = z.object({
-  title: boundedRequiredString(LIMITS.TITLE, "Title"),
-  color: hexColor,
-  target_per_week: z.coerce
-    .number()
-    .int("Weekly target must be a whole number")
-    .min(1, "Weekly target must be between 1 and 7")
-    .max(7, "Weekly target must be between 1 and 7"),
+/**
+ * Every bound mirrors a CHECK constraint on `habits` — see
+ * `db/migrations/002-habits.sql`.
+ */
+export const habitSchema = z
+  .object({
+    title: boundedRequiredString(LIMITS.TITLE, "Title"),
+    color: hexColor,
+    kind: z.enum(["build", "quit"]).default("build"),
+    schedule: z
+      .enum(["daily", "weekdays", "weekends", "custom", "weekly_count"])
+      .default("daily"),
+    schedule_days: z
+      .array(z.number().int().min(1).max(7))
+      .max(7)
+      .optional()
+      .nullable(),
+    target_per_week: z.coerce
+      .number()
+      .int("Weekly target must be a whole number")
+      .min(1, "Weekly target must be between 1 and 7")
+      .max(7, "Weekly target must be between 1 and 7")
+      .default(7),
+    target_value: z.coerce
+      .number()
+      .positive("Target must be greater than zero")
+      .max(HABIT_VALUE_MAX, "Target is too large")
+      .default(1),
+    unit: boundedOptionalString(24, "Unit"),
+    step: z.coerce
+      .number()
+      .positive("Step must be greater than zero")
+      .max(HABIT_VALUE_MAX, "Step is too large")
+      .default(1),
+    time_of_day: z
+      .enum(["anytime", "morning", "afternoon", "evening"])
+      .default("anytime"),
+    category: boundedOptionalString(LIMITS.TITLE, "Category"),
+    notes: boundedOptionalString(LIMITS.SUMMARY, "Notes"),
+  })
+  // Mirrors habits_custom_needs_days. A custom schedule with no days is due
+  // never, which makes the habit impossible to complete and its streak
+  // undefined.
+  .refine(
+    (data) =>
+      data.schedule !== "custom" || (data.schedule_days?.length ?? 0) >= 1,
+    {
+      message: "Pick at least one day",
+      path: ["schedule_days"],
+    },
+  )
+  // A step larger than the target means one tap overshoots every time.
+  .refine((data) => data.step <= data.target_value, {
+    message: "Step cannot be larger than the target",
+    path: ["step"],
+  });
+
+export const habitLogSchema = z.object({
+  value: z.coerce.number().min(0).max(HABIT_VALUE_MAX),
+  note: boundedOptionalString(HABIT_NOTE_MAX, "Note"),
 });
 
 export type HabitFormValues = z.infer<typeof habitSchema>;

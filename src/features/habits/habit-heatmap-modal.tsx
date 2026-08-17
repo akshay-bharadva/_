@@ -16,18 +16,31 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { describeSchedule, isDueOn } from "./habit-schedule";
+import {
+  bestStreak,
+  completionRate,
+  currentStreak,
+  indexLogs,
+  isSatisfiedOn,
+} from "./habit-progress";
 
 interface HabitHeatmapModalProps {
   habit: Habit | null;
   isOpen: boolean;
   onClose: () => void;
+  onEdit: (habit: Habit) => void;
+  onArchive: (habit: Habit) => void;
 }
 
 export function HabitHeatmapModal({
   habit,
   isOpen,
   onClose,
+  onEdit,
+  onArchive,
 }: HabitHeatmapModalProps) {
   if (!habit) return null;
 
@@ -37,7 +50,10 @@ export function HabitHeatmapModal({
     end: endOfYear(today),
   });
 
-  const logsSet = new Set(habit.habit_logs?.map((l) => l.completed_date) || []);
+  const logIndex = indexLogs(habit);
+  const streak = currentStreak(habit);
+  const best = bestStreak(habit);
+  const rate = completionRate(habit);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -50,14 +66,17 @@ export function HabitHeatmapModal({
             />
             {habit.title}
           </DialogTitle>
-          <DialogDescription>Yearly consistency view.</DialogDescription>
+          <DialogDescription>
+            {describeSchedule(habit)} · {streak} day streak · best {best} ·{" "}
+            {rate}% over 30 days
+          </DialogDescription>
         </DialogHeader>
 
         <div className="mt-4">
           <div className="flex flex-wrap justify-center gap-1">
             {days.map((day) => {
               const dateStr = format(day, "yyyy-MM-dd");
-              const isDone = logsSet.has(dateStr);
+              const isDone = isSatisfiedOn(habit, logIndex, dateStr);
               const isFuture = day > today;
 
               return (
@@ -81,13 +100,27 @@ export function HabitHeatmapModal({
                       />
                     </TooltipTrigger>
                     <TooltipContent className="text-xs">
-                      {format(day, "MMM do")}: {isDone ? "Done" : "Missed"}
+                      {format(day, "MMM do")}:{" "}
+                      {isDone
+                        ? "Done"
+                        : isDueOn(habit, dateStr)
+                          ? "Missed"
+                          : "Not scheduled"}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               );
             })}
           </div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2 border-t pt-4">
+          <Button variant="ghost" onClick={() => onArchive(habit)}>
+            Archive
+          </Button>
+          <Button variant="outline" onClick={() => onEdit(habit)}>
+            Edit habit
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

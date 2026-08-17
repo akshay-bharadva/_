@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import { format } from "date-fns";
 import confetti from "canvas-confetti";
-import { BarChart2, Edit2, Flame, MoreVertical, Trash2 } from "lucide-react";
+import { Archive, BarChart2, Edit2, Flame, MoreVertical } from "lucide-react";
 import type { Habit } from "@/types";
 import { habitColor } from "./habit-color";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { calculateHabitStats } from "@/lib/habit-utils";
+import {
+  currentStreak,
+  completionRate,
+  indexLogs,
+  isSatisfiedOn,
+} from "./habit-progress";
+import { isDueOn } from "./habit-schedule";
 import { cn } from "@/lib/utils";
 import { HabitCell } from "./habit-cell";
 
@@ -23,7 +29,7 @@ interface HabitRowProps {
   dates: Date[];
   onToggle: (habitId: string, date: string) => void;
   onEdit: (habit: Habit) => void;
-  onDelete: (id: string) => void;
+  onArchive: (habit: Habit) => void;
   onViewStats: (habit: Habit) => void;
 }
 
@@ -33,21 +39,20 @@ export const HabitRow = React.memo(
     dates,
     onToggle,
     onEdit,
-    onDelete,
+    onArchive,
     onViewStats,
   }: HabitRowProps) => {
-    const { streak, completionRate } = useMemo(
-      () => calculateHabitStats(habit),
-      [habit],
-    );
+    // Computed against the schedule: the old helper counted calendar days, so
+    // anything but a daily habit reported a broken streak and a depressed rate.
+    const streak = useMemo(() => currentStreak(habit), [habit]);
+    const rate = useMemo(() => completionRate(habit), [habit]);
+    const logIndex = useMemo(() => indexLogs(habit), [habit]);
 
-    const completedDatesSet = useMemo(
-      () => new Set(habit.habit_logs?.map((l) => l.completed_date) || []),
-      [habit.habit_logs],
-    );
+    const isSatisfied = (dateStr: string) =>
+      isSatisfiedOn(habit, logIndex, dateStr);
 
     const handleCheck = (dateStr: string) => {
-      const isAlreadyDone = completedDatesSet.has(dateStr);
+      const isAlreadyDone = isSatisfied(dateStr);
       if (!isAlreadyDone) {
         confetti({
           particleCount: 50,
@@ -73,7 +78,7 @@ export const HabitRow = React.memo(
             </p>
             <p className="font-mono text-[10px] text-muted-foreground">
               {/* Nullable column — without a fallback this read as "/wk". */}
-              {habit.target_per_week ?? 7}/wk • {completionRate}%
+              {habit.target_per_week ?? 7}/wk • {rate}%
             </p>
           </div>
         </TableCell>
@@ -87,7 +92,10 @@ export const HabitRow = React.memo(
             >
               <HabitCell
                 dateStr={dateStr}
-                isCompleted={completedDatesSet.has(dateStr)}
+                isCompleted={isSatisfied(dateStr)}
+                // A day the habit was never due is not a miss, and shading it
+                // like one is what made every non-daily habit look neglected.
+                isScheduled={isDueOn(habit, dateStr)}
                 color={habitColor(habit)}
                 onToggle={() => handleCheck(dateStr)}
                 isToday={date.toDateString() === new Date().toDateString()}
@@ -129,11 +137,10 @@ export const HabitRow = React.memo(
                 <DropdownMenuItem onClick={() => onEdit(habit)}>
                   <Edit2 className="mr-2 size-3.5" /> Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => onDelete(habit.id)}
-                >
-                  <Trash2 className="mr-2 size-3.5" /> Delete
+                {/* Archive, not delete: deleting destroys every log the
+                    habit ever had. Deletion lives in the archived view. */}
+                <DropdownMenuItem onClick={() => onArchive(habit)}>
+                  <Archive className="mr-2 size-3.5" /> Archive
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

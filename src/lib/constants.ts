@@ -107,6 +107,54 @@ export const CHART_COLORS = [
  * owner switches theme.
  */
 export const DEFAULT_HABIT_COLOR = "#3b82f6";
+
+// =============================================================================
+// HABIT DEFINITION — mirrors the CHECK constraints in db/migrations/002-habits.sql
+// =============================================================================
+
+export const HABIT_KIND_OPTIONS = [
+  {
+    value: "build",
+    label: "Build",
+    hint: "Something you want to do more of",
+  },
+  {
+    value: "quit",
+    label: "Quit",
+    hint: "Something you want to avoid — a log is a slip",
+  },
+] as const;
+
+export const HABIT_SCHEDULE_OPTIONS = [
+  { value: "daily", label: "Every day" },
+  { value: "weekdays", label: "Weekdays" },
+  { value: "weekends", label: "Weekends" },
+  { value: "custom", label: "Certain days" },
+  { value: "weekly_count", label: "Times per week" },
+] as const;
+
+export const HABIT_TIME_OF_DAY_OPTIONS = [
+  { value: "anytime", label: "Anytime" },
+  { value: "morning", label: "Morning" },
+  { value: "afternoon", label: "Afternoon" },
+  { value: "evening", label: "Evening" },
+] as const;
+
+/** ISO weekday numbers, matching `habits.schedule_days`. */
+export const WEEKDAYS = [
+  { value: 1, short: "Mon", letter: "M" },
+  { value: 2, short: "Tue", letter: "T" },
+  { value: 3, short: "Wed", letter: "W" },
+  { value: 4, short: "Thu", letter: "T" },
+  { value: 5, short: "Fri", letter: "F" },
+  { value: 6, short: "Sat", letter: "S" },
+  { value: 7, short: "Sun", letter: "S" },
+] as const;
+
+/** Mirrors habits_target_value_positive / habit_logs_value_range. */
+export const HABIT_VALUE_MAX = 100000;
+/** Mirrors habit_logs_note_length. */
+export const HABIT_NOTE_MAX = 500;
 export const DEFAULT_NOTE_COLOR = "#facc15";
 
 export const TASK_STATUS = {

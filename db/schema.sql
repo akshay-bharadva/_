@@ -501,11 +501,32 @@ CREATE TABLE IF NOT EXISTS habits (
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
   title TEXT NOT NULL,
   color TEXT DEFAULT '#0ea5e9',
-  target_per_week INT DEFAULT 7,
+  -- 'build' is a habit to do, 'quit' one to avoid, where a log is a slip.
+  kind TEXT NOT NULL DEFAULT 'build' CHECK (kind IN ('build', 'quit')),
+  -- Quantified habits; a plain check-in is target_value 1 with no unit.
+  target_value NUMERIC NOT NULL DEFAULT 1 CHECK (target_value > 0 AND target_value <= 100000),
+  unit TEXT CHECK (unit IS NULL OR length(unit) <= 24),
+  step NUMERIC NOT NULL DEFAULT 1 CHECK (step > 0 AND step <= 100000),
+  -- Which days it is due. Without this, target_per_week had no notion of
+  -- *when*, so a Mon/Wed/Fri habit broke its streak every Tuesday.
+  schedule TEXT NOT NULL DEFAULT 'daily' CHECK (schedule IN ('daily', 'weekdays', 'weekends', 'custom', 'weekly_count')),
+  schedule_days INT[],  -- ISO weekdays, 1 = Monday … 7 = Sunday
+  target_per_week INT DEFAULT 7 CHECK (target_per_week IS NULL OR (target_per_week >= 1 AND target_per_week <= 7)),
+  time_of_day TEXT NOT NULL DEFAULT 'anytime' CHECK (time_of_day IN ('anytime', 'morning', 'afternoon', 'evening')),
+  category TEXT,
+  notes TEXT,
+  display_order INT4 DEFAULT 0,
   is_active BOOLEAN DEFAULT true,
+  archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT habits_custom_needs_days CHECK (schedule <> 'custom' OR (schedule_days IS NOT NULL AND array_length(schedule_days, 1) >= 1)),
+  CONSTRAINT habits_schedule_days_valid CHECK (schedule_days IS NULL OR (
+    array_length(schedule_days, 1) <= 7
+    AND NOT EXISTS (SELECT 1 FROM unnest(schedule_days) d WHERE d < 1 OR d > 7)
+  ))
 );
+CREATE INDEX IF NOT EXISTS habits_archived_at_idx ON habits(archived_at);
 ALTER TABLE habits ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage habits" ON habits;
 CREATE POLICY "Admin manage habits" ON habits FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
@@ -516,9 +537,14 @@ CREATE TABLE IF NOT EXISTS habit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   habit_id UUID REFERENCES habits(id) ON DELETE CASCADE,
   completed_date DATE NOT NULL,
+  -- How much was done that day. Absent row means "not done"; a zero-value row
+  -- would mean every untouched day needed one.
+  value NUMERIC NOT NULL DEFAULT 1 CHECK (value >= 0 AND value <= 100000),
+  note TEXT CHECK (note IS NULL OR length(note) <= 500),
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(habit_id, completed_date)
 );
+CREATE INDEX IF NOT EXISTS habit_logs_completed_date_idx ON habit_logs(completed_date);
 ALTER TABLE habit_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage habit logs" ON habit_logs;
 CREATE POLICY "Admin manage habit logs" ON habit_logs FOR ALL USING (
@@ -655,6 +681,33 @@ BEGIN
   IF minutes IS NULL OR minutes <= 0 THEN RETURN; END IF;
   UPDATE tasks SET tracked_minutes = LEAST(COALESCE(tracked_minutes, 0) + minutes, 100000)
   WHERE id = target_task_id AND user_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
+-- Habit logging. One round trip and idempotent: incrementing from the today
+-- view fires once per tap, and a select-then-insert would double-count a race.
+CREATE OR REPLACE FUNCTION set_habit_log(target_habit_id UUID, target_date DATE, new_value NUMERIC)
+RETURNS void AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM habits WHERE id = target_habit_id AND user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'Habit not found';
+  END IF;
+  IF new_value IS NULL OR new_value <= 0 THEN
+    DELETE FROM habit_logs WHERE habit_id = target_habit_id AND completed_date = target_date;
+    RETURN;
+  END IF;
+  INSERT INTO habit_logs (habit_id, completed_date, value)
+  VALUES (target_habit_id, target_date, LEAST(new_value, 100000))
+  ON CONFLICT (habit_id, completed_date) DO UPDATE SET value = LEAST(EXCLUDED.value, 100000);
+END;
+$$ LANGUAGE plpgsql SECURITY INVOKER;
+
+CREATE OR REPLACE FUNCTION update_habit_order(habit_ids UUID[])
+RETURNS void AS $$
+BEGIN
+  FOR i IN 1..array_length(habit_ids, 1) LOOP
+    UPDATE habits SET display_order = i WHERE id = habit_ids[i] AND user_id = auth.uid();
+  END LOOP;
 END;
 $$ LANGUAGE plpgsql SECURITY INVOKER;
 

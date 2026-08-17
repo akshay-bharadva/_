@@ -22,7 +22,7 @@ interface HabitGridProps {
   habits: Habit[];
   onToggle: (habitId: string, date: string) => void;
   onEdit: (habit: Habit) => void;
-  onDelete: (id: string) => void;
+  onArchive: (habit: Habit) => void;
   onViewStats: (habit: Habit) => void;
 }
 
@@ -30,7 +30,7 @@ export function HabitGrid({
   habits,
   onToggle,
   onEdit,
-  onDelete,
+  onArchive,
   onViewStats,
 }: HabitGridProps) {
   const daysToShow = useResponsiveDays();
@@ -100,7 +100,7 @@ export function HabitGrid({
                   dates={dates}
                   onToggle={onToggle}
                   onEdit={onEdit}
-                  onDelete={onDelete}
+                  onArchive={onArchive}
                   onViewStats={onViewStats}
                 />
               ))}

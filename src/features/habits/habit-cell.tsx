@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 interface HabitCellProps {
   dateStr: string;
   isCompleted: boolean;
+  /** False on days the habit is not due, which are not misses. */
+  isScheduled: boolean;
   color: string;
   onToggle: () => void;
   isToday: boolean;
@@ -24,6 +26,7 @@ interface HabitCellProps {
 const arePropsEqual = (prev: HabitCellProps, next: HabitCellProps) => {
   return (
     prev.isCompleted === next.isCompleted &&
+    prev.isScheduled === next.isScheduled &&
     prev.color === next.color &&
     prev.dateStr === next.dateStr &&
     prev.isToday === next.isToday
@@ -31,7 +34,14 @@ const arePropsEqual = (prev: HabitCellProps, next: HabitCellProps) => {
 };
 
 export const HabitCell = React.memo(
-  ({ dateStr, isCompleted, color, onToggle, isToday }: HabitCellProps) => {
+  ({
+    dateStr,
+    isCompleted,
+    isScheduled,
+    color,
+    onToggle,
+    isToday,
+  }: HabitCellProps) => {
     const dateLabel = format(new Date(dateStr), "MMM do");
 
     return (

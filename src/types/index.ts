@@ -295,6 +295,15 @@ export interface FinancialGoal {
   updated_at?: string;
 }
 
+export type HabitKind = "build" | "quit";
+export type HabitSchedule =
+  | "daily"
+  | "weekdays"
+  | "weekends"
+  | "custom"
+  | "weekly_count";
+export type HabitTimeOfDay = "anytime" | "morning" | "afternoon" | "evening";
+
 export interface Habit {
   id: string;
   user_id?: string;
@@ -305,9 +314,24 @@ export interface Habit {
    * described a guarantee the schema does not make.
    */
   color?: string | null;
+  /** A "quit" habit inverts success: a log is a slip, not an achievement. */
+  kind?: HabitKind | null;
+  /** A plain check-in is target_value 1 with no unit. */
+  target_value?: number | null;
+  unit?: string | null;
+  step?: number | null;
+  schedule?: HabitSchedule | null;
+  /** ISO weekdays, 1 = Monday … 7 = Sunday. Only used when schedule="custom". */
+  schedule_days?: number[] | null;
   target_per_week?: number | null;
+  time_of_day?: HabitTimeOfDay | null;
+  category?: string | null;
+  notes?: string | null;
+  display_order?: number;
   is_active?: boolean | null;
+  archived_at?: string | null;
   created_at?: string;
+  updated_at?: string;
   habit_logs?: HabitLog[]; // Joined data
 }
 
@@ -315,6 +339,9 @@ export interface HabitLog {
   id: string;
   habit_id: string;
   completed_date: string; // YYYY-MM-DD
+  /** How much was done. Absence of a row means not done at all. */
+  value?: number | null;
+  note?: string | null;
 }
 
 export interface LearningSubject {
