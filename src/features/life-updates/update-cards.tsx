@@ -210,7 +210,10 @@ export function BoardCard({
 
         <div
           className={cn(
-            "overflow-hidden rounded-sm border border-border/50 bg-card shadow-[0_2px_12px_-3px_rgba(0,0,0,0.12)] transition-shadow duration-300 group-hover:shadow-[0_6px_24px_-5px_rgba(0,0,0,0.18)] dark:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.35)] dark:group-hover:shadow-[0_6px_24px_-5px_rgba(0,0,0,0.45)]",
+            // Hand-rolled rgba shadows with `dark:` overrides lived here. They
+            // predate the elevation tokens and did not follow the theme, so on
+            // a dark preset the card cast a shadow tuned for a light one.
+            "overflow-hidden rounded-sm bg-card shadow-e1 transition-shadow duration-200 ease-enter group-hover:shadow-e2",
             !update.is_published && "opacity-55",
           )}
         >

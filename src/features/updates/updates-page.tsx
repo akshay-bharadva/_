@@ -8,10 +8,10 @@ import {
 } from "@/store/api/publicApi";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 import type { LifeUpdate, LifeUpdateCategory } from "@/types";
-import { cn } from "@/lib/utils";
 import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
+import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrapbookLayout } from "./scrapbook-layout";
 import { TimelineLayout } from "./timeline-layout";
@@ -72,56 +72,62 @@ export function UpdatesPage() {
           />
         </div>
 
+        {/*
+          Same FilterChip the admin module uses, so a visitor and the owner are
+          looking at one filter vocabulary. The chips carry counts, and the
+          monospace pill styling is gone — mono is for code, not for labels.
+        */}
         {activeCategories.length > 1 && (
-          <div
-            role="group"
-            aria-label="Filter by category"
-            className="flex flex-wrap gap-1.5"
-          >
-            <button
-              type="button"
+          <FilterBar label="Filter by category">
+            <FilterChip
+              active={category === "all"}
+              count={updates?.length}
               onClick={() => setCategory("all")}
-              aria-pressed={category === "all"}
-              className={cn(
-                "rounded-full border px-3 py-1 font-mono text-xs transition-colors",
-                category === "all"
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "bg-card text-muted-foreground hover:border-primary/50",
-              )}
             >
               All
-            </button>
+            </FilterChip>
             {activeCategories.map((option) => (
-              <button
+              <FilterChip
                 key={option.value}
-                type="button"
+                active={category === option.value}
+                count={
+                  (updates ?? []).filter((u) => u.category === option.value)
+                    .length
+                }
                 onClick={() => setCategory(option.value)}
-                aria-pressed={category === option.value}
-                className={cn(
-                  "rounded-full border px-3 py-1 font-mono text-xs transition-colors",
-                  category === option.value
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground hover:border-primary/50",
-                )}
               >
-                <span aria-hidden>{option.emoji}</span> {option.label}
-              </button>
+                <span aria-hidden>{option.emoji}</span>
+                {option.label}
+              </FilterChip>
             ))}
-          </div>
+          </FilterBar>
         )}
       </div>
 
       {isLoading ? (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-busy>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-44 rounded-lg" />
-          ))}
-        </div>
+        /* Shaped like the layout it is standing in for, rather than a generic
+           three-column grid that matched neither the masonry scrapbook nor the
+           single-column timeline. */
+        layout === "timeline" ? (
+          <div className="space-y-6" aria-busy>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 rounded-surface" />
+            ))}
+          </div>
+        ) : (
+          <div className="columns-1 gap-5 sm:columns-2 lg:columns-3" aria-busy>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton
+                key={i}
+                className="mb-5 rounded-surface"
+                style={{ height: `${10 + (i % 3) * 4}rem` }}
+              />
+            ))}
+          </div>
+        )
       ) : filtered.length === 0 ? (
-        <div className="rounded-surface border border-dashed py-16 text-center">
-          <p className="font-mono text-sm text-muted-foreground">
-            No updates match.
-          </p>
+        <div className="rounded-surface bg-card px-6 py-16 text-center shadow-e1">
+          <p className="t-lead">No updates match.</p>
           {(searchTerm || category !== "all") && (
             <button
               type="button"
@@ -129,7 +135,7 @@ export function UpdatesPage() {
                 setSearchTerm("");
                 setCategory("all");
               }}
-              className="mt-3 inline-flex items-center gap-1.5 font-mono text-xs text-primary underline-offset-4 hover:underline"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="size-3.5" aria-hidden />
               Clear filters
