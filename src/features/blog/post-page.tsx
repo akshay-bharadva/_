@@ -16,7 +16,7 @@ import { Band } from "@/components/layout/band";
 import { Skeleton } from "@/components/ui/skeleton";
 import { readTime } from "./blog-list-page";
 import { ReadingProgress } from "./reading-progress";
-import { TableOfContents } from "./table-of-contents";
+import { TableOfContents, useHeadings } from "./table-of-contents";
 
 const VIEW_COUNT_DELAY_MS = 5000;
 const ARTICLE_ID = "post-article";
@@ -74,6 +74,10 @@ export function PostPage() {
   const { data: identity } = useGetSiteIdentityQuery();
   const [incrementView] = useIncrementPostViewMutation();
 
+  // Owned by the page, not the rail: the layout has to know whether a table of
+  // contents will render before it decides how wide the article is.
+  const { headings, activeId } = useHeadings(ARTICLE_ID);
+
   // Warm the markdown chunk alongside the post query rather than after it, so
   // the code split doesn't serialize two round trips before the body appears.
   useEffect(() => {
@@ -113,6 +117,7 @@ export function PostPage() {
       })
     : "";
   const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+  const hasToc = post.show_toc !== false && headings.length > 0;
 
   const share = (network: "x" | "linkedin") => {
     const url = encodeURIComponent(shareUrl);
@@ -146,14 +151,21 @@ export function PostPage() {
           </ol>
         </nav>
 
+        {/*
+          Keyed on whether a table of contents will actually render, not on the
+          `show_toc` flag alone. The rail returns null when the post has no
+          h2/h3, so keying on the flag reserved a 14rem column for nothing and
+          left the article pinned at max-w-3xl — the "content doesn't expand"
+          case.
+        */}
         <div
           className={
-            post.show_toc
-              ? "grid gap-12 lg:grid-cols-[1fr_14rem]"
+            hasToc
+              ? "grid gap-12 lg:grid-cols-[minmax(0,1fr)_14rem]"
               : "mx-auto max-w-3xl"
           }
         >
-          <article id={ARTICLE_ID} className="min-w-0 max-w-3xl">
+          <article id={ARTICLE_ID} className="min-w-0">
             <header>
               <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
                 {post.title}
@@ -232,7 +244,9 @@ export function PostPage() {
             </footer>
           </article>
 
-          {post.show_toc && <TableOfContents articleId={ARTICLE_ID} />}
+          {hasToc && (
+            <TableOfContents headings={headings} activeId={activeId} />
+          )}
         </div>
       </Band>
     </>

@@ -11,7 +11,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-interface Heading {
+export interface Heading {
   id: string;
   text: string;
   level: 2 | 3;
@@ -19,8 +19,20 @@ interface Heading {
 
 const SCROLL_OFFSET = 96;
 
-/** Extracts h2/h3 from the rendered article and tracks the active heading. */
-function useHeadings(containerId: string) {
+/**
+ * Extracts h2/h3 from the rendered article and tracks the active heading.
+ *
+ * The scan cannot be a one-shot on mount. The markdown pipeline
+ * (raw → sanitize → prism → slug) is code-split and loads *after* this
+ * component mounts, so on a cold chunk the article is still empty when the
+ * effect runs — the scan finds nothing, never re-runs, and the table of
+ * contents silently never appears. On a warm chunk it happens to find the
+ * headings. That race is why the TOC showed up only sometimes.
+ *
+ * A MutationObserver re-scans whenever the article's subtree changes, which
+ * covers the chunk arriving, images resolving, and any later edit.
+ */
+export function useHeadings(containerId: string) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [activeId, setActiveId] = useState<string>("");
 
@@ -28,27 +40,50 @@ function useHeadings(containerId: string) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const elements = Array.from(
-      container.querySelectorAll<HTMLElement>("h2[id], h3[id]"),
-    );
-    setHeadings(
-      elements.map((el) => ({
-        id: el.id,
-        text: el.textContent ?? "",
-        level: el.tagName === "H2" ? 2 : 3,
-      })),
-    );
+    let intersection: IntersectionObserver | null = null;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActiveId(entry.target.id);
-        }
-      },
-      { rootMargin: "-20% 0px -70% 0px" },
-    );
-    elements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    const scan = () => {
+      const elements = Array.from(
+        container.querySelectorAll<HTMLElement>("h2[id], h3[id]"),
+      );
+
+      setHeadings((previous) => {
+        // Bail when nothing changed: setState with a fresh array on every
+        // mutation would re-render the article's siblings continuously while
+        // the editor or the chunk is still settling.
+        const same =
+          previous.length === elements.length &&
+          previous.every((h, i) => h.id === elements[i].id);
+        return same
+          ? previous
+          : elements.map((el) => ({
+              id: el.id,
+              text: el.textContent ?? "",
+              level: el.tagName === "H2" ? 2 : 3,
+            }));
+      });
+
+      intersection?.disconnect();
+      intersection = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) setActiveId(entry.target.id);
+          }
+        },
+        { rootMargin: "-20% 0px -70% 0px" },
+      );
+      elements.forEach((el) => intersection!.observe(el));
+    };
+
+    scan();
+
+    const mutations = new MutationObserver(scan);
+    mutations.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      mutations.disconnect();
+      intersection?.disconnect();
+    };
   }, [containerId]);
 
   return { headings, activeId };
@@ -99,9 +134,20 @@ function TocList({
   );
 }
 
-/** Sticky rail on desktop, sheet on mobile. Renders nothing without headings. */
-export function TableOfContents({ articleId }: { articleId: string }) {
-  const { headings, activeId } = useHeadings(articleId);
+/**
+ * Sticky rail on desktop, sheet on mobile. Renders nothing without headings.
+ *
+ * Headings are supplied by the page rather than scanned here, because the page
+ * has to know whether a rail will appear *before* it lays out — otherwise it
+ * reserves a column for a TOC that never renders and the article never widens.
+ */
+export function TableOfContents({
+  headings,
+  activeId,
+}: {
+  headings: Heading[];
+  activeId: string;
+}) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   if (headings.length === 0) return null;
@@ -122,7 +168,7 @@ export function TableOfContents({ articleId }: { articleId: string }) {
           <SheetTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-full border bg-card px-4 py-2.5 font-mono text-xs shadow-elevated"
+              className="flex items-center gap-2 rounded-full border bg-card px-4 py-2.5 font-mono text-xs shadow-e3"
             >
               <List className="size-4" aria-hidden />
               On this page

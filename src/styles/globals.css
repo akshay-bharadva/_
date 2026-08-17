@@ -147,6 +147,20 @@
   .markdown,
   .prose {
     @apply text-foreground;
+  }
+
+  /**
+   * Measure belongs to prose, not to every `<article>` element.
+   *
+   * `article` was in this selector, so all five `<article>` wrappers in the app
+   * — the blog post, two showcase layouts, a card layout and the scrapbook
+   * card — were silently capped at 65ch no matter what width their container
+   * gave them. On the post page that meant the body never widened when the
+   * table of contents was absent, because the cap had nothing to do with the
+   * grid at all.
+   */
+  .markdown,
+  .prose {
     max-width: 65ch;
   }
 

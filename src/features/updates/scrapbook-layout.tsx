@@ -28,7 +28,7 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
 
   return (
     <article
-      className="relative mb-5 break-inside-avoid rounded-sm border bg-card p-4 shadow-card transition-transform duration-200 hover:z-10 hover:rotate-0 hover:shadow-elevated motion-reduce:transition-none"
+      className="relative mb-5 break-inside-avoid rounded-sm border bg-card p-4 shadow-e1 transition-transform duration-200 hover:z-10 hover:rotate-0 hover:shadow-e3 motion-reduce:transition-none"
       style={{ transform: `rotate(${rotation}deg)` }}
     >
       <span

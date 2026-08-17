@@ -23,7 +23,11 @@ const sanitizeSchema = {
 
 export function PostContent({ content }: { content: string }) {
   return (
-    <div className="markdown mx-auto max-w-none leading-relaxed [&>*:first-child]:mt-0">
+    // `max-w-none` was here to escape the 65ch cap that `<article>` used to
+    // inherit. With the cap now scoped to prose itself, the measure is the
+    // point: overriding it would set the body to the full column width, which
+    // is well past a readable line length in the table-of-contents layout.
+    <div className="markdown mx-auto leading-relaxed [&>*:first-child]:mt-0">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[
