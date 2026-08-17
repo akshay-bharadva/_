@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, EyeOff, Loader2, Save, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { BlogPost } from "@/types";
 import NovelEditor from "@/components/admin/novel-editor";
@@ -12,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { blogPostSchema } from "@/lib/schemas";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import {
   PostSettingsSheet,
   type BlogPostFormValues,
@@ -123,7 +122,16 @@ export default function BlogEditor({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e?: FormEvent) => {
+  /**
+   * `togglePublish` flips the published state as part of the same write, so
+   * publishing is one action rather than "open settings, flip a switch, close,
+   * save". `published_at` is stamped on the transition to published and
+   * cleared on the way back, matching what the list's inline toggle does.
+   */
+  const handleSubmit = async (
+    e?: FormEvent,
+    options?: { togglePublish?: boolean },
+  ) => {
     if (e) e.preventDefault();
     if (!validateForm()) {
       toast.error("Please fix validation errors before saving.");
@@ -136,17 +144,24 @@ export default function BlogEditor({
       .map((tag) => tag.trim())
       .filter((tag) => tag);
 
+    const published = options?.togglePublish
+      ? !formData.published
+      : formData.published;
+
     const postDataToSave: Partial<BlogPost> = {
       title: formData.title,
       slug: formData.slug,
       excerpt: formData.excerpt || null,
       content: formData.content,
       tags: tagsArray.length > 0 ? tagsArray : null,
-      published: formData.published,
+      published,
+      published_at: published ? new Date().toISOString() : null,
       show_toc: formData.show_toc,
       cover_image_url: formData.cover_image_url || null,
       internal_notes: formData.internal_notes || null,
     };
+
+    if (options?.togglePublish) patchForm({ published });
 
     await onSave(postDataToSave);
 
@@ -171,43 +186,42 @@ export default function BlogEditor({
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden sm:h-[calc(100vh-6rem)]"
-    >
-      {/* Sticky Header Toolbar */}
-      <div className="sticky top-0 z-10 flex shrink-0 flex-col items-start justify-between gap-4 border-b bg-background/95 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:flex-row sm:items-center">
-        <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-start">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            className="-ml-2"
-          >
-            <ArrowLeft className="mr-2 size-4" /> Back
-          </Button>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={formData.published ? "default" : "secondary"}
-              className={
-                formData.published
-                  ? "bg-chart-2/15 text-chart-2 hover:bg-chart-2/25"
-                  : ""
-              }
-            >
-              {formData.published ? "Published" : "Draft"}
-            </Badge>
-            {isSaving && (
-              <span className="animate-pulse text-xs text-muted-foreground">
-                Saving...
-              </span>
-            )}
-          </div>
-        </div>
+  const wordCount = formData.content
+    .replace(/<[^>]*>/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
 
-        <div className="flex w-full items-center gap-2 sm:w-auto">
+  return (
+    <div className="space-y-4">
+      {/*
+        The toolbar is sticky, but the page scrolls. The editor was previously
+        pinned to `h-[calc(100vh-4rem)] sm:h-[calc(100vh-6rem)]`, which broke
+        whenever the shell header changed height and trapped the body in a
+        nested scroll region.
+      */}
+      <div className="sticky top-14 z-20 -mx-4 flex flex-wrap items-center gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <Button variant="ghost" size="sm" onClick={onCancel} className="-ml-2">
+          <ArrowLeft className="mr-2 size-4" aria-hidden /> Posts
+        </Button>
+
+        <Badge
+          variant={formData.published ? "default" : "secondary"}
+          className={
+            formData.published
+              ? "bg-chart-2/15 text-chart-2 hover:bg-chart-2/25"
+              : ""
+          }
+        >
+          {formData.published ? "Published" : "Draft"}
+        </Badge>
+
+        {isSaving && (
+          <span className="animate-pulse text-xs text-muted-foreground">
+            Saving…
+          </span>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
           <PostSettingsSheet
             open={isSettingsOpen}
             onOpenChange={setIsSettingsOpen}
@@ -217,33 +231,51 @@ export default function BlogEditor({
             onCoverFileSelected={handleCoverFileSelected}
           />
 
+          {/*
+            Publish and save are separate, and both are here rather than inside
+            the settings sheet. Publishing was previously a switch buried in
+            that sheet — the one thing a blog editor exists to do, two clicks
+            deep behind an overlay.
+          */}
           <Button
+            variant="outline"
             onClick={() => handleSubmit()}
             disabled={isSaving || isUploading}
-            className="flex-1 shadow-e1 sm:flex-none"
           >
             {isSaving ? (
+              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+            ) : (
+              <Save className="mr-2 size-4" aria-hidden />
+            )}
+            Save
+          </Button>
+
+          <Button
+            onClick={() => handleSubmit(undefined, { togglePublish: true })}
+            disabled={isSaving || isUploading}
+          >
+            {formData.published ? (
               <>
-                <Loader2 className="mr-2 size-4 animate-spin" /> Saving
+                <EyeOff className="mr-2 size-4" aria-hidden /> Unpublish
               </>
             ) : (
               <>
-                <Save className="mr-2 size-4" /> Save Post
+                <Send className="mr-2 size-4" aria-hidden /> Publish
               </>
             )}
           </Button>
         </div>
       </div>
 
-      <div className="mx-auto mt-2 flex min-h-0 w-full max-w-5xl flex-1 flex-col space-y-4 px-4 sm:mt-6 sm:space-y-6">
-        <div className="shrink-0 px-1">
+      <div className="mx-auto w-full max-w-4xl space-y-4">
+        <div>
           <Input
             id="title"
             value={formData.title}
             onChange={(e) => handleTitleChange(e.target.value)}
-            placeholder="Post Title"
+            placeholder="Post title"
             className={cn(
-              "h-auto border-none bg-transparent px-0 font-heading text-3xl font-black leading-tight tracking-tight placeholder:text-muted-foreground/40 focus-visible:ring-0 sm:text-4xl md:text-5xl",
+              "h-auto border-none bg-transparent px-0 font-heading text-3xl font-bold leading-tight tracking-tight placeholder:text-muted-foreground/40 focus-visible:ring-0 sm:text-4xl",
               errors.title && "placeholder:text-destructive/60",
             )}
             autoFocus
@@ -253,13 +285,19 @@ export default function BlogEditor({
               {errors.title}
             </p>
           )}
+          {/* The public site derives read time from word_count, so the writer
+              should see the same number while drafting. */}
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
+            /{formData.slug || "…"} · {wordCount.toLocaleString()} words ·{" "}
+            {Math.max(1, Math.ceil(wordCount / 225))} min read
+          </p>
         </div>
 
-        <div className="relative mb-6 flex min-h-0 flex-1 flex-col overflow-hidden rounded-surface bg-card shadow-e1 shadow-e1">
+        <div className="relative overflow-hidden rounded-surface bg-card shadow-e1">
           {isUploading && (
-            <div className="absolute right-2 top-2 z-20 flex items-center rounded-full border bg-background/80 px-3 py-1 text-xs font-medium shadow-e1 backdrop-blur">
-              <Loader2 className="mr-2 size-3 animate-spin" /> Uploading
-              image...
+            <div className="absolute right-2 top-2 z-20 flex items-center rounded-full bg-background/80 px-3 py-1 text-xs font-medium shadow-e1 backdrop-blur">
+              <Loader2 className="mr-2 size-3 animate-spin" aria-hidden />
+              Uploading image…
             </div>
           )}
 
@@ -267,9 +305,9 @@ export default function BlogEditor({
             value={formData.content}
             onChange={(newContent) => patchForm({ content: newContent })}
             onImageUpload={handleContentImageUpload}
-            minHeight="100%"
-            className="h-full border-none" // Parent supplies the border
-            isRounded={false} // Remove internal rounding to fit parent
+            minHeight="60vh"
+            className="border-none"
+            isRounded={false}
           />
         </div>
 
@@ -279,6 +317,6 @@ export default function BlogEditor({
           </Alert>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }

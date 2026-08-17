@@ -87,20 +87,13 @@ export function PostSettingsSheet({
         </div>
         <ScrollArea className="mt-6 h-[calc(100vh-8rem)] pr-4">
           <div className="space-y-6">
-            {/* Publication Toggle */}
-            <div className="flex flex-row items-center justify-between rounded-surface bg-secondary/40 p-4">
-              <div className="space-y-0.5">
-                <Label className="text-base">Publish Post</Label>
-                <p className="text-xs text-muted-foreground">
-                  Make this post visible to the public.
-                </p>
-              </div>
-              <Switch
-                checked={values.published}
-                onCheckedChange={(checked) => onChange({ published: checked })}
-              />
-            </div>
-
+            {/*
+              The publish toggle used to live here. Publishing is the action a
+              blog editor exists for, so it belongs on the toolbar rather than
+              two clicks deep inside a settings overlay — see the Publish
+              button in `blog-editor`. This sheet is now only the fields that
+              genuinely are settings.
+            */}
             <div className="flex flex-row items-center justify-between rounded-surface bg-secondary/40 p-4">
               <div className="space-y-0.5">
                 <Label className="text-base">Show Table of Contents</Label>

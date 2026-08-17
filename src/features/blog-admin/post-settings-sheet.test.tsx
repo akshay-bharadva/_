@@ -46,12 +46,25 @@ describe("PostSettingsSheet", () => {
     expect(onChange).toHaveBeenCalledWith({ slug: "hello-world" });
   });
 
-  it("emits a publish patch when the toggle is flipped", () => {
+  /**
+   * Publishing moved to the editor toolbar — it is the action the module
+   * exists for and should not be two clicks deep inside a settings overlay.
+   * This asserts it stays out of here.
+   */
+  it("does not carry a publish toggle", () => {
     const { onChange } = renderSheet();
-    // First switch in the sheet is the publish toggle (its Label is
-    // visual-only, not programmatically associated).
+    for (const toggle of screen.getAllByRole("switch")) {
+      fireEvent.click(toggle);
+    }
+    for (const call of onChange.mock.calls) {
+      expect(call[0]).not.toHaveProperty("published");
+    }
+  });
+
+  it("emits a show_toc patch when its toggle is flipped", () => {
+    const { onChange } = renderSheet();
     fireEvent.click(screen.getAllByRole("switch")[0]);
-    expect(onChange).toHaveBeenCalledWith({ published: true });
+    expect(onChange).toHaveBeenCalledWith({ show_toc: false });
   });
 
   it("shows the slug validation error when provided", () => {

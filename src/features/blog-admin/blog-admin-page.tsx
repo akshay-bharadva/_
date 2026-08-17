@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { BlogPost } from "@/types";
 import {
@@ -12,14 +12,7 @@ import {
   useUpdateBlogPostMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import {
   EmptyState,
@@ -28,7 +21,8 @@ import {
   LoadingState,
 } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
-import { PostCards, PostsTable } from "./post-list";
+import { cn } from "@/lib/cn";
+import { PostList } from "./post-list";
 
 // The editor pulls in the full TipTap/Novel suite — load it only when a post
 // is actually opened for editing, so the list view stays light.
@@ -112,16 +106,30 @@ export default function BlogAdminPage({
     }
   };
 
+  /**
+   * Saving keeps you in the editor.
+   *
+   * Every save used to call `handleCancel()`, so writing a post and pressing
+   * Save threw you back to the list — you then had to find the post and
+   * reopen it to carry on. A create now switches the editor onto the record it
+   * just made, so the next save is an update rather than a second insert.
+   * Leaving is the explicit "Posts" control.
+   */
   const handleSavePost = async (postData: Partial<BlogPost>) => {
     try {
       if (isCreating || !editingPost?.id) {
-        await addBlogPost(postData).unwrap();
-        toast.success("Post created successfully.");
+        const created = await addBlogPost(postData).unwrap();
+        setIsCreating(false);
+        setEditingPost(created);
+        toast.success("Post created.");
       } else {
-        await updateBlogPost({ ...postData, id: editingPost.id }).unwrap();
-        toast.success("Post updated successfully.");
+        const updated = await updateBlogPost({
+          ...postData,
+          id: editingPost.id,
+        }).unwrap();
+        setEditingPost(updated);
+        toast.success("Post saved.");
       }
-      handleCancel();
     } catch (err) {
       toast.error("Failed to save post", {
         description: getErrorMessage(err),
@@ -144,6 +152,8 @@ export default function BlogAdminPage({
     }
   };
 
+  /* ── editor ───────────────────────────────────────────────────────── */
+
   if (isCreating || editingPost) {
     return (
       <BlogEditor
@@ -154,80 +164,119 @@ export default function BlogAdminPage({
     );
   }
 
-  const listActions = {
-    onEdit: handleEditPost,
-    onToggleStatus: togglePostStatus,
-    onDelete: handleDeletePost,
+  /* ── list ─────────────────────────────────────────────────────────── */
+
+  const counts = {
+    all: posts.length,
+    published: posts.filter((p) => p.published).length,
+    draft: posts.filter((p) => !p.published).length,
   };
 
   return (
-    <ManagerWrapper className="flex h-full flex-col">
+    <ManagerWrapper>
       <PageHeader
-        title="Blog Manager"
-        description="Manage, create, and publish your content."
-        searchValue={searchTerm}
-        onSearch={setSearchTerm}
-        searchPlaceholder="Search posts..."
+        title="Blog"
+        description="Write, publish and manage your posts."
         actions={
-          <Button
-            onClick={handleCreatePost}
-            size="sm"
-            className="h-9 w-full sm:w-auto"
-          >
-            <Plus className="mr-2 size-4" /> Create Post
+          <Button onClick={handleCreatePost}>
+            <Plus className="mr-2 size-4" aria-hidden /> New post
           </Button>
-        }
-        filters={
-          <Select
-            value={filterStatus}
-            onValueChange={(v) =>
-              setFilterStatus(v as "all" | "published" | "draft")
-            }
-          >
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="draft">Drafts</SelectItem>
-            </SelectContent>
-          </Select>
         }
       />
 
-      <Card className="flex flex-1 flex-col overflow-hidden border-none bg-transparent shadow-none sm:border sm:bg-card sm:shadow-e1">
-        <CardContent className="flex-1 overflow-auto bg-transparent p-0 sm:bg-background/50">
-          {isLoading ? (
-            <LoadingState variant="section" />
-          ) : filteredPosts.length === 0 ? (
+      {isLoading ? (
+        <LoadingState label="Loading posts" />
+      ) : posts.length === 0 ? (
+        <EmptyState
+          variant="card"
+          icon={FileText}
+          title="No posts yet"
+          description="Write your first post — it stays a draft until you publish it."
+          action={{ label: "New post", onClick: handleCreatePost, icon: Plus }}
+        />
+      ) : (
+        <div className="space-y-4">
+          {/*
+            Status, filter and search in one bar directly above the list they
+            act on. Previously the search sat in the page header, the status
+            filter beside it, and the count nowhere — so nothing told you how
+            much the filter had hidden.
+          */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              role="tablist"
+              aria-label="Filter by status"
+              className="flex gap-1"
+            >
+              {(["all", "published", "draft"] as const).map((status) => (
+                <button
+                  key={status}
+                  role="tab"
+                  aria-selected={filterStatus === status}
+                  onClick={() => setFilterStatus(status)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium capitalize transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    filterStatus === status
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  {status === "all" ? "All" : status}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-xs tabular-nums",
+                      filterStatus === status
+                        ? "bg-primary-foreground/20"
+                        : "bg-secondary",
+                    )}
+                  >
+                    {counts[status]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="relative sm:w-72">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search posts…"
+                aria-label="Search posts by title"
+                className="h-9 pl-8"
+              />
+            </div>
+          </div>
+
+          {filteredPosts.length === 0 ? (
             <EmptyState
-              icon={FileText}
-              title="No posts found"
-              description={
-                searchTerm
-                  ? "Try adjusting your search or filters."
-                  : "Create your first blog post to get started."
-              }
-              action={
-                !searchTerm
-                  ? {
-                      label: "Create Post",
-                      onClick: handleCreatePost,
-                      icon: Plus,
-                    }
-                  : undefined
-              }
-              className="mx-0 my-4 h-64 rounded-surface border border-dashed bg-muted/10 sm:mx-4"
+              variant="card"
+              size="compact"
+              icon={Search}
+              title="No matches"
+              description="No posts match the current filter and search."
+              action={{
+                label: "Clear filters",
+                onClick: () => {
+                  setSearchTerm("");
+                  setFilterStatus("all");
+                },
+              }}
             />
           ) : (
-            <>
-              <PostsTable posts={filteredPosts} {...listActions} />
-              <PostCards posts={filteredPosts} {...listActions} />
-            </>
+            <PostList
+              posts={filteredPosts}
+              onEdit={handleEditPost}
+              onToggleStatus={togglePostStatus}
+              onDelete={handleDeletePost}
+            />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </ManagerWrapper>
   );
 }
