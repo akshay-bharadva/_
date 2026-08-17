@@ -143,7 +143,6 @@
   }
 
   /* --- Prose (blog posts, CMS markdown, notes) --- */
-  article,
   .markdown,
   .prose {
     @apply text-foreground;
@@ -164,28 +163,21 @@
     max-width: 65ch;
   }
 
-  article p,
   .markdown p,
   .prose p {
     @apply leading-relaxed;
   }
 
-  article a,
   .markdown a,
   .prose a {
     @apply text-primary underline underline-offset-4 decoration-primary/40 transition-colors;
   }
 
-  article a:hover,
   .markdown a:hover,
   .prose a:hover {
     @apply decoration-primary;
   }
 
-  article h1,
-  article h2,
-  article h3,
-  article h4,
   .markdown h1,
   .markdown h2,
   .markdown h3,
@@ -197,56 +189,47 @@
     @apply font-heading font-semibold tracking-tight text-foreground scroll-mt-24;
   }
 
-  article code,
   .markdown code,
   .prose code {
     @apply bg-muted text-foreground px-1.5 py-0.5 rounded font-mono text-[0.875em];
   }
 
-  article pre,
   .markdown pre,
   .prose pre {
     @apply bg-muted p-4 rounded-lg overflow-x-auto border;
   }
 
-  article pre code,
   .markdown pre code,
   .prose pre code {
     @apply bg-transparent p-0;
   }
 
-  article blockquote,
   .markdown blockquote,
   .prose blockquote {
     @apply border-l-2 border-primary/60 pl-4 italic text-muted-foreground;
   }
 
-  article ul,
   .markdown ul,
   .prose ul {
     @apply list-disc pl-6;
   }
 
-  article ol,
   .markdown ol,
   .prose ol {
     @apply list-decimal pl-6;
   }
 
-  article hr,
   .markdown hr,
   .prose hr {
     border: none;
     border-top: 2px dotted hsl(var(--border));
   }
 
-  article img,
   .markdown img,
   .prose img {
     @apply rounded-lg border;
   }
 
-  article table,
   .markdown table,
   .prose table {
     @apply w-full text-sm;
@@ -254,32 +237,27 @@
     overflow-x: auto;
   }
 
-  article th,
   .markdown th,
   .prose th {
     @apply bg-muted font-semibold text-left px-3 py-2 border-b;
   }
 
-  article td,
   .markdown td,
   .prose td {
     @apply px-3 py-2 border-b border-border;
   }
 
-  article mark,
   .markdown mark,
   .prose mark {
     background: hsl(var(--primary) / 0.2);
     color: hsl(var(--foreground));
   }
 
-  article kbd,
   .markdown kbd,
   .prose kbd {
     @apply bg-muted px-2 py-1 rounded font-mono text-xs border;
   }
 
-  article small,
   .markdown small,
   .prose small {
     @apply text-muted-foreground;

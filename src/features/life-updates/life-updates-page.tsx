@@ -22,6 +22,7 @@ import {
 } from "@/components/admin/shared";
 import { Input } from "@/components/ui/input";
 import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
+import { distributeColumns, useColumnCount } from "@/hooks/use-column-count";
 import { getErrorMessage } from "@/lib/utils";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 import { BoardCard, ListRow } from "./update-cards";
@@ -93,6 +94,12 @@ export default function LifeUpdatesPage() {
         );
       });
   }, [updates, searchTerm, selectedCategory, status]);
+
+  const boardColumnCount = useColumnCount();
+  const boardColumns = useMemo(
+    () => distributeColumns(filteredUpdates, boardColumnCount),
+    [filteredUpdates, boardColumnCount],
+  );
 
   const handleCreate = () => {
     setEditingUpdate(null);
@@ -299,16 +306,24 @@ export default function LifeUpdatesPage() {
               }}
             />
           ) : viewMode === "board" ? (
-            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3">
-              <AnimatePresence>
-                {filteredUpdates.map((update) => (
-                  <BoardCard
-                    key={update.id}
-                    update={update}
-                    {...actionProps(update)}
-                  />
-                ))}
-              </AnimatePresence>
+            /* Ordered masonry, matching the public scrapbook. Cards vary in
+               height because some carry images, so a grid would leave a hole
+               under every short one and CSS columns would read the board
+               column-by-column instead of newest-first. */
+            <div className="flex items-start gap-4">
+              {boardColumns.map((column, index) => (
+                <div key={index} className="flex min-w-0 flex-1 flex-col gap-4">
+                  <AnimatePresence>
+                    {column.map((update) => (
+                      <BoardCard
+                        key={update.id}
+                        update={update}
+                        {...actionProps(update)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              ))}
             </div>
           ) : (
             <Card>

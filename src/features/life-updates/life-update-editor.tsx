@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ImageIcon, Loader2, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
@@ -45,12 +45,25 @@ export function LifeUpdateEditor({
   onCancel,
   onSuccess,
 }: LifeUpdateEditorProps) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState<string>("thought");
-  const [imageUrl, setImageUrl] = useState("");
-  const [tags, setTags] = useState("");
-  const [isPublished, setIsPublished] = useState(false);
+  /**
+   * Seeded from the prop at mount rather than assigned in an effect. The page
+   * keys this component by row id, so an effect only ever re-ran what the
+   * initial render could have done directly — at the cost of one render with
+   * the wrong values still on screen. That gap was load-bearing for the
+   * Category box: Radix registers a `SelectItem` for display while the content
+   * is closed, and an option that only appears on the second render never got
+   * registered, so the trigger stayed blank.
+   */
+  const [title, setTitle] = useState(() => update?.title || "");
+  const [content, setContent] = useState(() => update?.content || "");
+  const [category, setCategory] = useState<string>(
+    () => update?.category || "thought",
+  );
+  const [imageUrl, setImageUrl] = useState(() => update?.image_url || "");
+  const [tags, setTags] = useState(() => update?.tags?.join(", ") || "");
+  const [isPublished, setIsPublished] = useState(
+    () => update?.is_published ?? false,
+  );
   const [isUploading, setIsUploading] = useState(false);
 
   const [addLifeUpdate, { isLoading: isAdding }] = useAddLifeUpdateMutation();
@@ -58,6 +71,9 @@ export function LifeUpdateEditor({
     useUpdateLifeUpdateMutation();
   const isLoading = isAdding || isUpdating;
 
+  // Resync if the prop swaps without a remount. The page keys by row id, so in
+  // practice this only re-applies what the initial state already holds; it is
+  // kept so the component stays correct if that key is ever removed.
   useEffect(() => {
     if (update) {
       setTitle(update.title || "");
@@ -75,6 +91,31 @@ export function LifeUpdateEditor({
       setIsPublished(false);
     }
   }, [update]);
+
+  /**
+   * Radix renders a trigger whose value matches no `SelectItem` as blank, so a
+   * row holding a category outside the five opened with an empty Category box —
+   * the stored value invisible, and one stray click away from being replaced
+   * without the owner ever seeing what it had been. `db/schema.sql` constrains
+   * the column, but a database provisioned before that constraint landed can
+   * still hold anything, which is why the card renderers already carry their own
+   * unknown-category fallback.
+   *
+   * Surfacing the value as an extra option keeps the form honest about what is
+   * actually stored. It stays unsaveable — `lifeUpdateSchema` rejects it, as
+   * would the column's CHECK — so the owner is told to pick a real category
+   * rather than discovering the write failed.
+   */
+  const categoryOptions = useMemo(() => {
+    const isKnown = LIFE_UPDATE_CATEGORY_OPTIONS.some(
+      (opt) => opt.value === category,
+    );
+    if (!category || isKnown) return [...LIFE_UPDATE_CATEGORY_OPTIONS];
+    return [
+      ...LIFE_UPDATE_CATEGORY_OPTIONS,
+      { value: category, label: `${category} (unrecognised)`, emoji: "📝" },
+    ];
+  }, [category]);
 
   const handleImageUpload = async (file: File) => {
     if (!supabase) {
@@ -201,6 +242,7 @@ export function LifeUpdateEditor({
       >
         <div>
           <Input
+            aria-label="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title"
@@ -210,15 +252,18 @@ export function LifeUpdateEditor({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="mb-1.5 block text-xs text-muted-foreground">
+            <Label
+              htmlFor="life-update-category"
+              className="mb-1.5 block text-xs text-muted-foreground"
+            >
               Category
             </Label>
             <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+              <SelectTrigger id="life-update-category">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {LIFE_UPDATE_CATEGORY_OPTIONS.map((opt) => (
+                {categoryOptions.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.emoji} {opt.label}
                   </SelectItem>
@@ -241,10 +286,14 @@ export function LifeUpdateEditor({
         </div>
 
         <div>
-          <Label className="mb-1.5 block text-xs text-muted-foreground">
+          <Label
+            htmlFor="life-update-content"
+            className="mb-1.5 block text-xs text-muted-foreground"
+          >
             Content
           </Label>
           <Textarea
+            id="life-update-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="What's on your mind?"
@@ -254,11 +303,15 @@ export function LifeUpdateEditor({
 
         {/* Image upload */}
         <div>
-          <Label className="mb-1.5 block text-xs text-muted-foreground">
+          <Label
+            htmlFor="life-update-image"
+            className="mb-1.5 block text-xs text-muted-foreground"
+          >
             Image
           </Label>
           <div className="flex gap-2">
             <Input
+              id="life-update-image"
               placeholder="https://example.com/image.jpg"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
@@ -334,12 +387,16 @@ export function LifeUpdateEditor({
 
         {/* Tags */}
         <div>
-          <Label className="mb-1.5 block text-xs text-muted-foreground">
+          <Label
+            htmlFor="life-update-tags"
+            className="mb-1.5 block text-xs text-muted-foreground"
+          >
             Tags (comma-separated)
           </Label>
           <div className="flex items-center gap-2 rounded-md border bg-background px-3 focus-within:ring-1 focus-within:ring-ring">
             <span className="text-muted-foreground">#</span>
             <Input
+              id="life-update-tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="TV Shows, Friends, Fun..."

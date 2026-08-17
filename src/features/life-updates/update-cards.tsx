@@ -184,7 +184,7 @@ export function BoardCard({
         transition: { duration: 0.2 },
       }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className="mb-4 break-inside-avoid cursor-pointer pt-3"
+      className="cursor-pointer pt-3"
       onClick={onEdit}
     >
       <div className="group relative">

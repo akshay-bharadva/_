@@ -115,13 +115,20 @@ export function UpdatesPage() {
             ))}
           </div>
         ) : (
-          <div className="columns-1 gap-5 sm:columns-2 lg:columns-3" aria-busy>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton
-                key={i}
-                className="mb-5 rounded-surface"
-                style={{ height: `${10 + (i % 3) * 4}rem` }}
-              />
+          /* Mirrors the scrapbook's flex columns, with staggered heights so the
+             skeleton reads as masonry rather than as a uniform grid the real
+             layout would then jump away from. */
+          <div className="flex items-start gap-5" aria-busy>
+            {Array.from({ length: 3 }).map((_, col) => (
+              <div key={col} className="flex min-w-0 flex-1 flex-col gap-5">
+                {Array.from({ length: 2 }).map((_, row) => (
+                  <Skeleton
+                    key={row}
+                    className="rounded-surface"
+                    style={{ height: `${10 + ((col + row) % 3) * 4}rem` }}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         )
