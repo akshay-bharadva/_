@@ -23,7 +23,7 @@ function ShellLoading() {
       aria-busy="true"
       className="flex min-h-[100dvh] items-center justify-center bg-background"
     >
-      <div className="flex flex-col items-center gap-s3">
+      <div className="flex flex-col items-center gap-3">
         <Loader2 className="size-6 animate-spin text-primary" aria-hidden />
         <p className="t-micro">Authorizing…</p>
       </div>
@@ -52,10 +52,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     // A tinted ground, not the page background: surfaces need something to
     // float *on*. Card fill and page background are near-identical on most
     // presets, so on a plain ground the cards read as flat regions.
-    <div className="density-compact min-h-[100dvh] bg-secondary/30">
+    <div className="min-h-[100dvh] bg-secondary/30">
       <FocusTimer />
       <AdminTopbar />
-      <main className="mx-auto w-full max-w-wide px-s4 py-s6">{children}</main>
+      <main className="mx-auto w-full max-w-wide px-4 py-8">{children}</main>
     </div>
   );
 }

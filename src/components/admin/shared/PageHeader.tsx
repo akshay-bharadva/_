@@ -33,13 +33,13 @@ export default function PageHeader({
   return (
     <div
       className={cn(
-        "space-y-s4",
-        sticky && "sticky top-0 z-20 bg-background/85 backdrop-blur pb-s4",
+        "space-y-4",
+        sticky && "sticky top-0 z-20 bg-background/85 backdrop-blur pb-4",
         className,
       )}
     >
       {/* Title Row */}
-      <div className="flex flex-col gap-s4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           {kicker && <p className="t-eyebrow">{kicker}</p>}
           <h1 className="t-heading">{title}</h1>

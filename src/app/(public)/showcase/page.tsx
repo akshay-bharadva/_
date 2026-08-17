@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <Band weight="content" className="density-comfortable">
+    <Band weight="content">
       <PageHeader
         kicker="Selected work"
         title={siteContent.pages.showcase.heading}

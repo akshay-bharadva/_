@@ -186,7 +186,7 @@ export function PostPage() {
                   className="mt-8 w-full rounded-surface border object-cover"
                 />
               )}
-              <div className="mt-s6 h-px w-16 bg-primary/40" aria-hidden />
+              <div className="mt-8 h-px w-16 bg-primary/40" aria-hidden />
             </header>
 
             <PostContent content={post.content ?? ""} />

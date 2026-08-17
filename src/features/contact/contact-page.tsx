@@ -20,7 +20,7 @@ export function ContactPage() {
   );
 
   return (
-    <Band weight="content" className="density-comfortable">
+    <Band weight="content">
       <PageHeader
         kicker="Open channel"
         title={siteContent.pages.contact.heading}
@@ -36,7 +36,7 @@ export function ContactPage() {
 
         <aside className={showForm ? "" : "lg:col-span-2"}>
           {showBadge && (
-            <p className="t-micro mb-s5 flex items-center gap-2.5">
+            <p className="t-micro mb-6 flex items-center gap-2.5">
               <span aria-hidden className="relative flex size-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
                 <span className="relative inline-flex size-2 rounded-full bg-primary" />
@@ -46,7 +46,7 @@ export function ContactPage() {
             </p>
           )}
 
-          <h2 className="t-eyebrow mb-s4">Direct lines</h2>
+          <h2 className="t-eyebrow mb-4">Direct lines</h2>
           <ul className="space-y-2.5">
             {socials.map((social) => {
               const Icon = SOCIAL_ICONS[social.id.toLowerCase()];

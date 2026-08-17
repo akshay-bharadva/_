@@ -17,7 +17,7 @@ export default function MaintenanceView({ level }: { level: number }) {
           <Wrench className="size-12 text-primary" aria-hidden />
         )}
       </div>
-      <p className="t-micro mb-s3">
+      <p className="t-micro mb-3">
         <span aria-hidden className="text-primary">
           ●{" "}
         </span>

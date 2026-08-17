@@ -14,22 +14,22 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
-      <Band weight="content" className="density-comfortable pb-s6">
+      <Band weight="content">
         <PageHeader
           kicker="Build log"
           title={siteContent.pages.projects.heading}
           subheading={siteContent.pages.projects.description}
         />
-        <div className="mt-s8">
-          <DynamicPageContent pagePath="/projects" />
-        </div>
+        <DynamicPageContent pagePath="/projects" />
       </Band>
 
-      <Band weight="content" aria-labelledby="repos-heading" className="pt-0">
+      {/* No pt-0 needed: adjacent same-ground bands collapse their shared
+          padding in globals.css, so the rhythm is the same on every page. */}
+      <Band weight="content" aria-labelledby="repos-heading">
         <h2 id="repos-heading" className="t-heading">
           Open source &amp; experiments
         </h2>
-        <div className="mt-s6">
+        <div className="mt-8">
           <RepoGrid />
         </div>
       </Band>

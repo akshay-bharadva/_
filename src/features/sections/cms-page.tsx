@@ -23,7 +23,7 @@ export function CmsPage({
     pagePath === "/" ? "home" : pagePath.split("/").filter(Boolean).join(" / ");
 
   return (
-    <Band weight="content" className="density-comfortable">
+    <Band weight="content">
       <PageHeader kicker={kicker} title={title} />
       <DynamicPageContent pagePath={pagePath} className="mt-12 sm:mt-16" />
     </Band>

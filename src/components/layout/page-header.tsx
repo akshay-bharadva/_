@@ -24,17 +24,17 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "mb-s8 flex flex-col gap-s5 sm:flex-row sm:items-end sm:justify-between",
+        "mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
       <div className="max-w-prose">
-        {kicker && <p className="t-eyebrow mb-s2">{kicker}</p>}
+        {kicker && <p className="t-eyebrow mb-2">{kicker}</p>}
         <h1 className="t-title text-balance">{title}</h1>
-        {subheading && <p className="t-lead mt-s4 text-pretty">{subheading}</p>}
+        {subheading && <p className="t-lead mt-4 text-pretty">{subheading}</p>}
       </div>
       {actions && (
-        <div className="flex shrink-0 items-center gap-s2">{actions}</div>
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
       )}
     </header>
   );

@@ -121,7 +121,7 @@ export default function SectionRenderer({
       aria-labelledby={headingId}
       className={cn("scroll-mt-24", className)}
     >
-      <header className="mb-s6">
+      <header className="mb-8">
         {/*
           The `01 /` mono ordinal is a v2 mannerism and is retired. `index` is
           still accepted so callers do not have to change, but a section's

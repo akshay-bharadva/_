@@ -20,7 +20,7 @@ export function HomePage() {
   return (
     <>
       <Hero />
-      <Band weight="content" className="density-comfortable">
+      <Band weight="content">
         <DynamicPageContent pagePath="/" />
       </Band>
       <ContactCta />

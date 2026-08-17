@@ -15,7 +15,7 @@ export default function ManagerWrapper({
   className,
 }: ManagerWrapperProps) {
   return (
-    <div className={cn("space-y-s5", "pb-20 md:pb-0", className)}>
+    <div className={cn("space-y-6", "pb-20 md:pb-0", className)}>
       {children}
     </div>
   );

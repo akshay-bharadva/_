@@ -22,18 +22,18 @@ export function ContactCta() {
 
   return (
     <Band weight="accent" aria-labelledby="cta-heading">
-      <div className="flex flex-col gap-s6 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
         <div className="max-w-prose">
           <p className="t-eyebrow">Next step</p>
-          <h2 id="cta-heading" className="t-title mt-s2 text-balance">
+          <h2 id="cta-heading" className="t-title mt-2 text-balance">
             Let&apos;s build something that ships.
           </h2>
-          <p className="t-lead mt-s3 text-pretty">
+          <p className="t-lead mt-3 text-pretty">
             Have a project, a role, or just a question — my inbox is open.
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-s3">
+        <div className="flex shrink-0 flex-wrap items-center gap-3">
           <Link
             href="/contact"
             className="group inline-flex items-center gap-2 rounded-control bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-e1 transition-[box-shadow,transform] duration-200 ease-enter hover:-translate-y-0.5 hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:hover:translate-y-0"

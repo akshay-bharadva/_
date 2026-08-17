@@ -34,7 +34,7 @@ function ProjectLink({ panel }: { panel: StatusPanelData }) {
   if (!panel.latestProject.name) return null;
 
   return (
-    <div className="mt-s5 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+    <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <span className="text-sm text-muted-foreground">
         {panel.latestProject.name}
       </span>
@@ -62,10 +62,10 @@ function ExploringList({
   if (items.length === 0) return null;
 
   return (
-    <div className="mt-s5">
+    <div className="mt-6">
       <p className="t-micro">{panel.currently_exploring.title}</p>
       {variant === "chip" ? (
-        <ul className="mt-s3 flex flex-wrap gap-2">
+        <ul className="mt-3 flex flex-wrap gap-2">
           {items.map((item) => (
             <li
               key={item}
@@ -76,7 +76,7 @@ function ExploringList({
           ))}
         </ul>
       ) : (
-        <ul className="mt-s2 space-y-1">
+        <ul className="mt-2 space-y-1">
           {items.map((item) => (
             <li key={item} className="font-mono text-sm text-foreground">
               <span className="text-primary">&rsaquo;</span> {item}
@@ -91,7 +91,7 @@ function ExploringList({
 /** Quiet by default: a single surface, generous padding, no ornament. */
 function MinimalPanel({ panel }: { panel: StatusPanelData }) {
   return (
-    <Surface className="p-s6">
+    <Surface className="p-8">
       <p className="t-eyebrow">{panel.title}</p>
       <ExploringList panel={panel} />
       <ProjectLink panel={panel} />
@@ -108,7 +108,7 @@ function TerminalPanel({ panel }: { panel: StatusPanelData }) {
   const now = useClock();
   return (
     <Surface className="overflow-hidden p-0">
-      <div className="flex items-center gap-2 border-b border-border/60 bg-secondary/50 px-s4 py-s3">
+      <div className="flex items-center gap-2 border-b border-border/60 bg-secondary/50 px-4 py-3">
         <span aria-hidden className="flex gap-1.5">
           <span className="size-2.5 rounded-full bg-destructive/60" />
           <span className="size-2.5 rounded-full bg-chart-3/60" />
@@ -121,7 +121,7 @@ function TerminalPanel({ panel }: { panel: StatusPanelData }) {
           {now}
         </p>
       </div>
-      <div className="p-s5">
+      <div className="p-6">
         <ExploringList panel={panel} variant="line" />
         <ProjectLink panel={panel} />
       </div>
@@ -133,8 +133,8 @@ function TerminalPanel({ panel }: { panel: StatusPanelData }) {
 function BentoPanel({ panel }: { panel: StatusPanelData }) {
   const items = panel.currently_exploring.items;
   return (
-    <div className="grid grid-cols-2 gap-s3">
-      <Surface className="col-span-2 p-s5">
+    <div className="grid grid-cols-2 gap-3">
+      <Surface className="col-span-2 p-6">
         <p className="t-eyebrow">{panel.title}</p>
         <ProjectLink panel={panel} />
       </Surface>
@@ -142,7 +142,7 @@ function BentoPanel({ panel }: { panel: StatusPanelData }) {
         <Surface
           key={item}
           className={cn(
-            "flex items-center p-s4 text-sm font-medium",
+            "flex items-center p-4 text-sm font-medium",
             // A lone trailing tile spans rather than leaving a gap.
             items.length % 2 === 1 &&
               index === items.length - 1 &&

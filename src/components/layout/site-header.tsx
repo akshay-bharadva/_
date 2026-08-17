@@ -53,11 +53,11 @@ export default function SiteHeader() {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-50 px-s4 pt-s4">
-      <div className="mx-auto flex max-w-content items-center gap-s3">
+    <header className="sticky top-0 z-50 px-4 pt-4">
+      <div className="mx-auto flex max-w-content items-center gap-3">
         <nav
           aria-label="Main"
-          className="flex w-full items-center gap-s3 rounded-full bg-card/90 px-s3 py-2 shadow-e2 backdrop-blur-md"
+          className="flex w-full items-center gap-3 rounded-full bg-card/90 px-3 py-2 shadow-e2 backdrop-blur-md"
         >
           <Link
             href="/"
@@ -137,7 +137,7 @@ export default function SiteHeader() {
       {menuOpen && (
         <div
           id="site-menu"
-          className="mx-auto mt-s2 max-w-content rounded-surface bg-card p-s2 shadow-e3 md:hidden"
+          className="mx-auto mt-2 max-w-content rounded-surface bg-card p-2 shadow-e3 md:hidden"
         >
           <ul className="flex flex-col gap-1">
             {(navLinks ?? []).map((link) => {

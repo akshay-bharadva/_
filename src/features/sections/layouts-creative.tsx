@@ -214,7 +214,7 @@ export function UsesLayout({ items }: LayoutProps) {
     <div className="space-y-8">
       {Array.from(groups.entries()).map(([category, groupItems]) => (
         <div key={category}>
-          <h3 className="t-eyebrow mb-s3 flex items-center gap-2">
+          <h3 className="t-eyebrow mb-3 flex items-center gap-2">
             <span className="[overflow-wrap:anywhere]">{category}</span>
             <span className="font-mono text-[0.6875rem] text-muted-foreground/70">
               {groupItems.length}

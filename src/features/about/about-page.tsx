@@ -11,7 +11,7 @@ export function AboutPage() {
   const { data: identity, isLoading } = useGetSiteIdentityQuery();
 
   return (
-    <Band weight="content" className="density-comfortable">
+    <Band weight="content">
       <PageHeader kicker="whoami" title="About" />
 
       {isLoading || !identity ? (

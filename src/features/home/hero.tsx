@@ -59,7 +59,7 @@ function RotatingTitle({ title }: { title: string }) {
  */
 function AvailabilityPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-s2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-primary">
+    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-primary">
       <span aria-hidden className="relative flex size-2">
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
         <span className="relative inline-flex size-2 rounded-full bg-primary" />
@@ -78,7 +78,7 @@ function SocialRow({
   if (visible.length === 0) return null;
 
   return (
-    <ul className="flex flex-wrap items-center gap-s2">
+    <ul className="flex flex-wrap items-center gap-2">
       {visible.map((link) => {
         const href = safeLinkUrl(link.url);
         if (!href) return null;
@@ -111,13 +111,13 @@ function SocialRow({
 function HeroSkeleton() {
   return (
     <Band weight="feature" aria-busy>
-      <div className="grid gap-s9 lg:grid-cols-[1.35fr_1fr] lg:items-center">
-        <div className="space-y-s5">
+      <div className="grid gap-16 lg:grid-cols-[1.35fr_1fr] lg:items-center">
+        <div className="space-y-6">
           <Skeleton className="h-7 w-40 rounded-full" />
           <Skeleton className="h-20 w-full max-w-xl rounded-control" />
           <Skeleton className="h-12 w-2/3 rounded-control" />
           <Skeleton className="h-20 w-full max-w-prose rounded-control" />
-          <div className="flex gap-s2">
+          <div className="flex gap-2">
             <Skeleton className="h-10 w-28 rounded-control" />
             <Skeleton className="h-10 w-28 rounded-control" />
           </div>
@@ -159,8 +159,8 @@ export function Hero() {
 
   return (
     <Band weight="feature" aria-labelledby="hero-name">
-      <div className="grid gap-s9 lg:grid-cols-[1.35fr_1fr] lg:items-center">
-        <motion.div {...rise} className="flex flex-col items-start gap-s5">
+      <div className="grid gap-16 lg:grid-cols-[1.35fr_1fr] lg:items-center">
+        <motion.div {...rise} className="flex flex-col items-start gap-6">
           {panel.availability && (
             <AvailabilityPill label={panel.availability} />
           )}
@@ -170,7 +170,7 @@ export function Hero() {
               {profile_data.name}
             </h1>
             {profile_data.title && (
-              <p className="t-title mt-s2 text-balance">
+              <p className="t-title mt-2 text-balance">
                 <RotatingTitle title={profile_data.title} />
               </p>
             )}

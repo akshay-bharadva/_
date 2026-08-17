@@ -49,7 +49,7 @@ export function UpdatesPage() {
   }, [updates, searchTerm, category]);
 
   return (
-    <Band weight="content" className="density-comfortable">
+    <Band weight="content">
       <PageHeader
         kicker="Field notes"
         title="Updates"

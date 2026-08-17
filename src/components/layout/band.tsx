@@ -88,19 +88,19 @@ export function BandHeading({
   return (
     <div
       className={cn(
-        "flex flex-col gap-s4 sm:flex-row sm:items-end sm:justify-between",
+        "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
       <div className="max-w-prose">
-        {eyebrow && <p className="t-eyebrow mb-s2">{eyebrow}</p>}
+        {eyebrow && <p className="t-eyebrow mb-2">{eyebrow}</p>}
         <Heading id={id} className={level === 1 ? "t-title" : "t-heading"}>
           {title}
         </Heading>
-        {lead && <p className="t-lead mt-s3">{lead}</p>}
+        {lead && <p className="t-lead mt-3">{lead}</p>}
       </div>
       {actions && (
-        <div className="flex shrink-0 items-center gap-s2">{actions}</div>
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
       )}
     </div>
   );

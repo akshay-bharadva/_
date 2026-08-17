@@ -26,19 +26,20 @@
     --r-surface: 1rem;
     --r-control: 0.5rem;
 
-    /* Space — 8px base. `--s-*` is the only vertical rhythm source. */
-    --s-1: 0.25rem;
-    --s-2: 0.5rem;
-    --s-3: 0.75rem;
-    --s-4: 1rem;
-    --s-5: 1.5rem;
-    --s-6: 2rem;
-    --s-7: 2.5rem;
-    --s-8: 3rem;
-    --s-9: 4rem;
-    --s-10: 5rem;
-    --s-11: 6rem;
-    --s-12: 8rem;
+    /**
+     * Band rhythm only.
+     *
+     * There is deliberately no general `--s-*` spacing scale. An earlier pass
+     * added one and converted ~5% of the call sites, which left the app using
+     * two spacing vocabularies at once — and since `--s-4` was 1rem, exactly
+     * Tailwind's `p-4`, the second vocabulary bought nothing but the
+     * inconsistency. Component spacing uses Tailwind's scale; these three
+     * values exist because band rhythm is larger than that scale reaches
+     * comfortably and needs to be stated in one place.
+     */
+    --band-y: 5rem;
+    --band-y-feature: 8rem;
+    --band-x: 1.5rem;
 
     /* Measure */
     --w-content: 72rem;
@@ -107,23 +108,6 @@
       0 8px 20px -8px hsl(var(--e-shadow) / 0.8),
       0 32px 64px -16px hsl(var(--e-shadow) / 0.7),
       inset 0 1px 0 0 hsl(0 0% 100% / 0.1);
-  }
-
-  /* Density is a property of a container, not a prop threaded through every
-     component. `--d-gap` and `--d-row` are what layouts actually consume. */
-  .density-comfortable {
-    --d-gap: var(--s-5);
-    --d-row: 3.25rem;
-  }
-
-  .density-compact {
-    --d-gap: var(--s-4);
-    --d-row: 2.75rem;
-  }
-
-  .density-dense {
-    --d-gap: var(--s-2);
-    --d-row: 2.25rem;
   }
 
   * {
@@ -517,11 +501,11 @@
 
   .band {
     width: 100%;
-    padding-block: var(--s-10);
+    padding-block: var(--band-y);
   }
 
   .band-feature {
-    padding-block: var(--s-12);
+    padding-block: var(--band-y-feature);
     background: hsl(var(--background));
   }
 
@@ -534,11 +518,31 @@
     background: hsl(var(--accent) / 0.35);
   }
 
+  /**
+   * Adjacent bands on the same ground collapse their shared padding.
+   *
+   * Two stacked bands each contribute their own block padding, so a
+   * content → content boundary was opening 10rem of dead space in the middle
+   * of a page. The first fix for that was a `pb-8` / `pt-0` pair hand-applied
+   * at the call site, which is exactly the kind of local patch that makes the
+   * rhythm inconsistent page to page.
+   *
+   * A band whose ground differs from its neighbour keeps its full padding —
+   * an accent band is a distinct surface and needs room to breathe, or the
+   * tint starts hard against the preceding text.
+   */
+  .band-feature + .band-content,
+  .band-content + .band-content,
+  .band-content + .band-feature,
+  .band-feature + .band-feature {
+    padding-block-start: 0;
+  }
+
   .band-inner {
     margin-inline: auto;
     width: 100%;
     max-width: var(--w-content);
-    padding-inline: var(--s-5);
+    padding-inline: var(--band-x);
   }
 
   .band-inner-wide {

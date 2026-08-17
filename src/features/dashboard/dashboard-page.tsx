@@ -133,8 +133,8 @@ function DashboardOverview({
    * secondary — the grid below is 5/7 rather than 1/3 + 2/3.
    */
   return (
-    <div className="space-y-s5 pb-20 md:pb-0">
-      <div className="grid grid-cols-2 gap-s3 lg:grid-cols-4">
+    <div className="space-y-6 pb-20 md:pb-0">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
           title="Total Blog Views"
           value={stats?.totalBlogViews.toLocaleString() || "0"}
@@ -158,9 +158,9 @@ function DashboardOverview({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-s5 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Column 1: Present / "What's going on now?" */}
-        <div className="space-y-s5 lg:col-span-5">
+        <div className="space-y-6 lg:col-span-5">
           <Card className="flex h-full flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -243,7 +243,7 @@ function DashboardOverview({
         </div>
 
         {/* Column 2: Past / "What happened?" */}
-        <div className="space-y-s5 lg:col-span-4">
+        <div className="space-y-6 lg:col-span-4">
           <Card>
             <CardHeader>
               <CardTitle>Recent Activity</CardTitle>
@@ -336,7 +336,7 @@ function DashboardOverview({
         </div>
 
         {/* Column 3: Future / "What's going to happen?" */}
-        <div className="space-y-s5 lg:col-span-3">
+        <div className="space-y-6 lg:col-span-3">
           <Card className="h-full">
             <CardHeader>
               <CardTitle>7-Day Outlook</CardTitle>

@@ -104,7 +104,7 @@ export function BlogListPage() {
   }, [posts, searchTerm]);
 
   return (
-    <Band weight="content" className="density-comfortable">
+    <Band weight="content">
       <PageHeader
         kicker="Writing"
         title={siteContent.pages.blog.title}

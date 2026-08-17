@@ -38,10 +38,10 @@ export default function PublicFooter() {
 
   if (isLoading || !identity) {
     return (
-      <Band as="footer" weight="content" className="py-s8">
+      <Band as="footer" weight="content">
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-48" />
-          <div className="flex gap-s3">
+          <div className="flex gap-3">
             <Skeleton className="size-8 rounded-full" />
             <Skeleton className="size-8 rounded-full" />
           </div>
@@ -53,8 +53,8 @@ export default function PublicFooter() {
   const { profile_data, social_links, footer_data } = identity;
 
   return (
-    <Band as="footer" weight="content" className="py-s8">
-      <div className="flex flex-col gap-s5 sm:flex-row sm:items-end sm:justify-between">
+    <Band as="footer" weight="content">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1 text-sm text-muted-foreground">
           <p>
             <span
@@ -77,7 +77,7 @@ export default function PublicFooter() {
           )}
         </div>
 
-        <ul className="flex items-center gap-s2">
+        <ul className="flex items-center gap-2">
           {social_links
             .filter((social) => social.is_visible)
             .map((social) => {

@@ -61,8 +61,8 @@ export function AdminTopbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 px-s4 pt-s4">
-      <div className="mx-auto flex max-w-wide items-center gap-s3 rounded-full bg-card/90 px-s3 py-2 shadow-e2 backdrop-blur-md">
+    <header className="sticky top-0 z-30 px-4 pt-4">
+      <div className="mx-auto flex max-w-wide items-center gap-3 rounded-full bg-card/90 px-3 py-2 shadow-e2 backdrop-blur-md">
         <button
           type="button"
           onClick={openSwitcher}
@@ -80,7 +80,7 @@ export function AdminTopbar() {
           <span className="sr-only">Switch module</span>
         </button>
 
-        <div className="ml-auto flex items-center gap-s2">
+        <div className="ml-auto flex items-center gap-2">
           <LearningPill />
 
           <DropdownMenu>
