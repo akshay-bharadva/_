@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LayoutTemplate, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, LayoutTemplate, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioItem, PortfolioSection } from "@/types";
 import {
@@ -15,18 +15,18 @@ import {
   useUpdateSectionOrderMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   EmptyState,
+  LoadingState,
   ManagerWrapper,
   PageHeader,
 } from "@/components/admin/shared";
-import { getErrorMessage, cn } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/utils";
 import type { PathOption, SheetState } from "./content-types";
-import { SectionList } from "./section-list";
+import { PageRail, type PageSummary } from "./page-rail";
+import { SectionRow } from "./section-row";
 import { SectionDetail } from "./section-detail";
 import { SectionEditorSheet } from "./section-editor-sheet";
 import { ItemEditorSheet } from "./item-editor-sheet";
@@ -34,47 +34,41 @@ import { ItemEditorSheet } from "./item-editor-sheet";
 /**
  * Admin → Content.
  *
- * What changed, and why:
+ * Rebuilt against `docs/redesign/v3-admin-interaction-standard.md`. What the
+ * previous structure got wrong, and what replaced it:
  *
- * 1. BUG — the auto-select effect listed `selectedSectionId` in its dependency
- *    array while also calling `setLocalSections(sections)`. Every selection
- *    change re-ran it and overwrote local state, so an optimistic reorder
- *    could snap back the instant you clicked another section. Initial
- *    selection now happens once, guarded by a ref, and syncing server data is
- *    a separate effect.
+ * 1. **Two primary actions.** "New Section" appeared in the page header *and*
+ *    again as a full-width button inside the list column. Now exactly one, in
+ *    the header.
  *
- * 2. BUG — autosaved markdown called `onSaveContent` without `{ silent: true }`,
- *    so `handleSaveSection` fired a success toast AND closed any open sheet
- *    every two seconds while you typed. Autosave is now explicitly silent and
- *    reports status inline in the editor instead.
+ * 2. **The wrong primary object.** Sections were primary and pages were an
+ *    accordion grouping, so a page was never something you could select or
+ *    reason about. The page is now the object you pick first, which is how the
+ *    content is actually authored.
  *
- * 3. BUG — `handleSaveSection` was a new function identity on every render,
- *    which sat in SectionDetail's autosave `useEffect` deps and reset the
- *    debounce timer continuously. All handlers are now `useCallback`.
+ * 3. **A two-pane split locked to `h-[calc(100vh-13rem)]`.** The magic number
+ *    broke the moment the shell's header height changed, and the desktop
+ *    resting state spent the larger half of the screen on an empty placeholder.
+ *    It is now a normally-scrolling list that opens into a detail view, with
+ *    the same shape at every width.
  *
- * 4. UX — with ~50 sections across a dozen page paths the list was a wall of
- *    identical rows. There is now a search box (title, path, layout), the list
- *    shows item counts, layout, and hidden state, and paths are sorted with
- *    "/" first rather than in Object.keys order.
+ * 4. **Creating a section left you where you were.** It now opens the section
+ *    it just created.
  *
- * 5. UX — the desktop empty state was a dead card. It now offers the primary
- *    action, so a fresh install has somewhere to go.
+ * 5. **Hover-only reorder controls**, invisible on touch and to keyboard users.
+ *    Now always visible, with the ordering scope stated in the button labels.
  */
 export default function ContentPage() {
   const confirm = useConfirm();
-  const isMobile = useIsMobile();
   const searchRef = useRef<HTMLInputElement>(null);
-  const didInitialSelect = useRef(false);
 
-  const [localSections, setLocalSections] = useState<PortfolioSection[]>([]);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
-    null,
-  );
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [openSectionId, setOpenSectionId] = useState<string | null>(null);
   const [sheetState, setSheetState] = useState<SheetState>(null);
   const [query, setQuery] = useState("");
+  const [localSections, setLocalSections] = useState<PortfolioSection[]>([]);
 
-  const { data: sections, isLoading: isLoadingSections } =
-    useGetPortfolioContentQuery();
+  const { data: sections, isLoading, error } = useGetPortfolioContentQuery();
   const { data: navLinks } = useGetNavLinksAdminQuery();
   const [saveSection] = useSaveSectionMutation();
   const [deleteSection] = useDeleteSectionMutation();
@@ -83,18 +77,63 @@ export default function ContentPage() {
   const [updateOrder] = useUpdateSectionOrderMutation();
   const [rescanUsage] = useRescanAssetUsageMutation();
 
-  /* ── server → local, without stomping optimistic state ───────────── */
   useEffect(() => {
     if (sections) setLocalSections(sections);
   }, [sections]);
 
-  /* ── first meaningful paint picks a section once, on desktop only ── */
+  /** Every path that has content, or that a nav link points at. */
+  const pages: PageSummary[] = useMemo(() => {
+    const paths = new Set<string>(["/"]);
+    navLinks?.forEach(
+      (link) => link.href?.startsWith("/") && paths.add(link.href),
+    );
+    localSections.forEach((s) => s.page_path && paths.add(s.page_path));
+
+    return Array.from(paths)
+      .sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)))
+      .map((path) => {
+        const onPage = localSections.filter((s) => s.page_path === path);
+        return {
+          path,
+          label: path === "/" ? "Home" : path,
+          sectionCount: onPage.length,
+          hiddenCount: onPage.filter((s) => s.is_visible === false).length,
+        };
+      });
+  }, [navLinks, localSections]);
+
+  const availablePaths: PathOption[] = useMemo(
+    () =>
+      pages.map((p) => ({
+        label: p.path === "/" ? "/ (home)" : p.path,
+        value: p.path,
+      })),
+    [pages],
+  );
+
+  // Land on the first page that actually has content, so the module opens on
+  // something rather than on an empty selection.
   useEffect(() => {
-    if (didInitialSelect.current) return;
-    if (isMobile || !sections?.length) return;
-    didInitialSelect.current = true;
-    setSelectedSectionId(sections[0].id);
-  }, [sections, isMobile]);
+    if (selectedPath || pages.length === 0) return;
+    setSelectedPath((pages.find((p) => p.sectionCount > 0) ?? pages[0]).path);
+  }, [pages, selectedPath]);
+
+  /** Sections on the selected page, in display order, filtered by the query. */
+  const visibleSections = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return localSections
+      .filter((s) => s.page_path === selectedPath)
+      .filter(
+        (s) =>
+          !needle ||
+          s.title?.toLowerCase().includes(needle) ||
+          s.layout_style?.toLowerCase().includes(needle) ||
+          s.type?.toLowerCase().includes(needle),
+      )
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+  }, [localSections, selectedPath, query]);
+
+  const openSection = localSections.find((s) => s.id === openSectionId) ?? null;
 
   /* ── "/" focuses search, Escape clears it ─────────────────────────── */
   useEffect(() => {
@@ -104,7 +143,7 @@ export default function ContentPage() {
         target?.tagName === "INPUT" ||
         target?.tagName === "TEXTAREA" ||
         target?.isContentEditable;
-      if (e.key === "/" && !typing) {
+      if (e.key === "/" && !typing && !openSectionId) {
         e.preventDefault();
         searchRef.current?.focus();
       }
@@ -112,66 +151,11 @@ export default function ContentPage() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  /**
-   * Paths offered in the section editor. "/" is always available; the rest
-   * come from nav links, plus any path already used by a section — otherwise a
-   * section living on an unlinked path (the seed has /uses and /resume) could
-   * never be edited back to where it started.
-   */
-  const availablePaths: PathOption[] = useMemo(() => {
-    const paths = new Set<string>(["/"]);
-    navLinks?.forEach(
-      (link) => link.href?.startsWith("/") && paths.add(link.href),
-    );
-    localSections.forEach((s) => s.page_path && paths.add(s.page_path));
-    return Array.from(paths)
-      .sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)))
-      .map((path) => ({
-        label: path === "/" ? "/ (home)" : path,
-        value: path,
-      }));
-  }, [navLinks, localSections]);
-
-  /** Sections grouped by page path, "/" first, each group in display order. */
-  const groupedSections = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const matches = (s: PortfolioSection) =>
-      !needle ||
-      s.title?.toLowerCase().includes(needle) ||
-      s.page_path?.toLowerCase().includes(needle) ||
-      s.layout_style?.toLowerCase().includes(needle) ||
-      s.type?.toLowerCase().includes(needle);
-
-    const grouped: Record<string, PortfolioSection[]> = {};
-    for (const section of localSections) {
-      if (!matches(section)) continue;
-      const path = section.page_path || "Uncategorized";
-      (grouped[path] ??= []).push(section);
-    }
-
-    return Object.keys(grouped)
-      .sort((a, b) => (a === "/" ? -1 : b === "/" ? 1 : a.localeCompare(b)))
-      .reduce<Record<string, PortfolioSection[]>>((acc, path) => {
-        acc[path] = grouped[path].sort(
-          (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
-        );
-        return acc;
-      }, {});
-  }, [localSections, query]);
-
-  const totalMatches = useMemo(
-    () => Object.values(groupedSections).reduce((n, g) => n + g.length, 0),
-    [groupedSections],
-  );
-
-  const selectedSection =
-    localSections.find((s) => s.id === selectedSectionId) ?? null;
+  }, [openSectionId]);
 
   /* ── handlers ─────────────────────────────────────────────────────── */
 
-  const handleMoveSection = useCallback(
+  const handleMove = useCallback(
     async (sectionId: string, direction: "up" | "down") => {
       const section = localSections.find((s) => s.id === sectionId);
       if (!section) return;
@@ -218,16 +202,35 @@ export default function ContentPage() {
         if (!options?.silent) {
           toast.success(`Section "${saved.title}" saved`);
           setSheetState(null);
+          // Creating something selects it: land on the new section rather than
+          // returning to an unchanged list the user then has to search.
+          setSelectedPath(saved.page_path ?? selectedPath);
+          setOpenSectionId(saved.id);
         }
-        setSelectedSectionId(saved.id);
         return saved;
       } catch (err) {
-        // Autosave failures must still surface — silent applies to the
-        // success path only, never to errors.
+        // Autosave failures must still surface — silent applies to the success
+        // path only, never to errors.
         toast.error("Failed to save section", {
           description: getErrorMessage(err),
         });
         throw err;
+      }
+    },
+    [saveSection, selectedPath],
+  );
+
+  const handleToggleVisible = useCallback(
+    async (section: PortfolioSection) => {
+      try {
+        await saveSection({
+          id: section.id,
+          is_visible: !(section.is_visible !== false),
+        }).unwrap();
+      } catch (err) {
+        toast.error("Couldn't change visibility", {
+          description: getErrorMessage(err),
+        });
       }
     },
     [saveSection],
@@ -250,7 +253,7 @@ export default function ContentPage() {
       try {
         await deleteSection(id).unwrap();
         toast.success("Section deleted");
-        setSelectedSectionId(null);
+        setOpenSectionId(null);
       } catch (err) {
         toast.error("Failed to delete section", {
           description: getErrorMessage(err),
@@ -267,8 +270,7 @@ export default function ContentPage() {
         toast.success("Item saved");
         setSheetState(null);
         // Asset usage is a nice-to-have; a failure here must not read as a
-        // failed save. Previously an error in rescanUsage() surfaced as
-        // "Failed to save item" even though the item had already been written.
+        // failed save.
         rescanUsage()
           .unwrap()
           .catch(() => undefined);
@@ -305,177 +307,212 @@ export default function ContentPage() {
     [confirm, deleteItem, rescanUsage],
   );
 
-  const detailProps = {
-    isMobile,
-    onBack: () => setSelectedSectionId(null),
-    onEditSection: (section: PortfolioSection) =>
-      setSheetState({ type: "edit-section", section }),
-    onDeleteSection: handleDeleteSection,
-    onSaveContent: handleSaveSection,
-    onNewItem: (sectionId: string) =>
-      setSheetState({ type: "new-item", sectionId }),
-    onEditItem: (item: PortfolioItem) =>
-      setSheetState({ type: "edit-item", item }),
-    onDeleteItem: handleDeleteItem,
-  };
+  /* ── sheets ───────────────────────────────────────────────────────── */
 
-  const renderSheet = () => {
-    if (sheetState?.type === "new-item" || sheetState?.type === "edit-item") {
-      const sectionId =
-        sheetState.type === "new-item"
-          ? sheetState.sectionId
-          : sheetState.item.section_id;
-      const owningSection = localSections.find((s) => s.id === sectionId);
-      return (
-        <ItemEditorSheet
-          item={sheetState.type === "edit-item" ? sheetState.item : null}
-          sectionId={sectionId}
-          layoutStyle={owningSection?.layout_style}
-          onSave={handleSaveItem}
-          onClose={() => setSheetState(null)}
-        />
-      );
-    }
-    if (
-      sheetState?.type === "new-section" ||
-      sheetState?.type === "edit-section"
-    ) {
+  const sheet = (() => {
+    if (!sheetState) return null;
+    if (sheetState.type === "new-section" || sheetState.type === "edit-section")
       return (
         <SectionEditorSheet
           section={
-            sheetState.type === "edit-section" ? sheetState.section : null
+            sheetState.type === "edit-section"
+              ? sheetState.section
+              : // A new section starts on the page you are looking at, rather
+                // than making you choose a path you have already chosen.
+                ({
+                  page_path: selectedPath ?? "/",
+                } as Partial<PortfolioSection>)
           }
           availablePaths={availablePaths}
           onSave={handleSaveSection}
           onClose={() => setSheetState(null)}
         />
       );
-    }
-    return null;
-  };
+    return (
+      <ItemEditorSheet
+        item={sheetState.type === "edit-item" ? sheetState.item : null}
+        sectionId={
+          sheetState.type === "new-item"
+            ? sheetState.sectionId
+            : (sheetState.item.section_id ?? "")
+        }
+        layoutStyle={openSection?.layout_style ?? "default"}
+        onSave={handleSaveItem}
+        onClose={() => setSheetState(null)}
+      />
+    );
+  })();
 
-  /* ── mobile: selected section takes over the screen ───────────────── */
-  if (isMobile && selectedSection) {
+  /* ── detail view ──────────────────────────────────────────────────── */
+
+  if (openSection) {
     return (
       <ManagerWrapper>
-        <SectionDetail section={selectedSection} {...detailProps} />
-        {renderSheet()}
+        <SectionDetail
+          section={openSection}
+          isMobile={false}
+          onBack={() => setOpenSectionId(null)}
+          onEditSection={(section) =>
+            setSheetState({ type: "edit-section", section })
+          }
+          onDeleteSection={handleDeleteSection}
+          onSaveContent={handleSaveSection}
+          onNewItem={(sectionId) =>
+            setSheetState({ type: "new-item", sectionId })
+          }
+          onEditItem={(item) => setSheetState({ type: "edit-item", item })}
+          onDeleteItem={handleDeleteItem}
+        />
+        {sheet}
       </ManagerWrapper>
     );
   }
 
-  const isEmpty = !isLoadingSections && localSections.length === 0;
+  /* ── list view ────────────────────────────────────────────────────── */
+
+  const selectedPage = pages.find((p) => p.path === selectedPath);
+  const hasAnyContent = localSections.length > 0;
 
   return (
     <ManagerWrapper>
       <PageHeader
         title="Content"
-        description={
-          isLoadingSections
-            ? "Loading sections…"
-            : `${localSections.length} section${localSections.length === 1 ? "" : "s"} across ${
-                new Set(localSections.map((s) => s.page_path)).size
-              } page${new Set(localSections.map((s) => s.page_path)).size === 1 ? "" : "s"}`
-        }
+        description="Every public page is built from the sections below."
         actions={
           <Button onClick={() => setSheetState({ type: "new-section" })}>
-            <Plus className="mr-2 size-4" /> New Section
+            <Plus className="mr-2 size-4" aria-hidden /> New section
           </Button>
         }
       />
 
-      <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-[calc(100vh-13rem)] lg:grid-cols-12">
-        {/* ── list column ───────────────────────────────────────────── */}
-        <div className="lg:col-span-4 xl:col-span-3">
-          <Card className="flex h-full flex-col overflow-hidden">
-            <div className="shrink-0 space-y-2 border-b bg-background/50 p-3">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  ref={searchRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search sections…"
-                  aria-label="Search sections by title, path, or layout"
-                  className="h-9 pl-8 pr-8"
-                />
-                {query && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Clear search"
-                    className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2"
-                    onClick={() => {
-                      setQuery("");
-                      searchRef.current?.focus();
-                    }}
-                  >
-                    <X className="size-3.5" />
-                  </Button>
-                )}
-              </div>
-              {!isMobile && (
+      {isLoading ? (
+        <LoadingState label="Loading content" />
+      ) : error ? (
+        <EmptyState
+          variant="card"
+          icon={LayoutTemplate}
+          title="Couldn't load content"
+          description="The sections could not be fetched. Check your connection and try again."
+        />
+      ) : !hasAnyContent ? (
+        <EmptyState
+          variant="card"
+          icon={LayoutTemplate}
+          title="No content yet"
+          description="Sections are the building blocks of every public page. Create your first one to get started."
+          action={{
+            label: "New section",
+            onClick: () => setSheetState({ type: "new-section" }),
+            icon: Plus,
+          }}
+        />
+      ) : (
+        <div className="space-y-4">
+          <PageRail
+            pages={pages}
+            selectedPath={selectedPath}
+            onSelect={(path) => {
+              setSelectedPath(path);
+              setQuery("");
+            }}
+          />
+
+          {/* Status and filtering sit together, directly above what they
+              filter — not split between a page-header subtitle and a control
+              buried inside a card. */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {visibleSections.length}
+              {query ? ` of ${selectedPage?.sectionCount ?? 0}` : ""} section
+              {visibleSections.length === 1 ? "" : "s"} on{" "}
+              <span className="font-medium text-foreground">
+                {selectedPage?.label ?? selectedPath}
+              </span>
+            </p>
+            <div className="relative sm:w-72">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden
+              />
+              <Input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filter sections…"
+                aria-label="Filter sections on this page"
+                className="h-9 pl-8 pr-8"
+              />
+              {query && (
                 <Button
-                  onClick={() => setSheetState({ type: "new-section" })}
-                  className="h-9 w-full"
-                  variant="outline"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Clear filter"
+                  className="absolute right-0.5 top-1/2 size-8 -translate-y-1/2"
+                  onClick={() => {
+                    setQuery("");
+                    searchRef.current?.focus();
+                  }}
                 >
-                  <Plus className="mr-2 size-4" /> New Section
+                  <X className="size-3.5" />
                 </Button>
               )}
             </div>
+          </div>
 
-            <SectionList
-              groupedSections={groupedSections}
-              selectedSectionId={selectedSectionId}
-              isLoading={isLoadingSections}
-              isMobile={isMobile}
-              query={query}
-              totalMatches={totalMatches}
-              totalSections={localSections.length}
-              onSelectSection={setSelectedSectionId}
-              onClearQuery={() => setQuery("")}
-              onNewSection={() => setSheetState({ type: "new-section" })}
-              onMoveUp={(id) => handleMoveSection(id, "up")}
-              onMoveDown={(id) => handleMoveSection(id, "down")}
+          {visibleSections.length === 0 ? (
+            <EmptyState
+              variant="card"
+              size="compact"
+              icon={query ? Search : LayoutTemplate}
+              title={query ? "No matches" : "Nothing on this page yet"}
+              description={
+                query
+                  ? `Nothing on ${selectedPage?.label} matches “${query}”.`
+                  : "Add a section to start building this page."
+              }
+              action={
+                query
+                  ? { label: "Clear filter", onClick: () => setQuery("") }
+                  : {
+                      label: "New section",
+                      onClick: () => setSheetState({ type: "new-section" }),
+                      icon: Plus,
+                    }
+              }
             />
-          </Card>
-        </div>
-
-        {/* ── detail column (desktop) ───────────────────────────────── */}
-        <div
-          className={cn("hidden min-h-0 lg:col-span-8 lg:block xl:col-span-9")}
-        >
-          {selectedSection ? (
-            <Card className="h-full overflow-hidden">
-              <SectionDetail section={selectedSection} {...detailProps} />
-            </Card>
           ) : (
-            <Card className="flex h-full items-center justify-center border-dashed">
-              <EmptyState
-                icon={LayoutTemplate}
-                title={isEmpty ? "No content yet" : "No section selected"}
-                description={
-                  isEmpty
-                    ? "Sections are the building blocks of every public page. Create your first one to get started."
-                    : "Pick a section on the left to edit its content and items."
-                }
-                action={
-                  isEmpty
-                    ? {
-                        label: "Create a section",
-                        onClick: () => setSheetState({ type: "new-section" }),
-                        icon: Plus,
-                      }
-                    : undefined
-                }
-              />
-            </Card>
+            <ul className="space-y-2">
+              {visibleSections.map((section, index) => (
+                <SectionRow
+                  key={section.id}
+                  section={section}
+                  index={index}
+                  total={visibleSections.length}
+                  onOpen={() => setOpenSectionId(section.id)}
+                  onEdit={() =>
+                    setSheetState({ type: "edit-section", section })
+                  }
+                  onDelete={() => handleDeleteSection(section.id)}
+                  onToggleVisible={() => handleToggleVisible(section)}
+                  onMoveUp={() => handleMove(section.id, "up")}
+                  onMoveDown={() => handleMove(section.id, "down")}
+                />
+              ))}
+            </ul>
           )}
         </div>
-      </div>
+      )}
 
-      {renderSheet()}
+      {sheet}
     </ManagerWrapper>
+  );
+}
+
+/** Back control shared by the detail view. Exported for reuse by SectionDetail. */
+export function BackToList({ onBack }: { onBack: () => void }) {
+  return (
+    <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2">
+      <ArrowLeft className="mr-2 size-4" aria-hidden /> All sections
+    </Button>
   );
 }

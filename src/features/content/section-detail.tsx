@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/admin/shared";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -277,22 +276,26 @@ export function SectionDetail({
   const livePath = section.page_path === "/" ? "/" : section.page_path;
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex flex-col rounded-surface bg-card shadow-e1">
       {/* ── header ─────────────────────────────────────────────────── */}
-      <div className="z-10 flex-none border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="border-b">
         <div className="flex items-start justify-between gap-4 p-4">
           <div className="flex min-w-0 items-start gap-3">
-            {isMobile && (
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Back to sections"
-                onClick={onBack}
-                className="-ml-2 shrink-0"
-              >
-                <ArrowLeft className="size-5" />
-              </Button>
-            )}
+            {/*
+              Always present, not mobile-only. The detail view replaces the
+              list at every width now, so leaving desktop without a back
+              control would strand the user on a screen with no way out except
+              the browser button.
+            */}
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Back to all sections"
+              onClick={onBack}
+              className="-ml-2 shrink-0"
+            >
+              <ArrowLeft className="size-5" />
+            </Button>
             <div className="min-w-0">
               <h2 className="truncate font-heading text-xl font-bold tracking-tight">
                 {section.title}
@@ -387,7 +390,7 @@ export function SectionDetail({
       </div>
 
       {/* ── body ───────────────────────────────────────────────────── */}
-      <ScrollArea className="min-h-0 flex-1">
+      <div>
         <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-8">
           {isHidden && (
             <div className="flex items-start gap-2 rounded-surface border border-chart-3/30 bg-chart-3/5 px-3 py-2.5 text-sm">
@@ -656,7 +659,7 @@ export function SectionDetail({
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
