@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   BookText,
-  ChevronsUpDown,
+  Menu,
   ExternalLink,
   ListTodo,
   LogOut,
@@ -26,23 +26,16 @@ import {
 import { LearningPill } from "./learning-pill";
 import { activeNavItem, NAV_ITEMS } from "./nav-config";
 
-/** Opens the one global overlay rather than introducing a competing one. */
-function openSwitcher() {
-  document.dispatchEvent(new CustomEvent("open-command-palette"));
-}
-
 /**
- * The admin top bar — the whole of the Personal OS chrome.
+ * The admin top bar.
  *
- * v3 removed the left icon rail. Sixteen modules in a permanent vertical list
- * made every module look equally important and cost horizontal space on every
- * screen, on every route. Navigation is now a keystroke or one click on the
- * module name, and the bar is a single row.
- *
- * The module button is deliberately styled as a control rather than as a
- * heading: it is the primary way to move around, so it has to look pressable.
+ * Navigation lives in the rail beside it, so this bar carries context and
+ * actions only: which page you are on, the active learning session, quick add,
+ * and the account menu. It is solid and border-anchored rather than a floating
+ * pill — an admin panel's chrome should read as part of the frame, not as an
+ * object hovering over the content.
  */
-export function AdminTopbar() {
+export function AdminTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   const router = useRouter();
   const pathname = usePathname() ?? "/admin";
   const { session } = useSupabaseSession();
@@ -61,92 +54,91 @@ export function AdminTopbar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 px-4 pt-4">
-      <div className="mx-auto flex max-w-wide items-center gap-3 rounded-full bg-card/90 px-3 py-2 shadow-e2 backdrop-blur-md">
-        <button
-          type="button"
-          onClick={openSwitcher}
-          aria-haspopup="dialog"
-          className="flex min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {Icon && (
-            <Icon className="size-4 shrink-0 text-primary" aria-hidden />
-          )}
-          <span className="truncate">{current?.name ?? "Personal OS"}</span>
-          <ChevronsUpDown
-            className="size-3.5 shrink-0 text-muted-foreground"
-            aria-hidden
-          />
-          <span className="sr-only">Switch module</span>
-        </button>
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-4 sm:px-6">
+      <button
+        type="button"
+        onClick={onOpenSidebar}
+        aria-label="Open navigation"
+        className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+      >
+        <Menu className="size-5" aria-hidden />
+      </button>
 
-        <div className="ml-auto flex items-center gap-2">
-          <LearningPill />
+      {/* The current page, as a heading. Navigation lives in the rail, so this
+          is context rather than a control. */}
+      <div className="flex min-w-0 items-center gap-2">
+        {Icon && <Icon className="size-4 shrink-0 text-primary" aria-hidden />}
+        <h1 className="truncate text-sm font-semibold">
+          {current?.name ?? "Personal OS"}
+        </h1>
+      </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Plus className="size-4" aria-hidden />
-                <span className="hidden sm:inline">Quick add</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel className="t-micro">
-                Quick add
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/admin/tasks")}>
-                <ListTodo className="mr-2 size-4" aria-hidden /> New task
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/admin/notes")}>
-                <StickyNote className="mr-2 size-4" aria-hidden /> New note
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/admin/finance")}>
-                <Banknote className="mr-2 size-4" aria-hidden /> New transaction
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => router.push("/admin/blog?create=true")}
-              >
-                <BookText className="mr-2 size-4" aria-hidden /> New blog post
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div className="ml-auto flex items-center gap-2">
+        <LearningPill />
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Account menu"
-                className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <Avatar className="size-8">
-                  <AvatarFallback className="bg-primary text-xs text-primary-foreground">
-                    {session?.user.email?.[0]?.toUpperCase() ?? "A"}
-                  </AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">
-                {session?.user.email}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/">
-                  <ExternalLink className="mr-2 size-4" aria-hidden />
-                  Back to portfolio
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 size-4" aria-hidden />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Plus className="size-4" aria-hidden />
+              <span className="hidden sm:inline">Quick add</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="text-xs text-muted-foreground">
+              Quick add
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/admin/tasks")}>
+              <ListTodo className="mr-2 size-4" aria-hidden /> New task
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/admin/notes")}>
+              <StickyNote className="mr-2 size-4" aria-hidden /> New note
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/admin/finance")}>
+              <Banknote className="mr-2 size-4" aria-hidden /> New transaction
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push("/admin/blog?create=true")}
+            >
+              <BookText className="mr-2 size-4" aria-hidden /> New blog post
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="Account menu"
+              className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Avatar className="size-8">
+                <AvatarFallback className="bg-primary text-xs text-primary-foreground">
+                  {session?.user.email?.[0]?.toUpperCase() ?? "A"}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">
+              {session?.user.email}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/">
+                <ExternalLink className="mr-2 size-4" aria-hidden />
+                Back to portfolio
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 size-4" aria-hidden />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
