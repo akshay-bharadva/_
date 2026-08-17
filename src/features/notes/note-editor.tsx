@@ -189,6 +189,12 @@ export function NoteEditor({ note, onCancel, onSuccess }: NoteEditorProps) {
         </div>
 
         {/* Editor — the scrolling region */}
+        {/* Wikilinks are the one thing here nobody discovers by looking. */}
+        <p className="-mt-1 text-xs text-muted-foreground">
+          Type <code className="rounded bg-secondary px-1">[[note title]]</code>{" "}
+          to link another note.
+        </p>
+
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border bg-card">
           <NovelEditor
             value={content}

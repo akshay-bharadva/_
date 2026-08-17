@@ -76,7 +76,9 @@ ALTER TABLE habits DROP CONSTRAINT IF EXISTS habits_schedule_days_valid;
 ALTER TABLE habits ADD CONSTRAINT habits_schedule_days_valid
   CHECK (schedule_days IS NULL OR (
     array_length(schedule_days, 1) <= 7
-    AND NOT EXISTS (SELECT 1 FROM unnest(schedule_days) d WHERE d < 1 OR d > 7)
+    -- `<@` rather than a subquery: CHECK constraints cannot contain one,
+    -- and Postgres rejects the whole statement if they do.
+    AND schedule_days <@ ARRAY[1, 2, 3, 4, 5, 6, 7]
   ));
 
 ALTER TABLE habits DROP CONSTRAINT IF EXISTS habits_unit_length;

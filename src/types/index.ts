@@ -144,10 +144,12 @@ export interface Note {
   id: string;
   user_id?: string;
   title?: string | null;
+  /** Markdown. `[[wikilinks]]` inside it are resolved against note titles. */
   content?: string | null;
   tags?: string[] | null;
   is_pinned?: boolean;
   color?: string | null;
+  archived_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }

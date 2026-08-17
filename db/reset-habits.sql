@@ -69,7 +69,9 @@ CREATE TABLE habits (
   CONSTRAINT habits_schedule_days_valid
     CHECK (schedule_days IS NULL OR (
       array_length(schedule_days, 1) <= 7
-      AND NOT EXISTS (SELECT 1 FROM unnest(schedule_days) d WHERE d < 1 OR d > 7)
+      -- `<@` rather than a subquery: CHECK constraints cannot contain one,
+      -- and Postgres rejects the whole statement if they do.
+      AND schedule_days <@ ARRAY[1, 2, 3, 4, 5, 6, 7]
     ))
 );
 
@@ -171,12 +173,12 @@ SELECT
 FROM (SELECT id FROM auth.users ORDER BY created_at LIMIT 1) u
 CROSS JOIN (VALUES
   -- A plain daily check-in.
-  ('Morning walk',      '#10b981', 'build', 1,  NULL,      1, 'daily',        NULL,          7, 'morning',   'Health',   1),
+  ('Morning walk',      '#10b981', 'build', 1,  NULL,      1, 'daily',        NULL::INT[],   7, 'morning',   'Health',   1),
   -- Quantified: counts up, one tap at a time.
   ('Drink water',       '#0ea5e9', 'build', 8,  'glasses', 1, 'daily',        NULL,          7, 'anytime',   'Health',   2),
   ('Read',              '#8b5cf6', 'build', 30, 'minutes', 10,'daily',        NULL,          7, 'evening',   'Learning', 3),
   -- Only on the days it actually applies, so the other days are not misses.
-  ('Strength training', '#ef4444', 'build', 1,  NULL,      1, 'custom',       '{1,3,5}',     7, 'morning',   'Fitness',  4),
+  ('Strength training', '#ef4444', 'build', 1,  NULL,      1, 'custom',       ARRAY[1,3,5],  7, 'morning',   'Fitness',  4),
   ('Inbox zero',        '#f59e0b', 'build', 1,  NULL,      1, 'weekdays',     NULL,          7, 'afternoon', 'Work',     5),
   -- Names a quantity, not days: any day counts toward the weekly total.
   ('Call a friend',     '#ec4899', 'build', 1,  NULL,      1, 'weekly_count', NULL,          2, 'anytime',   'Social',   6),

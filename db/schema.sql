@@ -325,14 +325,20 @@ CREATE INDEX IF NOT EXISTS task_dependencies_depends_on_id_idx ON task_dependenc
 CREATE TABLE IF NOT EXISTS notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE DEFAULT auth.uid(),
-  title TEXT,
-  content TEXT,
-  color TEXT,
+  title TEXT CHECK (title IS NULL OR length(title) <= 200),
+  -- Markdown. `[[wikilinks]]` inside it are resolved in the client from the
+  -- notes already loaded, so the link graph cannot fall out of step with the
+  -- text that defines it and there is no join table to keep in sync.
+  content TEXT CHECK (content IS NULL OR length(content) <= 100000),
+  color TEXT CHECK (color IS NULL OR color ~ '^#[0-9A-Fa-f]{6}$'),
   tags TEXT[],
   is_pinned BOOLEAN DEFAULT false,
+  archived_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+CREATE INDEX IF NOT EXISTS notes_archived_at_idx ON notes(archived_at);
+CREATE INDEX IF NOT EXISTS notes_updated_at_idx ON notes(updated_at DESC);
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage notes" ON notes;
 CREATE POLICY "Admin manage notes" ON notes FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
@@ -561,7 +567,9 @@ CREATE TABLE IF NOT EXISTS habits (
   CONSTRAINT habits_custom_needs_days CHECK (schedule <> 'custom' OR (schedule_days IS NOT NULL AND array_length(schedule_days, 1) >= 1)),
   CONSTRAINT habits_schedule_days_valid CHECK (schedule_days IS NULL OR (
     array_length(schedule_days, 1) <= 7
-    AND NOT EXISTS (SELECT 1 FROM unnest(schedule_days) d WHERE d < 1 OR d > 7)
+    -- `<@` rather than a subquery: CHECK constraints cannot contain one,
+    -- and Postgres rejects the whole statement if they do.
+    AND schedule_days <@ ARRAY[1, 2, 3, 4, 5, 6, 7]
   ))
 );
 CREATE INDEX IF NOT EXISTS habits_archived_at_idx ON habits(archived_at);

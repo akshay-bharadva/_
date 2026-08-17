@@ -28,11 +28,24 @@ export const notesApi = adminApi.injectEndpoints({
       queryFn: deleteQueryFn("notes"),
       invalidatesTags: ["Notes"],
     }),
+    /**
+     * Archiving, because deleting was the only way to clear a note out of the
+     * way — and a note is the one thing in here you cannot reconstruct.
+     */
+    archiveNote: builder.mutation<Note, { id: string; archived: boolean }>({
+      queryFn: async ({ id, archived }) =>
+        updateQueryFn<Note>("notes")({
+          id,
+          archived_at: archived ? new Date().toISOString() : null,
+        } as Partial<Note>),
+      invalidatesTags: ["Notes"],
+    }),
   }),
 });
 
 export const {
   useGetNotesQuery,
+  useArchiveNoteMutation,
   useAddNoteMutation,
   useUpdateNoteMutation,
   useDeleteNoteMutation,
