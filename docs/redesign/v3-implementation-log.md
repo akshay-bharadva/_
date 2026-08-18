@@ -293,6 +293,24 @@ sound structurally, so this is about the input device rather than the model.
   closed tab, a reload, a followed link. It cannot save, because the handler
   may not await, so it only asks.
 
+- **Excalidraw's own UI slots, not absolute positioning.** The library owns the
+  top-left (menu), top-centre (toolbar) and top-right (library) of its surface,
+  so anything floated over the canvas collides with one of them at some
+  viewport width. Board actions go through `renderTopRightUI` and the title and
+  save state through the exported `<Footer>`, so the chrome moves with
+  Excalidraw's layout instead of guessing at it. The canvas is full-bleed —
+  a bordered box inside a padded panel put two frames around the one thing the
+  page is for.
+- **Save is the way out, so it is never disabled.** Autosave means an untouched
+  board is already written; pressing Save then closes without a second write,
+  which would otherwise bump `updated_at` and reorder the gallery for nothing.
+- **A gallery card shows a drawing, so the drawing gets the room.** Fixed 4:3
+  so the grid stays even when one board is a wide flowchart and the next is
+  three boxes, inset on the page ground rather than a grey plate — the export
+  carries its own background, so a dark-theme board reads as a dark board. The
+  card previously carried `hover:border-primary/50` and no border, so the one
+  affordance saying it was clickable did nothing.
+
 ---
 
 # Part three — Recurring patterns

@@ -90,7 +90,7 @@ export function BoardEditor({ boardId, open, onClose }: BoardEditorProps) {
        * the home indicator on a tablet in portrait.
        */
       style={{ touchAction: "none", overscrollBehavior: "none" }}
-      className="fixed inset-0 z-50 flex select-none flex-col gap-3 bg-background p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] outline-none [-webkit-touch-callout:none]"
+      className="fixed inset-0 z-50 flex select-none flex-col bg-background outline-none [-webkit-touch-callout:none]"
     >
       {isReady ? (
         <BoardSurface
@@ -207,6 +207,13 @@ function BoardSurface({
   );
 
   const handleSave = async () => {
+    // Autosave means an untouched board is already on the server. Writing it
+    // again to close would bump `updated_at` and reorder the gallery for no
+    // reason, so this just leaves.
+    if (!isDirty && savedIdRef.current) {
+      onClose();
+      return;
+    }
     const ok = await persist();
     if (ok) onClose();
   };
@@ -264,82 +271,82 @@ function BoardSurface({
     onClose();
   };
 
+  const actions = (
+    <div className="flex items-center gap-1.5">
+      {/*
+        Hidden until a stylus has actually been used on this surface. On a
+        laptop it is a control for a problem the owner does not have, and there
+        is no way to ask whether a pen exists before one is used.
+      */}
+      {pen.hasPen && (
+        <Toggle
+          size="sm"
+          pressed={pen.stylusOnly}
+          onPressedChange={pen.setStylusOnly}
+          aria-label="Draw with pen only"
+          title="Draw with pen only — fingers pan and zoom"
+          className="h-8"
+        >
+          <PenLine className="size-4" aria-hidden />
+        </Toggle>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={handleClose}
+        aria-label="Close whiteboard"
+        className="h-8"
+      >
+        <X className="size-4" aria-hidden />
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        onClick={handleSave}
+        disabled={isSaving}
+        className="h-8"
+      >
+        {isSaving ? (
+          <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+        ) : (
+          <Save className="mr-2 size-4" aria-hidden />
+        )}
+        Save
+      </Button>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex min-w-0 items-center gap-2">
+      <Input
+        value={title}
+        onChange={(event) => setTitle(event.target.value)}
+        placeholder="Untitled whiteboard"
+        aria-label="Whiteboard title"
+        className="h-8 w-40 border-0 bg-transparent px-2 text-sm font-medium shadow-none focus-visible:bg-secondary focus-visible:ring-0 sm:w-56"
+      />
+      {/* The only save feedback there is, now that Save is not the thing you
+          must remember to press. */}
+      <span
+        role="status"
+        className="hidden whitespace-nowrap text-xs text-muted-foreground sm:inline"
+      >
+        {describeSaveState({ isSaving, isDirty, savedAt })}
+      </span>
+    </div>
+  );
+
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="Untitled whiteboard"
-          aria-label="Whiteboard title"
-          className="h-9 max-w-xs border-0 bg-transparent px-0 font-heading text-lg font-semibold focus-visible:ring-0"
-        />
-        {/* Save state is the only feedback there is once the button stops
-            being how work gets committed. */}
-        <span
-          className="hidden text-xs tabular-nums text-muted-foreground sm:inline"
-          role="status"
-        >
-          {describeSaveState({ isSaving, isDirty, savedAt })}
-        </span>
-
-        <div className="ml-auto flex items-center gap-2">
-          {/*
-            Hidden until a stylus has actually been used on this surface. On a
-            laptop it is a control for a problem the owner does not have, and
-            there is no way to ask whether a pen exists before one is used —
-            `maxTouchPoints` reports that a screen accepts touch, which every
-            tablet does whether or not a pen was ever paired.
-          */}
-          {pen.hasPen && (
-            <Toggle
-              size="sm"
-              pressed={pen.stylusOnly}
-              onPressedChange={pen.setStylusOnly}
-              aria-label="Draw with pen only"
-              title="Draw with pen only — fingers pan and zoom"
-            >
-              <PenLine className="mr-2 size-4" aria-hidden />
-              Pen only
-            </Toggle>
-          )}
-          {/* Closing is deliberately click-only: Escape belongs to the canvas,
-              which uses it to dismiss its own dialogs and drop the selection. */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            aria-label="Close whiteboard"
-          >
-            <X className="mr-2 size-4" />
-            Close
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving || (!isDirty && !!board)}
-          >
-            {isSaving ? (
-              <Loader2 className="mr-2 size-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 size-4" />
-            )}
-            Save
-          </Button>
-        </div>
-      </div>
-
-      {/* The palm-rejection listeners bind here, above the canvas: Excalidraw
-          owns pointer events on its own surface, so a stray touch has to be
-          stopped in the capture phase before it reaches the library. */}
       <div className="min-h-0 flex-1" ref={pen.ref}>
         <ExcalidrawCanvasLazy
           initialData={toInitialData(board)}
           theme={theme}
           onApiReady={handleApiReady}
           onChange={handleChange}
+          topRight={actions}
+          footer={footer}
         />
       </div>
     </>

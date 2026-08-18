@@ -23,7 +23,8 @@ const renderCard = (overrides: Partial<Whiteboard> = {}) => {
 };
 
 /** The card itself, as opposed to the pin/delete buttons layered over it. */
-const cardButton = () => screen.getByRole("button", { name: /^Architecture/ });
+const cardButton = () =>
+  screen.getByRole("button", { name: /^Open Architecture/ });
 
 describe("BoardCard", () => {
   it("shows the board title", () => {

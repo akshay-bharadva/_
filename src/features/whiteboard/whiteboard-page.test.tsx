@@ -83,7 +83,7 @@ describe("WhiteboardPage", () => {
   it("opens the editor on the clicked board", () => {
     render(<WhiteboardPage />);
 
-    fireEvent.click(screen.getByRole("button", { name: /^Architecture/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Open Architecture/ }));
 
     expect(screen.getByTestId("board-editor")).toHaveAttribute(
       "data-board-id",

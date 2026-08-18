@@ -58,10 +58,16 @@ vi.mock("./excalidraw-canvas-lazy", async () => {
       initialData,
       onApiReady,
       onChange,
+      topRight,
+      footer,
     }: {
       initialData: { elements: unknown[] };
       onApiReady: (api: unknown) => void;
       onChange: () => void;
+      // The editor's chrome now renders through Excalidraw's own slots rather
+      // than as a bar above the canvas, so the stub has to place them.
+      topRight?: React.ReactNode;
+      footer?: React.ReactNode;
     }) => {
       onApiReady({
         getSceneElements: () => mocks.elements,
@@ -75,6 +81,8 @@ vi.mock("./excalidraw-canvas-lazy", async () => {
           "data-elements": initialData.elements.length,
         },
         createElement("button", { type: "button", onClick: onChange }, "draw"),
+        topRight,
+        footer,
       );
     },
   };
@@ -271,13 +279,32 @@ describe("BoardEditor", () => {
       expect(screen.getByTestId("canvas")).toBeInTheDocument();
     });
 
-    it("disables save on an untouched existing board", () => {
+    /**
+     * Save used to be disabled on an untouched board. It is now the way out of
+     * the editor as well, so disabling it would leave no way to leave — and
+     * because autosave has already written the board, closing without a write
+     * avoids bumping `updated_at` and reordering the gallery for nothing.
+     */
+    it("closes an untouched existing board without writing", async () => {
       mocks.board = existing;
+      const onClose = vi.fn();
+      render(<BoardEditor boardId="board-1" open onClose={onClose} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(onClose).toHaveBeenCalled());
+      expect(mocks.save).not.toHaveBeenCalled();
+    });
+
+    it("writes an existing board once it has been drawn on", async () => {
+      mocks.board = existing;
+      mocks.save.mockReturnValue({
+        unwrap: () => Promise.resolve({ id: "board-1" }),
+      });
       render(<BoardEditor boardId="board-1" open onClose={vi.fn()} />);
 
-      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
       draw();
-      expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(mocks.save).toHaveBeenCalled());
     });
 
     it("allows saving an untouched new board", () => {
