@@ -38,6 +38,10 @@ export const adminApi = createApi({
     "Inbox",
     "Integrations",
     "Visitors",
+    "FinanceSetup",
+    "FinanceBudgets",
+    "FinanceScenarios",
+    "FxRates",
   ],
   endpoints: () => ({}),
 });
