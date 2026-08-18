@@ -1,144 +1,130 @@
 "use client";
 
-import { format } from "date-fns";
-import { Barcode, Box, TrendingDown } from "lucide-react";
 import type { InventoryItem } from "@/types";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { cn, parseLocalDate } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { getWarrantyStatus } from "./warranty";
-import { currentValue, depreciationPercent, formatValue } from "./item-value";
+import { currentValue, formatValue } from "./item-value";
+import { daysUntilExpiry, warrantyBucket } from "./inventory-filters";
 import { ItemActions } from "./item-actions";
 
 interface InventoryTableProps {
   items: InventoryItem[];
+  today: string;
   onEdit: (item: InventoryItem) => void;
-  onDelete: (id: string) => void;
+  onArchive: (item: InventoryItem) => void;
+  onDelete: (item: InventoryItem) => void;
 }
 
+/**
+ * The comparison view: same items, arranged so columns line up.
+ *
+ * It scrolls horizontally inside its own container rather than dropping
+ * columns at a breakpoint. The table used to be swapped for the grid below
+ * `md`, which meant serial numbers and warranty dates simply did not exist on
+ * a phone — the two things you most often look up while standing next to the
+ * object.
+ */
 export function InventoryTable({
   items,
+  today,
   onEdit,
+  onArchive,
   onDelete,
 }: InventoryTableProps) {
   return (
-    <div className="overflow-hidden rounded-surface bg-card shadow-e1">
-      <Table>
-        <TableHeader className="bg-muted/40">
-          <TableRow>
-            <TableHead className="w-full sm:w-[40%]">Item Details</TableHead>
-            <TableHead className="hidden md:table-cell">Category</TableHead>
-            <TableHead className="hidden lg:table-cell">Warranty</TableHead>
-            <TableHead className="hidden text-right sm:table-cell">
+    <div className="overflow-x-auto rounded-surface bg-card shadow-e1">
+      <table className="w-full min-w-[52rem] border-collapse text-sm">
+        <thead>
+          <tr className="border-b text-left text-xs text-muted-foreground">
+            <th scope="col" className="px-3 py-2 font-medium">
+              Item
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Location
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Serial
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">
+              Qty
+            </th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">
               Value
-            </TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Warranty
+            </th>
+            <th scope="col" className="w-10 px-3 py-2" />
+          </tr>
+        </thead>
+        <tbody>
           {items.map((item) => {
             const warranty = getWarrantyStatus(item.warranty_expiry);
-            const depreciation = depreciationPercent(item);
+            const bucket = warrantyBucket(item, today);
+            const days = daysUntilExpiry(item, today);
+            const quantity = item.quantity ?? 1;
+
             return (
-              <TableRow key={item.id} className="group hover:bg-muted/30">
-                <TableCell>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-secondary">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt=""
-                            className="size-full rounded-md object-cover"
-                          />
-                        ) : (
-                          <Box className="size-5 text-muted-foreground" />
-                        )}
-                      </div>
-                      {/* min-w-0 lets the truncation below actually engage —
-                          without it the flex child refuses to shrink and a long
-                          name widens the whole table instead. */}
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-foreground">
-                          {item.name}
-                        </div>
-                        {item.serial_number && (
-                          <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
-                            <Barcode className="size-3 shrink-0" />
-                            <span className="truncate">
-                              {item.serial_number}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {/* Condensed info for mobile widths */}
-                    <div className="flex flex-wrap items-center gap-2 pl-12 text-xs sm:hidden">
-                      {item.category && (
-                        <Badge
-                          variant="outline"
-                          className="max-w-[12rem] truncate"
-                        >
-                          {item.category}
-                        </Badge>
-                      )}
-                      <div className="font-mono font-bold">
-                        ${formatValue(currentValue(item))}
-                      </div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <Badge variant="outline" className="font-normal">
-                    {item.category}
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  <div
+              <tr
+                key={item.id}
+                className={cn(
+                  "border-b last:border-0 hover:bg-secondary/40",
+                  item.archived_at && "opacity-70",
+                )}
+              >
+                <td className="max-w-[18rem] px-3 py-2">
+                  <span className="block truncate font-medium">
+                    {item.name}
+                  </span>
+                  {item.category && (
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {item.category}
+                    </span>
+                  )}
+                </td>
+                <td className="max-w-[10rem] truncate px-3 py-2 text-muted-foreground">
+                  {item.location || "—"}
+                </td>
+                {/* Mono earns its place here: a serial number is a string you
+                    read character by character, and a proportional face makes
+                    1, l and I the same shape. */}
+                <td className="max-w-[10rem] truncate px-3 py-2 font-mono text-xs text-muted-foreground">
+                  {item.serial_number || "—"}
+                </td>
+                <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">
+                  {quantity}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2 text-right font-medium tabular-nums">
+                  {formatValue(currentValue(item) * quantity)}
+                </td>
+                <td className="px-3 py-2">
+                  <span
                     className={cn(
-                      "flex items-center gap-1.5 text-xs font-medium",
+                      "whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      warranty.bg,
                       warranty.color,
                     )}
                   >
-                    <warranty.icon className="size-3.5" />
-                    {warranty.label}
-                  </div>
-                  {item.purchase_date && (
-                    <div className="mt-0.5 text-[10px] text-muted-foreground">
-                      Bought:{" "}
-                      {format(parseLocalDate(item.purchase_date), "MMM yyyy")}
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="hidden text-right sm:table-cell">
-                  <div className="font-mono font-bold">
-                    ${formatValue(currentValue(item))}
-                  </div>
-                  {depreciation !== null && (
-                    <div className="flex items-center justify-end text-[10px] text-destructive">
-                      <TrendingDown className="mr-1 size-3" />
-                      {depreciation}%
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
+                    {bucket === "expiring" && days !== null
+                      ? days === 0
+                        ? "Ends today"
+                        : `${days}d left`
+                      : warranty.label}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-right">
                   <ItemActions
                     onEdit={() => onEdit(item)}
-                    onDelete={() => onDelete(item.id)}
+                    onArchive={() => onArchive(item)}
+                    onDelete={() => onDelete(item)}
+                    isArchived={!!item.archived_at}
                   />
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             );
           })}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }

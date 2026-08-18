@@ -311,6 +311,42 @@ sound structurally, so this is about the input device rather than the model.
   card previously carried `hover:border-primary/50` and no border, so the one
   affordance saying it was clickable did nothing.
 
+## Inventory
+
+**Was** — a searchable list that led with four money figures, and stored what a
+thing cost without ever recording where it was.
+
+**Is** — the same records, arranged around the one question that has an answer
+worth acting on. Migration `005`.
+
+**Carried forward:**
+
+- **Money is a fact; a warranty is a task.** The page led with four totals,
+  which describe what the inventory is _worth_ rather than what it asks you to
+  do. A warranty lapses whether or not anyone looks, so the page now opens with
+  the ones expiring within a month, soonest first, as a control that filters to
+  them. Expired warranties are deliberately excluded — an expired warranty is
+  history, and mixing the two turns a short actionable list into a long one
+  that gets ignored.
+- **Days remaining, not a status word.** "Expiring soon" reads the same at
+  twenty-nine days and at one, and the difference is the entire point of
+  showing it.
+- **Location and quantity were missing from the model.** A home inventory is
+  asked "where is it?" more than anything else, and six of the same cable was
+  six rows each holding a sixth of the value. Totals count units separately
+  from rows so both numbers are true.
+- **Archive keeps the price.** Things get sold, given away and thrown out;
+  deleting the row takes what it cost with it, which is the one number still
+  worth having once the object is gone. `archived_reason` records which.
+- **Both views at every width.** The table was swapped for the grid below `md`,
+  so serial numbers and warranty dates — the two things you look up while
+  standing next to the object — did not exist on a phone.
+- **Mono earns its place on a serial number** and nowhere else here. A serial is
+  read character by character, and a proportional face makes `1`, `l` and `I`
+  the same shape. The sort control was a dropdown menu that marked its selection
+  by concatenating a tick into the label; it is a select now, matching Tasks and
+  Notes.
+
 ---
 
 # Part three — Recurring patterns
@@ -423,6 +459,7 @@ Run in order. All are additive and safe to re-run.
 | `db/migrations/002-habits.sql`                      | Habit schedules, quantities, kind, archiving; `set_habit_log`, `update_habit_order`                                  |
 | `db/migrations/003-learning-review.sql`             | Topic review state, `learning_reviews`, `record_learning_review`                                                     |
 | `db/migrations/004-notes.sql`                       | Note archiving and bounds                                                                                            |
+| `db/migrations/005-inventory.sql`                   | Item location, quantity, tags, archiving, and a warranty/purchase-date check                                         |
 
 `db/reset-habits.sql` and `db/reset-learning.sql` are destructive alternatives
 that drop and rebuild with seed data. They keep nothing.
@@ -435,10 +472,9 @@ place without running any migration.
 # Appendix — Status
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
-Learning, Notes, Whiteboard.
+Learning, Notes, Whiteboard, Inventory.
 
-**Not yet rebuilt:** Finance, Calendar, Inventory, Settings, Security,
-Dashboard.
+**Not yet rebuilt:** Finance, Calendar, Settings, Security, Dashboard.
 
 **Open:**
 

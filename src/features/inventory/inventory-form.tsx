@@ -103,6 +103,9 @@ export function InventoryForm({ item, onSuccess }: InventoryFormProps) {
     defaultValues: {
       name: item?.name ?? "",
       category: item?.category ?? "",
+      location: item?.location ?? "",
+      quantity: item?.quantity ?? 1,
+      tags: item?.tags ?? [],
       serial_number: item?.serial_number ?? "",
       purchase_price: item?.purchase_price ?? 0,
       current_value: item?.current_value ?? null,
@@ -181,9 +184,44 @@ export function InventoryForm({ item, onSuccess }: InventoryFormProps) {
             name="serial_number"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Serial / License Key</FormLabel>
+                <FormLabel>Serial / license key</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* Where it is, and how many. The question a home inventory is actually
+            asked, and the reason six of the same cable is one row. */}
+        <div className="grid grid-cols-[1fr_6rem] gap-4">
+          <FormField
+            control={form.control}
+            name="location"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    value={field.value ?? ""}
+                    placeholder="Office shelf, loft, car…"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="quantity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Qty</FormLabel>
+                <FormControl>
+                  <Input {...field} type="number" min={1} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -511,9 +511,24 @@ export interface InventoryItem {
   current_value?: number | null;
   image_url?: string | null;
   notes?: string | null;
+  /** Where the thing is. */
+  location?: string | null;
+  quantity?: number | null;
+  tags?: string[] | null;
+  /** Set when the object is gone; the row survives for its purchase price. */
+  archived_at?: string | null;
+  archived_reason?: InventoryArchiveReason | null;
+  transaction_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
+
+export type InventoryArchiveReason =
+  | "sold"
+  | "gifted"
+  | "lost"
+  | "discarded"
+  | "returned";
 
 // =============================================================================
 // DASHBOARD

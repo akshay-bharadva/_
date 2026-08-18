@@ -2,137 +2,108 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowUpDown,
+  Archive,
   Box,
-  Filter,
   LayoutGrid,
-  List,
   Plus,
-  Receipt,
-  TrendingDown,
+  ShieldAlert,
+  Table2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { InventoryItem } from "@/types";
 import {
+  useArchiveInventoryItemMutation,
   useDeleteInventoryItemMutation,
   useGetInventoryQuery,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   EmptyState,
   FormSheet,
+  LoadingState,
   ManagerWrapper,
   PageHeader,
-  StatCard,
-  LoadingState,
 } from "@/components/admin/shared";
-import { getErrorMessage, parseLocalDate } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { InventoryForm } from "./inventory-form";
-import { currentValue, purchasePrice } from "./item-value";
 import { InventoryTable } from "./inventory-table";
 import { InventoryGrid } from "./inventory-grid";
+import { InventoryToolbar } from "./inventory-toolbar";
+import { formatValue } from "./item-value";
+import {
+  DEFAULT_INVENTORY_FILTERS,
+  daysUntilExpiry,
+  distinctValues,
+  filterItems,
+  needsAttention,
+  sortItems,
+  todayIso,
+  totals,
+  type InventoryFilters,
+  type InventorySortBy,
+} from "./inventory-filters";
 
-type SortBy = "date" | "value" | "name";
+function Stat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-surface bg-card p-4 shadow-e1">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      {hint && (
+        <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>
+      )}
+    </div>
+  );
+}
 
 export default function InventoryPage() {
   const confirm = useConfirm();
-  const isMobile = useIsMobile();
+  const today = todayIso();
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<SortBy>("date");
-  const [viewMode, setViewMode] = useState<"table" | "grid">("grid");
+  const [filters, setFilters] = useState<InventoryFilters>(
+    DEFAULT_INVENTORY_FILTERS,
+  );
+  const [sortBy, setSortBy] = useState<InventorySortBy>("recent");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
 
   const { data: items = [], isLoading } = useGetInventoryQuery();
+  const [archiveItem] = useArchiveInventoryItemMutation();
   const [deleteItem] = useDeleteInventoryItemMutation();
 
-  const categories = useMemo(() => {
-    // `category` is nullable, and a Radix SelectItem throws on an empty value —
-    // one uncategorised row used to take the whole filter down with it.
-    const cats = new Set(
-      items.map((i) => i.category?.trim()).filter((c): c is string => !!c),
-    );
-    return Array.from(cats).sort();
-  }, [items]);
+  const live = useMemo(() => items.filter((i) => !i.archived_at), [items]);
 
-  const processedData = useMemo(() => {
-    const filtered = items.filter((i) => {
-      const matchesSearch =
-        i.name.toLowerCase().includes(search.toLowerCase()) ||
-        i.serial_number?.toLowerCase().includes(search.toLowerCase()) ||
-        i.notes?.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory =
-        categoryFilter === "all" || i.category === categoryFilter;
-      return matchesSearch && matchesCategory;
-    });
+  const attention = useMemo(() => needsAttention(items, today), [items, today]);
 
-    filtered.sort((a, b) => {
-      // currentValue() falls back to the purchase price, so items that were
-      // never appraised sort by what they cost instead of collapsing to 0.
-      if (sortBy === "value") return currentValue(b) - currentValue(a);
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      return (
-        parseLocalDate(b.purchase_date).getTime() -
-        parseLocalDate(a.purchase_date).getTime()
-      );
-    });
+  const visible = useMemo(
+    () => sortItems(filterItems(items, filters, today), sortBy, today),
+    [items, filters, sortBy, today],
+  );
 
-    const totalCount = filtered.length;
-    const totalOriginalValue = filtered.reduce(
-      (acc, i) => acc + purchasePrice(i),
-      0,
-    );
-    const totalCurrentValue = filtered.reduce(
-      (acc, i) => acc + currentValue(i),
-      0,
-    );
-    const totalDepreciation = totalOriginalValue - totalCurrentValue;
+  const summary = useMemo(() => totals(live), [live]);
+  const categories = useMemo(() => distinctValues(live, "category"), [live]);
+  const locations = useMemo(() => distinctValues(live, "location"), [live]);
 
-    return {
-      filtered,
-      totalCount,
-      totalOriginalValue,
-      totalCurrentValue,
-      totalDepreciation,
-    };
-  }, [items, search, categoryFilter, sortBy]);
+  const hasActiveFilters =
+    !!filters.search ||
+    filters.category !== "all" ||
+    filters.location !== "all" ||
+    filters.warranty !== "all";
 
-  const handleDelete = async (id: string) => {
-    const ok = await confirm({
-      title: "Delete Asset?",
-      description:
-        "This will permanently remove this item from your inventory.",
-      variant: "destructive",
-    });
-    if (!ok) return;
-    try {
-      await deleteItem(id).unwrap();
-      toast.success("Item deleted");
-    } catch (err) {
-      toast.error("Failed to delete item", {
-        description: getErrorMessage(err),
-      });
-    }
+  const openCreate = () => {
+    setEditingItem(null);
+    setIsSheetOpen(true);
   };
 
   const openEdit = (item: InventoryItem) => {
@@ -140,144 +111,219 @@ export default function InventoryPage() {
     setIsSheetOpen(true);
   };
 
-  const openCreate = () => {
-    setEditingItem(null);
-    setIsSheetOpen(true);
+  const handleArchive = async (item: InventoryItem) => {
+    const archived = !!item.archived_at;
+    try {
+      await archiveItem({ id: item.id, archived: !archived }).unwrap();
+      toast.success(archived ? "Item restored." : "Item archived.");
+    } catch (err) {
+      toast.error("Couldn't update the item", {
+        description: getErrorMessage(err),
+      });
+    }
   };
 
-  // On mobile, always force grid view for a better experience.
-  const currentView = isMobile ? "grid" : viewMode;
+  const handleDelete = async (item: InventoryItem) => {
+    const ok = await confirm({
+      title: `Delete "${item.name}"?`,
+      description:
+        // Archiving is the right answer for anything sold or discarded, and
+        // the price is the part worth keeping once the object is gone.
+        "This removes what it cost and when you bought it, permanently. Archiving keeps the record and takes the item out of the list instead.",
+      variant: "destructive",
+      confirmText: "Delete",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteItem(item.id).unwrap();
+      toast.success("Item deleted.");
+    } catch (err) {
+      toast.error("Couldn't delete the item", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
+
+  if (isLoading && items.length === 0) {
+    return (
+      <ManagerWrapper>
+        <LoadingState label="Loading inventory" />
+      </ManagerWrapper>
+    );
+  }
 
   return (
     <ManagerWrapper>
       <PageHeader
         title="Inventory"
-        description="Manage physical assets, licenses, and hardware."
+        description="What you own, what it's worth, and what's about to lose cover."
         actions={
-          <Button onClick={openCreate} size={isMobile ? "default" : "sm"}>
-            <Plus className="mr-2 size-4" /> Add Asset
-          </Button>
-        }
-        searchValue={search}
-        onSearch={setSearch}
-        searchPlaceholder="Search assets..."
-        filters={
-          <>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="h-9 sm:w-[140px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-2">
-                  <ArrowUpDown className="size-4" /> Sort
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Sort By</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setSortBy("date")}>
-                  Purchase Date {sortBy === "date" && "✓"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("value")}>
-                  Value (High-Low) {sortBy === "value" && "✓"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("name")}>
-                  Name (A-Z) {sortBy === "name" && "✓"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {/* Hide view toggle on mobile (grid is forced there) */}
-            <div className="hidden items-center gap-2 rounded-surface border bg-muted/50 p-1 sm:flex">
-              <ToggleGroup
-                type="single"
-                value={viewMode}
-                onValueChange={(v) => v && setViewMode(v as "table" | "grid")}
-                size="sm"
-              >
-                <ToggleGroupItem value="table" className="h-7">
-                  <List className="size-4" />
-                </ToggleGroupItem>
-                <ToggleGroupItem value="grid" className="h-7">
-                  <LayoutGrid className="size-4" />
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-          </>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={filters.showArchived ? "secondary" : "outline"}
+              onClick={() =>
+                setFilters((f) => ({ ...f, showArchived: !f.showArchived }))
+              }
+            >
+              <Archive className="mr-2 size-4" aria-hidden />
+              {filters.showArchived ? "Back to inventory" : "Archive"}
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 size-4" aria-hidden /> Add item
+            </Button>
+          </div>
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Net Value"
-          value={`$${processedData.totalCurrentValue.toLocaleString()}`}
-          icon={Receipt}
-          subValue={`Orig: $${processedData.totalOriginalValue.toLocaleString()}`}
-        />
-        <StatCard title="Items" value={processedData.totalCount} icon={Box} />
-        <StatCard
-          title="Depreciation"
-          value={`-$${processedData.totalDepreciation.toLocaleString()}`}
-          icon={TrendingDown}
-          subValue={`${(
-            (processedData.totalDepreciation /
-              processedData.totalOriginalValue) *
-              100 || 0
-          ).toFixed(1)}% Loss`}
-          trend="down"
-        />
-        <StatCard title="Categories" value={categories.length} icon={Filter} />
+      {/*
+        The one thing here that is ever actionable. A warranty lapses whether or
+        not anyone looks, and money — which is what this page used to lead with
+        — is a fact rather than a task.
+      */}
+      {!filters.showArchived && attention.length > 0 && (
+        <button
+          type="button"
+          onClick={() =>
+            setFilters((f) => ({
+              ...DEFAULT_INVENTORY_FILTERS,
+              showArchived: false,
+              warranty: "expiring",
+              search: f.search,
+            }))
+          }
+          className="mb-5 flex w-full items-center gap-3 rounded-surface bg-chart-3/10 p-4 text-left shadow-e1 transition-shadow hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ShieldAlert className="size-5 shrink-0 text-chart-3" aria-hidden />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">
+              {attention.length} warrant
+              {attention.length === 1 ? "y" : "ies"} expiring within a month
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {attention
+                .slice(0, 3)
+                .map((item) => {
+                  const days = daysUntilExpiry(item, today) ?? 0;
+                  return `${item.name} — ${days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"}`}`;
+                })
+                .join(" · ")}
+              {attention.length > 3 && ` · +${attention.length - 3} more`}
+            </span>
+          </span>
+        </button>
+      )}
+
+      {!filters.showArchived && live.length > 0 && (
+        <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat
+            label="Items"
+            value={`${summary.items}`}
+            hint={
+              summary.units !== summary.items
+                ? `${summary.units} units`
+                : undefined
+            }
+          />
+          <Stat label="Worth now" value={formatValue(summary.worth)} />
+          <Stat label="Paid" value={formatValue(summary.paid)} />
+          <Stat
+            label="Lost to depreciation"
+            value={formatValue(summary.depreciation)}
+          />
+        </div>
+      )}
+
+      <InventoryToolbar
+        filters={filters}
+        onFiltersChange={setFilters}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        categories={categories}
+        locations={locations}
+      />
+
+      <div className="mb-4 flex justify-end">
+        {/* Both views at every width. The table used to be replaced by the grid
+            below a breakpoint, so the columns simply vanished on a phone. */}
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(v) => v && setViewMode(v as "grid" | "table")}
+          size="sm"
+        >
+          <ToggleGroupItem value="grid" aria-label="Grid view">
+            <LayoutGrid className="size-4" aria-hidden />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="table" aria-label="Table view">
+            <Table2 className="size-4" aria-hidden />
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
-      <div>
-        {isLoading ? (
-          <LoadingState />
-        ) : processedData.filtered.length === 0 ? (
-          <EmptyState
-            icon={Box}
-            variant="bordered"
-            title="No assets found"
-            description={
-              search || categoryFilter !== "all"
-                ? "Try adjusting your search or filters."
-                : "Add your first asset to start tracking."
-            }
-            action={
-              search || categoryFilter !== "all"
+      {visible.length === 0 ? (
+        <EmptyState
+          icon={filters.showArchived ? Archive : Box}
+          variant="card"
+          title={
+            filters.showArchived
+              ? "Nothing archived"
+              : hasActiveFilters
+                ? "No items match"
+                : "Nothing recorded yet"
+          }
+          description={
+            filters.showArchived
+              ? "Sold, gifted and discarded items keep their record here."
+              : hasActiveFilters
+                ? "Try a different search, or clear the filters."
+                : "Add the things worth knowing you own — what they cost, where they are, and when the warranty runs out."
+          }
+          action={
+            hasActiveFilters
+              ? {
+                  label: "Clear filters",
+                  onClick: () =>
+                    setFilters((f) => ({
+                      ...DEFAULT_INVENTORY_FILTERS,
+                      showArchived: f.showArchived,
+                    })),
+                }
+              : filters.showArchived
                 ? undefined
-                : { label: "Add Asset", onClick: openCreate, icon: Plus }
-            }
-          />
-        ) : currentView === "table" ? (
-          <InventoryTable
-            items={processedData.filtered}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-          />
-        ) : (
-          <InventoryGrid
-            items={processedData.filtered}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-          />
-        )}
-      </div>
+                : { label: "Add item", onClick: openCreate, icon: Plus }
+          }
+        />
+      ) : (
+        <div className={cn(filters.showArchived && "opacity-90")}>
+          {viewMode === "grid" ? (
+            <InventoryGrid
+              items={visible}
+              today={today}
+              onEdit={openEdit}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+            />
+          ) : (
+            <InventoryTable
+              items={visible}
+              today={today}
+              onEdit={openEdit}
+              onArchive={handleArchive}
+              onDelete={handleDelete}
+            />
+          )}
+        </div>
+      )}
 
       <FormSheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
-        title={editingItem ? "Edit Asset" : "New Asset"}
+        title={editingItem ? "Edit item" : "Add item"}
+        description="What it is, where it lives, and what it cost."
       >
         <InventoryForm
+          key={editingItem?.id ?? "new"}
           item={editingItem}
           onSuccess={() => setIsSheetOpen(false)}
         />

@@ -624,10 +624,23 @@ CREATE TABLE IF NOT EXISTS inventory_items (
   current_value NUMERIC(10, 2),
   image_url TEXT,
   notes TEXT,
+  -- Where the thing is. The question a home inventory is actually asked.
+  location TEXT CHECK (location IS NULL OR length(location) <= 120),
+  quantity INT NOT NULL DEFAULT 1 CHECK (quantity >= 1 AND quantity <= 100000),
+  tags TEXT[],
+  -- Sold, gifted, lost, discarded — the object is gone but its purchase price
+  -- is the one number still worth keeping.
+  archived_at TIMESTAMPTZ,
+  archived_reason TEXT CHECK (archived_reason IS NULL OR archived_reason IN ('sold', 'gifted', 'lost', 'discarded', 'returned')),
   transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT inventory_reason_needs_archive CHECK (archived_reason IS NULL OR archived_at IS NOT NULL),
+  CONSTRAINT inventory_warranty_after_purchase CHECK (purchase_date IS NULL OR warranty_expiry IS NULL OR warranty_expiry >= purchase_date)
 );
+CREATE INDEX IF NOT EXISTS inventory_items_archived_at_idx ON inventory_items(archived_at);
+CREATE INDEX IF NOT EXISTS inventory_items_warranty_expiry_idx ON inventory_items(warranty_expiry);
+CREATE INDEX IF NOT EXISTS inventory_items_location_idx ON inventory_items(location);
 ALTER TABLE inventory_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage inventory" ON inventory_items;
 CREATE POLICY "Admin manage inventory" ON inventory_items FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());

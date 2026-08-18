@@ -1,98 +1,128 @@
 "use client";
 
-import { format } from "date-fns";
-import { Box } from "lucide-react";
+import { Box, MapPin } from "lucide-react";
 import type { InventoryItem } from "@/types";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn, parseLocalDate } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 import { getWarrantyStatus } from "./warranty";
 import { currentValue, formatValue } from "./item-value";
+import { daysUntilExpiry, warrantyBucket } from "./inventory-filters";
 import { ItemActions } from "./item-actions";
 
 interface InventoryGridProps {
   items: InventoryItem[];
+  today: string;
   onEdit: (item: InventoryItem) => void;
-  onDelete: (id: string) => void;
+  onArchive: (item: InventoryItem) => void;
+  onDelete: (item: InventoryItem) => void;
 }
 
-export function InventoryGrid({ items, onEdit, onDelete }: InventoryGridProps) {
+/**
+ * A possession is recognised by sight before it is recognised by name, so the
+ * photo leads and everything else is a caption. A fixed 4:3 frame keeps the
+ * grid even whatever shape the photo is.
+ */
+export function InventoryGrid({
+  items,
+  today,
+  onEdit,
+  onArchive,
+  onDelete,
+}: InventoryGridProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {items.map((item) => {
         const warranty = getWarrantyStatus(item.warranty_expiry);
+        const bucket = warrantyBucket(item, today);
+        const days = daysUntilExpiry(item, today);
+        const quantity = item.quantity ?? 1;
+
         return (
-          <Card
+          <article
             key={item.id}
-            className="group flex flex-col transition-all hover:border-primary/50 hover:shadow-e2"
+            className={cn(
+              "group relative flex flex-col overflow-hidden rounded-surface bg-card shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2 focus-within:shadow-e2",
+              item.archived_at && "opacity-70",
+            )}
           >
-            <div className="relative aspect-video w-full overflow-hidden border-b bg-secondary/30">
+            <div className="m-2 mb-0 aspect-[4/3] overflow-hidden rounded-[5px] bg-background">
               {item.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.image_url}
                   alt=""
-                  className="size-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                  className="size-full object-cover"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground/20">
-                  <Box className="size-16" />
+                <div className="flex size-full items-center justify-center">
+                  <Box
+                    className="size-8 text-muted-foreground/30"
+                    aria-hidden
+                  />
                 </div>
               )}
-              <div className="absolute right-2 top-2">
-                <Badge
-                  variant="secondary"
-                  className="bg-background/80 shadow-e1 backdrop-blur-sm"
-                >
-                  {item.category}
-                </Badge>
-              </div>
             </div>
-            <CardContent className="flex flex-1 flex-col p-4">
-              <div className="mb-2 flex items-start justify-between">
-                <h3 className="truncate pr-2 font-bold" title={item.name}>
+
+            <div className="flex flex-1 flex-col gap-1.5 px-3 pb-3 pt-2.5">
+              <div className="flex items-baseline gap-2">
+                <h3 className="min-w-0 flex-1 truncate text-sm font-medium">
                   {item.name}
                 </h3>
-                <ItemActions
-                  onEdit={() => onEdit(item)}
-                  onDelete={() => onDelete(item.id)}
-                  triggerClassName="-mr-2 -mt-1 h-6 w-6"
-                />
+                {quantity > 1 && (
+                  <span className="shrink-0 rounded-full bg-secondary px-1.5 text-[11px] tabular-nums text-muted-foreground">
+                    ×{quantity}
+                  </span>
+                )}
               </div>
-              <div className="mb-3 flex items-center gap-2">
-                <Badge
-                  variant="outline"
+
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                {item.location ? (
+                  <span className="inline-flex min-w-0 items-center gap-1">
+                    <MapPin aria-hidden className="size-3 shrink-0" />
+                    <span className="truncate">{item.location}</span>
+                  </span>
+                ) : (
+                  <span className="italic">No location</span>
+                )}
+                {item.category && <span>· {item.category}</span>}
+              </p>
+
+              <div className="mt-auto flex items-center justify-between gap-2 pt-1.5">
+                <span className="text-sm font-medium tabular-nums">
+                  {formatValue(currentValue(item) * quantity)}
+                </span>
+
+                {/*
+                  Days remaining, not just a status word. "Expiring soon" is the
+                  same label whether there are 29 days left or one, and the
+                  difference is the whole point of showing it.
+                */}
+                <span
                   className={cn(
-                    "border-0 px-1.5 py-0 text-[10px]",
+                    "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                     warranty.bg,
                     warranty.color,
                   )}
                 >
-                  {warranty.label}
-                </Badge>
-                {item.serial_number && (
-                  <span className="max-w-[100px] truncate rounded bg-secondary px-1 font-mono text-[10px] text-muted-foreground">
-                    SN: {item.serial_number}
-                  </span>
-                )}
+                  {bucket === "expiring" && days !== null
+                    ? days === 0
+                      ? "Ends today"
+                      : `${days}d left`
+                    : warranty.label}
+                </span>
               </div>
-              <div className="mt-auto flex items-end justify-between border-t pt-3">
-                <div>
-                  <p className="t-micro">Value</p>
-                  <p className="font-mono text-lg font-bold">
-                    ${formatValue(currentValue(item))}
-                  </p>
-                </div>
-                {item.purchase_date && (
-                  <div className="text-right">
-                    <p className="t-micro">Purchased</p>
-                    <p className="text-xs">
-                      {format(parseLocalDate(item.purchase_date), "MMM yyyy")}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            <div className="absolute right-2 top-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+              <ItemActions
+                onEdit={() => onEdit(item)}
+                onArchive={() => onArchive(item)}
+                onDelete={() => onDelete(item)}
+                isArchived={!!item.archived_at}
+                triggerClassName="bg-background/85 backdrop-blur-sm rounded-full size-7"
+              />
+            </div>
+          </article>
         );
       })}
     </div>

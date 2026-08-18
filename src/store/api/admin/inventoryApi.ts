@@ -27,6 +27,23 @@ export const inventoryApi = adminApi.injectEndpoints({
       queryFn: updateQueryFn<InventoryItem>("inventory_items"),
       invalidatesTags: ["Inventory"],
     }),
+    /**
+     * Archiving, because deleting takes the purchase price with it — the one
+     * number still worth having once the object is gone.
+     */
+    archiveInventoryItem: builder.mutation<
+      InventoryItem,
+      { id: string; archived: boolean; reason?: string | null }
+    >({
+      queryFn: async ({ id, archived, reason }) =>
+        updateQueryFn<InventoryItem>("inventory_items")({
+          id,
+          archived_at: archived ? new Date().toISOString() : null,
+          // The constraint forbids a reason without an archive date.
+          archived_reason: archived ? (reason ?? null) : null,
+        } as Partial<InventoryItem>),
+      invalidatesTags: ["Inventory"],
+    }),
     deleteInventoryItem: builder.mutation<void, string>({
       queryFn: async (id) => {
         if (!supabase) return { error: NO_DB_ERROR };
@@ -44,6 +61,7 @@ export const inventoryApi = adminApi.injectEndpoints({
 
 export const {
   useGetInventoryQuery,
+  useArchiveInventoryItemMutation,
   useAddInventoryItemMutation,
   useUpdateInventoryItemMutation,
   useDeleteInventoryItemMutation,

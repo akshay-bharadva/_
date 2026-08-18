@@ -522,21 +522,47 @@ export type EventFormValues = z.infer<typeof eventSchema>;
 // INVENTORY SCHEMAS
 // =============================================================================
 
-export const inventoryItemSchema = z.object({
-  name: boundedRequiredString(LIMITS.TITLE, "Name"),
-  category: boundedRequiredString(LIMITS.TITLE, "Category"),
-  serial_number: boundedOptionalString(LIMITS.TITLE, "Serial number"),
-  purchase_date: optionalString,
-  warranty_expiry: optionalString,
-  purchase_price: z.coerce
-    .number()
-    .min(0, "Price must be non-negative")
-    .max(MONEY_MAX_10_2, "Price is too large"),
-  // Left blank means "not appraised" — distinct from a value of zero.
-  current_value: optionalMoney(MONEY_MAX_10_2, "Current value"),
-  image_url: boundedOptionalString(LIMITS.URL, "Image URL"),
-  notes: boundedOptionalString(LIMITS.BODY, "Notes"),
-});
+/**
+ * Bounds mirror the CHECK constraints in
+ * `db/migrations/005-inventory.sql`.
+ */
+export const inventoryItemSchema = z
+  .object({
+    name: boundedRequiredString(LIMITS.TITLE, "Name"),
+    category: boundedRequiredString(LIMITS.TITLE, "Category"),
+    location: boundedOptionalString(120, "Location"),
+    quantity: z.coerce
+      .number()
+      .int("Quantity must be a whole number")
+      .min(1, "Quantity must be at least 1")
+      .max(100000, "Quantity is too large")
+      .default(1),
+    serial_number: boundedOptionalString(LIMITS.TITLE, "Serial number"),
+    tags: tagList,
+    purchase_date: optionalString,
+    warranty_expiry: optionalString,
+    purchase_price: z.coerce
+      .number()
+      .min(0, "Price must be non-negative")
+      .max(MONEY_MAX_10_2, "Price is too large"),
+    // Left blank means "not appraised" — distinct from a value of zero.
+    current_value: optionalMoney(MONEY_MAX_10_2, "Current value"),
+    image_url: boundedOptionalString(LIMITS.URL, "Image URL"),
+    notes: boundedOptionalString(LIMITS.BODY, "Notes"),
+  })
+  // Mirrors inventory_warranty_after_purchase. A warranty that ends before the
+  // thing was bought is a typo, and the database rejects it either way.
+  .refine(
+    (data) =>
+      !data.purchase_date ||
+      !data.warranty_expiry ||
+      new Date(String(data.warranty_expiry)) >=
+        new Date(String(data.purchase_date)),
+    {
+      message: "Warranty cannot end before the purchase date",
+      path: ["warranty_expiry"],
+    },
+  );
 
 export type InventoryItemFormValues = z.infer<typeof inventoryItemSchema>;
 
