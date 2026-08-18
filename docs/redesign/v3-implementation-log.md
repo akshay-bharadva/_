@@ -603,6 +603,85 @@ Migration `008`.
 
 ---
 
+## Finance
+
+**Was** — three flat tables and no concept of currency at all. Amounts were bare
+numbers and `$` was hard-coded into six render sites.
+
+**Is** — a multi-currency ledger with accounts, budgets, forecasting, what-if
+scenarios, remittance tracking and coaching. Migration `009`.
+
+**The three decisions everything else follows from:**
+
+- **Rates are frozen at the transaction.** Every row stores its amount, its own
+  currency, and the rate to base _on the day it happened_, filled by a trigger
+  so a CSV import is as consistent as the form. Converting the past at today's
+  rate rewrites your history every time the market moves; a report that changes
+  when you did nothing is not a report. It is also what makes changing the base
+  currency safe rather than destructive.
+- **Balances anchor on a reconciliation, not a complete ledger.** An account
+  stores "on this date it really held X" and derives forward. Correcting drift
+  is editing two fields, not hunting a missing row — which is what makes a
+  credit card, whose bill is unknown until it lands, tractable instead of a
+  source of small lies. This came directly from the owner saying so.
+- **Recurring items are proposed, not posted.** A biweekly salary is 1,000 until
+  two days of unpaid leave make it 800. `auto_post` is off by default and the
+  queue is derived (rules minus posted minus skips), so nothing drifts when a
+  rule changes. `occurrence_date` is distinct from `date`: a salary due Friday
+  and entered Monday is still Friday's occurrence.
+
+**Carried forward:**
+
+- **Nullable is the honest return type for a derived figure.** `savingsRate`
+  with no income, `runwayMonths` with no essential spending, `ratePercentile`
+  under ten samples, `effectiveRate` on a zero divisor, `hiddenMargin` with no
+  market rate — all null, all rendered as "—". A confident zero where the real
+  answer is "not enough data" is what makes a finance tool untrustworthy, and an
+  infinite runway or a free-looking remittance provider are the specific lies
+  those nulls prevent.
+- **`Intl` knows things you are about to hard-code.** Yen has no minor unit and
+  dinars have three, so `currencyDecimals` asks rather than assuming two.
+  `formatMoney` goes through `Intl` too, because "$-1,234.00" is not how any
+  locale writes a negative.
+- **`Math.round(x * 100) / 100` is wrong twice.** Wrong for the currencies
+  above, and wrong for 1.005, which is really 1.00499999999999989. Round via a
+  string exponent.
+- **A missing rate must never default to 1.** It would report ₹60,000 as
+  $60,000. `rateFrom` returns null and the affected accounts are named and
+  excluded from net worth.
+- **Two enums, two vocabularies.** `transaction_type` is
+  ('earning','expense') and describes direction; `category_bucket` is
+  ('income','need',…) and classifies a category. Mixing them is a runtime error,
+  which is how migration `009` failed the first time it was run.
+- **Never name a plpgsql variable after a column.** `base` collided with
+  `fx_rates.base` and would have failed inside a trigger on the first
+  transaction — after the migration appeared to succeed.
+- **`toISOString()` in a date-key helper is a timezone bug.** It converts to UTC
+  first, so in any zone ahead of UTC local midnight on 1 August is 31 July and
+  every budget lookup misses its own month. Format from local calendar fields.
+  Test fixtures built from `Z` strings hide it and send the next person hunting
+  the wrong bug.
+- **Forecast two lines, not one.** Commitments alone draw a beautifully rising
+  line that ignores that you buy groceries; a run-rate alone buries the number
+  you control. The gap between them is what can change. A date — "this runs out
+  on 14 March" — is what makes a chart actionable.
+- **Budgets are read as pace, not as a limit.** "60% spent" means opposite
+  things on the 8th and the 25th, so the bar carries a marker for where the
+  month is. Ten points of tolerance, because a budget that shouts on day three
+  is one you stop reading.
+- **Seed the fields nobody would think to fill in.** `bucket` and
+  `is_essential` are what make 50/30/20 and runway computable at all, so the
+  nineteen starter categories arrive with both already set.
+- **Transfers are two rows sharing a group, not a table.** The ledger stays one
+  queryable thing. Both amounts are entered rather than one computed — what
+  arrived is a fact you observed, margin included. The form writes the legs
+  sequentially, because half a transfer is a balance wrong in both directions.
+- **Say which rates these are.** ECB mid-market is the right benchmark for "is
+  today a good day" and the wrong number for "what will they receive". The FX
+  screen repeats the distinction rather than letting the reader assume.
+
+---
+
 # Part three — Recurring patterns
 
 Reach for these; they are already tested and already argued for.
@@ -728,14 +807,14 @@ place without running any migration.
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
 Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new),
-Analytics (new).
+Analytics (new), Finance.
 
-**Not yet rebuilt:** Finance, Calendar, Dashboard.
+**Not yet rebuilt:** Calendar, Dashboard.
 
 **Open:**
 
-- Migrations `002`, `004`, `005`, `007` and `008` have not been applied to the
-  live database; `006` is opt-in and awaiting a decision. **Nothing in Analytics
+- Migrations `002`, `004`, `005`, `007`, `008` and `009` have not been applied
+  to the live database; `006` is opt-in and awaiting a decision. **Nothing in Analytics
   works until `008` runs** — the page says so rather than showing an empty
   dashboard that looks like a site nobody visits.
 - Retention is a function and a button, not a schedule. `prune_site_visits()`
