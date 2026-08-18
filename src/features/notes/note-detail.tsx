@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/cn";
 import { buildLinkGraph, linkifyContent } from "./note-links";
+import { NoteForm } from "./note-form";
 
 /**
  * Split, for the same reason the blog splits it: `rehype-prism-plus` and the
@@ -38,11 +39,16 @@ const RichMarkdown = dynamic(
 );
 
 export interface NoteDetailProps {
+  /** A draft (no id) when writing a new note. */
   note: Note;
+  /** Editing happens here rather than in a drawer. */
+  isEditing: boolean;
   /** Every note, so links can resolve against titles. */
   notes: Note[];
   onBack: () => void;
   onEdit: () => void;
+  onCancelEdit: () => void;
+  onSaved: (note: Note) => void;
   onOpenNote: (note: Note) => void;
   onTogglePin: () => void;
   onArchive: () => void;
@@ -108,9 +114,12 @@ function RelatedList({
  */
 export function NoteDetail({
   note,
+  isEditing,
   notes,
   onBack,
   onEdit,
+  onCancelEdit,
+  onSaved,
   onOpenNote,
   onTogglePin,
   onArchive,
@@ -147,7 +156,14 @@ export function NoteDetail({
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="mr-2 size-4" aria-hidden /> All notes
         </Button>
-        <div className="ml-auto flex flex-wrap gap-1">
+        {/* A note being written has nothing to pin, archive or delete yet, and
+            an open editor already owns Cancel and Save. */}
+        <div
+          className={cn(
+            "ml-auto flex-wrap gap-1",
+            isEditing ? "hidden" : "flex",
+          )}
+        >
           <Button variant="ghost" size="sm" onClick={onTogglePin}>
             {note.is_pinned ? (
               <>
@@ -194,11 +210,13 @@ export function NoteDetail({
           )}
           style={note.color ? { borderLeftColor: note.color } : undefined}
         >
-          <h1 className="break-words text-2xl font-semibold">
-            {note.title || "Untitled"}
-          </h1>
+          {!isEditing && (
+            <h1 className="break-words text-2xl font-semibold">
+              {note.title || "Untitled"}
+            </h1>
+          )}
 
-          {note.tags && note.tags.length > 0 && (
+          {!isEditing && note.tags && note.tags.length > 0 && (
             <ul className="mt-3 flex list-none flex-wrap gap-1.5">
               {note.tags.map((tag) => (
                 <li
@@ -211,7 +229,14 @@ export function NoteDetail({
             </ul>
           )}
 
-          {body ? (
+          {isEditing ? (
+            <NoteForm
+              key={note.id || "new"}
+              note={note.id ? note : null}
+              onSaved={onSaved}
+              onCancel={onCancelEdit}
+            />
+          ) : body ? (
             <RichMarkdown
               className="mt-5"
               components={{
@@ -257,7 +282,7 @@ export function NoteDetail({
           )}
         </article>
 
-        <aside className="space-y-6">
+        <aside className={cn("space-y-6", !note.id && "hidden")}>
           <RelatedList label="Links to" notes={outgoing} onOpen={onOpenNote} />
           <RelatedList
             label="Linked from"

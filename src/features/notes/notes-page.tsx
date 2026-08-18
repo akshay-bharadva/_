@@ -12,7 +12,6 @@ import {
   useUpdateNoteMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   EmptyState,
   LoadingState,
@@ -23,7 +22,6 @@ import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { distributeColumns, useColumnCount } from "@/hooks/use-column-count";
 import { getErrorMessage } from "@/lib/utils";
 import { NoteCard } from "./note-card";
-import { NoteEditor } from "./note-editor";
 import { NoteDetail } from "./note-detail";
 import {
   DEFAULT_NOTE_FILTERS,
@@ -36,9 +34,8 @@ import { buildLinkGraph } from "./note-links";
 export default function NotesPage() {
   const confirm = useConfirm();
 
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [readingNote, setReadingNote] = useState<Note | null>(null);
+  const [openNote, setOpenNote] = useState<Note | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [filters, setFilters] = useState<NoteFilters>(DEFAULT_NOTE_FILTERS);
   const [sortBy, setSortBy] = useState<NoteSortBy>("updated");
   const [showArchived, setShowArchived] = useState(false);
@@ -120,9 +117,10 @@ export default function NotesPage() {
     [filtered, columnCount],
   );
 
+  /** A blank note view — the same screen editing uses, with nothing in it. */
   const openNew = () => {
-    setEditingNote(null);
-    setIsSheetOpen(true);
+    setOpenNote({ id: "", title: "", content: "" } as Note);
+    setIsEditing(true);
   };
 
   const hasActiveFilters =
@@ -134,7 +132,8 @@ export default function NotesPage() {
   const handleCreateLinked = async (title: string) => {
     try {
       const created = await addNote({ title, content: "" }).unwrap();
-      setReadingNote(created);
+      setOpenNote(created);
+      setIsEditing(true);
       toast.success(`Created "${title}"`);
     } catch (err) {
       toast.error("Couldn't create that note", {
@@ -154,7 +153,7 @@ export default function NotesPage() {
     if (!ok) return;
     try {
       await deleteNote(note.id).unwrap();
-      if (readingNote?.id === note.id) setReadingNote(null);
+      if (openNote?.id === note.id) setOpenNote(null);
       toast.success("Note deleted.");
     } catch (err) {
       toast.error("Couldn't delete the note", {
@@ -169,7 +168,7 @@ export default function NotesPage() {
       // Archiving from the reading view removes the note from the list behind
       // it, so there is nothing to go back to. Restoring leaves you where you
       // are, because the note is still there.
-      if (archived && readingNote?.id === note.id) setReadingNote(null);
+      if (archived && openNote?.id === note.id) setOpenNote(null);
       toast.success(archived ? "Note archived." : "Note restored.");
     } catch (err) {
       toast.error("Couldn't update the note", {
@@ -198,19 +197,32 @@ export default function NotesPage() {
 
   // Reading a note takes the whole page: the links are the point, and they need
   // somewhere to live.
-  if (readingNote) {
-    const current = notes.find((n) => n.id === readingNote.id) ?? readingNote;
+  if (openNote) {
+    const current = notes.find((n) => n.id === openNote.id) ?? openNote;
     return (
       <ManagerWrapper>
         <NoteDetail
           note={current}
+          isEditing={isEditing}
           notes={notes}
-          onBack={() => setReadingNote(null)}
-          onEdit={() => {
-            setEditingNote(current);
-            setIsSheetOpen(true);
+          onBack={() => {
+            setOpenNote(null);
+            setIsEditing(false);
           }}
-          onOpenNote={setReadingNote}
+          onEdit={() => setIsEditing(true)}
+          onCancelEdit={() => {
+            // Abandoning a new note has nothing to fall back to, so it closes.
+            if (!current.id) setOpenNote(null);
+            setIsEditing(false);
+          }}
+          onSaved={(saved) => {
+            setOpenNote(saved);
+            setIsEditing(false);
+          }}
+          onOpenNote={(next) => {
+            setOpenNote(next);
+            setIsEditing(false);
+          }}
           onTogglePin={() => handleTogglePin(current)}
           onArchive={() => handleArchive(current, !current.archived_at)}
           onDelete={() => handleDelete(current)}
@@ -288,10 +300,13 @@ export default function NotesPage() {
                 <NoteCard
                   key={note.id}
                   note={note}
-                  onOpen={() => setReadingNote(note)}
+                  onOpen={() => {
+                    setOpenNote(note);
+                    setIsEditing(false);
+                  }}
                   onEdit={() => {
-                    setEditingNote(note);
-                    setIsSheetOpen(true);
+                    setOpenNote(note);
+                    setIsEditing(true);
                   }}
                   onDelete={() => handleDelete(note)}
                   onArchive={() => handleArchive(note, !note.archived_at)}
@@ -302,20 +317,6 @@ export default function NotesPage() {
           ))}
         </div>
       )}
-
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col gap-0 p-0 sm:max-w-xl"
-        >
-          <NoteEditor
-            key={editingNote?.id ?? "new"}
-            note={editingNote}
-            onSuccess={() => setIsSheetOpen(false)}
-            onCancel={() => setIsSheetOpen(false)}
-          />
-        </SheetContent>
-      </Sheet>
     </ManagerWrapper>
   );
 }

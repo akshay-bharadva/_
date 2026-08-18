@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
 import { Archive, Edit, Link2, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Note } from "@/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { extractLinks } from "./note-links";
+import { toPlainText } from "./note-preview";
 
 interface NoteCardProps {
   note: Note;
@@ -19,19 +19,17 @@ interface NoteCardProps {
   onTogglePin: () => void;
 }
 
-interface CardActionProps {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-  destructive?: boolean;
-}
-
 function CardAction({
   label,
   onClick,
   children,
   destructive,
-}: CardActionProps) {
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  destructive?: boolean;
+}) {
   return (
     <Button
       variant="ghost"
@@ -39,11 +37,11 @@ function CardAction({
       aria-label={label}
       title={label}
       className={cn(
-        "size-7 rounded-control text-muted-foreground",
+        "size-7 rounded-full text-muted-foreground",
         destructive && "hover:bg-destructive/10 hover:text-destructive",
       )}
       onClick={(event) => {
-        // The whole card is a button; without this the note opens as well.
+        // The card body is a button; without this the note opens as well.
         event.stopPropagation();
         onClick();
       }}
@@ -54,17 +52,23 @@ function CardAction({
 }
 
 /**
- * A note on the wall.
+ * A note on the wall, built the way Keep builds one.
  *
- * Rebuilt around one padded surface rather than the three stacked shadcn
- * sections it used to be — those carried three different horizontal paddings
- * and two different vertical rhythms, which is what made the card feel
- * assembled rather than designed.
+ * Four things carry that: the whole card takes the note's colour; it is outlined
+ * rather than raised at rest and only lifts under the pointer; the body is plain
+ * text rather than rendered markdown, so no note is twice the height of its
+ * neighbours because it opened with a heading; and everything operational stays
+ * hidden until you point at it, so a wall of notes reads as content rather than
+ * as a wall of controls.
  *
- * The Keep idea worth borrowing is that a card at rest is almost nothing: a
- * fill, a title, some text. Everything operational — pin, archive, edit,
- * delete — stays out of the way until you point at it, so a wall of notes
- * reads as content rather than as a wall of controls.
+ * The fill is `color-mix` against the card token rather than a fixed alpha over
+ * whatever happens to be behind it. That is what a flat tint got wrong before —
+ * mixing toward the theme's own surface keeps the text contrast the card was
+ * designed with, so the same note is a soft tile on a light preset and a deep
+ * one on a dark preset instead of turning to grey.
+ *
+ * Outlined at rest, raised on hover — never both, which is the v3 rule. The
+ * border goes transparent as the shadow arrives, so nothing shifts.
  */
 export function NoteCard({
   note,
@@ -74,6 +78,7 @@ export function NoteCard({
   onArchive,
   onTogglePin,
 }: NoteCardProps) {
+  const preview = toPlainText(note.content);
   const linkCount = extractLinks(note.content).length;
   const tags = note.tags ?? [];
 
@@ -84,17 +89,12 @@ export function NoteCard({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ type: "spring", stiffness: 350, damping: 28 }}
-      /*
-       * Colour is a spine, not a wash: a solid edge never mixes with the
-       * background, so it reads the same on all 52 presets. `border-0` first —
-       * a surface is a fill plus an elevation, and the spine is a mark on the
-       * card rather than a frame around it.
-       */
-      className="group relative flex flex-col overflow-hidden rounded-surface border-0 border-l-[3px] bg-card shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2 focus-within:shadow-e2"
+      className="group relative flex flex-col overflow-hidden rounded-surface border border-border transition-[box-shadow,border-color] duration-200 ease-enter hover:border-transparent hover:shadow-e2 focus-within:border-transparent focus-within:shadow-e2"
       style={{
-        // Per-note user data, not a theme token. An absent colour falls back to
-        // the border token so every card keeps the same silhouette.
-        borderLeftColor: note.color || "hsl(var(--border))",
+        // Per-note user data, not a theme token, so it cannot be a class.
+        background: note.color
+          ? `color-mix(in srgb, ${note.color} 20%, hsl(var(--card)))`
+          : "hsl(var(--card))",
       }}
     >
       {/* Pinned is the one piece of state worth seeing without hovering. */}
@@ -110,7 +110,7 @@ export function NoteCard({
         type="button"
         onClick={onOpen}
         aria-label={`Open ${note.title || "Untitled"}`}
-        className="flex flex-1 flex-col gap-1.5 px-3.5 pb-2 pt-3.5 text-left focus-visible:outline-none"
+        className="flex flex-1 flex-col gap-1 px-4 pb-2 pt-3.5 text-left focus-visible:outline-none"
       >
         {note.title ? (
           <h3 className="break-words pr-5 text-sm font-medium leading-snug">
@@ -122,41 +122,22 @@ export function NoteCard({
           </h3>
         )}
 
-        {note.content && (
+        {preview && (
           /* break-words: a pasted URL is one unbreakable token, which
              line-clamp does not constrain — it used to overflow the card. */
-          <div className="line-clamp-6 break-words text-[13px] leading-relaxed text-muted-foreground">
-            <ReactMarkdown
-              components={{
-                // Flattened: headings and lists inside a six-line preview add
-                // vertical noise without adding legibility.
-                p: ({ node: _n, ...props }) => (
-                  <p {...props} className="mb-1 last:mb-0" />
-                ),
-                h1: ({ node: _n, ...props }) => <p {...props} />,
-                h2: ({ node: _n, ...props }) => <p {...props} />,
-                h3: ({ node: _n, ...props }) => <p {...props} />,
-                ul: ({ node: _n, ...props }) => (
-                  <ul {...props} className="list-none" />
-                ),
-                a: ({ node: _n, ...props }) => (
-                  <span {...props} className="underline" />
-                ),
-              }}
-            >
-              {note.content}
-            </ReactMarkdown>
-          </div>
+          <p className="line-clamp-6 whitespace-pre-line break-words text-[13px] leading-relaxed text-muted-foreground">
+            {preview}
+          </p>
         )}
       </button>
 
-      <div className="flex flex-col gap-2 px-3.5 pb-3">
+      <div className="flex flex-col gap-2 px-4 pb-3">
         {tags.length > 0 && (
           <ul className="flex list-none flex-wrap gap-1">
             {tags.slice(0, 4).map((tag) => (
               <li
                 key={tag}
-                className="rounded-control bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground"
+                className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[11px] text-muted-foreground"
               >
                 {tag}
               </li>
@@ -169,9 +150,9 @@ export function NoteCard({
           </ul>
         )}
 
-        <div className="flex min-h-7 items-center gap-2">
-          {/* Metadata gives way to the actions rather than sitting beside them,
-              so the row never has to hold both at once. */}
+        {/* Metadata gives way to the actions rather than sitting beside them,
+            so the row never has to hold both at once. */}
+        <div className="relative flex min-h-7 items-center">
           <span className="flex items-center gap-2 text-[11px] text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
             {note.updated_at &&
               formatDistanceToNow(new Date(note.updated_at), {
@@ -185,7 +166,9 @@ export function NoteCard({
             )}
           </span>
 
-          <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          {/* Hidden by opacity, not display, so the actions keep their place in
+              the tab order and are revealed by focus as well as hover. */}
+          <div className="absolute inset-y-0 right-0 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <CardAction
               label={note.is_pinned ? "Unpin note" : "Pin note"}
               onClick={onTogglePin}

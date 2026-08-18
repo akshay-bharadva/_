@@ -40,8 +40,14 @@ vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
 
 // The rich editor pulls in TipTap, which is code-split in the app and not
 // worth booting to assert on the page around it.
-vi.mock("./note-editor", () => ({
-  NoteEditor: () => <div data-testid="note-editor" />,
+vi.mock("./note-form", () => ({
+  NoteForm: ({ onCancel }: { onCancel: () => void }) => (
+    <div data-testid="note-editor">
+      <button type="button" onClick={onCancel}>
+        Cancel
+      </button>
+    </div>
+  ),
 }));
 
 const note = (overrides: Partial<Note> = {}): Note => ({
@@ -65,12 +71,59 @@ describe("NotesPage", () => {
     expect(screen.getByText("No notes yet")).toBeInTheDocument();
   });
 
-  it("opens the drawer to write a new note", () => {
-    // A note exists so the empty state's own "New note" action is not present.
+  /**
+   * Editing happens on the note view now. The drawer capped the editor at
+   * roughly one visible line, and it was mounted separately from the reading
+   * view — which is why pressing Edit appeared to do nothing until you
+   * navigated back.
+   */
+  it("edits in place on the note view, with no drawer", async () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
+    // Still the note view — the back link is part of it, a drawer has none.
+    expect(
+      screen.getByRole("button", { name: /All notes/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("returns to reading when an edit is cancelled", async () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Alpha" })).toBeInTheDocument();
+  });
+
+  it("opens a blank note view to write a new note", async () => {
     notes = [note({ id: "a", title: "Alpha" })];
     render(<NotesPage />);
     fireEvent.click(screen.getByRole("button", { name: /New note/ }));
-    expect(screen.getByTestId("note-editor")).toBeInTheDocument();
+    expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /All notes/ }),
+    ).toBeInTheDocument();
+  });
+
+  /** A new note has nothing to fall back to, so cancelling leaves. */
+  it("closes the blank view when a new note is abandoned", async () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+    expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
+  });
+
+  it("edits from a card without opening the note first", async () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Edit note"));
+    expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
   });
 
   it("opens a note to read rather than to edit", () => {
@@ -79,6 +132,21 @@ describe("NotesPage", () => {
     fireEvent.click(screen.getByLabelText("Open Alpha"));
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeInTheDocument();
     expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
+  });
+
+  /** Rendered markdown made one card twice the height of its neighbours and
+      printed tables as literal pipes. */
+  it("previews a note body as plain text", () => {
+    notes = [
+      note({
+        id: "a",
+        title: "Alpha",
+        content: "## Heading\n- a bullet\n| x | y |",
+      }),
+    ];
+    render(<NotesPage />);
+    expect(screen.getByText(/Heading a bullet/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Heading" })).toBeNull();
   });
 
   /** The reason linking is worth having at all. */
@@ -271,21 +339,20 @@ describe("NotesPage", () => {
 
 describe("NoteCard colour", () => {
   /**
-   * The card used to tint its surface and border with two diluted derivations
-   * of one value, both mixed with the theme's background — so on a dark preset
-   * a red note and a blue note converged on the same murky grey and the colour
-   * stopped being a label.
+   * Keep colours the whole tile. Mixing against the card token rather than
+   * laying a fixed alpha over it is what keeps the text contrast intact on a
+   * dark preset, where a flat tint turned every colour to the same grey.
    */
-  it("carries the note colour as a solid spine, not a background wash", () => {
+  it("fills the card with the note colour, mixed against the theme", () => {
     notes = [note({ id: "a", title: "Alpha", color: "#e11d48" })];
     const { container } = render(<NotesPage />);
-    const spined = Array.from(
+    const filled = Array.from(
       container.querySelectorAll<HTMLElement>("*"),
-    ).find((el) => el.style.borderLeftColor === "rgb(225, 29, 72)");
+    ).find((el) => el.style.background.includes("color-mix"));
 
-    expect(spined).toBeTruthy();
-    // The value is used once. A tinted surface is what made it unreadable.
-    expect(spined?.style.backgroundColor).toBe("");
+    expect(filled).toBeTruthy();
+    expect(filled?.style.background).toContain("#e11d48");
+    expect(filled?.style.background).toContain("hsl(var(--card))");
   });
 
   /** The actions are revealed on hover, but must stay reachable by keyboard —
@@ -308,12 +375,13 @@ describe("NoteCard colour", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
   });
 
-  it("keeps the silhouette when a note has no colour", () => {
+  it("falls back to the plain card surface when a note has no colour", () => {
     notes = [note({ id: "a", title: "Alpha", color: null })];
     const { container } = render(<NotesPage />);
-    const spined = Array.from(
+    const filled = Array.from(
       container.querySelectorAll<HTMLElement>("*"),
-    ).find((el) => el.style.borderLeftColor !== "");
-    expect(spined?.style.borderLeftColor).toContain("--border");
+    ).find((el) => el.style.background !== "");
+    expect(filled?.style.background).toBe("hsl(var(--card))");
+    expect(filled?.style.background).not.toContain("color-mix");
   });
 });
