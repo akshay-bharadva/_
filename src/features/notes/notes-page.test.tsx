@@ -40,11 +40,26 @@ vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
 
 // The rich editor pulls in TipTap, which is code-split in the app and not
 // worth booting to assert on the page around it.
+vi.mock("./note-body", () => ({
+  NoteBody: ({ children }: { children: string }) => (
+    <div data-testid="note-body">{children}</div>
+  ),
+}));
+
 vi.mock("./note-form", () => ({
-  NoteForm: ({ onCancel }: { onCancel: () => void }) => (
+  NoteForm: ({
+    onCancel,
+    onColorChange,
+  }: {
+    onCancel: () => void;
+    onColorChange?: (color: string | null) => void;
+  }) => (
     <div data-testid="note-editor">
       <button type="button" onClick={onCancel}>
         Cancel
+      </button>
+      <button type="button" onClick={() => onColorChange?.("#22d3ee")}>
+        Pick cyan
       </button>
     </div>
   ),
@@ -126,6 +141,27 @@ describe("NotesPage", () => {
     expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
   });
 
+  /**
+   * The editor sat on a plain surface inside a coloured tile, and the tile
+   * showed the saved colour — so a colour picked while editing did not appear
+   * anywhere until it was committed.
+   */
+  it("follows the colour picker while editing, before saving", async () => {
+    notes = [note({ id: "a", title: "Alpha", color: "#f87171" })];
+    const { container } = render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+
+    const tile = () =>
+      Array.from(container.querySelectorAll<HTMLElement>("article")).find(
+        (el) => el.style.background !== "",
+      );
+    expect(tile()?.style.background).toContain("#f87171");
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Pick cyan" }));
+    expect(tile()?.style.background).toContain("#22d3ee");
+  });
+
   it("opens a note to read rather than to edit", () => {
     notes = [note({ title: "Alpha", content: "Some body" })];
     render(<NotesPage />);
@@ -139,7 +175,7 @@ describe("NotesPage", () => {
    * table is not a row of literal pipes — but without Prism, which is a 290 kB
    * import that a six-line preview has no use for.
    */
-  it("renders the note body on the card rather than printing its source", () => {
+  it("sends the note body to the shared renderer, not raw text", () => {
     notes = [
       note({
         id: "a",
@@ -147,10 +183,21 @@ describe("NotesPage", () => {
         content: "## Heading\n\n- a bullet",
       }),
     ];
-    const { container } = render(<NotesPage />);
-    expect(container.querySelector("h2")?.textContent).toBe("Heading");
-    expect(container.querySelector("li")?.textContent).toBe("a bullet");
-    expect(container.textContent).not.toContain("## Heading");
+    render(<NotesPage />);
+    // The card and the reading view use one renderer, so the card cannot show
+    // a note differently from the page it opens into.
+    expect(screen.getByTestId("note-body")).toHaveTextContent("Heading");
+  });
+
+  /** They were rendered at 6% opacity over a tinted tile, which is present in
+      the DOM and invisible on screen. */
+  it("shows a note's tags on the reading view", () => {
+    notes = [note({ id: "a", title: "Alpha", tags: ["work", "urgent"] })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    const article = screen.getByRole("article");
+    expect(within(article).getByText("#work")).toBeInTheDocument();
+    expect(within(article).getByText("#urgent")).toBeInTheDocument();
   });
 
   /** The reason linking is worth having at all. */
@@ -368,6 +415,20 @@ describe("NoteCard colour", () => {
     expect(screen.getByLabelText("Archive note")).toBeInTheDocument();
     expect(screen.getByLabelText("Delete note")).toBeInTheDocument();
     expect(screen.getByLabelText("Pin note")).toBeInTheDocument();
+  });
+
+  it("strips wikilink syntax from the preview it renders", () => {
+    notes = [
+      note({
+        id: "a",
+        title: "Alpha",
+        content: "see [[Beta]]",
+      }),
+      note({ id: "b", title: "Beta" }),
+    ];
+    render(<NotesPage />);
+    // `[[Beta]]` is markup, not something anyone wrote to be read.
+    expect(screen.getAllByTestId("note-body")[0]).toHaveTextContent("see Beta");
   });
 
   it("shows how many notes a note links to", () => {

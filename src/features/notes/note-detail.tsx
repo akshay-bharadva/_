@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArchiveRestore,
   ArrowLeft,
@@ -17,26 +16,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { buildLinkGraph, linkifyContent } from "./note-links";
 import { NoteForm } from "./note-form";
-
-/**
- * Split, for the same reason the blog splits it: `rehype-prism-plus` and the
- * sanitizer are ~290 kB, and importing them directly took this route's first
- * load from 12 kB to 301 kB. A note is read one at a time, so the cost belongs
- * on opening one rather than on opening the module.
- */
-const RichMarkdown = dynamic(
-  () => import("@/components/ui/rich-markdown").then((mod) => mod.RichMarkdown),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="mt-5 space-y-2" aria-busy>
-        <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
-        <div className="h-4 w-11/12 animate-pulse rounded bg-muted/40" />
-        <div className="h-4 w-4/5 animate-pulse rounded bg-muted/40" />
-      </div>
-    ),
-  },
-);
+import { NoteBody } from "./note-body";
 
 export interface NoteDetailProps {
   /** A draft (no id) when writing a new note. */
@@ -126,6 +106,20 @@ export function NoteDetail({
   onDelete,
   onCreateLinked,
 }: NoteDetailProps) {
+  /**
+   * The colour the tile should show right now.
+   *
+   * While editing, that is whatever the picker last set — the saved value is
+   * one save behind, so the tile would otherwise stay the old colour until you
+   * committed and could not be previewed at all.
+   */
+  const [draftColor, setDraftColor] = useState<string | null>(null);
+  const tileColor = isEditing ? draftColor : (note.color ?? null);
+
+  useEffect(() => {
+    setDraftColor(note.color ?? null);
+  }, [note.id, note.color, isEditing]);
+
   const graph = useMemo(() => buildLinkGraph(notes), [notes]);
   const outgoing = graph.outgoing.get(note.id) ?? [];
   const backlinks = graph.backlinks.get(note.id) ?? [];
@@ -210,8 +204,8 @@ export function NoteDetail({
         <article
           className="min-w-0 rounded-surface border border-border p-6"
           style={{
-            background: note.color
-              ? `color-mix(in srgb, ${note.color} 20%, hsl(var(--card)))`
+            background: tileColor
+              ? `color-mix(in srgb, ${tileColor} 20%, hsl(var(--card)))`
               : "hsl(var(--card))",
           }}
         >
@@ -221,14 +215,17 @@ export function NoteDetail({
             </h1>
           )}
 
+          {/* A 6% overlay disappeared against a tinted tile, so the tags were
+              rendered and effectively invisible. An outlined chip on the page
+              background reads on any colour and on either theme. */}
           {!isEditing && note.tags && note.tags.length > 0 && (
             <ul className="mt-3 flex list-none flex-wrap gap-1.5">
               {note.tags.map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-xs text-muted-foreground"
+                  className="rounded-full border border-foreground/15 bg-background/70 px-2.5 py-0.5 text-xs font-medium text-foreground/80"
                 >
-                  {tag}
+                  #{tag}
                 </li>
               ))}
             </ul>
@@ -240,9 +237,10 @@ export function NoteDetail({
               note={note.id ? note : null}
               onSaved={onSaved}
               onCancel={onCancelEdit}
+              onColorChange={setDraftColor}
             />
           ) : body ? (
-            <RichMarkdown
+            <NoteBody
               className="mt-5"
               components={{
                 a: ({ href, children, ...props }) => {
@@ -279,7 +277,7 @@ export function NoteDetail({
               }}
             >
               {body}
-            </RichMarkdown>
+            </NoteBody>
           ) : (
             <p className="mt-5 text-sm italic text-muted-foreground">
               This note is empty.

@@ -26,6 +26,9 @@ export interface NoteFormProps {
   note: Note | null;
   onSaved: (note: Note) => void;
   onCancel: () => void;
+  /** The surrounding tile follows the picker, so the note you are editing
+      looks like the note you are about to save. */
+  onColorChange?: (color: string | null) => void;
 }
 
 /**
@@ -41,11 +44,23 @@ export interface NoteFormProps {
  * view keys this component per note, so an effect only ever repeated what the
  * first render could have done directly.
  */
-export function NoteForm({ note, onSaved, onCancel }: NoteFormProps) {
+export function NoteForm({
+  note,
+  onSaved,
+  onCancel,
+  onColorChange,
+}: NoteFormProps) {
   const [title, setTitle] = useState(() => note?.title ?? "");
   const [content, setContent] = useState(() => note?.content ?? "");
   const [tags, setTags] = useState(() => note?.tags?.join(", ") ?? "");
-  const [color, setColor] = useState<string | null>(() => note?.color ?? null);
+  const [color, setColorState] = useState<string | null>(
+    () => note?.color ?? null,
+  );
+
+  const setColor = (next: string | null) => {
+    setColorState(next);
+    onColorChange?.(next);
+  };
 
   const [addNote, { isLoading: isAdding }] = useAddNoteMutation();
   const [updateNote, { isLoading: isUpdating }] = useUpdateNoteMutation();
@@ -169,7 +184,9 @@ export function NoteForm({ note, onSaved, onCancel }: NoteFormProps) {
 
       {/* The editor is the only scrolling region and takes every pixel the
           fixed rows above and below leave it. */}
-      <div className="mt-2 flex min-h-[22rem] flex-1 flex-col overflow-hidden rounded-surface border bg-card">
+      {/* Transparent, so the editor is part of the note's tile rather than a
+          plain panel sitting on top of it. */}
+      <div className="mt-2 flex min-h-[22rem] flex-1 flex-col overflow-hidden rounded-surface border border-foreground/10 bg-background/40">
         <NovelEditor
           value={content}
           onChange={setContent}
@@ -185,7 +202,7 @@ export function NoteForm({ note, onSaved, onCancel }: NoteFormProps) {
         to link another note.
       </p>
 
-      <div className="mt-3 flex shrink-0 items-center gap-2 rounded-surface border bg-background px-3">
+      <div className="mt-3 flex shrink-0 items-center gap-2 rounded-surface border border-foreground/10 bg-background/40 px-3">
         <span className="text-muted-foreground" aria-hidden>
           #
         </span>

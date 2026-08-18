@@ -6,9 +6,8 @@ import { Archive, Edit, Link2, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Note } from "@/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { extractLinks, stripWikiLinkSyntax } from "./note-links";
+import { NoteBody } from "./note-body";
 
 interface NoteCardProps {
   note: Note;
@@ -125,25 +124,23 @@ export function NoteCard({
 
         {preview && (
           /*
-           * Rendered, not raw — the previous preview printed the markdown
-           * source. `remark-gfm` so tables and task lists are not literal pipes
-           * and brackets; no Prism, because a six-line preview does not need
-           * syntax colouring and the highlighter is a 290 kB import.
+           * The same renderer the reading view uses, so a note looks identical
+           * on the card and on the page it opens into. Clamped to six lines and
+           * scaled down, but not a different pipeline.
            *
            * break-words: a pasted URL is one unbreakable token, which
            * line-clamp does not constrain — it used to overflow the card.
            */
-          <div className="line-clamp-6 break-words text-[13px] leading-relaxed text-muted-foreground [&_*]:!text-[13px] [&_a]:underline [&_code]:rounded [&_code]:bg-foreground/[0.06] [&_code]:px-1 [&_h1]:font-medium [&_h2]:font-medium [&_h3]:font-medium [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-1 [&_pre]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_table]:hidden [&_ul]:mb-1">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
+          <div className="line-clamp-6 break-words text-[13px] leading-relaxed text-muted-foreground [&_*]:!text-[13px] [&_h1]:font-medium [&_h2]:font-medium [&_h3]:font-medium [&_li]:ml-4 [&_p]:mb-1 [&_pre]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_table]:hidden">
+            <NoteBody
               components={{
-                // A preview never navigates; the card click does.
+                // A preview never navigates; clicking the card opens the note.
                 a: ({ children }) => <span>{children}</span>,
                 img: () => null,
               }}
             >
               {preview}
-            </ReactMarkdown>
+            </NoteBody>
           </div>
         )}
       </button>
@@ -154,9 +151,9 @@ export function NoteCard({
             {tags.slice(0, 4).map((tag) => (
               <li
                 key={tag}
-                className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[11px] text-muted-foreground"
+                className="rounded-full border border-foreground/15 bg-background/70 px-2 py-0.5 text-[11px] font-medium text-foreground/80"
               >
-                {tag}
+                #{tag}
               </li>
             ))}
             {tags.length > 4 && (
