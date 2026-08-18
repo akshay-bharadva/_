@@ -1,12 +1,41 @@
 "use client";
 
-import { useMemo } from "react";
-import { ArrowLeft, Archive, Link2, Pin, PinOff, Trash2 } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
+import {
+  ArchiveRestore,
+  ArrowLeft,
+  Archive,
+  Link2,
+  Pin,
+  PinOff,
+  Trash2,
+} from "lucide-react";
 import type { Note } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Markdown } from "@/components/ui/markdown";
+
 import { cn } from "@/lib/cn";
 import { buildLinkGraph, linkifyContent } from "./note-links";
+
+/**
+ * Split, for the same reason the blog splits it: `rehype-prism-plus` and the
+ * sanitizer are ~290 kB, and importing them directly took this route's first
+ * load from 12 kB to 301 kB. A note is read one at a time, so the cost belongs
+ * on opening one rather than on opening the module.
+ */
+const RichMarkdown = dynamic(
+  () => import("@/components/ui/rich-markdown").then((mod) => mod.RichMarkdown),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mt-5 space-y-2" aria-busy>
+        <div className="h-4 w-full animate-pulse rounded bg-muted/40" />
+        <div className="h-4 w-11/12 animate-pulse rounded bg-muted/40" />
+        <div className="h-4 w-4/5 animate-pulse rounded bg-muted/40" />
+      </div>
+    ),
+  },
+);
 
 export interface NoteDetailProps {
   note: Note;
@@ -93,6 +122,18 @@ export function NoteDetail({
   const backlinks = graph.backlinks.get(note.id) ?? [];
   const unresolved = graph.unresolved.get(note.id) ?? [];
 
+  /**
+   * Warm the editor chunk while the note is being read.
+   *
+   * TipTap is code-split at the novel-editor barrel, so the first Edit click
+   * paid for downloading and booting it — a visible pause on a button that
+   * should feel instant. Reading a note is a reliable signal that editing is
+   * next, and the import is idempotent, so this costs nothing if it never is.
+   */
+  useEffect(() => {
+    void import("@/components/admin/novel-editor");
+  }, []);
+
   // Rendered through the shared markdown pipeline, so links get the same
   // sanitisation as every other authored body in the app.
   const body = useMemo(
@@ -121,8 +162,17 @@ export function NoteDetail({
           <Button variant="outline" size="sm" onClick={onEdit}>
             Edit
           </Button>
+          {/* An archived note offers the way back, not the way in again. */}
           <Button variant="ghost" size="sm" onClick={onArchive}>
-            <Archive className="mr-2 size-4" aria-hidden /> Archive
+            {note.archived_at ? (
+              <>
+                <ArchiveRestore className="mr-2 size-4" aria-hidden /> Restore
+              </>
+            ) : (
+              <>
+                <Archive className="mr-2 size-4" aria-hidden /> Archive
+              </>
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -162,7 +212,44 @@ export function NoteDetail({
           )}
 
           {body ? (
-            <Markdown className="mt-5">{body}</Markdown>
+            <RichMarkdown
+              className="mt-5"
+              components={{
+                a: ({ href, children, ...props }) => {
+                  // linkifyContent emits `#note-<id>` for a resolved wikilink.
+                  // Following it as a real anchor would jump the page to an
+                  // element that does not exist; it should open the note.
+                  const linked = href?.startsWith("#note-")
+                    ? notes.find((n) => n.id === href.slice("#note-".length))
+                    : undefined;
+
+                  if (linked) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => onOpenNote(linked)}
+                        className="text-primary underline underline-offset-2"
+                      >
+                        {children}
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      {...props}
+                    >
+                      {children}
+                    </a>
+                  );
+                },
+              }}
+            >
+              {body}
+            </RichMarkdown>
           ) : (
             <p className="mt-5 text-sm italic text-muted-foreground">
               This note is empty.

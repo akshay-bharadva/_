@@ -166,6 +166,9 @@ export default function NotesPage() {
   const handleArchive = async (note: Note, archived: boolean) => {
     try {
       await archiveNote({ id: note.id, archived }).unwrap();
+      // Archiving from the reading view removes the note from the list behind
+      // it, so there is nothing to go back to. Restoring leaves you where you
+      // are, because the note is still there.
       if (archived && readingNote?.id === note.id) setReadingNote(null);
       toast.success(archived ? "Note archived." : "Note restored.");
     } catch (err) {
@@ -209,7 +212,7 @@ export default function NotesPage() {
           }}
           onOpenNote={setReadingNote}
           onTogglePin={() => handleTogglePin(current)}
-          onArchive={() => handleArchive(current, true)}
+          onArchive={() => handleArchive(current, !current.archived_at)}
           onDelete={() => handleDelete(current)}
           onCreateLinked={handleCreateLinked}
         />

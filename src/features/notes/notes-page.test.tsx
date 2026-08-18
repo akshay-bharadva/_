@@ -153,6 +153,41 @@ describe("NotesPage", () => {
     expect(screen.queryByLabelText("Open Alpha")).not.toBeInTheDocument();
   });
 
+  /**
+   * The detail view hard-coded "Archive", so opening an already-archived note
+   * offered to archive it a second time and there was no way back from there.
+   */
+  it("offers Restore, not Archive, when reading an archived note", async () => {
+    notes = [
+      note({
+        id: "a",
+        title: "Filed away",
+        archived_at: "2026-02-01T00:00:00Z",
+      }),
+    ];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /Archive/ }));
+    fireEvent.click(screen.getByLabelText("Open Filed away"));
+
+    expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    await waitFor(() => expect(archiveNote).toHaveBeenCalled());
+    expect(archiveNote.mock.calls[0]?.[0]).toEqual({
+      id: "a",
+      archived: false,
+    });
+  });
+
+  it("archives from the reading view of a live note", async () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    await waitFor(() => expect(archiveNote).toHaveBeenCalled());
+    expect(archiveNote.mock.calls[0]?.[0]).toEqual({ id: "a", archived: true });
+  });
+
   /** Deleting is the one action here that loses something unrecoverable. */
   it("says archiving is the alternative before deleting", async () => {
     notes = [note({ id: "a", title: "Alpha" })];
