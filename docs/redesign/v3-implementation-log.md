@@ -347,6 +347,43 @@ worth acting on. Migration `005`.
   by concatenating a tick into the label; it is a select now, matching Tasks and
   Notes.
 
+## Security
+
+**Was** — a screen that described protections it did not have.
+
+**Is** — the same controls, saying only what is true, plus the migration that
+makes the strongest one real. Migration `006` is **opt-in**.
+
+**Carried forward:**
+
+- **A security screen that overstates itself is worse than one that does
+  less.** Level 2 was labelled "API Read-Only. No edits allowed." and enforced
+  nothing: `lockdown_level` appeared in the schema exactly twice — the column
+  and a seed row — and no policy referenced it. The owner could set it
+  believing writes were refused while every write succeeded. Each level now
+  carries an `enforcement` field — `none`, `client` or `database` — and the UI
+  states which, including that maintenance is a client-side check on a static
+  export and therefore hides the interface rather than the data.
+- **A kill-switch must never be able to trap you.** `006` adds
+  `NOT public.writes_locked()` to admin write policies but deliberately leaves
+  `security_settings` unconditional, so the switch that lifts lockdown is never
+  itself blocked. The migration documents the service-role escape hatch anyway.
+- **Confirmation text was indexed by level.** The column permits 0–3 and the
+  array had three entries, so an out-of-range level produced a confirm dialog
+  with an empty description — at the moment one matters most. An unknown level
+  is now treated as the strictest rather than the most permissive.
+- **`signOut()` defaults to global scope in Supabase.** The ordinary logout
+  button was terminating every session on every device, so logging out of a
+  laptop killed the phone. Ordinary logout is now `local`; revoking everything
+  is a separate, deliberate action on this page.
+- **The password rule was `length < 6`** — the floor Supabase enforces anyway,
+  on the one account that can change everything. It is now a real assessment
+  that names the specific missing thing rather than showing a percentage, since
+  a score invites tuning until the bar goes green.
+- **"May lock you out" understated MFA.** Admin access is granted by the
+  database only at AAL2, so removing the last factor stops every admin write
+  immediately. The confirm says that.
+
 ---
 
 # Part three — Recurring patterns
@@ -460,6 +497,7 @@ Run in order. All are additive and safe to re-run.
 | `db/migrations/003-learning-review.sql`             | Topic review state, `learning_reviews`, `record_learning_review`                                                     |
 | `db/migrations/004-notes.sql`                       | Note archiving and bounds                                                                                            |
 | `db/migrations/005-inventory.sql`                   | Item location, quantity, tags, archiving, and a warranty/purchase-date check                                         |
+| `db/migrations/006-lockdown-enforcement.sql`        | **Opt-in.** Makes lockdown level 2 refuse admin writes at the database                                               |
 
 `db/reset-habits.sql` and `db/reset-learning.sql` are destructive alternatives
 that drop and rebuild with seed data. They keep nothing.
@@ -472,9 +510,9 @@ place without running any migration.
 # Appendix — Status
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
-Learning, Notes, Whiteboard, Inventory.
+Learning, Notes, Whiteboard, Inventory, Security.
 
-**Not yet rebuilt:** Finance, Calendar, Settings, Security, Dashboard.
+**Not yet rebuilt:** Finance, Calendar, Settings, Dashboard.
 
 **Open:**
 

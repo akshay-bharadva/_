@@ -46,10 +46,28 @@ export const authApi = adminApi.injectEndpoints({
         return { data: null };
       },
     }),
+    /**
+     * Sign out of this browser only.
+     *
+     * Supabase defaults `signOut()` to global scope, so the ordinary logout
+     * button was terminating every session on every device — logging out of a
+     * laptop killed the phone too, which is not what a logout button is
+     * understood to mean. Revoking everything is a deliberate act, and it has
+     * its own mutation below.
+     */
     signOut: builder.mutation<null, void>({
       queryFn: async () => {
         if (!supabase) return { error: NO_DB_ERROR };
-        const { error } = await supabase.auth.signOut();
+        const { error } = await supabase.auth.signOut({ scope: "local" });
+        if (error) return { error };
+        return { data: null };
+      },
+    }),
+    /** Revoke every session, everywhere, including this one. */
+    signOutEverywhere: builder.mutation<null, void>({
+      queryFn: async () => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        const { error } = await supabase.auth.signOut({ scope: "global" });
         if (error) return { error };
         return { data: null };
       },
@@ -63,4 +81,5 @@ export const {
   useUnenrollMfaFactorMutation,
   useUpdateUserPasswordMutation,
   useSignOutMutation,
+  useSignOutEverywhereMutation,
 } = authApi;

@@ -88,6 +88,7 @@ const EXPECTED_HOOKS = [
   "useDeleteHabitMutation",
   "useArchiveNoteMutation",
   "useArchiveInventoryItemMutation",
+  "useSignOutEverywhereMutation",
   "useRecordReviewMutation",
   "useArchiveTopicMutation",
   "useSetHabitLogMutation",
