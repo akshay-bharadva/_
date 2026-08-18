@@ -3,16 +3,11 @@
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import { formatDistanceToNow } from "date-fns";
-import { Archive, Edit, Pin, PinOff, Trash2 } from "lucide-react";
+import { Archive, Edit, Link2, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Note } from "@/types";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/cn";
+import { extractLinks } from "./note-links";
 
 interface NoteCardProps {
   note: Note;
@@ -24,6 +19,53 @@ interface NoteCardProps {
   onTogglePin: () => void;
 }
 
+interface CardActionProps {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  destructive?: boolean;
+}
+
+function CardAction({
+  label,
+  onClick,
+  children,
+  destructive,
+}: CardActionProps) {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      className={cn(
+        "size-7 rounded-control text-muted-foreground",
+        destructive && "hover:bg-destructive/10 hover:text-destructive",
+      )}
+      onClick={(event) => {
+        // The whole card is a button; without this the note opens as well.
+        event.stopPropagation();
+        onClick();
+      }}
+    >
+      {children}
+    </Button>
+  );
+}
+
+/**
+ * A note on the wall.
+ *
+ * Rebuilt around one padded surface rather than the three stacked shadcn
+ * sections it used to be — those carried three different horizontal paddings
+ * and two different vertical rhythms, which is what made the card feel
+ * assembled rather than designed.
+ *
+ * The Keep idea worth borrowing is that a card at rest is almost nothing: a
+ * fill, a title, some text. Everything operational — pin, archive, edit,
+ * delete — stays out of the way until you point at it, so a wall of notes
+ * reads as content rather than as a wall of controls.
+ */
 export function NoteCard({
   note,
   onOpen,
@@ -32,167 +74,146 @@ export function NoteCard({
   onArchive,
   onTogglePin,
 }: NoteCardProps) {
+  const linkCount = extractLinks(note.content).length;
+  const tags = note.tags ?? [];
+
   return (
-    <motion.div
+    <motion.article
       layout
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 350, damping: 25 }}
-      // The columns are flex children now, dealt round-robin so the sort order
-      // survives; nothing needs to avoid a column break.
-      className=""
+      exit={{ opacity: 0, scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 350, damping: 28 }}
+      /*
+       * Colour is a spine, not a wash: a solid edge never mixes with the
+       * background, so it reads the same on all 52 presets. `border-0` first —
+       * a surface is a fill plus an elevation, and the spine is a mark on the
+       * card rather than a frame around it.
+       */
+      className="group relative flex flex-col overflow-hidden rounded-surface border-0 border-l-[3px] bg-card shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2 focus-within:shadow-e2"
+      style={{
+        // Per-note user data, not a theme token. An absent colour falls back to
+        // the border token so every card keeps the same silhouette.
+        borderLeftColor: note.color || "hsl(var(--border))",
+      }}
     >
-      <Card
-        /*
-         * Colour is a spine, not a wash.
-         *
-         * It used to tint the surface at `${color}15` and the border at
-         * `${color}50` — two diluted derivations of one value, both mixed with
-         * whatever the theme puts behind them. On a dark preset a red note and
-         * a blue note converge on the same murky grey, so the colour stopped
-         * being a label. A solid 3px edge never mixes with the background, so
-         * it reads identically across all 52 presets.
-         *
-         * `border-0` first: a surface is a fill plus an elevation, and giving
-         * it a full border as well is what the v3 rules rule out. The spine is
-         * a mark on the card, not a frame around it.
-         */
-        className="relative flex flex-col overflow-hidden border-0 border-l-[3px] shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2"
-        style={{
-          // note.color is per-note user data from the DB, not a theme token.
-          // Absent colour falls back to the border token so every card keeps
-          // the same silhouette and only the hue is missing.
-          borderLeftColor: note.color || "hsl(var(--border))",
-        }}
+      {/* Pinned is the one piece of state worth seeing without hovering. */}
+      {note.is_pinned && (
+        <Pin
+          aria-hidden
+          fill="currentColor"
+          className="pointer-events-none absolute right-3 top-3 size-3 rotate-45 text-muted-foreground/70"
+        />
+      )}
+
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`Open ${note.title || "Untitled"}`}
+        className="flex flex-1 flex-col gap-1.5 px-3.5 pb-2 pt-3.5 text-left focus-visible:outline-none"
       >
-        <button
-          type="button"
-          onClick={onOpen}
-          aria-label={`Open ${note.title || "Untitled"}`}
-          className="flex flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <CardHeader className="px-4 pb-1 pt-4">
-            <div className="flex items-start justify-between gap-2">
-              {note.title ? (
-                <h3 className="font-heading font-semibold leading-tight tracking-tight text-foreground">
-                  {note.title}
-                </h3>
-              ) : (
-                <span className="text-sm italic text-muted-foreground">
-                  Untitled
-                </span>
-              )}
-              {note.is_pinned && (
-                <Pin
-                  className="size-3.5 shrink-0 rotate-45 text-primary"
-                  fill="currentColor"
-                />
-              )}
-            </div>
-          </CardHeader>
+        {note.title ? (
+          <h3 className="break-words pr-5 text-sm font-medium leading-snug">
+            {note.title}
+          </h3>
+        ) : (
+          <h3 className="pr-5 text-sm italic text-muted-foreground">
+            Untitled
+          </h3>
+        )}
 
-          <CardContent className="flex-grow px-4 py-2">
-            {/* break-words: a pasted URL or hash is one unbreakable token, which
-              line-clamp does not constrain — it overflowed the card. */}
-            <div className="prose prose-sm line-clamp-[8] break-words text-sm text-muted-foreground/90 dark:prose-invert">
-              <ReactMarkdown
-                components={{
-                  p: ({ node: _node, ...props }) => (
-                    <p {...props} className="mb-1 last:mb-0" />
-                  ),
-                }}
-              >
-                {note.content || ""}
-              </ReactMarkdown>
-            </div>
-          </CardContent>
-        </button>
-
-        <CardFooter className="mt-auto flex flex-col items-start gap-3 px-3 pb-3 pt-2">
-          {note.tags && note.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {note.tags.slice(0, 4).map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="secondary"
-                  className="h-5 bg-secondary px-1.5 text-[10px] text-muted-foreground"
-                >
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-1 flex w-full items-center justify-between border-t pt-2">
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {note.updated_at &&
-                formatDistanceToNow(new Date(note.updated_at), {
-                  addSuffix: true,
-                })}
-            </span>
-
-            <div className="-mr-2 flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
-                className="h-7 w-7 rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTogglePin();
-                }}
-                title={note.is_pinned ? "Unpin" : "Pin"}
-              >
-                {note.is_pinned ? (
-                  <PinOff className="size-3.5" />
-                ) : (
-                  <Pin className="size-3.5" />
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={note.archived_at ? "Restore note" : "Archive note"}
-                className="h-7 w-7 rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onArchive();
-                }}
-                title={note.archived_at ? "Restore" : "Archive"}
-              >
-                <Archive className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Edit note"
-                className="h-7 w-7 rounded-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit();
-                }}
-                title="Edit"
-              >
-                <Edit className="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Delete note"
-                className="h-7 w-7 rounded-full hover:bg-destructive/15 hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                title="Delete"
-              >
-                <Trash2 className="size-3.5" />
-              </Button>
-            </div>
+        {note.content && (
+          /* break-words: a pasted URL is one unbreakable token, which
+             line-clamp does not constrain — it used to overflow the card. */
+          <div className="line-clamp-6 break-words text-[13px] leading-relaxed text-muted-foreground">
+            <ReactMarkdown
+              components={{
+                // Flattened: headings and lists inside a six-line preview add
+                // vertical noise without adding legibility.
+                p: ({ node: _n, ...props }) => (
+                  <p {...props} className="mb-1 last:mb-0" />
+                ),
+                h1: ({ node: _n, ...props }) => <p {...props} />,
+                h2: ({ node: _n, ...props }) => <p {...props} />,
+                h3: ({ node: _n, ...props }) => <p {...props} />,
+                ul: ({ node: _n, ...props }) => (
+                  <ul {...props} className="list-none" />
+                ),
+                a: ({ node: _n, ...props }) => (
+                  <span {...props} className="underline" />
+                ),
+              }}
+            >
+              {note.content}
+            </ReactMarkdown>
           </div>
-        </CardFooter>
-      </Card>
-    </motion.div>
+        )}
+      </button>
+
+      <div className="flex flex-col gap-2 px-3.5 pb-3">
+        {tags.length > 0 && (
+          <ul className="flex list-none flex-wrap gap-1">
+            {tags.slice(0, 4).map((tag) => (
+              <li
+                key={tag}
+                className="rounded-control bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {tag}
+              </li>
+            ))}
+            {tags.length > 4 && (
+              <li className="px-1 py-0.5 text-[11px] text-muted-foreground">
+                +{tags.length - 4}
+              </li>
+            )}
+          </ul>
+        )}
+
+        <div className="flex min-h-7 items-center gap-2">
+          {/* Metadata gives way to the actions rather than sitting beside them,
+              so the row never has to hold both at once. */}
+          <span className="flex items-center gap-2 text-[11px] text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+            {note.updated_at &&
+              formatDistanceToNow(new Date(note.updated_at), {
+                addSuffix: true,
+              })}
+            {linkCount > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Link2 aria-hidden className="size-3" />
+                {linkCount}
+              </span>
+            )}
+          </span>
+
+          <div className="absolute inset-x-2.5 bottom-2.5 flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <CardAction
+              label={note.is_pinned ? "Unpin note" : "Pin note"}
+              onClick={onTogglePin}
+            >
+              {note.is_pinned ? (
+                <PinOff className="size-3.5" aria-hidden />
+              ) : (
+                <Pin className="size-3.5" aria-hidden />
+              )}
+            </CardAction>
+
+            <CardAction
+              label={note.archived_at ? "Restore note" : "Archive note"}
+              onClick={onArchive}
+            >
+              <Archive className="size-3.5" aria-hidden />
+            </CardAction>
+
+            <CardAction label="Edit note" onClick={onEdit}>
+              <Edit className="size-3.5" aria-hidden />
+            </CardAction>
+
+            <CardAction label="Delete note" onClick={onDelete} destructive>
+              <Trash2 className="size-3.5" aria-hidden />
+            </CardAction>
+          </div>
+        </div>
+      </div>
+    </motion.article>
   );
 }

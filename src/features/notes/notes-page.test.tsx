@@ -253,6 +253,26 @@ describe("NoteCard colour", () => {
     expect(spined?.style.backgroundColor).toBe("");
   });
 
+  /** The actions are revealed on hover, but must stay reachable by keyboard —
+      opacity, not display, so they keep their place in the tab order. */
+  it("keeps the card actions in the accessibility tree at rest", () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    expect(screen.getByLabelText("Edit note")).toBeInTheDocument();
+    expect(screen.getByLabelText("Archive note")).toBeInTheDocument();
+    expect(screen.getByLabelText("Delete note")).toBeInTheDocument();
+    expect(screen.getByLabelText("Pin note")).toBeInTheDocument();
+  });
+
+  it("shows how many notes a note links to", () => {
+    notes = [
+      note({ id: "a", title: "Alpha", content: "[[Beta]] and [[Gamma]]" }),
+      note({ id: "b", title: "Beta" }),
+    ];
+    render(<NotesPage />);
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
   it("keeps the silhouette when a note has no colour", () => {
     notes = [note({ id: "a", title: "Alpha", color: null })];
     const { container } = render(<NotesPage />);
