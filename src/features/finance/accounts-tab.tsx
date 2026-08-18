@@ -12,6 +12,7 @@ import type {
 import {
   useGetAccountBalancesQuery,
   useGetFinanceAccountsQuery,
+  useGetFinanceCategoriesQuery,
   useGetRecurringSkipsQuery,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { AccountForm } from "./account-form";
 import { ConfirmQueue } from "./confirm-queue";
 import { buildConfirmQueue } from "./pending-occurrences";
 import { netWorth } from "./finance-insights";
+import { CoachingPanel } from "./coaching-panel";
 
 /**
  * Accounts, net worth, and the confirm queue.
@@ -50,6 +52,7 @@ export function AccountsTab({
   const { data: accounts = [], isLoading } = useGetFinanceAccountsQuery();
   const { data: balances = {} } = useGetAccountBalancesQuery();
   const { data: skips = [] } = useGetRecurringSkipsQuery();
+  const { data: categories = [] } = useGetFinanceCategoriesQuery();
 
   const [editing, setEditing] = useState<FinanceAccount | null>(null);
   const [creating, setCreating] = useState(false);
@@ -183,6 +186,22 @@ export function AccountsTab({
         baseCurrency={base}
         className="pt-2"
       />
+
+      {/*
+        The coaching sits below the queue on purpose: its figures are only as
+        good as the ledger, and `overdueCount` is passed in so the first thing
+        it can say is "these numbers are missing three items".
+      */}
+      {active.length > 0 && (
+        <CoachingPanel
+          transactions={transactions}
+          categories={categories}
+          accounts={accounts}
+          balancesInBase={balancesInBase}
+          settings={settings}
+          overdueCount={queue.filter((entry) => entry.isOverdue).length}
+        />
+      )}
 
       <Sheet
         open={creating || editing !== null}

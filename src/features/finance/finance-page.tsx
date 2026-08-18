@@ -69,6 +69,11 @@ const Calendar = dynamic(
 // only fetched once that tab is actually opened.
 const chartTabLoader = () => <LoadingState variant="section" />;
 
+const BudgetsTab = dynamic(
+  () => import("./budgets-tab").then((mod) => mod.BudgetsTab),
+  { ssr: false, loading: chartTabLoader },
+);
+
 const ForecastTab = dynamic(
   () => import("./forecast-tab").then((mod) => mod.ForecastTab),
   { ssr: false, loading: chartTabLoader },
@@ -322,12 +327,13 @@ export default function FinancePage() {
         className="mt-6 space-y-6"
       >
         <div className="hidden md:block">
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:inline-grid lg:w-auto">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:inline-grid lg:w-auto">
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="recurring">Recurring</TabsTrigger>
             <TabsTrigger value="goals">Goals</TabsTrigger>
+            <TabsTrigger value="budgets">Budgets</TabsTrigger>
             <TabsTrigger value="forecast">Forecast</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="fx">Exchange</TabsTrigger>
@@ -402,6 +408,16 @@ export default function FinancePage() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="budgets">
+          {financeSettings && (
+            <BudgetsTab
+              categories={financeCategories}
+              transactions={transactions}
+              settings={financeSettings}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="forecast">
