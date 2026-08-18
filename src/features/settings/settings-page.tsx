@@ -323,12 +323,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <ManagerWrapper
-      // The bar is fixed to the viewport, so it covers whatever is under it.
-      // Reserving its height only while it is up keeps the last field
-      // reachable without leaving a hole on a clean page.
-      className={cn("transition-[padding]", anyDirty ? "pb-28" : "pb-4")}
-    >
+    <ManagerWrapper className="pb-4">
       <Form {...form}>
         <form
           onSubmit={(event) => {
@@ -366,8 +361,24 @@ export default function SettingsPage() {
         </form>
       </Form>
 
+      {/*
+        Reserve the bar's height rather than adding padding to the wrapper.
+        `ManagerWrapper` sets `pb-20 md:pb-0`, and a `pb-28` passed in loses to
+        `md:pb-0` at every width above `md` — tailwind-merge treats a variant as
+        a separate group, so the class was silently doing nothing on desktop and
+        the bar sat on top of the last field. A spacer cannot be overridden by
+        whatever a parent decides about padding.
+      */}
+      {anyDirty && <div aria-hidden className="h-24" />}
+
       <AnimatePresence>
-        {isDirty && (
+        {/*
+          Any group, not the one on screen. Gating this on the active group
+          meant navigating away from an edit hid the only control that would
+          save it, so the edit could only be saved by finding your way back to
+          where you made it.
+        */}
+        {anyDirty && (
           <motion.div
             initial={{ y: 72, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

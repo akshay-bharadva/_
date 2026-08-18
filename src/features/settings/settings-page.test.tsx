@@ -435,3 +435,43 @@ describe("SettingsPage save all", () => {
     expect(await screen.findByLabelText("Display name")).toHaveValue("Akshay");
   });
 });
+
+describe("SettingsPage save bar visibility", () => {
+  /**
+   * The bar used to be gated on the *active* group being dirty, so navigating
+   * away from an edit hid the only control that would save it — the edit could
+   * only be saved by finding your way back to where you made it.
+   *
+   * Asserted through the save rather than through the bar's presence:
+   * `AnimatePresence` keeps an exiting node mounted for the length of its
+   * animation, and in jsdom that animation never completes, so querying for the
+   * button passes whether or not the bar is on its way out. Clicking it and
+   * checking what was written is the only version of this that can fail.
+   */
+  it("saves the other group's edit without going back to it", async () => {
+    render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Akshay B" },
+    });
+
+    openGroup(/^Footer/);
+    await screen.findByLabelText("Copyright line");
+    openGroup(/Save brand & logo/i);
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(lastPayload().profile_data.name).toBe("Akshay B");
+  });
+
+  it("disappears once everything is saved", async () => {
+    render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
+    expect(
+      screen.queryByRole("button", { name: /Save brand & logo/i }),
+    ).toBeNull();
+  });
+});
