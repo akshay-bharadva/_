@@ -48,6 +48,7 @@ import {
 } from "@/components/admin/shared";
 import { getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { buildForecastData } from "@/lib/finance-utils";
+import { useFxSync } from "./use-fx-sync";
 import type { DialogState } from "./finance-types";
 import { TransactionsTab } from "./transactions-tab";
 import { RecurringTab } from "./recurring-tab";
@@ -66,6 +67,11 @@ const Calendar = dynamic(
 // Splitting them keeps the table-only views light, and the analytics chunk is
 // only fetched once that tab is actually opened.
 const chartTabLoader = () => <LoadingState variant="section" />;
+
+const FxTab = dynamic(() => import("./fx-tab").then((mod) => mod.FxTab), {
+  ssr: false,
+  loading: chartTabLoader,
+});
 
 const AccountsTab = dynamic(
   () => import("./accounts-tab").then((mod) => mod.AccountsTab),
@@ -102,6 +108,11 @@ export default function FinancePage() {
     financeSettings?.base_currency ?? "CAD",
     { skip: !financeSettings },
   );
+
+  // Tops up the rate cache when the module opens, and does nothing the rest of
+  // the time — the ECB publishes once per working day, so polling buys nothing.
+  useFxSync(financeSettings?.base_currency, fxRates);
+
   const [deleteTransaction] = useDeleteTransactionMutation();
   const [deleteRecurring] = useDeleteRecurringMutation();
   const [deleteGoal] = useDeleteGoalMutation();
@@ -303,13 +314,14 @@ export default function FinancePage() {
         className="mt-6 space-y-6"
       >
         <div className="hidden md:block">
-          <TabsList className="grid w-full grid-cols-6 lg:inline-grid lg:w-auto">
+          <TabsList className="grid w-full grid-cols-7 lg:inline-grid lg:w-auto">
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="recurring">Recurring</TabsTrigger>
             <TabsTrigger value="goals">Goals</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="fx">Exchange</TabsTrigger>
           </TabsList>
         </div>
 
@@ -381,6 +393,12 @@ export default function FinancePage() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="fx">
+          {financeSettings && (
+            <FxTab settings={financeSettings} transactions={transactions} />
+          )}
         </TabsContent>
 
         <TabsContent value="analytics">
