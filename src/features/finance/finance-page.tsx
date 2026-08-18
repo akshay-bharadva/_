@@ -19,6 +19,8 @@ import {
   useDeleteRecurringMutation,
   useDeleteTransactionMutation,
   useGetFinancialDataQuery,
+  useGetFinanceSettingsQuery,
+  useGetFxRatesQuery,
   useSaveRecurringMutation,
   useSaveTransactionMutation,
 } from "@/store/api/adminApi";
@@ -65,6 +67,11 @@ const Calendar = dynamic(
 // only fetched once that tab is actually opened.
 const chartTabLoader = () => <LoadingState variant="section" />;
 
+const AccountsTab = dynamic(
+  () => import("./accounts-tab").then((mod) => mod.AccountsTab),
+  { ssr: false, loading: chartTabLoader },
+);
+
 const DashboardTab = dynamic(
   () => import("./dashboard-tab").then((mod) => mod.DashboardTab),
   { ssr: false, loading: chartTabLoader },
@@ -88,6 +95,13 @@ export default function FinancePage() {
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
 
   const { data: financialData, isLoading, error } = useGetFinancialDataQuery();
+  const { data: financeSettings } = useGetFinanceSettingsQuery();
+  // Rates for the base currency only; the accounts tab crosses pairs from
+  // this single-base table rather than fetching each pair separately.
+  const { data: fxRates = [] } = useGetFxRatesQuery(
+    financeSettings?.base_currency ?? "CAD",
+    { skip: !financeSettings },
+  );
   const [deleteTransaction] = useDeleteTransactionMutation();
   const [deleteRecurring] = useDeleteRecurringMutation();
   const [deleteGoal] = useDeleteGoalMutation();
@@ -289,7 +303,8 @@ export default function FinancePage() {
         className="mt-6 space-y-6"
       >
         <div className="hidden md:block">
-          <TabsList className="grid w-full grid-cols-5 lg:inline-grid lg:w-auto">
+          <TabsList className="grid w-full grid-cols-6 lg:inline-grid lg:w-auto">
+            <TabsTrigger value="accounts">Accounts</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="recurring">Recurring</TabsTrigger>
@@ -304,6 +319,17 @@ export default function FinancePage() {
           onAddNew={() => setIsAddDrawerOpen(true)}
           onMore={() => setIsMoreDrawerOpen(true)}
         />
+
+        <TabsContent value="accounts">
+          {financeSettings && (
+            <AccountsTab
+              settings={financeSettings}
+              rates={fxRates}
+              recurring={recurring}
+              transactions={transactions}
+            />
+          )}
+        </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-6">
           <DashboardTab
