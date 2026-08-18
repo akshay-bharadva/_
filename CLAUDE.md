@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Personal Portfolio + Personal OS — Project Guardrails (read this first, every task)
 
 This repository is a personal portfolio website and headless CMS / “Personal OS” built with Next.js 14 App Router. It supports a zero-config static portfolio mode using fallback data and a dynamic CMS/admin mode backed by Supabase. The site is deployed as a static export to GitHub Pages, with public portfolio/content routes and an authenticated Personal OS for managing tasks, learning, finance, content, notes, whiteboards, and other personal data.
@@ -48,7 +52,11 @@ This repository is a personal portfolio website and headless CMS / “Personal O
 
 - **`src/lib/site-identity.ts`** — Owns `normalizeSiteContent`, applied in `publicApi.getSiteIdentity`. `profile_data`/`social_links`/`footer_data` are unconstrained JSONB, so this is the single place that decides what a missing key means. Public renderers must be able to trust the shape `SiteContent` declares; do not add defensive optional chaining in the renderers instead.
 
+- **`src/components/ui/markdown.tsx` and `rich-markdown.tsx`** — Two renderers, split on cost. `Markdown` is short-form (taglines, bios, CMS blurbs) and carries only `remark-gfm`. `RichMarkdown` is long-form — raw HTML, sanitization, Prism, heading ids — for anything authored in the editor. `rehype-prism-plus` is ~290 kB, so `RichMarkdown` must only be reached through a `next/dynamic` boundary; importing it directly took `/admin/notes` from 12 kB to 301 kB first load. Its sanitize schema allows `className` on `pre`/`code`/`span`/`div` because sanitization runs _after_ highlighting and would otherwise strip the classes Prism just added.
+
 - **`src/lib/cn.ts`** — Owns `cn`. Kept separate from `utils.ts`, which re-exports `date-utils` (and therefore date-fns); the package is not marked `sideEffects: false`, so importing `cn` from `utils.ts` pulls date-fns into the chunk. Leaf components on code-split routes should import from here. `utils.ts` re-exports it, so existing call sites are fine.
+
+- **`src/hooks/use-column-count.ts`** — Owns ordered masonry: `useColumnCount` plus `distributeColumns`, which deals items round-robin into one bucket per column. Used by `/updates` and Notes. CSS `columns-*` fills each column to the bottom before starting the next, so a sorted list reads down the whole left column before reaching the second item, and cards split across the column break; CSS Grid fixes the order but leaves a hole under every short card. Any new masonry surface uses this rather than reintroducing either.
 
 - **`src/lib/fallback-data.ts`** — Owns mock/fallback data used when Supabase is not configured. Must preserve zero-config static mode and remain compatible with the same contracts used by dynamic data.
 
@@ -56,9 +64,11 @@ This repository is a personal portfolio website and headless CMS / “Personal O
 
 - **`src/supabase/client.ts`** — Owns Supabase client initialization. Must not contain hard-coded credentials or application-specific business logic.
 
+- **`db/migrations/`** — Owns the ordered, additive migrations that bring an existing database up to `db/schema.sql`. Every file is guarded (`IF NOT EXISTS` / `DROP ... IF EXISTS`) and safe to re-run. A schema change ships as **both** a migration and the matching edit to `schema.sql`, so a fresh install and an existing one land in the same place. `db/reset-*.sql` are destructive rebuild-from-scratch alternatives and keep nothing.
+
 - **`db/schema.sql`** — Owns the authoritative database schema and RLS policies. Database-level authorization must remain stronger than client-side assumptions.
 
-- **`src/styles/globals.css`** — Owns the v3 "Surface" design system: the shape (`--r-surface`/`--r-control`), space (`--s-*`), fluid type (`--t-*`), measure (`--w-*`), elevation (`--e-1..3`) and motion (`--m-enter`/`--m-exit`) tokens; the density modes; the `.band-*`, `.surface*` and `.t-*` utility classes; and prose styles. **Colour must never appear here** — the presets own it and are contrast-gated, so a raw hex would sit outside that gate and would not move when the visitor switches theme. Guarded by `src/styles/design-system.test.ts`.
+- **`src/styles/globals.css`** — Owns the v3 "Surface" design system: the shape (`--r-surface`/`--r-control`), fluid type (`--t-*`), measure (`--w-*`), elevation (`--e-1..3`) and motion (`--m-enter`/`--m-exit`) tokens; the `.band-*`, `.surface*` and `.t-*` utility classes; and prose styles. **Spacing is Tailwind's scale** — a parallel `--s-*` scale existed and was removed, because `--s-4` was literally `1rem` and two spacing vocabularies is one too many. **Colour must never appear here** — the presets own it and are contrast-gated, so a raw hex would sit outside that gate and would not move when the visitor switches theme. Guarded by `src/styles/design-system.test.ts`.
 
 - **`src/components/layout/band.tsx` and `surface.tsx`** — Own the two v3 layout primitives. A public page is a sequence of full-bleed `Band`s whose weights alternate (`feature`/`content`/`accent`); a `Surface` is a fill plus an elevation, where elevation encodes interaction state rather than decoration. Compose these rather than re-deriving padded containers and bordered cards per page.
 
@@ -109,7 +119,7 @@ The following are cross-component contracts and must have one source of truth:
 - Treat whiteboard previews as untrusted data — gallery previews remain SVG data URLs rendered as images rather than executable markup.
 - Theme through tokens — use semantic theme classes and tokens so all 52 presets and custom themes continue to work. `chart-2` is the success accent and `chart-3` the warning accent; literal palette classes such as `text-green-600` or `bg-amber-500` do not move with the presets and must not be reintroduced.
 - **Read `docs/redesign/v3-implementation-log.md` before rebuilding a module.** It records what every rebuilt module became and why, the patterns to reuse (derived state, archiving, one control at every width, RPCs for atomic writes), and the traps already paid for. **Append an entry to it when a module is finished** — a module is not done until its entry exists.
-- **The v3 identity is "Surface" — see `docs/redesign/v3-design-vision.md`.** Hierarchy comes from elevation, size and space, not from labels and lines. Use `shadow-e1/e2/e3` rather than Tailwind's default shadow scale, `rounded-surface` for panels and `rounded-control` for controls, and the `--s-*` space scale. A surface is a fill plus a shadow: do not give it both a border and an elevation.
+- **The v3 identity is "Surface" — see `docs/redesign/v3-design-vision.md`.** Hierarchy comes from elevation, size and space, not from labels and lines. Use `shadow-e1/e2/e3` rather than Tailwind's default shadow scale, `rounded-surface` for panels and `rounded-control` for controls, and Tailwind's spacing scale. A surface is a fill plus a shadow: do not give it both a border and an elevation.
 - **The v2 "Precision Instrument" grammar is retired and must not return**: graph-paper grounds, dotted rules as separators, numbered mono section labels (`01 / Work`), the terminal status line, monospace as a decorative metadata voice (mono is for code, and for the terminal status-panel variant whose whole purpose is to look like a terminal), and a left icon-rail as the admin's primary navigation. `src/styles/design-system.test.ts` fails the build if any of these reappear.
 - Anything that offers a plain light/dark choice must pass a real preset class (`LIGHT_THEME`/`DARK_THEME`). Passing `"light"`, `"dark"` or `"system"` to next-themes strips the active `theme-*` class and leaves the app with no tokens at all.
 - The `dark` class on `<html>` is derived by `applyTheme` from the resolved `--background` lightness, which is what makes `dark:` variants work at all. Do not set it from a preset name list, and do not assume a visitor-facing OS toggle exists — `enableSystem` is `false`.
