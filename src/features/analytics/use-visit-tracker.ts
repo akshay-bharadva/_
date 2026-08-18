@@ -100,7 +100,13 @@ export function useVisitTracker(): void {
     // No database, no analytics. Static mode keeps working; it just has
     // nowhere to record anything.
     if (!supabase) return;
-    if (process.env.NODE_ENV !== "production") return;
+
+    // Off in development, because a page you reload forty times while building
+    // it is not forty visits. `NEXT_PUBLIC_ANALYTICS_DEBUG` turns it back on
+    // deliberately, which is the only way to check the pipeline end to end
+    // before shipping it.
+    const debug = process.env.NEXT_PUBLIC_ANALYTICS_DEBUG === "1";
+    if (process.env.NODE_ENV !== "production" && !debug) return;
 
     // The admin is not an audience. Recording your own navigation would put
     // your desk at the top of every chart.
@@ -109,6 +115,18 @@ export function useVisitTracker(): void {
     let cancelled = false;
 
     const record = async () => {
+      /**
+       * Signed in means it is you.
+       *
+       * Skipping `/admin` was never enough: the owner reads their own public
+       * site constantly — checking a post rendered, sending someone a link —
+       * and every one of those was landing in the figures. There is exactly
+       * one account, so a session is proof of who this is.
+       */
+      const { data: auth } = await supabase!.auth.getSession();
+      if (auth.session && !debug) return;
+      if (cancelled) return;
+
       const geo = await lookupGeo();
       if (cancelled) return;
 
