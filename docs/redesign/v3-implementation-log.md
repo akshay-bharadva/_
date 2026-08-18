@@ -540,6 +540,69 @@ had to be fixed alongside it. Migration `007`.
 
 ---
 
+## Analytics (visitors)
+
+**Was** — `NEXT_PUBLIC_VISIT_NOTIFIER_URL`, a Discord ping fired once per
+session from the hero, storing nothing. There was no way to answer "how many
+people came this month", let alone from where.
+
+**Is** — one row per visit, aggregated in Postgres, read on `/admin/analytics`.
+Migration `008`.
+
+**Carried forward:**
+
+- **A static export has no server, but Postgres sees the request.** PostgREST
+  exposes `current_setting('request.headers')`, and Supabase's proxy sets
+  `x-forwarded-for` — so a `BEFORE INSERT` trigger can capture the client IP
+  with no Edge Function and no origin server of our own. That single fact is
+  what makes the whole module possible.
+- **No IP address is stored.** The trigger keeps only
+  `sha256(secret || current_date || ip || user_agent)`. The secret lives in a
+  table with RLS **enabled and no policy at all** — RLS with no policy denies
+  every client role, so the anon key cannot reach it under any circumstances.
+  Unique counts are accurate within a day and the column identifies nobody.
+- **Free meant client-side geo.** `ipapi.co`'s free quota is counted per
+  _calling_ address, so having each visitor's own browser make the call means
+  nobody ever hits a shared limit. Ad-blockers block it, which is a normal path,
+  not an error — `countryFromTimezone` covers the country for those visitors.
+- **The second anonymous-write table gets the first one's discipline.** Length
+  CHECKs on every free-text column and a rate-limit trigger, exactly as
+  `contact_submissions` got in `007`. One difference: this trigger returns NULL
+  to drop silently rather than raising, because telemetry must never be able to
+  break a page view.
+- **Bots are flagged, not rejected.** "60% of this traffic is Googlebot" is
+  itself worth knowing, and a filter that silently discards is one you cannot
+  check. Excluded by default with a toggle to include.
+- **Aggregate in the database.** `get_visitor_analytics` returns one JSONB
+  document; the page never sees an individual visit row. The alternative is
+  shipping a year of traffic to the browser to count it.
+- **`SECURITY DEFINER` steps over RLS, so the guard goes inside.** Both RPCs
+  re-check `is_admin()` in their own body rather than trusting the policy they
+  bypassed, and `EXECUTE` is revoked from `anon`.
+- **Track from the chrome, not the hero.** The old hook fired once per session
+  from the home page, so a visitor who landed on a blog post and read four more
+  registered as nothing. `useVisitTracker` lives in `PublicChrome` and keys off
+  `usePathname`.
+- **A missing header must not read as a missing audience.** `visitor_hash` is
+  null when `x-forwarded-for` never arrives, so `count(DISTINCT …)` is zero
+  while views are not. "0 visitors / 412 views" looks like a broken site;
+  `visitorCountUnavailable` detects it and the page says which it is.
+- **Fill the gaps in a daily series.** `GROUP BY` omits days nobody visited, and
+  a line chart joining the 3rd to the 9th draws a straight line across the gap —
+  which reads as steady traffic rather than none.
+- **Parse user-agents in the right order, and test with real strings.** Every
+  Chromium browser carries a Chrome token, Chrome carries a Safari token,
+  ChromeOS carries X11, and iPadOS 13+ sends a desktop Mac string verbatim so
+  touch support is the only cue. A hand-simplified fixture passes a parser that
+  fails on the real thing.
+- **One webhook editor, two webhooks.** Contact and visit pings are the same
+  table, slice, validation and security argument, so `WebhookSettings` is
+  parameterised by which columns it writes. It lives in `features/integrations/`
+  because both Inbox and Analytics compose it, and a feature reaching into
+  another feature's internals is what the architecture forbids.
+
+---
+
 # Part three — Recurring patterns
 
 Reach for these; they are already tested and already argued for.
@@ -664,16 +727,19 @@ place without running any migration.
 # Appendix — Status
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
-Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new).
+Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new),
+Analytics (new).
 
 **Not yet rebuilt:** Finance, Calendar, Dashboard.
 
 **Open:**
 
-- Migrations `002`, `004`, `005` and `007` have not been applied to the live
-  database; `006` is opt-in and awaiting a decision.
-- `NEXT_PUBLIC_VISIT_NOTIFIER_URL` is still a webhook URL in the public bundle.
-  The contact one moved into the database in `007`; this one has not.
+- Migrations `002`, `004`, `005`, `007` and `008` have not been applied to the
+  live database; `006` is opt-in and awaiting a decision. **Nothing in Analytics
+  works until `008` runs** — the page says so rather than showing an empty
+  dashboard that looks like a site nobody visits.
+- Retention is a function and a button, not a schedule. `prune_site_visits()`
+  can be put on `pg_cron` if the table ever grows enough to matter.
 - `[[` autocomplete against existing titles in `note-form.tsx`.
 - The Learning session timer still logs to `learning_sessions` from the notes
   editor only; it is not wired into the review flow, deliberately — a review is

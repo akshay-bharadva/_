@@ -9,6 +9,7 @@ import {
   Inbox,
   LayoutDashboard,
   LayoutTemplate,
+  LineChart,
   ListTodo,
   Lock,
   Megaphone,
@@ -34,7 +35,10 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Overview",
-    items: [{ name: "Dashboard", href: "/admin", icon: LayoutDashboard }],
+    items: [
+      { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+      { name: "Analytics", href: "/admin/analytics", icon: LineChart },
+    ],
   },
   {
     label: "Content",

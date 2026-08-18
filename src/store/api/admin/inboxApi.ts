@@ -103,8 +103,11 @@ export const inboxApi = adminApi.injectEndpoints({
         return {
           data: (data as IntegrationSettings | null) ?? {
             id: 1,
-            contact_webhook_url: "",
+            contact_webhook_url: null,
             notify_on_contact: true,
+            visit_webhook_url: null,
+            // Off, matching the column default: a ping per page view is noise.
+            notify_on_visit: false,
           },
         };
       },

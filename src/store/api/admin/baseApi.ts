@@ -37,6 +37,7 @@ export const adminApi = createApi({
     "System",
     "Inbox",
     "Integrations",
+    "Visitors",
   ],
   endpoints: () => ({}),
 });

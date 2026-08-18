@@ -317,12 +317,14 @@ All variables are `NEXT_PUBLIC_*` (the app is fully client-rendered after export
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | Dynamic mode | Anon key (RLS handles authorization)      |
 | `NEXT_PUBLIC_BUCKET_NAME`         | Optional     | Storage bucket name, default `"assets"`   |
 | `NEXT_PUBLIC_SITE_URL`            | For builds   | Canonical URL (OG tags, sitemap)          |
-| `NEXT_PUBLIC_VISIT_NOTIFIER_URL`  | Optional     | Discord webhook — ping on visit           |
+| `NEXT_PUBLIC_VISIT_NOTIFIER_URL`  | Unused       | Superseded by Analytics (see note)        |
 | `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` | Static only  | Discord webhook — contact form (see note) |
 | `NEXT_PUBLIC_APP_NAME`            | Optional     | MFA app name override                     |
 | `NEXT_PUBLIC_MFA_ISSUER`          | Optional     | MFA issuer override                       |
 
 Static mode requires zero env vars.
+
+> **Visitor analytics.** `NEXT_PUBLIC_VISIT_NOTIFIER_URL` is no longer read. Visits are recorded in `site_visits` and shown in **Admin → Analytics**, and the Discord ping for a new visitor is sent by a database trigger reading the URL from `integration_settings` (**Admin → Analytics → Notifications**), deduplicated to the first visit of the day per visitor. Requires `db/migrations/008-visitor-analytics.sql`. **No IP address is ever stored** — the trigger derives `sha256(secret || current_date || ip || user_agent)` and keeps only that, so unique-visitor counts are accurate within a day and the column identifies nobody.
 
 > **Contact notifications.** With Supabase configured, `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` is ignored: the ping is sent by a database trigger reading the URL from the admin-only `integration_settings` table, so set it in **Admin → Inbox → Notifications** (`db/migrations/007-contact-inbox.sql`). Anything prefixed `NEXT_PUBLIC_` is compiled into the client bundle and readable by every visitor, and a Discord webhook URL is full authority to post in that channel. Static mode has no server to hide it behind, so it still uses the variable.
 

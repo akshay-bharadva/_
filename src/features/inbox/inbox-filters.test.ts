@@ -9,7 +9,7 @@ import {
   replyMailto,
   visibleMessages,
 } from "./inbox-filters";
-import { isDiscordWebhook } from "./inbox-notifications";
+import { isDiscordWebhook } from "@/features/integrations/discord-webhook";
 
 const message = (
   overrides: Partial<ContactSubmission> = {},

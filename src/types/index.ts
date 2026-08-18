@@ -582,5 +582,47 @@ export interface IntegrationSettings {
   id: number;
   contact_webhook_url: string | null;
   notify_on_contact: boolean;
+  visit_webhook_url: string | null;
+  /** Off by default — a ping per page view is noise you mute within a week. */
+  notify_on_visit: boolean;
   updated_at?: string;
+}
+
+// =============================================================================
+// VISITOR ANALYTICS
+// =============================================================================
+
+/** One `{ name, value }` slice of a visitor breakdown. */
+export interface VisitorSlice {
+  name: string;
+  value: number;
+}
+
+/**
+ * The shape `get_visitor_analytics(days, with_bots)` returns.
+ *
+ * Aggregated in Postgres rather than in the browser: a year of traffic is tens
+ * of thousands of rows and the admin only ever renders the summary of them.
+ */
+export interface VisitorAnalytics {
+  range_days: number;
+  total_views: number;
+  /**
+   * Distinct `visitor_hash` values. Zero while views are non-zero means the
+   * request IP never reached Postgres, so no hash could be derived — worth
+   * saying out loud rather than reporting "0 visitors" as if it were a count.
+   */
+  total_visitors: number;
+  bot_views: number;
+  by_day: { day: string; views: number; visitors: number }[];
+  top_pages: VisitorSlice[];
+  top_sources: VisitorSlice[];
+  by_channel: VisitorSlice[];
+  by_country: (VisitorSlice & { visitors: number })[];
+  by_city: (VisitorSlice & { country: string | null })[];
+  by_network: VisitorSlice[];
+  by_browser: VisitorSlice[];
+  by_os: VisitorSlice[];
+  by_device: VisitorSlice[];
+  by_hour: { hour: number; value: number }[];
 }

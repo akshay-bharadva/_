@@ -1,5 +1,5 @@
 /**
- * Validation for the one credential this module stores.
+ * Validation for the credentials `integration_settings` stores.
  *
  * A webhook URL is pasted from another application, and a mistyped one fails
  * silently inside a database trigger where nobody will ever see the error — so
