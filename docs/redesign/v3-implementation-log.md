@@ -253,6 +253,46 @@ editing in place on the note view. Migration `004`.
 - **A document wants the page, not a drawer.** Editing happens on the note view;
   creating opens the same screen empty.
 
+## Whiteboard
+
+**Is** — the Excalidraw board, made usable with a pen. The module was already
+sound structurally, so this is about the input device rather than the model.
+
+**Carried forward:**
+
+- **A drawing surface owns every gesture on it.** Without `touch-action: none`
+  and `overscroll-behavior: none` the browser wins first: a two-finger drag
+  zooms the page instead of panning the canvas, a long press raises the
+  selection callout mid-stroke, and a downward swipe at the top pulls to
+  refresh and takes the board with it. `-webkit-touch-callout: none` and
+  `select-none` finish the job; `env(safe-area-inset-bottom)` keeps the toolbar
+  off the home indicator.
+- **Palm rejection is the app's job, not the library's.** Excalidraw draws from
+  pointer events and cannot tell a stylus from the hand resting beside it, so
+  on a tablet the palm lands first and draws before the nib is down. The
+  listeners in `use-pen-input.ts` run in the **capture** phase on the wrapper —
+  above the canvas, because Excalidraw owns pointer events on its own surface —
+  and stop single-finger touch while pen-only is on. Two or more fingers pass
+  through: a mode that blocked all touch would also block pan and pinch and
+  make the board unusable on exactly the device it was meant to help.
+  `passive: false` is required, since `preventDefault` on a touch pointer is
+  what stops iOS treating the gesture as a page scroll.
+- **The pen-only toggle stays hidden until a stylus has been seen.** There is no
+  way to ask whether a pen exists — `maxTouchPoints` reports that a screen
+  accepts touch, which every tablet does whether or not a pen was ever paired —
+  so `pointerType === "pen"` on a real event is the only signal. On a laptop it
+  is a control for a problem the owner does not have.
+- **Autosave on idle, not on change.** A tablet session ends by locking the
+  screen or swiping the app away, neither of which runs a save handler, so
+  waiting for an explicit Save is how work is lost. Excalidraw fires `onChange`
+  per pointer move, so this polls a timestamp on an interval rather than
+  debouncing per change — re-arming a timeout on every frame is work during a
+  stroke. The first autosave of a new board captures the id it returns;
+  without that every later save would insert another row.
+- **`beforeunload` is the guard for the paths the component never sees** — a
+  closed tab, a reload, a followed link. It cannot save, because the handler
+  may not await, so it only asks.
+
 ---
 
 # Part three — Recurring patterns
@@ -377,10 +417,10 @@ place without running any migration.
 # Appendix — Status
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
-Learning, Notes.
+Learning, Notes, Whiteboard.
 
-**Not yet rebuilt:** Finance, Calendar, Inventory, Whiteboard, Settings,
-Security, Dashboard.
+**Not yet rebuilt:** Finance, Calendar, Inventory, Settings, Security,
+Dashboard.
 
 **Open:**
 

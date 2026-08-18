@@ -262,7 +262,7 @@ describe("BoardEditor", () => {
 
       await waitFor(() =>
         expect(mocks.toastError).toHaveBeenCalledWith(
-          "Failed to save whiteboard",
+          "Couldn't save the whiteboard",
           expect.objectContaining({ description: "offline" }),
         ),
       );
@@ -325,5 +325,103 @@ describe("BoardEditor", () => {
       await waitFor(() => expect(mocks.confirm).toHaveBeenCalled());
       expect(onClose).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("BoardEditor — autosave and pen input", () => {
+  /**
+   * A tablet session ends by locking the screen or swiping the app away, and
+   * neither runs a save handler. Waiting for an explicit Save is how a board
+   * gets lost.
+   */
+  it("saves on its own once the surface goes still", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.board = null;
+      mocks.elements = [{ id: "a" }];
+      mocks.save.mockReturnValue({
+        unwrap: () => Promise.resolve({ id: "b1" }),
+      });
+
+      render(<BoardEditor boardId={null} open onClose={vi.fn()} />);
+      fireEvent.click(screen.getByText("draw"));
+
+      // Still mid-stroke: nothing has been written.
+      await vi.advanceTimersByTimeAsync(1200);
+      expect(mocks.save).not.toHaveBeenCalled();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(mocks.save).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not close the editor when it autosaves", async () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    try {
+      mocks.board = null;
+      mocks.elements = [{ id: "a" }];
+      mocks.save.mockReturnValue({
+        unwrap: () => Promise.resolve({ id: "b1" }),
+      });
+
+      render(<BoardEditor boardId={null} open onClose={onClose} />);
+      fireEvent.click(screen.getByText("draw"));
+      await vi.advanceTimersByTimeAsync(4000);
+
+      expect(mocks.save).toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /** Otherwise every autosave after the first would insert another row. */
+  it("updates the board it just created rather than inserting again", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.board = null;
+      mocks.elements = [{ id: "a" }];
+      mocks.save.mockReturnValue({
+        unwrap: () => Promise.resolve({ id: "b1" }),
+      });
+
+      render(<BoardEditor boardId={null} open onClose={vi.fn()} />);
+
+      fireEvent.click(screen.getByText("draw"));
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(mocks.save.mock.calls[0]?.[0]).not.toHaveProperty("id");
+
+      fireEvent.click(screen.getByText("draw"));
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(mocks.save.mock.calls[1]?.[0]).toMatchObject({ id: "b1" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reports what the save state is", async () => {
+    mocks.board = null;
+    mocks.elements = [];
+    render(<BoardEditor boardId={null} open onClose={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("draw"));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Unsaved changes",
+    );
+  });
+
+  /**
+   * On a laptop this is a control for a problem the owner does not have, and
+   * there is no way to ask whether a pen exists before one is used.
+   */
+  it("hides the pen-only toggle until a stylus has been used", () => {
+    mocks.board = null;
+    render(<BoardEditor boardId={null} open onClose={vi.fn()} />);
+    expect(
+      screen.queryByRole("button", { name: "Draw with pen only" }),
+    ).not.toBeInTheDocument();
   });
 });
