@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Markdown } from "@/components/ui/markdown";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SOCIAL_ICONS } from "@/lib/social-icons";
+import { socialIcon } from "@/lib/social-icons";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { Band } from "@/components/layout/band";
 import { safeLinkUrl } from "@/lib/safe-url";
@@ -81,9 +81,9 @@ export default function PublicFooter() {
           {social_links
             .filter((social) => social.is_visible)
             .map((social) => {
-              const Icon = SOCIAL_ICONS[social.id.toLowerCase()];
+              const Icon = socialIcon(social.id);
               const href = safeLinkUrl(social.url);
-              if (!Icon || !href) return null;
+              if (!href) return null;
               const external = !href.startsWith("/") && !href.startsWith("#");
               return (
                 <li key={social.url}>

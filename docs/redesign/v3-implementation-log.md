@@ -386,6 +386,99 @@ makes the strongest one real. Migration `006` is **opt-in**.
 
 ---
 
+## Settings
+
+**Was** — ten cards in a two-column grid, one form, one Save button, and no way
+to see what a theme looked like before committing to it.
+
+**Is** — a navigator with a live preview: a rail of ten groups, one group in the
+pane, a Save that belongs to the group you are looking at, and a third pane
+rendering the real public views against unsaved values. Design options were put
+up as three rendered mockups (grouped navigator / navigator plus preview /
+sectioned scroll) and the middle one chosen.
+
+**No SQL migration.** `profile_data` was already JSONB and the shape is enforced
+in Zod, so everything below is a client and contract change.
+
+**Carried forward:**
+
+- **Form layout was deciding content shape.** `BIO_SLOTS = 2` and
+  `EXPLORING_SLOTS = 2` were constants in the page, and the load effect padded
+  the stored array to exactly that length — so a site could have one bio
+  paragraph or two and never three, a limit present in neither the schema nor
+  the database. Both are open lists now with ceilings in `SITE_LIST_LIMITS`.
+- **A closed list silently deleted data.** Social links were rendered by mapping
+  over `siteSettingsDefaultValues.social_links` and merging stored values in by
+  `id`, so a link whose id was not in the defaults file never appeared in the
+  form — and was dropped from the row on the next save. The list is open, ids
+  are editable, and `normalizeSocialLinks` repairs entries individually.
+- **"What does a missing key mean" had two answers.** `site-identity.ts`
+  answered it for the public site; a sixty-line `nullsToStrings` + merge + pad
+  block inside the page's `useEffect` answered it again for the admin, and only
+  the first had a test. The form now loads through `normalizeSiteContent`,
+  which grew a recursive `mergeDefaults` handling absent keys, explicit nulls
+  and wrong-typed values in one pass.
+- **One resolver over one submit means one bad field blocks every save.** A
+  malformed GitHub username stopped you fixing a footer typo. `issuesForGroup`
+  scopes validation to the group's field paths and `buildGroupPayload` writes
+  only the columns that group owns — so saving Footer sends `footer_data` alone
+  and cannot carry a half-typed name along with it. Both are pure functions
+  with their own tests.
+- **Every free-text field in the blob was unbounded.** `logo.main`,
+  `status_panel.title`, `availability`, `latestProject.*` and the GitHub
+  username had `.min(1)` and no ceiling, unlike every other module. They now
+  carry `LIMITS`, and the ones that were needlessly required are optional —
+  a required field in one group must not be what stops a fresh install from
+  saving an unrelated one. GitHub's username is required only while `show` is
+  on, via `superRefine`.
+- **A preview must be the real component or it is a second design.**
+  `HeroView`, `AboutView` and `ContactView` were split out of their fetching
+  wrappers so the preview renders exactly what ships. `ContactView` takes the
+  form and services as slots, because a preview must not render a working
+  submit button or fire the CMS query.
+- **Scope the theme, do not apply it.** The `theme-*` class and any custom
+  palette go on the preview subtree. Applying them to `<html>` would repaint the
+  admin on every hover through 52 presets and leave the site in the last one
+  hovered if you navigated away. `customThemeVars` was extracted from
+  `applyCustomThemeColors` so both use one mapping — and extracting it surfaced
+  that `--destructive` was being set to a raw hex, producing `hsl(#ef4444)` on
+  every custom theme.
+- **Scale a preview, do not narrow it.** Rendering into a 380px column shows the
+  mobile layout, which is not the layout you are choosing a theme for. The frame
+  renders at 1180px and is scaled by a measured factor; the scaled height is
+  measured too, because `transform` does not change layout size and the pane
+  would otherwise end in a screen of empty background.
+- **The build gate and the live check must be the same function.** The 52
+  presets are gated at AA by `theme-contrast.test.ts`; custom colours are typed
+  at runtime and reach no test. `contrastRatio` moved into `color-utils` and both
+  call it. `contrastRatioHex` refuses an unparseable value rather than returning
+  a confident ratio, because `hexToHsl` answers `"0 0% 0%"` for anything it
+  cannot read.
+- **`useFieldArray` is for arrays of objects.** It keys rows on an identity it
+  injects into each entry, so `append("")` on a `string[]` does not reliably
+  land as an empty string. `useStringList` manages both primitive lists through
+  `setValue` instead — changing the columns to objects to suit a form hook would
+  be the form deciding the data shape all over again.
+- **Nothing is dirty before the form has been filled.** Between first render and
+  the reset effect the form holds defaults while the server state holds the row,
+  so every group compared as dirty and the save bar flashed on every visit. Gate
+  the comparison on a hydration flag.
+- **A fixed bar is furniture the page has to make room for.** It covered the
+  last field of every group. The container reserves its height while it is up,
+  and the sticky preview column shortens by the same amount — neither reserves
+  anything on a clean page.
+- **Per-group save needs a master save beside it.** Editing three groups and
+  saving each one individually is three round trips and three chances to forget
+  one. `saveGroups` takes a list, so "Save all" is a single write over every
+  dirty group's fields; a group that fails validation is dropped from that write
+  and named in a second toast rather than sinking the others. Both buttons show
+  only when they would do different things.
+- **The preview belongs behind a split boundary.** Imported directly it took the
+  route to 409 kB first load, the largest in the app, on a screen most visits
+  open to change one string. Behind `next/dynamic` it is 345 kB.
+
+---
+
 # Part three — Recurring patterns
 
 Reach for these; they are already tested and already argued for.
@@ -510,13 +603,14 @@ place without running any migration.
 # Appendix — Status
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
-Learning, Notes, Whiteboard, Inventory, Security.
+Learning, Notes, Whiteboard, Inventory, Security, Settings.
 
-**Not yet rebuilt:** Finance, Calendar, Settings, Dashboard.
+**Not yet rebuilt:** Finance, Calendar, Dashboard.
 
 **Open:**
 
-- Migrations `002` and `004` have not been applied to the live database.
+- Migrations `002`, `004` and `005` have not been applied to the live database;
+  `006` is opt-in and awaiting a decision.
 - `[[` autocomplete against existing titles in `note-form.tsx`.
 - The Learning session timer still logs to `learning_sessions` from the notes
   editor only; it is not wired into the review flow, deliberately — a review is

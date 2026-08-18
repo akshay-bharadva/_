@@ -24,8 +24,9 @@ vi.mock("sonner", () => ({
 }));
 
 /**
- * A row as the database actually stores it: one bio paragraph and one
- * "currently exploring" entry, while the form renders two inputs for each.
+ * A row as the database actually stores it — including a social link whose id
+ * is not one the defaults file has ever heard of, which the previous form
+ * dropped on every save.
  */
 const storedSettings = {
   id: 1,
@@ -67,12 +68,19 @@ const storedSettings = {
   },
   social_links: [
     { id: "github", label: "GitHub", url: "https://gh", is_visible: true },
+    { id: "pixelfed", label: "Pixelfed", url: "https://pf", is_visible: true },
   ],
   footer_data: { copyright_text: "All rights reserved" },
 } as unknown as SiteContent;
 
+const openGroup = (label: string | RegExp) =>
+  fireEvent.click(screen.getAllByRole("button", { name: label })[0]);
+
+const lastPayload = () =>
+  mocks.update.mock.calls[mocks.update.mock.calls.length - 1][0];
+
 beforeEach(() => {
-  mocks.data = storedSettings;
+  mocks.data = JSON.parse(JSON.stringify(storedSettings));
   mocks.isLoading = false;
   mocks.update
     .mockReset()
@@ -82,97 +90,348 @@ beforeEach(() => {
 });
 
 describe("SettingsPage hydration", () => {
-  it("shows the stored values in the fields the form renders", async () => {
+  it("loads the stored row into the first group", async () => {
     render(<SettingsPage />);
-
-    await waitFor(() =>
-      expect(screen.getByLabelText("About Bio (Paragraph 1)")).toHaveValue(
-        "The only stored paragraph.",
-      ),
-    );
-    expect(screen.getByLabelText("Hero Title")).toHaveValue("Engineer");
-    expect(screen.getByLabelText("Exploring #1")).toHaveValue("Rust");
+    expect(await screen.findByLabelText("Display name")).toHaveValue("Akshay");
+    expect(screen.getByLabelText("Logo")).toHaveValue("Ak");
   });
 
-  it("renders the trailing array slots as controlled empty inputs", async () => {
+  it("stays clean on load", async () => {
     render(<SettingsPage />);
-
-    // These have no counterpart in the stored row. Left unpadded they register
-    // as `undefined`, which React renders as an uncontrolled input.
-    await waitFor(() =>
-      expect(screen.getByLabelText("About Bio (Paragraph 2)")).toHaveValue(""),
-    );
-    expect(screen.getByLabelText("Exploring #2")).toHaveValue("");
+    await screen.findByLabelText("Display name");
+    expect(screen.queryByText(/Unsaved changes in/)).toBeNull();
   });
 
-  it("stays clean on load, so the unsaved-changes bar is hidden", async () => {
+  it("names the group with unsaved changes", async () => {
     render(<SettingsPage />);
-
     await waitFor(() =>
-      expect(screen.getByLabelText("Hero Title")).toHaveValue("Engineer"),
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
     );
-    expect(screen.queryByText("You have unsaved changes")).toBeNull();
-  });
-
-  it("shows the unsaved-changes bar once a field is edited", async () => {
-    render(<SettingsPage />);
-
-    const title = await screen.findByLabelText("Hero Title");
-    fireEvent.change(title, { target: { value: "Staff Engineer" } });
-
-    expect(
-      await screen.findByText("You have unsaved changes"),
-    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Akshay B" },
+    });
+    // The bar names the group rather than saying "you have unsaved changes".
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: /Save brand & logo/i }),
+      ).not.toHaveLength(0),
+    );
   });
 });
 
-describe("SettingsPage submit", () => {
-  it("does not persist the blank slots the form padded in", async () => {
+describe("SettingsPage per-group save", () => {
+  /**
+   * The whole reason the screen was rebuilt around groups: previously one
+   * resolver ran over one submit, so a value the schema rejected anywhere
+   * blocked every unrelated save.
+   */
+  it("saves one group while another group is invalid", async () => {
     render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("Hero Title")).toHaveValue("Engineer"),
-    );
-    fireEvent.click(screen.getAllByRole("button", { name: /Save Changes/ })[0]);
+    // Break GitHub: the section is shown, so a blank username fails the schema.
+    openGroup(/^GitHub/);
+    fireEvent.change(await screen.findByLabelText("Username"), {
+      target: { value: "" },
+    });
+
+    // Now fix a footer typo. Nothing about GitHub should stand in the way.
+    openGroup(/^Footer/);
+    fireEvent.change(await screen.findByLabelText("Copyright line"), {
+      target: { value: "© 2026 Akshay" },
+    });
+    openGroup(/Save footer/);
 
     await waitFor(() => expect(mocks.update).toHaveBeenCalled());
-    const payload = mocks.update.mock.calls[0][0];
-    expect(payload.profile_data.bio).toEqual(["The only stored paragraph."]);
-    expect(payload.profile_data.status_panel.currently_exploring.items).toEqual(
-      ["Rust"],
-    );
+    expect(lastPayload().footer_data.copyright_text).toBe("© 2026 Akshay");
   });
 
-  it("stays clean through a save round-trip", async () => {
-    // Saving invalidates the SiteContent tag, so the query hands back a fresh
-    // object and the form resets again. Nothing the user did should be dirty.
-    const { rerender } = render(<SettingsPage />);
-    await waitFor(() =>
-      expect(screen.getByLabelText("Hero Title")).toHaveValue("Engineer"),
-    );
-    fireEvent.click(screen.getAllByRole("button", { name: /Save Changes/ })[0]);
-    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+  it("refuses the group that is actually invalid", async () => {
+    render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
 
-    mocks.data = JSON.parse(JSON.stringify(storedSettings));
-    rerender(<SettingsPage />);
+    openGroup(/^GitHub/);
+    fireEvent.change(await screen.findByLabelText("Username"), {
+      target: { value: "" },
+    });
+    openGroup(/Save github/i);
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("Hero Title")).toHaveValue("Engineer"),
-    );
-    expect(screen.queryByText("You have unsaved changes")).toBeNull();
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalled());
+    expect(mocks.update).not.toHaveBeenCalled();
   });
 
-  it("keeps both paragraphs when both are filled", async () => {
+  /** Saving the footer must not carry a half-typed name into the database. */
+  it("writes only the columns the group owns", async () => {
     render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
 
-    const second = await screen.findByLabelText("About Bio (Paragraph 2)");
-    fireEvent.change(second, { target: { value: "A second paragraph." } });
-    fireEvent.click(screen.getAllByRole("button", { name: /Save Changes/ })[0]);
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Half-typed na" },
+    });
+
+    openGroup(/^Footer/);
+    fireEvent.change(await screen.findByLabelText("Copyright line"), {
+      target: { value: "© 2026" },
+    });
+    openGroup(/Save footer/);
 
     await waitFor(() => expect(mocks.update).toHaveBeenCalled());
-    expect(mocks.update.mock.calls[0][0].profile_data.bio).toEqual([
+    const payload = lastPayload();
+    expect(Object.keys(payload)).toEqual(["footer_data"]);
+    expect(payload.profile_data).toBeUndefined();
+  });
+
+  it("keeps untouched parts of profile_data when saving one part of it", async () => {
+    render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Akshay B" },
+    });
+    openGroup(/Save brand & logo/i);
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    const payload = lastPayload();
+    expect(payload.profile_data.name).toBe("Akshay B");
+    expect(payload.profile_data.github_projects_config.username).toBe("akshay");
+    expect(payload.profile_data.status_panel.availability).toBe("Open to work");
+  });
+});
+
+describe("SettingsPage open lists", () => {
+  /**
+   * `BIO_SLOTS = 2` used to be the only thing deciding how many bio paragraphs
+   * a site could have — a limit present in neither the schema nor the database.
+   */
+  it("accepts a third bio paragraph", async () => {
+    render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
+
+    openGroup(/^Hero & bio/);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add paragraph" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add paragraph" }));
+
+    fireEvent.change(screen.getByLabelText("Bio paragraph 2"), {
+      target: { value: "Second." },
+    });
+    fireEvent.change(screen.getByLabelText("Bio paragraph 3"), {
+      target: { value: "Third." },
+    });
+    openGroup(/Save hero & bio/i);
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(lastPayload().profile_data.bio).toEqual([
       "The only stored paragraph.",
-      "A second paragraph.",
+      "Second.",
+      "Third.",
     ]);
+  });
+
+  it("drops a bio row left blank rather than rendering an empty paragraph", async () => {
+    render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
+
+    openGroup(/^Hero & bio/);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Add paragraph" }),
+    );
+    openGroup(/Save hero & bio/i);
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(lastPayload().profile_data.bio).toEqual([
+      "The only stored paragraph.",
+    ]);
+  });
+
+  /**
+   * The old section mapped over a hard-coded list and merged by id, so a link
+   * the defaults file did not contain never appeared — and was written away.
+   */
+  it("keeps a social link whose id is not a known platform", async () => {
+    render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
+
+    openGroup(/^Social links/);
+    expect(await screen.findByDisplayValue("Pixelfed")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Link 1 URL"), {
+      target: { value: "https://github.com/akshay" },
+    });
+    openGroup(/Save social links/i);
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(lastPayload().social_links).toHaveLength(2);
+    expect(lastPayload().social_links[1].id).toBe("pixelfed");
+  });
+
+  it("adds a link that was not in the row at all", async () => {
+    render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
+
+    openGroup(/^Social links/);
+    fireEvent.click(await screen.findByRole("button", { name: "LinkedIn" }));
+    openGroup(/Save social links/i);
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalled());
+    expect(
+      lastPayload().social_links.map((link: { id: string }) => link.id),
+    ).toContain("linkedin");
+  });
+});
+
+describe("SettingsPage revert", () => {
+  it("restores this group and leaves other groups alone", async () => {
+    render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
+
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Changed" },
+    });
+
+    openGroup(/^Footer/);
+    fireEvent.change(await screen.findByLabelText("Copyright line"), {
+      target: { value: "Also changed" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "Revert" })[0]);
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Copyright line")).toHaveValue(
+        "All rights reserved",
+      ),
+    );
+
+    // The nav item's accessible name carries its unsaved marker.
+    openGroup(/^Brand & logo/);
+    expect(await screen.findByLabelText("Display name")).toHaveValue("Changed");
+  });
+});
+
+describe("SettingsNav search", () => {
+  it("filters the rail and finds a group by a field path", async () => {
+    render(<SettingsPage />);
+    await screen.findByLabelText("Display name");
+
+    fireEvent.change(screen.getAllByLabelText("Search settings")[0], {
+      target: { value: "custom_theme_colors" },
+    });
+
+    await waitFor(() =>
+      expect(screen.queryAllByRole("button", { name: "Footer" })).toHaveLength(
+        0,
+      ),
+    );
+    expect(
+      screen.getAllByRole("button", { name: "Theme" }).length,
+    ).toBeGreaterThan(0);
+  });
+});
+
+describe("SettingsPage save all", () => {
+  const dirtyTwoGroups = async () => {
+    render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Akshay B" },
+    });
+
+    openGroup(/^Footer/);
+    fireEvent.change(await screen.findByLabelText("Copyright line"), {
+      target: { value: "© 2026" },
+    });
+  };
+
+  it("offers no master save while only one group is dirty", async () => {
+    render(<SettingsPage />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("Display name")).toHaveValue("Akshay"),
+    );
+    fireEvent.change(screen.getByLabelText("Display name"), {
+      target: { value: "Akshay B" },
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: /Save brand & logo/i }),
+      ).not.toHaveLength(0),
+    );
+    // "Save all" and "Save this group" would be the same write.
+    expect(screen.queryByRole("button", { name: /Save all/i })).toBeNull();
+  });
+
+  /**
+   * The point of a master save: two groups edited across two visits go to the
+   * database in one write, not one per group.
+   */
+  it("writes every dirty group in a single request", async () => {
+    await dirtyTwoGroups();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Save all \(2\)/i }),
+    );
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
+    const payload = lastPayload();
+    expect(payload.profile_data.name).toBe("Akshay B");
+    expect(payload.footer_data.copyright_text).toBe("© 2026");
+    // Groups nobody touched are still not in the write.
+    expect(payload.social_links).toBeUndefined();
+  });
+
+  it("names every dirty group in the bar", async () => {
+    await dirtyTwoGroups();
+    expect(await screen.findByText(/Brand & logo, Footer/)).toBeInTheDocument();
+  });
+
+  /** One invalid group must not stop the others from being saved. */
+  it("saves the valid groups and reports the one it skipped", async () => {
+    await dirtyTwoGroups();
+
+    openGroup(/^GitHub/);
+    fireEvent.change(await screen.findByLabelText("Username"), {
+      target: { value: "" },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Save all \(3\)/i }),
+    );
+
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
+    const payload = lastPayload();
+    expect(payload.profile_data.name).toBe("Akshay B");
+    expect(payload.footer_data.copyright_text).toBe("© 2026");
+    // The blank username is not written, and the skip is reported rather than
+    // swallowed.
+    expect(payload.profile_data.github_projects_config.username).toBe("akshay");
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith(
+        expect.stringContaining("GitHub"),
+        expect.anything(),
+      ),
+    );
+  });
+
+  it("discards every dirty group at once", async () => {
+    await dirtyTwoGroups();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Discard all/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Copyright line")).toHaveValue(
+        "All rights reserved",
+      ),
+    );
+    openGroup(/^Brand & logo/);
+    expect(await screen.findByLabelText("Display name")).toHaveValue("Akshay");
   });
 });

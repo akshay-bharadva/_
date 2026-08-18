@@ -665,8 +665,10 @@ export type ContactFormValues = z.infer<typeof contactFormSchema>;
 // =============================================================================
 
 export const socialLinkSchema = z.object({
-  id: z.string(),
-  label: z.string().max(LIMITS.TITLE, "Label is too long"),
+  // Doubles as the lookup key into SOCIAL_ICONS and as the React key, so a
+  // blank id would collapse two rows onto one another in the editor.
+  id: boundedRequiredString(LIMITS.TAG, "Link id"),
+  label: boundedRequiredString(LIMITS.TITLE, "Label"),
   // `mailto:`/`tel:` are legitimate here (the "email" link is one), and z.url()
   // accepts them, but the public renderer runs every one through safeLinkUrl.
   url: urlOrEmpty,
@@ -675,12 +677,40 @@ export const socialLinkSchema = z.object({
 
 export type SocialLinkFormValues = z.infer<typeof socialLinkSchema>;
 
+/**
+ * How many entries each open-ended list may hold.
+ *
+ * These used to be implicit and wrong in both directions: `bio` and
+ * `currently_exploring.items` were capped at exactly two by the number of
+ * inputs the form drew (`BIO_SLOTS`, `EXPLORING_SLOTS`), which is form layout
+ * deciding content shape, while the arrays themselves had no ceiling at all in
+ * the schema. Now the ceiling is in the contract and the form draws whatever
+ * the contract allows.
+ */
+export const SITE_LIST_LIMITS = {
+  BIO_PARAGRAPHS: 6,
+  EXPLORING_ITEMS: 8,
+  SOCIAL_LINKS: 12,
+} as const;
+
+/**
+ * A list of short strings that drops blanks on the way through.
+ *
+ * The editor keeps an empty row while you are typing into it; persisting that
+ * row would render an empty paragraph or an empty bullet on the public site.
+ */
+const trimmedList = (max: number, count: number, label: string) =>
+  z
+    .array(z.string().max(max, `${label} is too long`))
+    .max(count, `At most ${count} ${label.toLowerCase()} entries`)
+    .transform((items) => items.filter((item) => item.trim() !== ""));
+
 export const siteSettingsSchema = z.object({
   portfolio_mode: z.enum(["multi-page", "single-page"]),
   profile_data: z.object({
     name: boundedRequiredString(LIMITS.TITLE, "Name"),
     title: boundedRequiredString(LIMITS.TITLE, "Title"),
-    default_theme: z.string(),
+    default_theme: boundedRequiredString(LIMITS.TAG, "Theme"),
     // Fed to hexToHsl() and written straight into CSS custom properties, so a
     // malformed value here silently blanks out the whole custom theme.
     custom_theme_colors: z
@@ -694,59 +724,97 @@ export const siteSettingsSchema = z.object({
       })
       .optional(),
     description: boundedRequiredString(LIMITS.SUMMARY, "Hero description"),
-    profile_picture_url: z
-      .string()
-      .url("Must be a valid URL")
-      .or(z.literal("")),
+    profile_picture_url: urlOrEmpty,
     show_profile_picture: z.boolean(),
+    // Optional because a fresh install has neither, and a required field in one
+    // group must not be what stops an unrelated group from saving.
     logo: z.object({
-      main: z.string().min(1, "Main logo text is required"),
-      highlight: z.string().min(1, "Highlight logo text is required"),
+      main: z.string().max(LIMITS.TITLE, "Logo text is too long"),
+      highlight: z.string().max(LIMITS.TITLE, "Logo highlight is too long"),
     }),
-    bio: z
-      .array(z.string().max(LIMITS.BODY, "Bio paragraph is too long"))
-      .min(1, "At least one bio paragraph is required"),
+    bio: trimmedList(LIMITS.BODY, SITE_LIST_LIMITS.BIO_PARAGRAPHS, "Bio"),
     status_panel: z.object({
       show: z.boolean().default(true),
       design: z.enum(["minimal", "terminal", "bento"]).default("minimal"),
-      title: z.string(),
-      availability: z.string().min(1, "Availability text is required"),
+      title: z.string().max(LIMITS.TITLE, "Panel title is too long"),
+      availability: z
+        .string()
+        .max(LIMITS.TITLE, "Availability text is too long"),
       currently_exploring: z.object({
-        title: z.string(),
-        items: z
-          .array(z.string())
-          .transform((items) => items.filter((item) => item.trim() !== "")),
+        title: z.string().max(LIMITS.TITLE, "Heading is too long"),
+        items: trimmedList(
+          LIMITS.TITLE,
+          SITE_LIST_LIMITS.EXPLORING_ITEMS,
+          "Exploring",
+        ),
       }),
       latestProject: z.object({
-        name: z.string().min(1, "Project name is required"),
-        linkText: z.string().min(1, "Link text is required"),
-        href: z.string().min(1, "Project URL path is required"),
+        name: z.string().max(LIMITS.TITLE, "Project name is too long"),
+        linkText: z.string().max(LIMITS.TITLE, "Link text is too long"),
+        // A path such as "/projects", not an absolute URL — safeLinkUrl allows
+        // both and the renderer decides whether to open a new tab.
+        href: z.string().max(LIMITS.URL, "Project URL is too long"),
       }),
     }),
-    github_projects_config: z.object({
-      username: z.string().min(1, "GitHub username is required."),
-      show: z.boolean(),
-      sort_by: z.enum(["pushed", "created", "updated"]),
-      exclude_forks: z.boolean(),
-      exclude_archived: z.boolean(),
-      exclude_profile_repo: z.boolean(),
-      min_stars: z.coerce.number().min(0, "Cannot be negative."),
-      projects_per_page: z.coerce
-        .number()
-        .min(1, "Must be at least 1.")
-        .max(100, "Max is 100."),
-    }),
+    github_projects_config: z
+      .object({
+        username: z.string().max(LIMITS.TITLE, "Username is too long"),
+        show: z.boolean(),
+        sort_by: z.enum(["pushed", "created", "updated"]),
+        exclude_forks: z.boolean(),
+        exclude_archived: z.boolean(),
+        exclude_profile_repo: z.boolean(),
+        min_stars: z.coerce.number().int().min(0, "Cannot be negative."),
+        projects_per_page: z.coerce
+          .number()
+          .int()
+          .min(1, "Must be at least 1.")
+          .max(100, "Max is 100."),
+      })
+      // Required only when the section is switched on. Demanding a username
+      // from someone who has turned GitHub off is how one group's field ends
+      // up blocking every other group's save.
+      .superRefine((config, ctx) => {
+        if (config.show && config.username.trim() === "") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["username"],
+            message: "GitHub username is required while the section is shown.",
+          });
+        }
+      }),
     contact_page: z.object({
       show_contact_form: z.boolean().default(true),
       show_availability_badge: z.boolean().default(true),
       show_services: z.boolean().default(true),
     }),
     updates_layout: z.enum(["timeline", "scrapbook"]).default("scrapbook"),
-    typography_preset: z.string().default("typo-default"),
+    typography_preset: boundedRequiredString(LIMITS.TAG, "Typography preset"),
   }),
-  social_links: z.array(socialLinkSchema),
+  social_links: z
+    .array(socialLinkSchema)
+    .max(
+      SITE_LIST_LIMITS.SOCIAL_LINKS,
+      `At most ${SITE_LIST_LIMITS.SOCIAL_LINKS} social links`,
+    )
+    .superRefine((links, ctx) => {
+      const seen = new Set<string>();
+      links.forEach((link, index) => {
+        const key = link.id.trim().toLowerCase();
+        if (seen.has(key)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [index, "id"],
+            message: "Each link needs its own id.",
+          });
+        }
+        seen.add(key);
+      });
+    }),
   footer_data: z.object({
-    copyright_text: boundedRequiredString(LIMITS.SUMMARY, "Copyright text"),
+    copyright_text: z
+      .string()
+      .max(LIMITS.SUMMARY, "Copyright text is too long"),
   }),
 });
 

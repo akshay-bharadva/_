@@ -76,4 +76,100 @@ describe("normalizeSiteContent", () => {
     expect(result.profile_data.contact_page.show_contact_form).toBe(true);
     expect(result.footer_data.copyright_text).toBeDefined();
   });
+
+  /**
+   * The admin settings form loads through this function too, so it has to
+   * repair the shapes a hand-edited row can hold — not only fill absent keys.
+   */
+  it("replaces a null where an object belongs", () => {
+    const result = normalizeSiteContent({
+      profile_data: { logo: null, status_panel: null },
+    } as unknown as Partial<SiteContent>);
+    expect(result.profile_data.logo.main).toBe("");
+    expect(result.profile_data.status_panel.show).toBe(true);
+  });
+
+  it("replaces a value of the wrong type with the default", () => {
+    const result = normalizeSiteContent({
+      profile_data: { bio: "not an array", show_profile_picture: "yes" },
+    } as unknown as Partial<SiteContent>);
+    expect(result.profile_data.bio).toEqual([]);
+    expect(result.profile_data.show_profile_picture).toBe(true);
+  });
+
+  it("keeps keys the defaults have never heard of", () => {
+    const result = normalizeSiteContent({
+      profile_data: { name: "Ada", future_field: 42 },
+    } as unknown as Partial<SiteContent>);
+    expect(
+      (result.profile_data as unknown as Record<string, unknown>).future_field,
+    ).toBe(42);
+  });
+
+  it("drops blank rows from both editable lists", () => {
+    const result = normalizeSiteContent({
+      profile_data: {
+        bio: ["Real.", "   ", ""],
+        status_panel: { currently_exploring: { items: ["Rust", ""] } },
+      },
+    } as unknown as Partial<SiteContent>);
+    expect(result.profile_data.bio).toEqual(["Real."]);
+    expect(result.profile_data.status_panel.currently_exploring.items).toEqual([
+      "Rust",
+    ]);
+  });
+});
+
+/**
+ * The settings form used to match stored links against a hard-coded default
+ * list by id and keep only what matched, so anything else was dropped on the
+ * next save.
+ */
+describe("normalizeSiteContent social links", () => {
+  it("keeps a link whose id is not a known platform", () => {
+    const result = normalizeSiteContent({
+      social_links: [
+        {
+          id: "pixelfed",
+          label: "Pixelfed",
+          url: "https://pf",
+          is_visible: true,
+        },
+      ],
+    } as unknown as Partial<SiteContent>);
+    expect(result.social_links).toHaveLength(1);
+    expect(result.social_links[0].id).toBe("pixelfed");
+  });
+
+  it("repairs a link with missing or null fields", () => {
+    const result = normalizeSiteContent({
+      social_links: [{ id: "github" }, { url: null }],
+    } as unknown as Partial<SiteContent>);
+
+    expect(result.social_links[0]).toEqual({
+      id: "github",
+      label: "github",
+      url: "",
+      is_visible: true,
+    });
+    // No usable id at all: given a positional one so it still has a React key.
+    expect(result.social_links[1].id).toBe("link-2");
+    expect(result.social_links[1].url).toBe("");
+  });
+
+  it("treats an absent is_visible as visible", () => {
+    const result = normalizeSiteContent({
+      social_links: [{ id: "a", label: "A", url: "https://a" }],
+    } as unknown as Partial<SiteContent>);
+    expect(result.social_links[0].is_visible).toBe(true);
+  });
+
+  it("respects an explicit false", () => {
+    const result = normalizeSiteContent({
+      social_links: [
+        { id: "a", label: "A", url: "https://a", is_visible: false },
+      ],
+    } as unknown as Partial<SiteContent>);
+    expect(result.social_links[0].is_visible).toBe(false);
+  });
 });

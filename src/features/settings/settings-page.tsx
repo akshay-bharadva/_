@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Save } from "lucide-react";
+import { Eye, Loader2, RotateCcw, Save } from "lucide-react";
 import {
   useGetSiteSettingsQuery,
   useUpdateSiteSettingsMutation,
@@ -13,249 +13,419 @@ import {
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   siteSettingsDefaultValues,
   siteSettingsSchema,
   type SiteSettingsFormValues,
 } from "@/lib/schemas";
+import { normalizeSiteContent } from "@/lib/site-identity";
 import { getErrorMessage } from "@/lib/utils";
-import { ManagerWrapper, PageHeader } from "@/components/admin/shared";
+import { cn } from "@/lib/cn";
+import { ManagerWrapper } from "@/components/admin/shared";
 import { SettingsSkeleton } from "./settings-skeleton";
-import { BrandIdentitySection } from "./brand-identity-section";
-import { HeroAboutSection } from "./hero-about-section";
-import { GitHubSection } from "./github-section";
+import { SettingsNav } from "./settings-nav";
+import { SettingsPreviewLazy } from "./settings-preview-lazy";
+import {
+  DEFAULT_GROUP_ID,
+  SETTINGS_GROUPS,
+  findGroup,
+  type PreviewPage,
+  type SettingsGroup,
+} from "./settings-groups";
+import {
+  buildGroupPayload,
+  getAtPath,
+  groupIsDirty,
+  issuesForGroup,
+} from "./settings-payload";
+import { BrandSection } from "./brand-section";
+import { HeroSection } from "./hero-section";
+import { SocialLinksSection } from "./social-links-section";
 import { ThemeSection } from "./theme-section";
 import { TypographySection } from "./typography-section";
-import { SocialLinksSection } from "./social-links-section";
-import { StatusPanelSection } from "./status-panel-section";
 import { LayoutSection } from "./layout-section";
-import { FooterSection } from "./footer-section";
+import { StatusPanelSection } from "./status-panel-section";
+import { GitHubSection } from "./github-section";
 import { ContactPageSection } from "./contact-page-section";
+import { FooterSection } from "./footer-section";
+import type { SettingsForm } from "./settings-controls";
 
-// How many inputs each section renders for its string array. Kept next to the
-// form because it is the form layout, not the schema, that fixes these counts:
-// HeroAboutSection renders bio.0/bio.1, StatusPanelSection items.0/items.1.
-const BIO_SLOTS = 2;
-const EXPLORING_SLOTS = 2;
+/**
+ * Site settings, as a navigator with a live preview.
+ *
+ * Three things about the shape, each replacing something the previous screen
+ * got wrong:
+ *
+ * - **One group at a time.** Ten cards in a two-column grid meant a long scroll
+ *   with no sense of place. The registry in `settings-groups.ts` drives the
+ *   rail, the search, and what each Save touches.
+ *
+ * - **Per-group save.** The old screen ran one resolver over one submit, so an
+ *   invalid GitHub username blocked fixing a footer typo. Validation is now
+ *   scoped with `issuesForGroup`, and the write with `buildGroupPayload` — so
+ *   saving one group never persists another group's half-finished edit.
+ *
+ * - **A live preview.** Theme, typography, status-panel design and the contact
+ *   toggles were all chosen from dropdown labels and verified by opening the
+ *   public site in another tab.
+ */
+
+const SECTION_BY_GROUP: Record<
+  string,
+  (props: { form: SettingsForm }) => JSX.Element
+> = {
+  brand: BrandSection,
+  hero: HeroSection,
+  social: SocialLinksSection,
+  theme: ThemeSection,
+  typography: TypographySection,
+  layout: LayoutSection,
+  status: StatusPanelSection,
+  github: GitHubSection,
+  contact: ContactPageSection,
+  footer: FooterSection,
+};
 
 export default function SettingsPage() {
-  const { data: settingsData, isLoading: isLoadingSettings } =
-    useGetSiteSettingsQuery();
-  const [updateSiteSettings, { isLoading: isSubmitting }] =
+  const { data: settingsData, isLoading } = useGetSiteSettingsQuery();
+  const [updateSiteSettings, { isLoading: isSaving }] =
     useUpdateSiteSettingsMutation();
+
+  const [activeId, setActiveId] = useState(DEFAULT_GROUP_ID);
+  const [search, setSearch] = useState("");
+  const [previewPage, setPreviewPage] = useState<PreviewPage>("home");
+  const [invalidIds, setInvalidIds] = useState<ReadonlySet<string>>(new Set());
 
   const form = useForm<SiteSettingsFormValues>({
     resolver: zodResolver(siteSettingsSchema),
     defaultValues: siteSettingsDefaultValues,
+    mode: "onBlur",
   });
 
+  /**
+   * The last state the server confirmed, and the baseline every dirty check and
+   * partial write is measured against.
+   *
+   * This used to be a sixty-line `useEffect` that scrubbed nulls, merged three
+   * levels of defaults by hand and padded two arrays to the number of inputs
+   * the form drew. `normalizeSiteContent` already answered the same question
+   * for the public site; the admin now asks the same function.
+   */
+  const serverState = useMemo(
+    () =>
+      settingsData
+        ? (normalizeSiteContent(
+            settingsData,
+          ) as unknown as SiteSettingsFormValues)
+        : null,
+    [settingsData],
+  );
+
+  /**
+   * `false` until the row has been loaded into the form.
+   *
+   * Between the first render and this effect the form still holds
+   * `siteSettingsDefaultValues` while `serverState` holds the real row, so
+   * every group compares as dirty and the save bar flashes up for a frame on
+   * every visit. Nothing is dirty before the form has been filled.
+   */
+  const [hydrated, setHydrated] = useState(false);
+
   useEffect(() => {
-    if (settingsData) {
-      // Helper to convert nulls to empty strings for form compatibility
-      const nullsToStrings = (obj: any): any => {
-        if (obj === null || obj === undefined) return "";
-        if (typeof obj !== "object") return obj;
-        if (Array.isArray(obj)) return obj.map(nullsToStrings);
-        return Object.fromEntries(
-          Object.entries(obj).map(([key, value]) => [
-            key,
-            nullsToStrings(value),
-          ]),
-        );
-      };
-      const cleanIdentity = nullsToStrings(settingsData);
+    if (!serverState) return;
+    form.reset(serverState);
+    setHydrated(true);
+  }, [serverState, form]);
 
-      // The form exposes a fixed number of inputs per string array (two bio
-      // paragraphs, two "exploring" entries). Handing it a shorter array leaves
-      // those trailing fields with no entry in defaultValues, so registering
-      // them writes `undefined` into the form values and the array grows past
-      // its default — which react-hook-form reads as a dirty form the moment
-      // the page loads, and renders the input as uncontrolled (empty) instead
-      // of showing the stored value. Pad to exactly what the UI renders.
-      const padTo = (value: unknown, count: number): string[] => {
-        const list = Array.isArray(value) ? value : [];
-        return Array.from({ length: count }, (_, i) => list[i] ?? "");
-      };
+  const values = form.watch();
+  const group = findGroup(activeId);
 
-      const fetchedSocials =
-        (cleanIdentity.social_links as {
-          id: string;
-          label: string;
-          url: string;
-          is_visible: boolean;
-        }[]) || [];
-      const mergedSocials = (siteSettingsDefaultValues.social_links || []).map(
-        (def) => {
-          const fetched = fetchedSocials.find((f) => f.id === def.id);
-          return fetched ? { ...def, ...fetched } : def;
-        },
+  useEffect(() => {
+    if (group.preview) setPreviewPage(group.preview);
+  }, [group.preview]);
+
+  const dirtyIds = useMemo(() => {
+    if (!serverState || !hydrated) return new Set<string>();
+    return new Set(
+      SETTINGS_GROUPS.filter((candidate) =>
+        groupIsDirty(serverState, values, candidate.fields),
+      ).map((candidate) => candidate.id),
+    );
+  }, [serverState, values, hydrated]);
+
+  const isDirty = dirtyIds.has(group.id);
+  // The bar is up whenever *any* group is dirty, not only the one on screen —
+  // otherwise navigating away from an edited group hides the only control that
+  // would save it.
+  const anyDirty = dirtyIds.size > 0;
+
+  /**
+   * Save one or more groups in a single write.
+   *
+   * Taking a list rather than always the active group is what makes "Save all"
+   * one round trip instead of N: the payload is every named group's fields laid
+   * over the server row at once, so the columns are written once and cannot be
+   * left half-applied if a later request fails.
+   *
+   * A group whose fields fail validation is dropped from the write rather than
+   * failing the whole thing — the same rule as the single-group case, applied
+   * across the set. Skipping it is reported; it is never silently ignored.
+   */
+  const saveGroups = useCallback(
+    async (targets: readonly SettingsGroup[]) => {
+      if (!serverState || targets.length === 0) return;
+
+      const current = form.getValues();
+      const parsed = siteSettingsSchema.safeParse(current);
+      const issues = parsed.success ? [] : parsed.error.issues;
+
+      const blocked = targets.filter(
+        (target) => issuesForGroup(issues, target.fields).length > 0,
       );
+      const savable = targets.filter((target) => !blocked.includes(target));
 
-      const fetchedColors =
-        cleanIdentity.profile_data.custom_theme_colors || {};
-      const defaultColors =
-        siteSettingsDefaultValues.profile_data.custom_theme_colors!;
-      const mergedColors = {
-        background: fetchedColors.background || defaultColors.background,
-        foreground: fetchedColors.foreground || defaultColors.foreground,
-        primary: fetchedColors.primary || defaultColors.primary,
-        secondary: fetchedColors.secondary || defaultColors.secondary,
-        accent: fetchedColors.accent || defaultColors.accent,
-        card: fetchedColors.card || defaultColors.card,
-      };
+      form.clearErrors();
+      for (const target of blocked) {
+        for (const issue of issuesForGroup(issues, target.fields)) {
+          form.setError(issue.path.join(".") as never, {
+            type: "validate",
+            message: issue.message,
+          });
+        }
+      }
 
-      const mergedProfileData = {
-        ...siteSettingsDefaultValues.profile_data,
-        ...cleanIdentity.profile_data,
-        custom_theme_colors: mergedColors,
-        logo: {
-          ...siteSettingsDefaultValues.profile_data.logo,
-          ...(cleanIdentity.profile_data.logo || {}),
-        },
-        status_panel: {
-          ...siteSettingsDefaultValues.profile_data.status_panel,
-          ...(cleanIdentity.profile_data.status_panel || {}),
-          show: cleanIdentity.profile_data.status_panel?.show ?? true,
-          currently_exploring: {
-            ...siteSettingsDefaultValues.profile_data.status_panel
-              .currently_exploring,
-            ...(cleanIdentity.profile_data.status_panel?.currently_exploring ||
-              {}),
-            items: padTo(
-              cleanIdentity.profile_data.status_panel?.currently_exploring
-                ?.items,
-              EXPLORING_SLOTS,
-            ),
-          },
-          latestProject: {
-            ...siteSettingsDefaultValues.profile_data.status_panel
-              .latestProject,
-            ...(cleanIdentity.profile_data.status_panel?.latestProject || {}),
-          },
-        },
-        github_projects_config: {
-          ...siteSettingsDefaultValues.profile_data.github_projects_config,
-          ...(cleanIdentity.profile_data.github_projects_config || {}),
-        },
-        contact_page: {
-          ...siteSettingsDefaultValues.profile_data.contact_page,
-          ...(cleanIdentity.profile_data.contact_page || {}),
-        },
-        bio: padTo(cleanIdentity.profile_data.bio, BIO_SLOTS),
-      };
-
-      form.reset({
-        portfolio_mode: settingsData.portfolio_mode || "multi-page",
-        profile_data: mergedProfileData,
-        social_links: mergedSocials,
-        footer_data:
-          cleanIdentity.footer_data || siteSettingsDefaultValues.footer_data,
+      setInvalidIds((previous) => {
+        const next = new Set(previous);
+        for (const target of targets) next.delete(target.id);
+        for (const target of blocked) next.add(target.id);
+        return next;
       });
-    }
-  }, [settingsData, form]);
 
-  const onSubmit = async (values: SiteSettingsFormValues) => {
-    // The padding above is a form-layout concern; don't persist the blank
-    // slots, or the public About page renders an empty paragraph for each one.
-    // (`currently_exploring.items` is already filtered by its schema transform.)
-    const bio = values.profile_data.bio.filter((p) => p.trim() !== "");
-    const payload: SiteSettingsFormValues = {
-      ...values,
-      profile_data: {
-        ...values.profile_data,
-        bio: bio.length ? bio : [""],
-      },
-    };
+      const describeBlocked = () =>
+        blocked.map((target) => target.label).join(", ");
 
-    try {
-      await updateSiteSettings(payload).unwrap();
-      toast.success("Site settings updated successfully!");
-    } catch (err) {
-      toast.error("Failed to save settings", {
-        description: getErrorMessage(err),
+      if (savable.length === 0) {
+        const first = issuesForGroup(issues, blocked[0].fields)[0];
+        // Send the reader to the group that is actually wrong, since with
+        // "Save all" it may not be the one on screen.
+        setActiveId(blocked[0].id);
+        toast.error(`${describeBlocked()} needs fixing`, {
+          description: first.message,
+        });
+        return;
+      }
+
+      // Take the validated shape when the whole form parses (it strips blank
+      // list rows), and the raw values when it does not, since a failure
+      // elsewhere must not stop these groups from being written.
+      const source = parsed.success
+        ? (parsed.data as SiteSettingsFormValues)
+        : current;
+
+      const fields = savable.flatMap((target) => [...target.fields]);
+      const payload = buildGroupPayload(serverState, source, fields);
+
+      try {
+        await updateSiteSettings(payload).unwrap();
+        toast.success(
+          savable.length === 1
+            ? `${savable[0].label} saved`
+            : `Saved ${savable.length} groups`,
+        );
+        if (blocked.length > 0) {
+          toast.error(`${describeBlocked()} was not saved`, {
+            description: "Fix the highlighted fields and save again.",
+          });
+        }
+      } catch (error) {
+        toast.error("Could not save", { description: getErrorMessage(error) });
+      }
+    },
+    [form, serverState, updateSiteSettings],
+  );
+
+  const saveGroup = useCallback(() => saveGroups([group]), [saveGroups, group]);
+
+  const dirtyGroups = useMemo(
+    () => SETTINGS_GROUPS.filter((candidate) => dirtyIds.has(candidate.id)),
+    [dirtyIds],
+  );
+
+  /** Put the named groups' fields back to the last saved values. */
+  const revertGroups = useCallback(
+    (targets: readonly SettingsGroup[]) => {
+      if (!serverState) return;
+      for (const target of targets) {
+        for (const path of target.fields) {
+          form.setValue(path as never, getAtPath(serverState, path) as never, {
+            shouldDirty: false,
+            shouldValidate: false,
+          });
+        }
+      }
+      setInvalidIds((previous) => {
+        const next = new Set(previous);
+        for (const target of targets) next.delete(target.id);
+        return next;
       });
-    }
-  };
+      form.clearErrors();
+    },
+    [form, serverState],
+  );
 
-  const isDirty = form.formState.isDirty;
+  const revertGroup = useCallback(
+    () => revertGroups([group]),
+    [revertGroups, group],
+  );
 
-  if (isLoadingSettings) return <SettingsSkeleton />;
+  const revertAll = useCallback(
+    () => revertGroups(dirtyGroups),
+    [revertGroups, dirtyGroups],
+  );
+
+  if (isLoading || !serverState) return <SettingsSkeleton />;
+
+  const Section = SECTION_BY_GROUP[group.id];
+
+  const nav = (
+    <SettingsNav
+      activeId={activeId}
+      onSelect={setActiveId}
+      dirtyIds={dirtyIds}
+      invalidIds={invalidIds}
+      search={search}
+      onSearchChange={setSearch}
+    />
+  );
+
+  const preview = group.preview ? (
+    <SettingsPreviewLazy
+      values={values as never}
+      page={previewPage}
+      onPageChange={setPreviewPage}
+      className="h-full"
+    />
+  ) : (
+    <div className="flex h-full flex-col items-center justify-center gap-2 rounded-surface bg-card p-8 text-center shadow-e1">
+      <Eye className="size-5 text-muted-foreground" aria-hidden />
+      <p className="text-sm font-medium">Nothing to preview</p>
+      <p className="max-w-[24ch] text-xs text-muted-foreground">
+        {group.label} changes route structure rather than what a page looks
+        like.
+      </p>
+    </div>
+  );
 
   return (
-    <ManagerWrapper className="pb-24">
-      <PageHeader
-        title="Site Settings"
-        description="Manage global settings for your portfolio's identity and layout."
-        actions={
-          <Button
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={isSubmitting}
-            className="w-full shadow-e2 sm:w-auto"
-          >
-            {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}{" "}
-            Save Changes
-          </Button>
-        }
-      />
-
+    <ManagerWrapper
+      // The bar is fixed to the viewport, so it covers whatever is under it.
+      // Reserving its height only while it is up keeps the last field
+      // reachable without leaving a hole on a clean page.
+      className={cn("transition-[padding]", anyDirty ? "pb-28" : "pb-4")}
+    >
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-1 lg:grid-cols-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void saveGroup();
+          }}
+          className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] xl:grid-cols-[13rem_minmax(0,1fr)_24rem]"
         >
-          {/* Left Column — Identity & Content */}
-          <div className="space-y-6 lg:col-span-2">
-            <BrandIdentitySection form={form} />
-            <HeroAboutSection form={form} />
-            <ThemeSection form={form} />
-            <TypographySection form={form} />
-            <SocialLinksSection form={form} />
+          <aside className="hidden lg:block">{nav}</aside>
+
+          <div className="min-w-0">
+            <GroupHeader
+              title={group.label}
+              description={group.description}
+              dirty={isDirty}
+              saving={isSaving}
+              onRevert={revertGroup}
+              mobileNav={nav}
+              previewPane={group.preview ? preview : null}
+            />
+
+            <div className="mt-6">{Section && <Section form={form} />}</div>
           </div>
 
-          {/* Right Column — Layout & Features */}
-          <div className="space-y-6 lg:col-span-1">
-            <LayoutSection form={form} />
-            <StatusPanelSection form={form} />
-            <GitHubSection form={form} />
-            <ContactPageSection form={form} />
-            <FooterSection form={form} />
-          </div>
+          <aside
+            className={cn(
+              "hidden xl:sticky xl:top-24 xl:flex xl:flex-col",
+              anyDirty
+                ? "xl:h-[calc(100vh-16rem)]"
+                : "xl:h-[calc(100vh-11rem)]",
+            )}
+          >
+            {preview}
+          </aside>
         </form>
       </Form>
 
-      {/* Sticky Save Banner */}
       <AnimatePresence>
         {isDirty && (
           <motion.div
-            initial={{ y: 80, opacity: 0 }}
+            initial={{ y: 72, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 shadow-[0_-4px_20px_rgba(0,0,0,0.15)] backdrop-blur-md"
+            exit={{ y: 72, opacity: 0 }}
+            transition={{ type: "spring", damping: 26, stiffness: 320 }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-card/95 shadow-e3 backdrop-blur"
           >
-            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-              <p className="text-sm text-muted-foreground">
-                You have unsaved changes
+            <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+              <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+                Unsaved changes in{" "}
+                <span className="font-medium text-foreground">
+                  {dirtyGroups.map((entry) => entry.label).join(", ")}
+                </span>
               </p>
-              <div className="flex items-center gap-3">
+
+              <div className="flex shrink-0 items-center gap-2">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => form.reset()}
-                  disabled={isSubmitting}
+                  onClick={revertAll}
+                  disabled={isSaving}
                 >
-                  Discard
+                  <RotateCcw className="mr-1.5 size-3.5" />
+                  {dirtyIds.size > 1 ? "Discard all" : "Revert"}
                 </Button>
+
+                {/*
+                  Two save buttons only when they mean different things. With a
+                  single dirty group "Save all" and "Save this" are the same
+                  write, and offering both would be a choice with no content.
+                */}
+                {isDirty && dirtyIds.size > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void saveGroup()}
+                    disabled={isSaving}
+                  >
+                    Save {group.label.toLowerCase()}
+                  </Button>
+                )}
+
                 <Button
+                  type="button"
                   size="sm"
-                  onClick={form.handleSubmit(onSubmit)}
-                  disabled={isSubmitting}
+                  onClick={() => void saveGroups(dirtyGroups)}
+                  disabled={isSaving}
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  {isSaving ? (
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                   ) : (
-                    <Save className="mr-2 size-4" />
+                    <Save className="mr-1.5 size-3.5" />
                   )}
-                  Save Changes
+                  {dirtyIds.size > 1
+                    ? `Save all (${dirtyIds.size})`
+                    : `Save ${dirtyGroups[0]?.label.toLowerCase() ?? "changes"}`}
                 </Button>
               </div>
             </div>
@@ -263,5 +433,97 @@ export default function SettingsPage() {
         )}
       </AnimatePresence>
     </ManagerWrapper>
+  );
+}
+
+/**
+ * The pane heading, plus the two controls that only exist below `xl`: the group
+ * picker and the preview. Both are the same components the wide layout renders
+ * in columns — a drawer is a different container, not a different feature.
+ */
+function GroupHeader({
+  title,
+  description,
+  dirty,
+  saving,
+  onRevert,
+  mobileNav,
+  previewPane,
+}: {
+  title: string;
+  description: string;
+  dirty: boolean;
+  saving: boolean;
+  onRevert: () => void;
+  mobileNav: JSX.Element;
+  previewPane: JSX.Element | null;
+}) {
+  return (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+          {description}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="lg:hidden"
+            >
+              All settings
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-72 overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Settings</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4">{mobileNav}</div>
+          </SheetContent>
+        </Sheet>
+
+        {previewPane && (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="xl:hidden"
+              >
+                <Eye className="mr-1.5 size-3.5" />
+                Preview
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              className="flex w-full flex-col sm:max-w-xl"
+            >
+              <SheetHeader>
+                <SheetTitle>Preview</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 min-h-0 flex-1">{previewPane}</div>
+            </SheetContent>
+          </Sheet>
+        )}
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRevert}
+          disabled={!dirty || saving}
+          className={cn(!dirty && "opacity-0")}
+          aria-hidden={!dirty}
+        >
+          Revert
+        </Button>
+      </div>
+    </div>
   );
 }

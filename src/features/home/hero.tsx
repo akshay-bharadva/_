@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
+import type { SiteContent } from "@/types";
 import { Markdown } from "@/components/ui/markdown";
-import { SOCIAL_ICONS } from "@/lib/social-icons";
+import { socialIcon } from "@/lib/social-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Band } from "@/components/layout/band";
 import { safeLinkUrl } from "@/lib/safe-url";
@@ -82,7 +83,7 @@ function SocialRow({
       {visible.map((link) => {
         const href = safeLinkUrl(link.url);
         if (!href) return null;
-        const Icon = SOCIAL_ICONS[link.id as keyof typeof SOCIAL_ICONS];
+        const Icon = socialIcon(link.id);
         const external = !href.startsWith("/") && !href.startsWith("#");
         return (
           <li key={link.id}>
@@ -98,7 +99,7 @@ function SocialRow({
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               )}
             >
-              {Icon && <Icon className="size-4 text-muted-foreground" />}
+              <Icon className="size-4 text-muted-foreground" />
               {link.label}
             </a>
           </li>
@@ -142,10 +143,22 @@ function HeroSkeleton() {
  */
 export function Hero() {
   const { data: identity, isLoading } = useGetSiteIdentityQuery();
-  const reduceMotion = useReducedMotion();
 
   if (isLoading || !identity) return <HeroSkeleton />;
+  return <HeroView identity={identity} />;
+}
 
+/**
+ * The band itself, over identity passed in rather than fetched.
+ *
+ * Split out so the settings preview can render the real hero against unsaved
+ * form values. Keeping one component and stubbing the query would mean the
+ * preview and the live page could only ever be checked together; keeping two
+ * copies of the markup would mean they drift. A view/container split is the
+ * only arrangement where the thing you preview *is* the thing that ships.
+ */
+export function HeroView({ identity }: { identity: SiteContent }) {
+  const reduceMotion = useReducedMotion();
   const { profile_data, social_links } = identity;
   const panel = profile_data.status_panel;
 

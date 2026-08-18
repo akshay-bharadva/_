@@ -79,3 +79,86 @@ export function hexToHsl(hex: string): string {
 
   return `${h} ${s}% ${l}%`;
 }
+
+/* ---------------------------------------------------------------------------
+ * Contrast
+ *
+ * The WCAG maths used to live only inside `theme-contrast.test.ts`, which gates
+ * the 52 presets at build time. The settings screen now lets the owner pick six
+ * arbitrary hex colours for `theme-custom`, and those never go through that
+ * test — nothing in CI can check a value that is typed at runtime. So the same
+ * calculation has to be reachable from the app, and it must be the *same* one:
+ * a second implementation that rounds differently would let the UI approve a
+ * palette the build would reject.
+ * ------------------------------------------------------------------------- */
+
+export interface Hsl {
+  h: number;
+  s: number;
+  l: number;
+}
+
+/** WCAG AA for normal-size text. */
+export const AA_NORMAL_TEXT = 4.5;
+/** WCAG AA for large text (>=18.66px bold or >=24px). */
+export const AA_LARGE_TEXT = 3;
+
+/** Parse a `"220 13% 9%"` design token. Null for anything not in that shape. */
+export function parseHslToken(token: string): Hsl | null {
+  const match = token.trim().match(/^([\d.]+)\s+([\d.]+)%\s+([\d.]+)%$/);
+  if (!match) return null;
+  return {
+    h: Number.parseFloat(match[1]),
+    s: Number.parseFloat(match[2]),
+    l: Number.parseFloat(match[3]),
+  };
+}
+
+/** HSL to linear 0-1 RGB. */
+export function hslToRgb({ h, s, l }: Hsl): [number, number, number] {
+  const sn = s / 100;
+  const ln = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sn * Math.min(ln, 1 - ln);
+  const f = (n: number) =>
+    ln - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [f(0), f(8), f(4)];
+}
+
+/** WCAG relative luminance of an sRGB triple given as 0-1 channels. */
+export function relativeLuminance(rgb: [number, number, number]): number {
+  const channel = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const [r, g, b] = rgb.map(channel);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Contrast ratio between two HSL colours, 1:1 to 21:1. */
+export function contrastRatio(a: Hsl, b: Hsl): number {
+  const la = relativeLuminance(hslToRgb(a));
+  const lb = relativeLuminance(hslToRgb(b));
+  const [hi, lo] = la > lb ? [la, lb] : [lb, la];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Contrast ratio between two hex colours — what the custom-theme form holds.
+ *
+ * Returns null when either value is not a colour we can read, so the caller
+ * shows "cannot check" rather than a confident number derived from `#000`.
+ */
+export function contrastRatioHex(a: string, b: string): number | null {
+  // `hexToHsl` parses digit-by-digit and yields "0 0% 0%" for anything it does
+  // not understand, so an unvalidated call reports pure black with total
+  // confidence. Check the shape first.
+  if (!isHexColor(a) || !isHexColor(b)) return null;
+  const ha = parseHslToken(hexToHsl(a));
+  const hb = parseHslToken(hexToHsl(b));
+  if (!ha || !hb) return null;
+  return contrastRatio(ha, hb);
+}
+
+/** `#RGB` or `#RRGGBB` — the two forms `hexToHsl` can actually read. */
+export function isHexColor(value: string): boolean {
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value.trim());
+}

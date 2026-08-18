@@ -1,8 +1,6 @@
 "use client";
 
-import { UseFormReturn } from "react-hook-form";
-import { BookImage, Clock, LayoutDashboard } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookImage, Clock, FileStack, Layers } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   FormControl,
@@ -10,121 +8,128 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { Separator } from "@/components/ui/separator";
-import type { SiteSettingsFormValues } from "@/lib/schemas";
+import { cn } from "@/lib/cn";
+import { FieldGroup, type SettingsForm } from "./settings-controls";
 
-export interface LayoutSectionProps {
-  form: UseFormReturn<SiteSettingsFormValues>;
+/** A radio rendered as a selectable surface rather than a bordered tile. */
+function ChoiceTile({
+  value,
+  icon: Icon,
+  title,
+  note,
+  selected,
+}: {
+  value: string;
+  icon: typeof Clock;
+  title: string;
+  note: string;
+  selected: boolean;
+}) {
+  return (
+    <FormItem className="space-y-0">
+      <FormControl>
+        <RadioGroupItem value={value} className="peer sr-only" />
+      </FormControl>
+      <FormLabel
+        className={cn(
+          "flex h-full cursor-pointer flex-col gap-2 rounded-surface bg-card p-4 font-normal transition-shadow duration-200 ease-enter",
+          selected
+            ? "shadow-e3 ring-2 ring-primary"
+            : "shadow-e1 hover:shadow-e2",
+        )}
+      >
+        <Icon
+          className={cn(
+            "size-5",
+            selected ? "text-primary" : "text-muted-foreground",
+          )}
+        />
+        <span className="text-sm font-medium text-foreground">{title}</span>
+        <span className="text-xs leading-relaxed text-muted-foreground">
+          {note}
+        </span>
+      </FormLabel>
+    </FormItem>
+  );
 }
 
-export function LayoutSection({ form }: LayoutSectionProps) {
+export function LayoutSection({ form }: { form: SettingsForm }) {
+  const mode = form.watch("portfolio_mode");
+  const updates = form.watch("profile_data.updates_layout");
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <LayoutDashboard className="size-5 text-primary" /> Global Layout
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Portfolio Mode */}
-        <div>
-          <h4 className="mb-2 text-sm font-medium">Portfolio Mode</h4>
-          <FormField
-            control={form.control}
-            name="portfolio_mode"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    className="flex flex-col gap-2"
-                  >
-                    <FormItem className="flex cursor-pointer items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-secondary/10">
-                      <FormControl>
-                        <RadioGroupItem value="multi-page" />
-                      </FormControl>
-                      <FormLabel className="flex-1 cursor-pointer font-normal">
-                        Multi-Page
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex cursor-pointer items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-secondary/10">
-                      <FormControl>
-                        <RadioGroupItem value="single-page" />
-                      </FormControl>
-                      <FormLabel className="flex-1 cursor-pointer font-normal">
-                        Single-Page
-                      </FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
+    <div className="space-y-6">
+      <FieldGroup
+        title="Portfolio mode"
+        description="Whether the public site is a set of routes or one scrolling page."
+      >
+        <FormField
+          control={form.control}
+          name="portfolio_mode"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  <ChoiceTile
+                    value="multi-page"
+                    icon={FileStack}
+                    title="Multi-page"
+                    note="Home, About, Projects and Contact as separate routes."
+                    selected={mode === "multi-page"}
+                  />
+                  <ChoiceTile
+                    value="single-page"
+                    icon={Layers}
+                    title="Single-page"
+                    note="Everything stacked on one page, navigation scrolls."
+                    selected={mode === "single-page"}
+                  />
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      </FieldGroup>
 
-        <Separator />
-
-        {/* Updates Layout */}
-        <div>
-          <h4 className="mb-1 text-sm font-medium">Updates Page Layout</h4>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Choose how life updates are displayed on the public page.
-          </p>
-          <FormField
-            control={form.control}
-            name="profile_data.updates_layout"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    value={field.value || "scrapbook"}
-                    className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-                  >
-                    <FormItem className="space-y-0">
-                      <FormControl>
-                        <RadioGroupItem
-                          value="scrapbook"
-                          className="peer sr-only"
-                        />
-                      </FormControl>
-                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-surface border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
-                        <BookImage className="size-8 text-muted-foreground peer-data-[state=checked]:text-primary" />
-                        <div className="text-center">
-                          <p className="text-sm font-medium">Scrapbook</p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            Polaroid cards with washi tape and random rotations
-                          </p>
-                        </div>
-                      </FormLabel>
-                    </FormItem>
-
-                    <FormItem className="space-y-0">
-                      <FormControl>
-                        <RadioGroupItem
-                          value="timeline"
-                          className="peer sr-only"
-                        />
-                      </FormControl>
-                      <FormLabel className="flex cursor-pointer flex-col items-center gap-2 rounded-surface border-2 p-4 transition-colors hover:bg-secondary/10 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5">
-                        <Clock className="size-8 text-muted-foreground peer-data-[state=checked]:text-primary" />
-                        <div className="text-center">
-                          <p className="text-sm font-medium">Timeline</p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            Chronological feed with month grouping and colored
-                            dots
-                          </p>
-                        </div>
-                      </FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-      </CardContent>
-    </Card>
+      <FieldGroup
+        title="Updates feed"
+        description="How life updates are arranged on /updates."
+      >
+        <FormField
+          control={form.control}
+          name="profile_data.updates_layout"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  value={field.value || "scrapbook"}
+                  className="grid gap-3 sm:grid-cols-2"
+                >
+                  <ChoiceTile
+                    value="scrapbook"
+                    icon={BookImage}
+                    title="Scrapbook"
+                    note="Polaroid cards with washi tape, dealt into ordered columns."
+                    selected={(updates || "scrapbook") === "scrapbook"}
+                  />
+                  <ChoiceTile
+                    value="timeline"
+                    icon={Clock}
+                    title="Timeline"
+                    note="Chronological feed grouped by month."
+                    selected={updates === "timeline"}
+                  />
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      </FieldGroup>
+    </div>
   );
 }

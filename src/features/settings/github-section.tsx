@@ -1,17 +1,14 @@
 "use client";
 
-import { UseFormReturn } from "react-hook-form";
-import { Github } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -19,173 +16,117 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import type { SiteSettingsFormValues } from "@/lib/schemas";
+import { FieldGroup, ToggleRow, type SettingsForm } from "./settings-controls";
 
-export interface GitHubSectionProps {
-  form: UseFormReturn<SiteSettingsFormValues>;
-}
+const SORT_LABELS = [
+  { value: "pushed", label: "Recently pushed" },
+  { value: "updated", label: "Recently updated" },
+  { value: "created", label: "Newest first" },
+] as const;
 
-export function GitHubSection({ form }: GitHubSectionProps) {
+export function GitHubSection({ form }: { form: SettingsForm }) {
+  const show = form.watch("profile_data.github_projects_config.show");
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Github className="size-5 text-primary" /> GitHub Integration
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-6">
+      <ToggleRow
+        form={form}
+        name="profile_data.github_projects_config.show"
+        label="Show GitHub projects"
+        description="Pulls public repositories onto the projects page."
+      />
+
+      <FormField
+        control={form.control}
+        name="profile_data.github_projects_config.username"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Username</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="octocat" />
+            </FormControl>
+            <FormDescription>
+              {show
+                ? "Required while the section is shown."
+                : "Optional while the section is hidden."}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <FormField
           control={form.control}
-          name="profile_data.github_projects_config.show"
+          name="profile_data.github_projects_config.sort_by"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-surface border bg-secondary/10 p-3 shadow-e1">
-              <div className="space-y-0.5">
-                <FormLabel>Show GitHub Section</FormLabel>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
+            <FormItem>
+              <FormLabel>Order</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {SORT_LABELS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
             </FormItem>
           )}
         />
         <FormField
           control={form.control}
-          name="profile_data.github_projects_config.username"
+          name="profile_data.github_projects_config.projects_per_page"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>GitHub Username</FormLabel>
+              <FormLabel>Repositories shown</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="your-username" />
+                <Input type="number" min={1} max={100} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Accordion type="single" collapsible className="w-full">
-          <AccordionItem value="item-1" className="border-b-0">
-            <AccordionTrigger className="py-2 hover:no-underline">
-              Advanced Options
-            </AccordionTrigger>
-            <AccordionContent className="space-y-4 px-1 pt-4">
-              <FormField
-                control={form.control}
-                name="profile_data.github_projects_config.sort_by"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sort Repos By</FormLabel>
-                    {/* Controlled, not `defaultValue`: the form is reset from
-                        the fetched settings after this mounts, and an
-                        uncontrolled Select keeps showing the schema default. */}
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pushed">Last Pushed</SelectItem>
-                        <SelectItem value="updated">Last Updated</SelectItem>
-                        <SelectItem value="created">Created Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="profile_data.github_projects_config.min_stars"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Min Stars</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="profile_data.github_projects_config.projects_per_page"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Per Page</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="space-y-3 pt-2">
-                <FormField
-                  control={form.control}
-                  name="profile_data.github_projects_config.exclude_forks"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-2">
-                      <FormLabel className="text-sm font-normal">
-                        Exclude Forks
-                      </FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="profile_data.github_projects_config.exclude_archived"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-2">
-                      <FormLabel className="text-sm font-normal">
-                        Exclude Archived
-                      </FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="profile_data.github_projects_config.exclude_profile_repo"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-2">
-                      <FormLabel className="text-sm font-normal">
-                        Exclude Profile Repo
-                      </FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </CardContent>
-    </Card>
+      </div>
+
+      <FieldGroup title="Filters" description="What to leave out.">
+        <FormField
+          control={form.control}
+          name="profile_data.github_projects_config.min_stars"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-xs">Minimum stars</FormLabel>
+              <FormControl>
+                <Input type="number" min={0} {...field} className="h-9" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="space-y-2">
+          <ToggleRow
+            form={form}
+            name="profile_data.github_projects_config.exclude_forks"
+            label="Hide forks"
+          />
+          <ToggleRow
+            form={form}
+            name="profile_data.github_projects_config.exclude_archived"
+            label="Hide archived"
+          />
+          <ToggleRow
+            form={form}
+            name="profile_data.github_projects_config.exclude_profile_repo"
+            label="Hide the profile README repo"
+          />
+        </div>
+      </FieldGroup>
+    </div>
   );
 }

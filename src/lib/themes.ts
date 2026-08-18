@@ -62,31 +62,47 @@ export function resolveThemeClass(dbTheme: string | undefined): string {
   return dbTheme.startsWith("theme-") ? dbTheme : `theme-${dbTheme}`;
 }
 
-/** Map the 6 user-picked colors onto the full CSS variable set. */
+/**
+ * Map the 6 user-picked colors onto the full CSS variable set.
+ *
+ * Returned as plain declarations rather than written to the DOM, so the same
+ * mapping serves both callers: `applyCustomThemeColors` puts it on <html>, and
+ * the settings preview puts it on a single subtree. A preview that derived the
+ * variables itself would be a second mapping, and the one you were looking at
+ * while choosing colours would be the one with no test behind it.
+ */
+export function customThemeVars(
+  colors: CustomThemeColors,
+): Record<string, string> {
+  return {
+    "--background": hexToHsl(colors.background),
+    "--foreground": hexToHsl(colors.foreground),
+    "--primary": hexToHsl(colors.primary),
+    "--primary-foreground": hexToHsl(colors.background),
+    "--secondary": hexToHsl(colors.secondary),
+    "--secondary-foreground": hexToHsl(colors.foreground),
+    "--accent": hexToHsl(colors.accent),
+    "--accent-foreground": hexToHsl(colors.background),
+    "--card": hexToHsl(colors.card),
+    "--card-foreground": hexToHsl(colors.foreground),
+    "--popover": hexToHsl(colors.background),
+    "--popover-foreground": hexToHsl(colors.foreground),
+    "--muted": hexToHsl(colors.secondary),
+    "--muted-foreground": hexToHsl(colors.foreground),
+    "--destructive": hexToHsl("#ef4444"),
+    "--destructive-foreground": hexToHsl(colors.foreground),
+    "--border": hexToHsl(colors.secondary),
+    "--input": hexToHsl(colors.secondary),
+    "--ring": hexToHsl(colors.primary),
+  };
+}
+
+/** Write the custom palette onto <html>. */
 export function applyCustomThemeColors(colors: CustomThemeColors): void {
   const root = document.documentElement;
-  const setVar = (name: string, hex: string) =>
-    root.style.setProperty(`--${name}`, hexToHsl(hex));
-
-  setVar("background", colors.background);
-  setVar("foreground", colors.foreground);
-  setVar("primary", colors.primary);
-  setVar("primary-foreground", colors.background);
-  setVar("secondary", colors.secondary);
-  setVar("secondary-foreground", colors.foreground);
-  setVar("accent", colors.accent);
-  setVar("accent-foreground", colors.background);
-  setVar("card", colors.card);
-  setVar("card-foreground", colors.foreground);
-  setVar("popover", colors.background);
-  setVar("popover-foreground", colors.foreground);
-  setVar("muted", colors.secondary);
-  setVar("muted-foreground", colors.foreground);
-  setVar("destructive", "#ef4444");
-  setVar("destructive-foreground", colors.foreground);
-  setVar("border", colors.secondary);
-  setVar("input", colors.secondary);
-  setVar("ring", colors.primary);
+  for (const [name, value] of Object.entries(customThemeVars(colors))) {
+    root.style.setProperty(name, value);
+  }
 }
 
 /** Remove inline custom-color overrides so preset theme classes win. */
