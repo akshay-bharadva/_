@@ -9,6 +9,7 @@ import {
   Calendar as CalendarIcon,
   Plus,
   Repeat,
+  Settings2,
   Target,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ import {
   useGetFinanceSettingsQuery,
   useGetFxRatesQuery,
   useGetFinanceCategoriesQuery,
+  useGetFinanceAccountsQuery,
   useSaveRecurringMutation,
   useSaveTransactionMutation,
 } from "@/store/api/adminApi";
@@ -50,6 +52,8 @@ import {
 import { getErrorMessage, parseLocalDate } from "@/lib/utils";
 import { buildForecastData } from "@/lib/finance-utils";
 import { useFxSync } from "./use-fx-sync";
+import { TransferForm } from "./transfer-form";
+import { CurrencySettings } from "./currency-settings";
 import type { DialogState } from "./finance-types";
 import { TransactionsTab } from "./transactions-tab";
 import { RecurringTab } from "./recurring-tab";
@@ -110,6 +114,8 @@ export default function FinancePage() {
   const [sheetState, setSheetState] = useState<DialogState>({ type: null });
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false);
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: financialData, isLoading, error } = useGetFinancialDataQuery();
   const { data: financeSettings } = useGetFinanceSettingsQuery();
@@ -125,6 +131,7 @@ export default function FinancePage() {
   useFxSync(financeSettings?.base_currency, fxRates);
 
   const { data: financeCategories = [] } = useGetFinanceCategoriesQuery();
+  const { data: financeAccounts = [] } = useGetFinanceAccountsQuery();
 
   const [deleteTransaction] = useDeleteTransactionMutation();
   const [deleteRecurring] = useDeleteRecurringMutation();
@@ -312,6 +319,14 @@ export default function FinancePage() {
                 <DropdownMenuItem onSelect={() => handleOpenSheet("recurring")}>
                   <Repeat className="mr-2 size-4" /> Recurring Rule
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsSettingsOpen(true)}>
+                  <Settings2 className="mr-2 size-4" />
+                  Currency & targets
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsTransferOpen(true)}>
+                  <ArrowRightLeft className="mr-2 size-4" />
+                  Transfer
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => handleOpenSheet("goal")}>
                   <Target className="mr-2 size-4" /> Goal
                 </DropdownMenuItem>
@@ -447,6 +462,33 @@ export default function FinancePage() {
           />
         </TabsContent>
       </Tabs>
+
+      <FormSheet
+        open={isSettingsOpen}
+        onOpenChange={setIsSettingsOpen}
+        title="Currency & targets"
+        description="What every report totals in, and what you are aiming for."
+      >
+        {financeSettings && (
+          <CurrencySettings
+            settings={financeSettings}
+            onDone={() => setIsSettingsOpen(false)}
+          />
+        )}
+      </FormSheet>
+
+      <FormSheet
+        open={isTransferOpen}
+        onOpenChange={setIsTransferOpen}
+        title="Record a transfer"
+        description="Move money between your own accounts, including across a border."
+      >
+        <TransferForm
+          accounts={financeAccounts}
+          categories={financeCategories}
+          onDone={() => setIsTransferOpen(false)}
+        />
+      </FormSheet>
 
       <AddNewDrawer
         open={isAddDrawerOpen}
