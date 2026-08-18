@@ -252,7 +252,9 @@ export function ratePercentile(
   history: number[],
   minimumSamples = 10,
 ): number | null {
-  const samples = history.filter((value) => Number.isFinite(value) && value > 0);
+  const samples = history.filter(
+    (value) => Number.isFinite(value) && value > 0,
+  );
   if (samples.length < minimumSamples) return null;
 
   const below = samples.filter((value) => value < rate).length;

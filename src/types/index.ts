@@ -259,11 +259,39 @@ export interface Task {
 export interface Transaction {
   id: string;
   user_id?: string;
+  /** When it hit the account. Not necessarily when it was *due*. */
   date: string;
   description: string;
   amount: number;
   type: "earning" | "expense";
+  /** Legacy free-text label. `category_id` supersedes it. */
   category?: string | null;
+  category_id?: string | null;
+  account_id?: string | null;
+  /** The currency actually spent, which need not be the account's. */
+  currency?: string | null;
+  /**
+   * Base-currency units per unit of `currency`, frozen on the day it happened.
+   * Filled by a database trigger. Null when no rate was available, which the
+   * UI reports rather than papering over.
+   */
+  fx_rate?: number | null;
+  /** `amount * fx_rate`, denormalised so every aggregate is a plain SUM. */
+  base_amount?: number | null;
+  /** Both legs of a transfer share this; a transfer is two rows, not a table. */
+  transfer_group?: string | null;
+  /** What the transfer itself cost — wire fee, FX margin. */
+  fee_amount?: number | null;
+  merchant?: string | null;
+  notes?: string | null;
+  /** Not yet cleared the bank; excluded from "what do I actually have". */
+  is_pending?: boolean;
+  /**
+   * The date the recurring occurrence was *due*, which is not `date`: a salary
+   * due Friday and entered Monday is still Friday's occurrence. This is what
+   * stops the confirm queue proposing it twice.
+   */
+  occurrence_date?: string | null;
   created_at?: string;
   updated_at?: string;
   recurring_transaction_id?: string | null;
@@ -281,6 +309,19 @@ export interface RecurringTransaction {
   end_date?: string | null;
   occurrence_day?: number | null;
   last_processed_date?: string | null;
+  account_id?: string | null;
+  category_id?: string | null;
+  currency?: string | null;
+  /**
+   * Off by default, and that default is the point: a biweekly salary is 1,000
+   * until two days of unpaid leave make it 800. Occurrences are proposed for
+   * confirmation unless a rule opts in to posting itself.
+   */
+  auto_post?: boolean;
+  /** The amount is typical rather than fixed — the forecast draws a band. */
+  is_estimate?: boolean;
+  notes?: string | null;
+  archived_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -293,6 +334,114 @@ export interface FinancialGoal {
   target_amount: number;
   current_amount: number;
   target_date?: string | null;
+  currency?: string | null;
+  /** Funded by a real account, so progress is observed rather than remembered. */
+  account_id?: string | null;
+  kind?: "save" | "payoff" | "buffer" | null;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// =============================================================================
+// FINANCE — accounts, currency, budgets, scenarios
+// =============================================================================
+
+export type AccountKind =
+  | "chequing"
+  | "savings"
+  | "credit"
+  | "cash"
+  | "investment"
+  | "loan";
+
+/**
+ * Note the two vocabularies. `transaction_type` is ('earning','expense') and
+ * describes a transaction's direction; `CategoryBucket` classifies a *category*
+ * for 50/30/20 and uses 'income'. Mixing them is a runtime error, not a type
+ * error — the database enums are separate and Postgres will reject the wrong
+ * one from inside a trigger.
+ */
+export type CategoryBucket = "income" | "need" | "want" | "save" | "transfer";
+
+export interface FinanceAccount {
+  id: string;
+  user_id?: string;
+  name: string;
+  kind: AccountKind;
+  currency: string;
+  institution?: string | null;
+  /** Reconciliation anchor: what the account really held on `opening_date`. */
+  opening_balance: number;
+  opening_date: string;
+  credit_limit?: number | null;
+  statement_day?: number | null;
+  payment_due_day?: number | null;
+  /** Counted in "safe to spend"; a locked retirement account is not. */
+  is_liquid: boolean;
+  color?: string | null;
+  sort_order: number;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinanceCategory {
+  id: string;
+  user_id?: string;
+  name: string;
+  bucket: CategoryBucket;
+  icon?: string | null;
+  color?: string | null;
+  /** Still payable if income stopped tomorrow — the basis of runway. */
+  is_essential: boolean;
+  sort_order: number;
+  archived_at?: string | null;
+}
+
+export interface FinanceBudget {
+  id: string;
+  user_id?: string;
+  category_id: string;
+  /** First of the month, so a budget is addressable without a range query. */
+  period: string;
+  amount: number;
+  rollover: boolean;
+}
+
+export interface FinanceSettings {
+  user_id?: string;
+  base_currency: string;
+  /** The corridor money is actually sent along, for the FX view's default. */
+  home_currency?: string | null;
+  needs_target_pct: number;
+  wants_target_pct: number;
+  save_target_pct: number;
+  runway_target_months: number;
+}
+
+export interface FxRateRow {
+  base: string;
+  quote: string;
+  as_of: string;
+  rate: number;
+  source?: string | null;
+}
+
+/** One adjustment in a what-if scenario. */
+export type ScenarioAdjustment =
+  | { kind: "category_delta"; category_id: string; percent: number }
+  | { kind: "recurring_delta"; recurring_id: string; amount: number }
+  | { kind: "one_off"; label: string; amount: number; date: string }
+  | { kind: "income_delta"; percent: number };
+
+export interface FinanceScenario {
+  id: string;
+  user_id?: string;
+  name: string;
+  description?: string | null;
+  adjustments: ScenarioAdjustment[];
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }

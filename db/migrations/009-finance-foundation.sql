@@ -153,6 +153,9 @@ CREATE TRIGGER update_finance_accounts_updated_at BEFORE UPDATE ON finance_accou
 -- of them. A real table also carries the one field the coaching needs:
 -- `bucket`, which is what makes a 50/30/20 check possible at all.
 
+-- 'income' here is the 50/30/20 vocabulary for classifying a *category*.
+-- The existing `transaction_type` enum uses 'earning' for the direction of a
+-- *transaction*. They are different things; do not assume one from the other.
 DO $$ BEGIN
   CREATE TYPE category_bucket AS ENUM ('income','need','want','save','transfer');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -236,35 +239,40 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  base CHAR(3);
+  -- Named `base_ccy`, not `base`. `fx_rates` has a column called `base`, and a
+  -- plpgsql variable of the same name makes every reference to it ambiguous —
+  -- which Postgres reports at runtime, from inside a trigger, on the first
+  -- transaction anyone saves.
+  base_ccy CHAR(3);
 BEGIN
-  SELECT base_currency INTO base FROM finance_settings WHERE user_id = NEW.user_id;
-  base := coalesce(base, 'CAD');
+  SELECT s.base_currency INTO base_ccy
+    FROM finance_settings s WHERE s.user_id = NEW.user_id;
+  base_ccy := coalesce(base_ccy, 'CAD');
 
   IF NEW.currency IS NULL THEN
     -- Inherit the account's currency; fall back to base for an unassigned row.
-    SELECT currency INTO NEW.currency FROM finance_accounts WHERE id = NEW.account_id;
-    NEW.currency := coalesce(NEW.currency, base);
+    SELECT a.currency INTO NEW.currency
+      FROM finance_accounts a WHERE a.id = NEW.account_id;
+    NEW.currency := coalesce(NEW.currency, base_ccy);
   END IF;
 
   IF NEW.fx_rate IS NULL THEN
-    IF NEW.currency = base THEN
+    IF NEW.currency = base_ccy THEN
       NEW.fx_rate := 1;
     ELSE
       -- Most recent rate on or before the transaction date. A rate from after
       -- the fact would be exactly the retro-pricing this design exists to stop.
-      SELECT rate INTO NEW.fx_rate
-        FROM fx_rates
-       WHERE base = NEW.currency AND quote = fill_transaction_money.base
-         AND as_of <= NEW.date
-       ORDER BY as_of DESC LIMIT 1;
+      SELECT r.rate INTO NEW.fx_rate
+        FROM fx_rates r
+       WHERE r.base = NEW.currency AND r.quote = base_ccy AND r.as_of <= NEW.date
+       ORDER BY r.as_of DESC LIMIT 1;
 
       IF NEW.fx_rate IS NULL THEN
-        SELECT 1 / rate INTO NEW.fx_rate
-          FROM fx_rates
-         WHERE base = fill_transaction_money.base AND quote = NEW.currency
-           AND as_of <= NEW.date
-         ORDER BY as_of DESC LIMIT 1;
+        -- Only the opposite direction is cached, so invert it.
+        SELECT 1 / r.rate INTO NEW.fx_rate
+          FROM fx_rates r
+         WHERE r.base = base_ccy AND r.quote = NEW.currency AND r.as_of <= NEW.date
+         ORDER BY r.as_of DESC LIMIT 1;
       END IF;
     END IF;
   END IF;
@@ -273,6 +281,8 @@ BEGIN
   -- reports it as unconverted rather than inventing a number.
   IF NEW.fx_rate IS NOT NULL THEN
     NEW.base_amount := round(NEW.amount * NEW.fx_rate, 4);
+  ELSE
+    NEW.base_amount := NULL;
   END IF;
 
   RETURN NEW;
@@ -410,7 +420,11 @@ AS $$
     coalesce(a.opening_balance, 0)
     + coalesce((
         SELECT sum(
-          CASE WHEN t.type = 'income' THEN t.amount ELSE -t.amount END
+          -- `transaction_type` is ('earning','expense') — NOT ('income',...).
+          -- `category_bucket` below does use 'income', because it classifies
+          -- a category rather than a transaction's direction. Two enums, two
+          -- vocabularies, and mixing them is a runtime error not a type one.
+          CASE WHEN t.type = 'earning' THEN t.amount ELSE -t.amount END
           - coalesce(t.fee_amount, 0)
         )
         FROM transactions t
