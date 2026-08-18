@@ -94,7 +94,9 @@ As defense in depth, also disable signups at the platform level:
 
 > **Upgrading an existing project?** `db/schema.sql` is idempotent — re-run the whole script in the SQL Editor to replace the older, weaker policies (`auth.role() = 'authenticated'`) with the hardened ones. Re-running is **required** for this version: it also adds the `blog_posts.word_count` generated column that the public blog list now selects.
 
-> **Webhook note:** `NEXT_PUBLIC_VISIT_NOTIFIER_URL` and `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` are embedded in the public JS bundle — anyone can extract and abuse them. Prefer a **Database Webhook** (Dashboard > Database > Webhooks) on `contact_submissions` inserts, which keeps the Discord URL server-side.
+> **Contact notifications** are sent by the database. `db/migrations/007-contact-inbox.sql` adds a `pg_net` trigger on `contact_submissions` inserts that reads the Discord webhook URL from `integration_settings`, an admin-only table with no public read policy. Set it from **Admin → Inbox → Notifications**, then remove `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` from your environment — it is only read in static mode now.
+>
+> `NEXT_PUBLIC_VISIT_NOTIFIER_URL` is still embedded in the public JS bundle and can be extracted and abused by anyone. It has not been moved.
 
 ---
 

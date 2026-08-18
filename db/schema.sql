@@ -694,21 +694,140 @@ CREATE TRIGGER update_public_notes_updated_at BEFORE UPDATE ON public_notes FOR 
 -- 10. CONTACT SUBMISSIONS
 -- =========================================================
 
+-- The only table an unauthenticated visitor may write to. Bounds mirror LIMITS
+-- in src/lib/schemas.ts, and the rate-limit trigger below is the only thing
+-- standing between `WITH CHECK (true)` and an unbounded number of rows.
 CREATE TABLE IF NOT EXISTS contact_submissions (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       TEXT NOT NULL,
-  email      TEXT NOT NULL,
-  subject    TEXT NOT NULL,
-  message    TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  email       TEXT NOT NULL,
+  subject     TEXT NOT NULL,
+  message     TEXT NOT NULL,
+  is_read     BOOLEAN NOT NULL DEFAULT false,
+  is_archived BOOLEAN NOT NULL DEFAULT false,
+  replied_at  TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT contact_submissions_length_check CHECK (
+    char_length(name)    BETWEEN 2 AND 200
+    AND char_length(email)   BETWEEN 3 AND 320
+    AND char_length(subject) BETWEEN 3 AND 200
+    AND char_length(message) BETWEEN 10 AND 5000
+  )
 );
+CREATE INDEX IF NOT EXISTS contact_submissions_inbox_idx
+  ON contact_submissions (is_archived, created_at DESC);
 ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public insert contact" ON contact_submissions;
 CREATE POLICY "Public insert contact" ON contact_submissions FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Admin read contact" ON contact_submissions;
 CREATE POLICY "Admin read contact" ON contact_submissions FOR SELECT USING (public.is_admin());
+DROP POLICY IF EXISTS "Admin update contact" ON contact_submissions;
+CREATE POLICY "Admin update contact" ON contact_submissions FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());
 DROP POLICY IF EXISTS "Admin delete contact" ON contact_submissions;
 CREATE POLICY "Admin delete contact" ON contact_submissions FOR DELETE USING (public.is_admin());
+
+-- Refuses 3 submissions per address per hour, or 10 site-wide per minute.
+CREATE OR REPLACE FUNCTION public.limit_contact_submissions()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  per_email INT;
+  per_minute INT;
+BEGIN
+  SELECT count(*) INTO per_email FROM contact_submissions
+   WHERE lower(email) = lower(NEW.email) AND created_at > now() - interval '1 hour';
+  IF per_email >= 3 THEN
+    RAISE EXCEPTION 'Too many messages from this address. Try again later.'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  SELECT count(*) INTO per_minute FROM contact_submissions
+   WHERE created_at > now() - interval '1 minute';
+  IF per_minute >= 10 THEN
+    RAISE EXCEPTION 'The contact form is busy. Try again in a moment.'
+      USING ERRCODE = 'check_violation';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS limit_contact_submissions ON contact_submissions;
+CREATE TRIGGER limit_contact_submissions BEFORE INSERT ON contact_submissions
+  FOR EACH ROW EXECUTE FUNCTION public.limit_contact_submissions();
+
+
+-- Integration secrets. Deliberately NOT in site_identity, which is
+-- `FOR SELECT USING (true)` — a webhook URL there would be world-readable.
+-- There is no public read policy; the notify trigger reaches the row through
+-- SECURITY DEFINER so an anonymous INSERT can fire a notification without the
+-- anon role ever being able to read the URL.
+CREATE TABLE IF NOT EXISTS integration_settings (
+  id                  INT PRIMARY KEY DEFAULT 1,
+  contact_webhook_url TEXT,
+  notify_on_contact   BOOLEAN NOT NULL DEFAULT true,
+  updated_at          TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT integration_settings_single_row CHECK (id = 1)
+);
+ALTER TABLE integration_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Admin manage integrations" ON integration_settings;
+CREATE POLICY "Admin manage integrations" ON integration_settings FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+DROP TRIGGER IF EXISTS update_integration_settings_updated_at ON integration_settings;
+CREATE TRIGGER update_integration_settings_updated_at BEFORE UPDATE ON integration_settings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+CREATE OR REPLACE FUNCTION public.notify_contact_submission()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  settings integration_settings%ROWTYPE;
+BEGIN
+  SELECT * INTO settings FROM integration_settings WHERE id = 1;
+
+  IF settings.contact_webhook_url IS NULL
+     OR settings.contact_webhook_url = ''
+     OR NOT settings.notify_on_contact THEN
+    RETURN NEW;
+  END IF;
+
+  PERFORM net.http_post(
+    url     := settings.contact_webhook_url,
+    headers := '{"Content-Type": "application/json"}'::jsonb,
+    body    := jsonb_build_object(
+      'username', 'Portfolio Contact',
+      'embeds', jsonb_build_array(jsonb_build_object(
+        'title', 'New contact form submission',
+        'color', 5814783,
+        'fields', jsonb_build_array(
+          jsonb_build_object('name', 'Name',    'value', left(NEW.name, 256),  'inline', true),
+          jsonb_build_object('name', 'Email',   'value', left(NEW.email, 256), 'inline', true),
+          jsonb_build_object('name', 'Subject', 'value', left(NEW.subject, 256)),
+          jsonb_build_object('name', 'Message', 'value', left(NEW.message, 1000))
+        ),
+        'timestamp', to_char(NEW.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+        'footer', jsonb_build_object('text', 'Reply from Admin → Inbox')
+      ))
+    )
+  );
+
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Best-effort: losing the ping is a nuisance, losing the message is not
+  -- acceptable.
+  RAISE WARNING 'contact notification failed: %', SQLERRM;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS notify_contact_submission ON contact_submissions;
+CREATE TRIGGER notify_contact_submission AFTER INSERT ON contact_submissions
+  FOR EACH ROW EXECUTE FUNCTION public.notify_contact_submission();
 
 
 -- =========================================================
@@ -1124,6 +1243,7 @@ VALUES (1,
 
 -- Security Settings (default: no lockdown)
 INSERT INTO security_settings (id, lockdown_level) VALUES (1, 0) ON CONFLICT DO NOTHING;
+INSERT INTO integration_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
 
 -- Default Navigation Links
 INSERT INTO navigation_links (label, href, display_order, is_visible) VALUES

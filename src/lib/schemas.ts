@@ -651,11 +651,47 @@ export type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 // CONTACT FORM SCHEMA
 // =============================================================================
 
+/**
+ * The one form an unauthenticated visitor can write to the database from.
+ *
+ * Every field had a floor and no ceiling, and the columns are TEXT, so a
+ * visitor could insert a row of any size — and the INSERT policy is
+ * `WITH CHECK (true)`. These bounds are mirrored by a CHECK constraint in
+ * `db/schema.sql`; the database copy is the one that holds when the request
+ * does not come from this form at all.
+ */
+export const CONTACT_LIMITS = {
+  NAME: 200,
+  /** RFC 5321 caps an address at 320 characters. */
+  EMAIL: 320,
+  SUBJECT: 200,
+  MESSAGE: 5_000,
+} as const;
+
 export const contactFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email address"),
-  subject: z.string().min(3, "Subject must be at least 3 characters"),
-  message: z.string().min(10, "Message must be at least 10 characters"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(CONTACT_LIMITS.NAME, "Name is too long"),
+  email: z
+    .string()
+    .trim()
+    .max(CONTACT_LIMITS.EMAIL, "Email is too long")
+    .email("Please enter a valid email address"),
+  subject: z
+    .string()
+    .trim()
+    .min(3, "Subject must be at least 3 characters")
+    .max(CONTACT_LIMITS.SUBJECT, "Subject is too long"),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Message must be at least 10 characters")
+    .max(
+      CONTACT_LIMITS.MESSAGE,
+      `Message must be ${CONTACT_LIMITS.MESSAGE.toLocaleString()} characters or fewer`,
+    ),
 });
 
 export type ContactFormValues = z.infer<typeof contactFormSchema>;

@@ -262,48 +262,84 @@ export const publicApi = createApi({
       },
     }),
 
+    /**
+     * The only public write path in the app.
+     *
+     * **Dynamic mode** inserts the row and stops. The Discord notification is
+     * sent by an AFTER INSERT trigger reading the webhook URL from an
+     * admin-only table (`db/migrations/007-contact-inbox.sql`). It used to be
+     * sent from here, from the browser, using
+     * `NEXT_PUBLIC_CONTACT_WEBHOOK_URL` — which is compiled into the client
+     * bundle, so anyone could read the URL out of the JS and post arbitrary
+     * embeds into the channel. Moving it into the database also ties the ping
+     * to a row that exists rather than to a caller's word, and applies it to
+     * inserts that never went through this form.
+     *
+     * **Static mode** has no database to trigger from, so the browser call
+     * remains the only way a message can reach anyone. The URL is unavoidably
+     * public in a static deployment; that is a property of having no server,
+     * not a choice made here.
+     *
+     * Length bounds and the rate limit behind them are enforced by the
+     * database. `contactFormSchema` is the courtesy copy that produces a
+     * useful message before the round trip.
+     */
     submitContactForm: builder.mutation<
       void,
       { name: string; email: string; subject: string; message: string }
     >({
       queryFn: async (formData) => {
-        // Save to Supabase
         if (supabase) {
           const { error } = await supabase
             .from("contact_submissions")
             .insert(formData);
           if (error) return { error };
+          return { data: undefined };
         }
 
-        // Send Discord notification
         const webhookUrl = process.env.NEXT_PUBLIC_CONTACT_WEBHOOK_URL || "";
-        if (webhookUrl) {
-          try {
-            await fetch(webhookUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: "Portfolio Contact",
-                avatar_url: "https://i.imgur.com/4M34hi2.png",
-                embeds: [
-                  {
-                    title: "New Contact Form Submission",
-                    color: 5814783,
-                    fields: [
-                      { name: "Name", value: formData.name, inline: true },
-                      { name: "Email", value: formData.email, inline: true },
-                      { name: "Subject", value: formData.subject },
-                      { name: "Message", value: formData.message },
-                    ],
-                    timestamp: new Date().toISOString(),
-                    footer: { text: "Contact Form" },
-                  },
-                ],
-              }),
-            });
-          } catch {
-            // Discord notification is best-effort
+        if (!webhookUrl) {
+          // Nowhere to put it. A success message for a message that went
+          // nowhere is worse than an honest failure.
+          return {
+            error: {
+              message:
+                "This site has no message delivery configured. Please use one of the direct links instead.",
+            },
+          };
+        }
+
+        try {
+          const response = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: "Portfolio Contact",
+              embeds: [
+                {
+                  title: "New contact form submission",
+                  color: 5814783,
+                  fields: [
+                    { name: "Name", value: formData.name, inline: true },
+                    { name: "Email", value: formData.email, inline: true },
+                    { name: "Subject", value: formData.subject },
+                    // Discord drops the whole embed rather than truncating a
+                    // field over 1024 characters.
+                    { name: "Message", value: formData.message.slice(0, 1000) },
+                  ],
+                  timestamp: new Date().toISOString(),
+                  footer: { text: "Contact Form" },
+                },
+              ],
+            }),
+          });
+          if (!response.ok) {
+            return {
+              error: { message: "The message could not be delivered." },
+            };
           }
+        } catch {
+          return { error: { message: "The message could not be delivered." } };
         }
 
         return { data: undefined };

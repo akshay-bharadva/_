@@ -552,3 +552,35 @@ export interface DashboardData {
   recurring: RecurringTransaction[];
   primaryGoal: FinancialGoal | null;
 }
+
+/**
+ * A message from the public contact form.
+ *
+ * The only row in the database an unauthenticated visitor can create, which is
+ * why its bounds and rate limit live in Postgres rather than only in the form.
+ */
+export interface ContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  is_read: boolean;
+  is_archived: boolean;
+  /** Set when you mark it answered; null until then. */
+  replied_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Integration secrets, in their own admin-only table.
+ *
+ * Not part of `SiteContent`: `site_identity` is publicly readable, so a
+ * webhook URL there would be visible to every visitor.
+ */
+export interface IntegrationSettings {
+  id: number;
+  contact_webhook_url: string | null;
+  notify_on_contact: boolean;
+  updated_at?: string;
+}

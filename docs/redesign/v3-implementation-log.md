@@ -479,6 +479,67 @@ in Zod, so everything below is a client and contract change.
 
 ---
 
+## Inbox (contact submissions)
+
+**Was** — nothing. `contact_submissions` shipped in the first schema with admin
+SELECT and DELETE policies and no interface, so every message the site ever
+received landed where nobody could read it.
+
+**Is** — a list/detail inbox with four derived states, plus the two things that
+had to be fixed alongside it. Migration `007`.
+
+**Carried forward:**
+
+- **A table with policies and no screen is a table nobody reads.** Worth
+  checking the rest of the schema for the same shape rather than waiting to
+  notice again.
+- **This is the only row an unauthenticated stranger can create.** The INSERT
+  policy is `WITH CHECK (true)`, the columns were `TEXT`, and the Zod schema had
+  `.min()` on every field and `.max()` on none — so any visitor could insert
+  rows of any size, as often as they liked. Bounds are now CHECK constraints
+  mirroring `CONTACT_LIMITS`, and a BEFORE INSERT trigger refuses more than 3
+  per address per hour or 10 site-wide per minute. Both in the database: the
+  client that matters here is the one you do not control.
+- **`NEXT_PUBLIC_` is not a place to keep a credential.** The Discord webhook
+  was called from the browser using `NEXT_PUBLIC_CONTACT_WEBHOOK_URL`, which
+  Next.js compiles into the bundle — and a webhook URL is full authority to post
+  in that channel. It now lives on `integration_settings`, which has **no public
+  read policy at all**, and the ping is sent by an AFTER INSERT trigger through
+  `pg_net` (free on every Supabase plan). Not `site_identity`: that table is
+  `FOR SELECT USING (true)`, so a URL there would be world-readable.
+- **Static mode keeps the client call, because it has no alternative.** With no
+  database there is no trigger and no server; the exposure is a property of
+  having no server, not a choice. Dynamic mode no longer reads the env var.
+- **Read is not replied.** Four states derived from three independent columns in
+  `inbox-filters.ts`, so the badge, the tabs and the ordering cannot disagree.
+  Opening a message marks it read and it _stays_ in the needs-reply view — an
+  inbox that empties itself when you glance at something is how enquiries get
+  lost. Archiving is the deliberate "done".
+- **The needs-reply view sorts oldest first.** Everywhere else is newest first.
+  Age is the only signal an inbox has about neglect.
+- **No compose box.** There is no outbox, no sending domain and no
+  deliverability story, so Reply is a `mailto:` with the thread quoted and every
+  value percent-encoded — an unescaped `&` in a subject truncates the URL.
+- **The one string in the app written by a stranger is rendered as plain text.**
+  Putting it through a markdown pipeline would hand an anonymous visitor a
+  rendering surface inside the admin.
+- **`lg:hidden` does not unmount a Radix dialog.** A sheet hidden that way still
+  renders its overlay and still traps focus, so on a wide screen it swallows
+  every click behind it. Structure decided by a breakpoint needs a measured
+  media query — `useMediaQuery` / `useBelowBreakpoint`, which `useIsMobile` now
+  delegates to.
+- **A pasted credential deserves shape validation.** A mistyped webhook fails
+  silently inside a trigger where nobody sees the error. `isDiscordWebhook`
+  parses the URL rather than matching it, so a host merely _containing_
+  `discord.com` is rejected, and requires HTTPS because `pg_net` would otherwise
+  send the message body in the clear.
+- **The public contact form** lost the `font-mono` status line (retired v2
+  metadata voice), gained counters that appear only past 80% of a real ceiling,
+  and now shows the database's own refusal — "Too many messages from this
+  address" tells a person what to do; "Something broke" does not.
+
+---
+
 # Part three — Recurring patterns
 
 Reach for these; they are already tested and already argued for.
@@ -603,14 +664,16 @@ place without running any migration.
 # Appendix — Status
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
-Learning, Notes, Whiteboard, Inventory, Security, Settings.
+Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new).
 
 **Not yet rebuilt:** Finance, Calendar, Dashboard.
 
 **Open:**
 
-- Migrations `002`, `004` and `005` have not been applied to the live database;
-  `006` is opt-in and awaiting a decision.
+- Migrations `002`, `004`, `005` and `007` have not been applied to the live
+  database; `006` is opt-in and awaiting a decision.
+- `NEXT_PUBLIC_VISIT_NOTIFIER_URL` is still a webhook URL in the public bundle.
+  The contact one moved into the database in `007`; this one has not.
 - `[[` autocomplete against existing titles in `note-form.tsx`.
 - The Learning session timer still logs to `learning_sessions` from the notes
   editor only; it is not wired into the review flow, deliberately — a review is

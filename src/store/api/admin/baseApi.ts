@@ -35,6 +35,8 @@ export const adminApi = createApi({
     "Inventory",
     "LifeUpdates",
     "System",
+    "Inbox",
+    "Integrations",
   ],
   endpoints: () => ({}),
 });

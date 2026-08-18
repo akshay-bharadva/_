@@ -24,3 +24,4 @@ export * from "./admin/assetsApi";
 export * from "./admin/habitsApi";
 export * from "./admin/inventoryApi";
 export * from "./admin/lifeUpdatesApi";
+export * from "./admin/inboxApi";
