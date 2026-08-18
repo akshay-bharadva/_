@@ -220,3 +220,47 @@ describe("missingNotes", () => {
     ).toEqual([]);
   });
 });
+
+describe("escaped brackets from the editor", () => {
+  /**
+   * `tiptap-markdown` serializes through prosemirror-markdown, which escapes
+   * `[` and `]` in text nodes. Every wikilink written in the app was stored
+   * escaped, so a pattern matching only bare brackets found none of them —
+   * linking appeared to be broken entirely.
+   */
+  it("extracts a link whose brackets were escaped on save", () => {
+    expect(extractLinks("see \\[\\[Beta\\]\\]")).toEqual([
+      { target: "Beta", label: "Beta" },
+    ]);
+  });
+
+  it("extracts an escaped aliased link", () => {
+    expect(extractLinks("\\[\\[Beta\\|the other\\]\\]")).toEqual([
+      { target: "Beta", label: "the other" },
+    ]);
+  });
+
+  it("resolves an escaped link in the graph", () => {
+    const graph = buildLinkGraph([
+      note({ id: "a", title: "Alpha", content: "\\[\\[Beta\\]\\]" }),
+      note({ id: "b", title: "Beta" }),
+    ]);
+    expect(graph.outgoing.get("a")?.map((n) => n.id)).toEqual(["b"]);
+    expect(graph.backlinks.get("b")?.map((n) => n.id)).toEqual(["a"]);
+  });
+
+  it("rewrites an escaped link, leaving no backslashes behind", () => {
+    const out = linkifyContent(
+      "see \\[\\[Beta\\]\\]",
+      [note({ id: "b", title: "Beta" })],
+      (n) => `#${n.id}`,
+    );
+    expect(out).toBe("see [Beta](#b)");
+  });
+
+  it("still handles unescaped links", () => {
+    expect(extractLinks("see [[Beta]]")).toEqual([
+      { target: "Beta", label: "Beta" },
+    ]);
+  });
+});

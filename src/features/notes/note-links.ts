@@ -13,8 +13,16 @@ import type { Note } from "@/types";
  * deleted, and there is nothing to keep in sync on every save.
  */
 
-/** `[[Target]]` or `[[Target|shown text]]`. */
-const WIKILINK = /\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]/g;
+/**
+ * `[[Target]]` or `[[Target|shown text]]`.
+ *
+ * The brackets may arrive backslash-escaped. `tiptap-markdown` serializes
+ * through prosemirror-markdown, which escapes `[` and `]` in text nodes — so a
+ * link typed in the editor is stored as `\[\[Target\]\]` and a pattern that
+ * only matched bare brackets silently found nothing. Every wikilink written in
+ * the app went through that path, which is why none of them resolved.
+ */
+const WIKILINK = /\\?\[\\?\[([^\]|\\]+?)(?:\\?\|([^\]\\]*))?\\?\]\\?\]/g;
 
 export interface ParsedLink {
   /** The note title being referenced. */
@@ -162,4 +170,22 @@ export function missingNotes(notes: Note[]): string[] {
     }
   });
   return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Wikilink syntax reduced to its label, for previews.
+ *
+ * A card shows the note as it reads, and `\\[\\[Postgres\\]\\]` is markup rather
+ * than something anyone wrote to be read. Everything else stays markdown so
+ * the preview renders rather than printing its own source.
+ */
+export function stripWikiLinkSyntax(
+  content: string | null | undefined,
+): string {
+  if (!content) return "";
+  return content.replace(
+    WIKILINK,
+    (_whole, target: string, alias?: string) =>
+      (alias ?? target).trim() || target.trim(),
+  );
 }

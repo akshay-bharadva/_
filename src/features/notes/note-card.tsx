@@ -6,8 +6,9 @@ import { Archive, Edit, Link2, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Note } from "@/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { extractLinks } from "./note-links";
-import { toPlainText } from "./note-preview";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { extractLinks, stripWikiLinkSyntax } from "./note-links";
 
 interface NoteCardProps {
   note: Note;
@@ -78,7 +79,7 @@ export function NoteCard({
   onArchive,
   onTogglePin,
 }: NoteCardProps) {
-  const preview = toPlainText(note.content);
+  const preview = stripWikiLinkSyntax(note.content);
   const linkCount = extractLinks(note.content).length;
   const tags = note.tags ?? [];
 
@@ -123,11 +124,27 @@ export function NoteCard({
         )}
 
         {preview && (
-          /* break-words: a pasted URL is one unbreakable token, which
-             line-clamp does not constrain — it used to overflow the card. */
-          <p className="line-clamp-6 whitespace-pre-line break-words text-[13px] leading-relaxed text-muted-foreground">
-            {preview}
-          </p>
+          /*
+           * Rendered, not raw — the previous preview printed the markdown
+           * source. `remark-gfm` so tables and task lists are not literal pipes
+           * and brackets; no Prism, because a six-line preview does not need
+           * syntax colouring and the highlighter is a 290 kB import.
+           *
+           * break-words: a pasted URL is one unbreakable token, which
+           * line-clamp does not constrain — it used to overflow the card.
+           */
+          <div className="line-clamp-6 break-words text-[13px] leading-relaxed text-muted-foreground [&_*]:!text-[13px] [&_a]:underline [&_code]:rounded [&_code]:bg-foreground/[0.06] [&_code]:px-1 [&_h1]:font-medium [&_h2]:font-medium [&_h3]:font-medium [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-1 [&_pre]:overflow-hidden [&_pre]:whitespace-pre-wrap [&_table]:hidden [&_ul]:mb-1">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // A preview never navigates; the card click does.
+                a: ({ children }) => <span>{children}</span>,
+                img: () => null,
+              }}
+            >
+              {preview}
+            </ReactMarkdown>
+          </div>
         )}
       </button>
 

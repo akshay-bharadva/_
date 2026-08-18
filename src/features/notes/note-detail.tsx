@@ -203,12 +203,17 @@ export function NoteDetail({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        {/* The same tile the card is: the note keeps its colour when opened,
+            mixed against the card token so the text contrast holds on every
+            preset. It used to revert to a plain surface with a coloured edge,
+            which made opening a note feel like leaving it. */}
         <article
-          className={cn(
-            "min-w-0 rounded-surface bg-card p-6 shadow-e1",
-            note.color && "border-l-4",
-          )}
-          style={note.color ? { borderLeftColor: note.color } : undefined}
+          className="min-w-0 rounded-surface border border-border p-6"
+          style={{
+            background: note.color
+              ? `color-mix(in srgb, ${note.color} 20%, hsl(var(--card)))`
+              : "hsl(var(--card))",
+          }}
         >
           {!isEditing && (
             <h1 className="break-words text-2xl font-semibold">
@@ -221,7 +226,7 @@ export function NoteDetail({
               {note.tags.map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-control bg-secondary px-2 py-0.5 text-xs text-muted-foreground"
+                  className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-xs text-muted-foreground"
                 >
                   {tag}
                 </li>

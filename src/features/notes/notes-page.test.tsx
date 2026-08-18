@@ -134,19 +134,23 @@ describe("NotesPage", () => {
     expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
   });
 
-  /** Rendered markdown made one card twice the height of its neighbours and
-      printed tables as literal pipes. */
-  it("previews a note body as plain text", () => {
+  /**
+   * The preview printed the markdown source. It renders now — with GFM, so a
+   * table is not a row of literal pipes — but without Prism, which is a 290 kB
+   * import that a six-line preview has no use for.
+   */
+  it("renders the note body on the card rather than printing its source", () => {
     notes = [
       note({
         id: "a",
         title: "Alpha",
-        content: "## Heading\n- a bullet\n| x | y |",
+        content: "## Heading\n\n- a bullet",
       }),
     ];
-    render(<NotesPage />);
-    expect(screen.getByText(/Heading a bullet/)).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Heading" })).toBeNull();
+    const { container } = render(<NotesPage />);
+    expect(container.querySelector("h2")?.textContent).toBe("Heading");
+    expect(container.querySelector("li")?.textContent).toBe("a bullet");
+    expect(container.textContent).not.toContain("## Heading");
   });
 
   /** The reason linking is worth having at all. */
