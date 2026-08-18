@@ -21,6 +21,7 @@ import {
   useGetFinancialDataQuery,
   useGetFinanceSettingsQuery,
   useGetFxRatesQuery,
+  useGetFinanceCategoriesQuery,
   useSaveRecurringMutation,
   useSaveTransactionMutation,
 } from "@/store/api/adminApi";
@@ -68,6 +69,11 @@ const Calendar = dynamic(
 // only fetched once that tab is actually opened.
 const chartTabLoader = () => <LoadingState variant="section" />;
 
+const ForecastTab = dynamic(
+  () => import("./forecast-tab").then((mod) => mod.ForecastTab),
+  { ssr: false, loading: chartTabLoader },
+);
+
 const FxTab = dynamic(() => import("./fx-tab").then((mod) => mod.FxTab), {
   ssr: false,
   loading: chartTabLoader,
@@ -112,6 +118,8 @@ export default function FinancePage() {
   // Tops up the rate cache when the module opens, and does nothing the rest of
   // the time — the ECB publishes once per working day, so polling buys nothing.
   useFxSync(financeSettings?.base_currency, fxRates);
+
+  const { data: financeCategories = [] } = useGetFinanceCategoriesQuery();
 
   const [deleteTransaction] = useDeleteTransactionMutation();
   const [deleteRecurring] = useDeleteRecurringMutation();
@@ -314,12 +322,13 @@ export default function FinancePage() {
         className="mt-6 space-y-6"
       >
         <div className="hidden md:block">
-          <TabsList className="grid w-full grid-cols-7 lg:inline-grid lg:w-auto">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 lg:inline-grid lg:w-auto">
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="recurring">Recurring</TabsTrigger>
             <TabsTrigger value="goals">Goals</TabsTrigger>
+            <TabsTrigger value="forecast">Forecast</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="fx">Exchange</TabsTrigger>
           </TabsList>
@@ -393,6 +402,18 @@ export default function FinancePage() {
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="forecast">
+          {financeSettings && (
+            <ForecastTab
+              startingBalance={netIncome}
+              rules={recurring}
+              transactions={transactions}
+              categories={financeCategories}
+              settings={financeSettings}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="fx">
