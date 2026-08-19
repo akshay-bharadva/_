@@ -1030,3 +1030,50 @@ export type SiteSettingsFormValues = z.infer<typeof siteSettingsSchema>;
  */
 export const siteSettingsDefaultValues: SiteSettingsFormValues =
   SITE_IDENTITY_DEFAULTS as unknown as SiteSettingsFormValues;
+
+// =============================================================================
+// DISCOVER SCHEMAS
+// =============================================================================
+
+/**
+ * Bounds from the `discover_places` and `discover_topics` CHECK constraints.
+ *
+ * The coordinate ranges are the interesting ones: a typed longitude of 720 is
+ * not a place, and without this it reaches Postgres as a constraint violation
+ * the form cannot explain.
+ */
+export const DISCOVER_LIMITS = {
+  /** `char_length(label) BETWEEN 1 AND 80` */
+  PLACE_LABEL: 80,
+  /** `char_length(term) BETWEEN 1 AND 80` */
+  TOPIC_TERM: 80,
+  /** `char_length(timezone) <= 64` */
+  TIMEZONE: 64,
+} as const;
+
+export const discoverPlaceSchema = z.object({
+  label: boundedRequiredString(DISCOVER_LIMITS.PLACE_LABEL, "Name"),
+  latitude: z
+    .number({ invalid_type_error: "Latitude must be a number" })
+    .finite("Latitude must be a number")
+    .min(-90, "Latitude must be between -90 and 90")
+    .max(90, "Latitude must be between -90 and 90"),
+  longitude: z
+    .number({ invalid_type_error: "Longitude must be a number" })
+    .finite("Longitude must be a number")
+    .min(-180, "Longitude must be between -180 and 180")
+    .max(180, "Longitude must be between -180 and 180"),
+  timezone: boundedOptionalString(DISCOVER_LIMITS.TIMEZONE, "Timezone"),
+  sort_order: z.number().int().optional(),
+});
+
+export const discoverTopicSchema = z.object({
+  term: boundedRequiredString(DISCOVER_LIMITS.TOPIC_TERM, "Topic"),
+  // Mirrors the column's CHECK exactly. A source the app cannot fetch would
+  // render a panel that never fills.
+  source: z.enum(["hackernews", "devto"]),
+  sort_order: z.number().int().optional(),
+});
+
+export type DiscoverPlaceFormValues = z.infer<typeof discoverPlaceSchema>;
+export type DiscoverTopicFormValues = z.infer<typeof discoverTopicSchema>;

@@ -37,6 +37,7 @@ export const adminApi = createApi({
     "LifeUpdates",
     "System",
     "Inbox",
+    "Discover",
     "Integrations",
     "Visitors",
     "FinanceSetup",

@@ -6,6 +6,7 @@ import {
   Calendar,
   CheckSquare,
   Image as ImageIcon,
+  CloudSun,
   Inbox,
   LayoutDashboard,
   LayoutTemplate,
@@ -49,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: "Navigation", href: "/admin/navigation", icon: NavigationIcon },
       { name: "Assets", href: "/admin/assets", icon: ImageIcon },
       { name: "Inbox", href: "/admin/inbox", icon: Inbox },
+      { name: "Discover", href: "/admin/discover", icon: CloudSun },
     ],
   },
   {

@@ -889,3 +889,31 @@ export interface CalendarEntry {
   taskId?: string | null;
   data?: Record<string, unknown>;
 }
+
+/**
+ * A place the Discover module shows weather for.
+ *
+ * Two is the interesting number: where you are, and where the people you left
+ * behind are.
+ */
+export interface DiscoverPlace {
+  id: string;
+  user_id?: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  /** An IANA zone, so the forecast reads in the place's own clock. */
+  timezone?: string | null;
+  sort_order: number;
+  created_at?: string;
+}
+
+/** A subject to follow, and which keyless service answers for it. */
+export interface DiscoverTopic {
+  id: string;
+  user_id?: string;
+  term: string;
+  source: "hackernews" | "devto";
+  sort_order: number;
+  created_at?: string;
+}
