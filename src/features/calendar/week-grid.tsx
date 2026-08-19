@@ -6,6 +6,7 @@ import type { CalendarEntry, CalendarSettings } from "@/types";
 import { cn } from "@/lib/cn";
 import { dayFraction, layoutDay } from "./grid-layout";
 import { EntryBlock } from "./entry-block";
+import { decodeMove, ENTRY_MOVE_TYPE } from "./drag-move";
 import { AllDayRow } from "./all-day-row";
 import { HourGutter } from "./hour-gutter";
 
@@ -29,6 +30,8 @@ export function WeekGrid({
   onSelect,
   onCreate,
   onDropTask,
+  onMoveEntry,
+  onMoveEntryToDay,
   hourHeight,
 }: {
   days: Date[];
@@ -40,6 +43,10 @@ export function WeekGrid({
   onCreate: (start: Date) => void;
   /** A task dragged in from the rail. */
   onDropTask: (taskId: string, start: Date) => void;
+  /** An existing entry dragged to a new time. */
+  onMoveEntry: (entryId: string, dropAt: Date, grabMinutes: number) => void;
+  /** An all-day entry dragged to another day, keeping its clock time. */
+  onMoveEntryToDay: (entryId: string, day: Date) => void;
   /** Pixels per hour. */
   hourHeight: number;
 }) {
@@ -102,6 +109,7 @@ export function WeekGrid({
         days={days}
         entries={allDay}
         onSelect={onSelect}
+        onMoveEntryToDay={onMoveEntryToDay}
         gutter={<GutterSpacer homeTimezone={homeTimezone} />}
       />
 
@@ -134,6 +142,7 @@ export function WeekGrid({
               onSelect={onSelect}
               onCreate={onCreate}
               onDropTask={onDropTask}
+              onMoveEntry={onMoveEntry}
               hourHeight={hourHeight}
             />
           ))}
@@ -164,6 +173,7 @@ function DayColumn({
   onSelect,
   onCreate,
   onDropTask,
+  onMoveEntry,
   hourHeight,
 }: {
   day: Date;
@@ -174,6 +184,8 @@ function DayColumn({
   onSelect: (entry: CalendarEntry) => void;
   onCreate: (start: Date) => void;
   onDropTask: (taskId: string, start: Date) => void;
+  /** An existing entry dragged to a new time. */
+  onMoveEntry: (entryId: string, dropAt: Date, grabMinutes: number) => void;
   hourHeight: number;
 }) {
   const placed = useMemo(
@@ -222,6 +234,15 @@ function DayColumn({
       }}
       onDrop={(event) => {
         event.preventDefault();
+
+        // An entry being moved takes priority: a drag carrying both would be a
+        // task block dragged from the grid, which is a move, not a new block.
+        const move = decodeMove(event.dataTransfer.getData(ENTRY_MOVE_TYPE));
+        if (move) {
+          onMoveEntry(move.entryId, slotFromEvent(event), move.grabMinutes);
+          return;
+        }
+
         const taskId = event.dataTransfer.getData("application/x-task-id");
         if (taskId) onDropTask(taskId, slotFromEvent(event));
       }}

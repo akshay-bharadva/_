@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import type { CalendarEntry, Task } from "@/types";
 import {
   useAddEventMutation,
+  useSaveEventExceptionMutation,
+  useUpdateEventMutation,
   useGetCalendarDataQuery,
   useGetCalendarSettingsQuery,
   useGetCalendarsQuery,
@@ -33,6 +35,9 @@ import { LoadingState, ManagerWrapper } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import { buildEntries, filterEntries } from "./build-entries";
+import { withCalendarColors } from "./entry-color";
+import { isNoOp, moveToDay, moveToTime, snapMinutes } from "./drag-move";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { WeekGrid } from "./week-grid";
 import { AgendaView } from "./agenda-view";
 import { MonthView } from "./month-view";
@@ -66,6 +71,9 @@ export default function CalendarPage() {
   const { data: exceptions = [] } = useGetEventExceptionsQuery();
   const { data: tasks = [] } = useGetTasksQuery();
   const [addEvent] = useAddEventMutation();
+  const [updateEvent] = useUpdateEventMutation();
+  const [saveException] = useSaveEventExceptionMutation();
+  const confirm = useConfirm();
 
   const [view, setView] = useState<View>("week");
   const [anchor, setAnchor] = useState(() => new Date());
@@ -138,13 +146,24 @@ export default function CalendarPage() {
       windowStart: rangeStart,
       windowEnd: addDays(rangeEnd, 1),
     });
-    return filterEntries(built, {
+    const visible = filterEntries(built, {
       hiddenCalendars,
       showTasks: settings?.show_tasks ?? true,
       showHabits: settings?.show_habits ?? false,
       showFinance: settings?.show_finance ?? false,
     });
-  }, [rows, exceptions, rangeStart, rangeEnd, hiddenCalendars, settings]);
+    // Colour resolved once here rather than in each of the five renderers, so
+    // an event always matches the swatch on its calendar's checkbox.
+    return withCalendarColors(visible, calendars);
+  }, [
+    rows,
+    exceptions,
+    rangeStart,
+    rangeEnd,
+    hiddenCalendars,
+    settings,
+    calendars,
+  ]);
 
   /** Tasks that already have a block, so the rail does not offer them twice. */
   const scheduledTaskIds = useMemo(
@@ -200,6 +219,89 @@ export default function CalendarPage() {
         description: getErrorMessage(error),
       });
     }
+  };
+
+  /**
+   * Write a dragged entry's new time.
+   *
+   * One occurrence of a series is genuinely ambiguous — dragging this
+   * Thursday's standup could mean "this week is different" or "we have moved
+   * the meeting" — so it asks, exactly as editing one does. Answering "just
+   * this one" writes an exception rather than touching the series, which is
+   * what keeps the other fifty-one occurrences where they were.
+   */
+  const commitMove = async (
+    entryId: string,
+    next: { start: Date; end: Date },
+  ) => {
+    const entry = entries.find((item) => item.id === entryId);
+    // Only events are draggable, but the drop could still arrive for an entry
+    // that has since been refetched away.
+    if (!entry || entry.kind !== "event") return;
+    if (isNoOp(entry, next.start)) return;
+
+    if (entry.rrule && entry.occurrenceStart) {
+      const wholeSeries = await confirm({
+        title: "Move the whole series?",
+        description:
+          "This event repeats. Moving the series shifts every occurrence; moving just this one leaves the rest where they are.",
+        confirmText: "Whole series",
+        cancelText: "Just this one",
+      });
+
+      try {
+        if (wholeSeries) {
+          await updateEvent({
+            id: entry.sourceId,
+            start_time: next.start.toISOString(),
+            end_time: next.end.toISOString(),
+          } as never).unwrap();
+        } else {
+          await saveException({
+            event_id: entry.sourceId,
+            original_start: entry.occurrenceStart.toISOString(),
+            new_start: next.start.toISOString(),
+            new_end: next.end.toISOString(),
+          }).unwrap();
+        }
+        toast.success(`Moved to ${format(next.start, "EEE d MMM, HH:mm")}`);
+      } catch (error) {
+        toast.error("Could not move it", {
+          description: getErrorMessage(error),
+        });
+      }
+      return;
+    }
+
+    try {
+      await updateEvent({
+        id: entry.sourceId,
+        start_time: next.start.toISOString(),
+        end_time: next.end.toISOString(),
+      } as never).unwrap();
+      toast.success(`Moved to ${format(next.start, "EEE d MMM, HH:mm")}`);
+    } catch (error) {
+      toast.error("Could not move it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  /** Week and day: the pointer landed on a time. */
+  const moveEntry = (entryId: string, dropAt: Date, grabMinutes: number) => {
+    const entry = entries.find((item) => item.id === entryId);
+    if (!entry) return;
+    // Snapped after the grab offset is subtracted, so the block lands on the
+    // grid rather than at whatever fraction of a minute the pointer was at.
+    const moved = moveToTime(entry, dropAt, snapMinutes(grabMinutes));
+    void commitMove(entryId, moved);
+  };
+
+  /** Month: the pointer landed on a date, so the clock time is preserved. */
+  const moveEntryToDay = (entryId: string, day: Date) => {
+    const entry = entries.find((item) => item.id === entryId);
+    if (!entry) return;
+    void commitMove(entryId, moveToDay(entry, day));
   };
 
   if (!settings)
@@ -325,6 +427,7 @@ export default function CalendarPage() {
                 anchor={anchor}
                 entries={entries}
                 onSelect={setSelected}
+                onMoveEntryToDay={moveEntryToDay}
                 onPickDay={(day) => {
                   setAnchor(day);
                   setView("day");
@@ -339,6 +442,8 @@ export default function CalendarPage() {
                 onSelect={setSelected}
                 onCreate={setDraftStart}
                 onDropTask={(taskId, start) => void scheduleTask(taskId, start)}
+                onMoveEntry={moveEntry}
+                onMoveEntryToDay={moveEntryToDay}
                 hourHeight={HOUR_HEIGHT[density]}
               />
             )}

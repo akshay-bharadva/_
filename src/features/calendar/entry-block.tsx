@@ -5,6 +5,7 @@ import { MapPin, Repeat, Video } from "lucide-react";
 import type { CalendarEntry } from "@/types";
 import { cn } from "@/lib/cn";
 import type { PlacedEvent } from "./grid-layout";
+import { ENTRY_MOVE_TYPE, encodeMove, isMovable } from "./drag-move";
 
 /**
  * Colour from a theme token, never a hex value.
@@ -43,11 +44,35 @@ export function EntryBlock({
   // hours the day spans, so a percentage threshold hid the time on a long day
   // and showed it on a short one.
   const compact = (placed.durationMinutes / 60) * hourHeight < 34;
+  const movable = isMovable(entry);
 
   return (
     <button
       type="button"
       onClick={onSelect}
+      // Only events move; a task's date belongs to Tasks and a habit roll-up
+      // is derived, so offering the gesture would promise something the drop
+      // could not deliver.
+      draggable={movable}
+      onDragStart={(event) => {
+        if (!movable) return;
+        // Where in the block it was picked up, so dropping puts that point
+        // under the pointer. Without it every drag shifts the event later by
+        // however far down the block the grab was.
+        const box = event.currentTarget.getBoundingClientRect();
+        const grabFraction =
+          box.height > 0
+            ? Math.min(Math.max((event.clientY - box.top) / box.height, 0), 1)
+            : 0;
+        event.dataTransfer.setData(
+          ENTRY_MOVE_TYPE,
+          encodeMove({
+            entryId: entry.id,
+            grabMinutes: grabFraction * placed.durationMinutes,
+          }),
+        );
+        event.dataTransfer.effectAllowed = "move";
+      }}
       style={{
         top: `${placed.top}%`,
         height: `${placed.height}%`,
@@ -57,6 +82,7 @@ export function EntryBlock({
       }}
       className={cn(
         "absolute overflow-hidden rounded-control border-l-[3px] px-2 py-1 text-left transition-shadow duration-150 ease-enter hover:shadow-e2",
+        movable && "cursor-grab active:cursor-grabbing",
         colors.bg,
         colors.border,
         entry.status === "tentative" && "border-dashed opacity-80",

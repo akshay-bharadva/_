@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { addMinutes, format } from "date-fns";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { OverlayDetailView } from "./overlay-detail-view";
 import {
   calendarOptionsFor,
   FREQUENCIES,
@@ -280,24 +281,13 @@ export function EventSheet({
     >
       {readOnly ? (
         /*
-          Tasks, habits and finance are shown on the calendar but owned by their
-          own modules. Editing them here would mean two places that can change
-          the same row, which is how they drift apart.
+          Tasks, habits and finance are shown on the calendar but owned by
+          their own modules. Editing them here would mean two places that can
+          change the same row, which is how they drift apart — so this branch
+          reads the payload the calendar query already returns and links out to
+          the module that owns it.
         */
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {entry.kind === "task"
-              ? "This is a task, shown here because it is due on this day. Edit it in Tasks."
-              : entry.kind === "habit_summary"
-                ? "A summary of the habits you completed. Edit them in Habits."
-                : "A summary of the money that moved. Edit it in Finance."}
-          </p>
-          <p className="text-sm">
-            <span className="font-medium">
-              {format(entry.start, "EEEE d MMMM")}
-            </span>
-          </p>
-        </div>
+        <OverlayDetailView entry={entry} />
       ) : (
         <div className="space-y-5">
           <div className="space-y-1.5">

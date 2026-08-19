@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { format, isSameMonth, isToday, startOfDay } from "date-fns";
 import { bucketByDay, visibleChipCount } from "./month-layout";
+import {
+  decodeMove,
+  ENTRY_MOVE_TYPE,
+  encodeMove,
+  isMovable,
+} from "./drag-move";
 import type { CalendarEntry } from "@/types";
 import { cn } from "@/lib/cn";
 import { entryClasses } from "./entry-block";
@@ -38,12 +44,18 @@ export function MonthView({
   entries,
   onSelect,
   onPickDay,
+  onMoveEntryToDay,
 }: {
   days: Date[];
   anchor: Date;
   entries: CalendarEntry[];
   onSelect: (entry: CalendarEntry) => void;
   onPickDay: (day: Date) => void;
+  /**
+   * An entry dropped on a day. There is no time under the pointer in a month
+   * cell, only a date, so the page keeps the entry's existing clock time.
+   */
+  onMoveEntryToDay: (entryId: string, day: Date) => void;
 }) {
   const weekdayLabels = days.slice(0, 7);
 
@@ -54,6 +66,10 @@ export function MonthView({
   );
 
   const byDay = useMemo(() => bucketByDay(days, entries), [days, entries]);
+
+  // Which cell the pointer is over, so the drop target is visible. Held as the
+  // day's timestamp rather than a Date so the comparison is a primitive one.
+  const [overKey, setOverKey] = useState<number | null>(null);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-surface bg-card shadow-e1">
@@ -71,7 +87,9 @@ export function MonthView({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="grid grid-cols-7">
           {days.map((day) => {
-            const forDay = byDay.get(startOfDay(day).getTime()) ?? [];
+            const dayKey = startOfDay(day).getTime();
+            const forDay = byDay.get(dayKey) ?? [];
+            const over = overKey === dayKey;
             const outside = !isSameMonth(day, anchor);
             const hidden = Math.max(forDay.length - visiblePerDay, 0);
 
@@ -82,9 +100,30 @@ export function MonthView({
                 // same size as a day with none.
                 style={{ height: ROW_HEIGHT }}
                 className={cn(
-                  "flex flex-col overflow-hidden border-b border-l border-border p-1.5",
+                  "flex flex-col overflow-hidden border-b border-l border-border p-1.5 transition-colors",
                   outside && "bg-secondary/30",
+                  over && "bg-primary/10",
                 )}
+                onDragOver={(event) => {
+                  // Only claim the drop when it is actually an entry move;
+                  // preventDefault on everything would swallow other drags.
+                  if (!event.dataTransfer.types.includes(ENTRY_MOVE_TYPE))
+                    return;
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  setOverKey(dayKey);
+                }}
+                onDragLeave={() =>
+                  setOverKey((current) => (current === dayKey ? null : current))
+                }
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setOverKey(null);
+                  const move = decodeMove(
+                    event.dataTransfer.getData(ENTRY_MOVE_TYPE),
+                  );
+                  if (move) onMoveEntryToDay(move.entryId, day);
+                }}
               >
                 <button
                   type="button"
@@ -109,6 +148,18 @@ export function MonthView({
                       type="button"
                       onClick={() => onSelect(entry)}
                       title={entry.title}
+                      draggable={isMovable(entry)}
+                      onDragStart={(event) => {
+                        if (!isMovable(entry)) return;
+                        // No grab offset in month: the drop carries a date, not
+                        // a time, so where in the chip it was picked up cannot
+                        // mean anything.
+                        event.dataTransfer.setData(
+                          ENTRY_MOVE_TYPE,
+                          encodeMove({ entryId: entry.id, grabMinutes: 0 }),
+                        );
+                        event.dataTransfer.effectAllowed = "move";
+                      }}
                       className={cn(
                         "block h-[20px] w-full truncate rounded-control border-l-2 px-1.5 text-left text-[11px] leading-[20px] text-foreground",
                         entryClasses(entry.colorToken).bg,
