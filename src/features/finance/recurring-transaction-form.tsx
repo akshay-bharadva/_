@@ -40,6 +40,7 @@ import {
   recurringTransactionSchema,
   type RecurringTransactionFormValues,
 } from "@/lib/schemas";
+import { toLocalISODate } from "@/lib/date-utils";
 
 interface RecurringTransactionFormProps {
   recurringTransaction: Partial<RecurringTransaction> | null;
@@ -59,9 +60,7 @@ export function RecurringTransactionForm({
       type: recurringTransaction?.type ?? "expense",
       category: recurringTransaction?.category ?? "",
       frequency: recurringTransaction?.frequency ?? "monthly",
-      start_date:
-        recurringTransaction?.start_date ??
-        new Date().toISOString().split("T")[0],
+      start_date: recurringTransaction?.start_date ?? toLocalISODate(),
       end_date: recurringTransaction?.end_date ?? null,
       // `?? null` rather than leaving it undefined: day-of-week 0 (Sunday) is a
       // real value, and an undefined here made the field uncontrolled.

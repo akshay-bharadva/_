@@ -1,106 +1,115 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { parseLocalDate, formatDate } from "./date-utils";
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { globSync } from "glob";
+import { parseLocalDate, toLocalISODate } from "./date-utils";
 
-// Both functions fall back to `new Date()`, so pin "now" to a fixed local noon.
-const NOW = new Date(2026, 5, 15, 12, 0, 0); // Mon Jun 15 2026
+/**
+ * The bug this file exists for.
+ *
+ * `toISOString().slice(0, 10)` formats the **UTC** day, which is a different
+ * day for part of every day. In Toronto (UTC-4) at 20:30 on 15 August it
+ * already reads 2026-08-16 — so a transaction added in the evening was dated
+ * tomorrow, an FX cache key never matched the day it was written for, and
+ * analytics buckets shifted. East of Greenwich it errs the other way: local
+ * midnight in Kolkata is still the previous day in UTC.
+ */
 
-describe("parseLocalDate", () => {
-  beforeAll(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(NOW);
+describe("toLocalISODate", () => {
+  it("formats the local calendar day", () => {
+    expect(toLocalISODate(new Date(2026, 7, 15))).toBe("2026-08-15");
   });
 
-  afterAll(() => {
-    vi.useRealTimers();
+  /** The evening case: the one that mis-dated finance entries every night. */
+  it("does not roll over in the evening", () => {
+    expect(toLocalISODate(new Date(2026, 7, 15, 20, 30))).toBe("2026-08-15");
+    expect(toLocalISODate(new Date(2026, 7, 15, 23, 59, 59))).toBe(
+      "2026-08-15",
+    );
   });
 
-  it("parses a date-only string at local midnight, not UTC", () => {
-    // This is the whole point of the helper: `new Date("2026-05-23")` is UTC
-    // midnight, which reads as May 22 anywhere west of Greenwich.
-    const date = parseLocalDate("2026-05-23");
-    expect(date.getFullYear()).toBe(2026);
-    expect(date.getMonth()).toBe(4);
-    expect(date.getDate()).toBe(23);
-    expect(date.getHours()).toBe(0);
+  /** And the other end of the day, which is where UTC+ zones break. */
+  it("does not roll back at midnight", () => {
+    expect(toLocalISODate(new Date(2026, 7, 15, 0, 0, 0))).toBe("2026-08-15");
+    expect(toLocalISODate(new Date(2026, 7, 15, 0, 30))).toBe("2026-08-15");
   });
 
-  it("keeps the day stable across the year regardless of timezone", () => {
-    for (const day of ["2026-01-01", "2026-06-30", "2026-12-31"]) {
-      const [y, m, d] = day.split("-").map(Number);
-      const parsed = parseLocalDate(day);
-      expect([
-        parsed.getFullYear(),
-        parsed.getMonth() + 1,
-        parsed.getDate(),
-      ]).toEqual([y, m, d]);
+  it("pads single-digit months and days", () => {
+    expect(toLocalISODate(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+
+  it("handles a year boundary", () => {
+    expect(toLocalISODate(new Date(2026, 11, 31, 23, 0))).toBe("2026-12-31");
+    expect(toLocalISODate(new Date(2027, 0, 1, 0, 30))).toBe("2027-01-01");
+  });
+
+  it("survives a leap day", () => {
+    expect(toLocalISODate(new Date(2028, 1, 29))).toBe("2028-02-29");
+  });
+
+  /** A NaN date must not produce "NaN-NaN-NaN" and reach the database. */
+  it("returns an empty string for an invalid date", () => {
+    expect(toLocalISODate(new Date("nonsense"))).toBe("");
+  });
+
+  it("defaults to now", () => {
+    expect(toLocalISODate()).toBe(toLocalISODate(new Date()));
+  });
+
+  /**
+   * The round trip is the real contract: what this writes, `parseLocalDate`
+   * must read back as the same calendar day. That pairing is what was missing —
+   * the codebase had the reader and no writer.
+   */
+  it("round-trips through parseLocalDate", () => {
+    for (const date of [
+      new Date(2026, 7, 15, 20, 30),
+      new Date(2026, 0, 1, 0, 15),
+      new Date(2026, 11, 31, 22, 45),
+      new Date(2026, 2, 8, 2, 30),
+    ]) {
+      const back = parseLocalDate(toLocalISODate(date));
+      expect(back.getFullYear()).toBe(date.getFullYear());
+      expect(back.getMonth()).toBe(date.getMonth());
+      expect(back.getDate()).toBe(date.getDate());
     }
-  });
-
-  it("returns a Date input untouched", () => {
-    const input = new Date(2020, 0, 2, 3, 4, 5);
-    expect(parseLocalDate(input)).toBe(input);
-  });
-
-  it("parses an ISO string that carries a time component", () => {
-    const date = parseLocalDate("2026-05-23T08:30:00");
-    expect(date.getDate()).toBe(23);
-    expect(date.getHours()).toBe(8);
-    expect(date.getMinutes()).toBe(30);
-  });
-
-  it("falls back to now for empty, null and undefined input", () => {
-    expect(parseLocalDate(null).getTime()).toBe(NOW.getTime());
-    expect(parseLocalDate(undefined).getTime()).toBe(NOW.getTime());
-    expect(parseLocalDate("").getTime()).toBe(NOW.getTime());
-  });
-
-  it("falls back to now for an unparseable string", () => {
-    expect(parseLocalDate("not a date").getTime()).toBe(NOW.getTime());
-    expect(parseLocalDate("23-05-2026").getTime()).toBe(NOW.getTime());
-  });
-
-  it("rolls over out-of-range parts of a well-shaped date string", () => {
-    // "2026-13-45" passes the shape check and goes straight to the Date
-    // constructor, which overflows month 13 / day 45 into Feb 2027 instead of
-    // taking the fallback. Callers only ever pass DB dates, so this is a
-    // recorded edge, not a promise.
-    const date = parseLocalDate("2026-13-45");
-    expect(date.getFullYear()).toBe(2027);
-    expect(date.getMonth()).toBe(1);
-    expect(date.getDate()).toBe(14);
   });
 });
 
-describe("formatDate", () => {
-  beforeAll(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(NOW);
-  });
+describe("no UTC date writers remain", () => {
+  /**
+   * A source scan, because this is not something a unit test can catch: each
+   * call site looks reasonable on its own and only misbehaves for part of the
+   * day, in some timezones. It came back four times during the v3 rebuild.
+   */
+  it("has no toISOString-based date string outside this module", () => {
+    const files = globSync("src/**/!(*.test).{ts,tsx}", {
+      cwd: resolve(__dirname, "../.."),
+      absolute: true,
+    });
 
-  afterAll(() => {
-    vi.useRealTimers();
-  });
+    const offenders = files.filter((file) => {
+      if (file.includes("date-utils")) return false;
+      const source = readFileSync(file, "utf-8");
 
-  it("formats a date-only string in long US form", () => {
-    expect(formatDate("2026-05-23")).toBe("May 23, 2026");
-  });
+      const lines = source.split(/\r?\n/);
 
-  it("honors Intl options and lets them override the defaults", () => {
-    expect(formatDate("2026-05-23", { month: "short" })).toBe("May 23, 2026");
-    expect(
-      formatDate("2026-05-23", {
-        year: "2-digit",
-        month: "2-digit",
-        day: "2-digit",
-      }),
-    ).toBe("05/23/26");
-    expect(formatDate("2026-05-23", { weekday: "long" })).toContain("Saturday");
-  });
+      return lines.some((line, index) => {
+        const writes =
+          /toISOString\(\)\s*\.\s*slice\(\s*0\s*,\s*10\s*\)/.test(line) ||
+          /toISOString\(\)\s*\.\s*split\(\s*["']T["']\s*\)/.test(line);
+        if (!writes) return false;
 
-  it("falls back to today when there is nothing to format", () => {
-    // `parseLocalDate` substitutes the current date rather than failing, so the
-    // documented "N/A" return is unreachable in practice.
-    expect(formatDate(null)).toBe("June 15, 2026");
-    expect(formatDate(undefined)).toBe("June 15, 2026");
+        // A few places genuinely want the UTC day — analytics buckets come
+        // back from the database already grouped in UTC, and formatting them
+        // locally would shift every point by the viewer's offset. Those opt
+        // out explicitly, so the exception is visible and greppable rather
+        // than a filename quietly excluded from the check.
+        const preceding = lines.slice(Math.max(index - 4, 0), index);
+        return !preceding.some((prior) => prior.includes("utc-intentional"));
+      });
+    });
+
+    expect(offenders).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { toLocalISODate } from "@/lib/date-utils";
 import type { RecurringTransaction, Transaction } from "@/types";
 import {
   buildConfirmQueue,
@@ -191,14 +192,17 @@ describe("confirmationDraft", () => {
   it("records the due date separately from the payment date", () => {
     const queue = build();
     const occurrence = queue[0];
+    // A local date, because that is what the producer makes: due dates come
+    // from `parseLocalDate`, and the picker hands back a local day too. The
+    // fixture used to build `new Date("...T00:00:00.000Z")` — UTC midnight,
+    // which is the *previous* evening here — and then assert against a UTC
+    // format of it, so the pair agreed with each other and with nothing real.
     const draft = confirmationDraft(occurrence, {
-      date: new Date("2026-08-25T00:00:00.000Z"),
+      date: new Date(2026, 7, 25),
     });
 
     expect(draft.date).toBe("2026-08-25");
-    expect(draft.occurrence_date).toBe(
-      occurrence.dueDate.toISOString().slice(0, 10),
-    );
+    expect(draft.occurrence_date).toBe(toLocalISODate(occurrence.dueDate));
     expect(draft.date).not.toBe(draft.occurrence_date);
   });
 

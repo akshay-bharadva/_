@@ -53,3 +53,30 @@ export function formatDate(
   };
   return date.toLocaleDateString("en-US", defaultOptions);
 }
+
+/**
+ * A `YYYY-MM-DD` string for the *calendar day this date falls on locally*.
+ *
+ * The counterpart to `parseLocalDate`, and the reason this exists: the codebase
+ * had a careful local-aware reader and no writer, so every call site that
+ * needed a date string reached for `toISOString().slice(0, 10)` instead. That
+ * formats the **UTC** day, which is a different day for part of every day.
+ *
+ * In Toronto (UTC-4) at 20:30 on 15 August, `toISOString()` already says the
+ * 16th — so a transaction added in the evening was dated tomorrow, an FX cache
+ * key never matched the day it was written for, and analytics buckets shifted.
+ * East of Greenwich the error runs the other way: local midnight in Kolkata
+ * (UTC+5:30) is still the *previous* day in UTC.
+ *
+ * Built from the local calendar fields, so it is correct in both directions and
+ * needs no knowledge of the offset.
+ */
+export function toLocalISODate(date: Date = new Date()): string {
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = String(date.getFullYear()).padStart(4, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}

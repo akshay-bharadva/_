@@ -54,7 +54,9 @@ describe("roundMoney", () => {
 
 describe("formatMoney", () => {
   it("renders the currency's own symbol and precision", () => {
-    expect(formatMoney({ amount: 1234.5, currency: "CAD" })).toContain("1,234.50");
+    expect(formatMoney({ amount: 1234.5, currency: "CAD" })).toContain(
+      "1,234.50",
+    );
     expect(formatMoney({ amount: 1234, currency: "JPY" })).not.toContain(".");
   });
 

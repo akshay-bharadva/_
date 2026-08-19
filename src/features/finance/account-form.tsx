@@ -20,6 +20,7 @@ import { CURRENCIES } from "@/lib/money";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import { accountKindLabel } from "./account-card";
+import { toLocalISODate } from "@/lib/date-utils";
 
 const KINDS: AccountKind[] = [
   "chequing",
@@ -30,7 +31,7 @@ const KINDS: AccountKind[] = [
   "loan",
 ];
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => toLocalISODate();
 
 /**
  * Create or reconcile an account.

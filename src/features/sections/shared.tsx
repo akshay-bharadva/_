@@ -4,11 +4,7 @@ import { Markdown as MarkdownBase } from "@/components/ui/markdown";
 import { ImageOff } from "lucide-react";
 import type { PortfolioItem } from "@/types";
 import { cn } from "@/lib/utils";
-import {
-  isInternalUrl,
-  safeImageUrl,
-  safeLinkUrl,
-} from "@/lib/safe-url";
+import { isInternalUrl, safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
 
 /* ────────────────────────────────────────────────────────────────
  * Sorting

@@ -1,9 +1,6 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  sessionStarted,
-  tick,
-} from "@/store/slices/learningSessionSlice";
+import { sessionStarted, tick } from "@/store/slices/learningSessionSlice";
 import type { LearningSession } from "@/types";
 
 const SESSION_KEY = "activeLearningSession";

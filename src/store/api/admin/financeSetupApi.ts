@@ -14,6 +14,7 @@ import {
   saveQueryFn,
   deleteQueryFn,
 } from "./query-helpers";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * The finance module's structural data: accounts, categories, budgets,
@@ -134,7 +135,7 @@ export const financeSetupApi = adminApi.injectEndpoints({
           rows.map(async (account) => {
             const { data, error } = await supabase!.rpc("account_balance", {
               account: account.id,
-              as_of: asOf ?? new Date().toISOString().slice(0, 10),
+              as_of: asOf ?? toLocalISODate(),
               include_pending: includePending ?? false,
             });
             return { id: account.id, balance: error ? 0 : Number(data ?? 0) };

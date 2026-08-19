@@ -42,6 +42,7 @@ import {
   goalProgressPercent,
   projectRecurringOccurrences,
 } from "@/lib/finance-utils";
+import { toLocalISODate } from "@/lib/date-utils";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -92,7 +93,7 @@ function DashboardOverview({
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      return d.toISOString().split("T")[0];
+      return toLocalISODate(d);
     }).reverse();
     return last7Days.map((day) => {
       const expense = dailyExpenses.find((e) => e.day === day);

@@ -1,9 +1,5 @@
 import { supabase } from "@/supabase/client";
-import type {
-  Calendar,
-  CalendarSettings,
-  EventException,
-} from "@/types";
+import type { Calendar, CalendarSettings, EventException } from "@/types";
 import { adminApi } from "./baseApi";
 import {
   NO_DB_ERROR,

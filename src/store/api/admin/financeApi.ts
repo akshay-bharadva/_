@@ -2,6 +2,7 @@ import { supabase } from "@/supabase/client";
 import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR, saveQueryFn, deleteQueryFn } from "./query-helpers";
+import { toLocalISODate } from "@/lib/date-utils";
 
 export const financeApi = adminApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -80,7 +81,7 @@ export const financeApi = adminApi.injectEndpoints({
         const { error: transError } = await supabase
           .from("transactions")
           .insert({
-            date: new Date().toISOString().split("T")[0],
+            date: toLocalISODate(),
             description: `Contribution to goal: ${goal.name}`,
             amount: amount,
             type: "expense",

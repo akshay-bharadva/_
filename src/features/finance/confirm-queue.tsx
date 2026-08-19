@@ -20,6 +20,7 @@ import {
   confirmationDraft,
   type PendingOccurrence,
 } from "./pending-occurrences";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * Recurring items awaiting confirmation.
@@ -35,7 +36,7 @@ import {
  * one keystroke plus one click is the whole interaction.
  */
 
-const isoDate = (date: Date) => date.toISOString().slice(0, 10);
+const isoDate = (date: Date) => toLocalISODate(date);
 
 export function ConfirmQueue({
   queue,

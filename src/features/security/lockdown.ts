@@ -102,7 +102,6 @@ export function lockdownConfirmation(level: number): {
   description: string;
   destructive: boolean;
 } {
-
   if (level === 0) {
     return {
       title: "Reopen the site?",

@@ -8,6 +8,7 @@ import type {
 import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 import { parseLocalDate } from "@/lib/utils";
 import { roundMoney } from "@/lib/money";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * What happens next, and what would happen if you changed something.
@@ -34,7 +35,7 @@ export interface ForecastPoint {
   events: string[];
 }
 
-const isoDate = (date: Date) => date.toISOString().slice(0, 10);
+const isoDate = (date: Date) => toLocalISODate(date);
 
 /** Cap on iterations per rule, so a misconfigured daily rule cannot hang. */
 const MAX_OCCURRENCES = 800;

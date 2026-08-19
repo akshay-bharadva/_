@@ -10,6 +10,7 @@ import {
   setDate,
   startOfDay,
 } from "date-fns";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * Recurrence.
@@ -119,7 +120,7 @@ export function formatRRule(rule: RecurrenceRule): string {
   if (rule.byDay.length > 0) parts.push(`BYDAY=${rule.byDay.join(",")}`);
   if (rule.count) parts.push(`COUNT=${rule.count}`);
   if (rule.until) {
-    parts.push(`UNTIL=${rule.until.toISOString().slice(0, 10)}`);
+    parts.push(`UNTIL=${toLocalISODate(rule.until)}`);
   }
   return parts.join(";");
 }

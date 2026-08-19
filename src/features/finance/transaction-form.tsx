@@ -24,6 +24,7 @@ import {
 import { CURRENCIES } from "@/lib/money";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * Add or edit one transaction.
@@ -63,9 +64,7 @@ export function TransactionForm({
   const [amount, setAmount] = useState(
     transaction ? String(transaction.amount) : "",
   );
-  const [date, setDate] = useState(
-    transaction?.date ?? new Date().toISOString().slice(0, 10),
-  );
+  const [date, setDate] = useState(transaction?.date ?? toLocalISODate());
   const [accountId, setAccountId] = useState(
     transaction?.account_id ?? usable[0]?.id ?? "",
   );

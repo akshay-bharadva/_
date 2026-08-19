@@ -3,6 +3,7 @@ import type { Habit } from "@/types";
 import { HABIT_LOGS_LOOKBACK_DAYS } from "@/lib/constants";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR, saveQueryFn } from "./query-helpers";
+import { toLocalISODate } from "@/lib/date-utils";
 
 export const habitsApi = adminApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -13,7 +14,7 @@ export const habitsApi = adminApi.injectEndpoints({
         lookbackDate.setDate(lookbackDate.getDate() - HABIT_LOGS_LOOKBACK_DAYS);
         // A DATE column compared against a full timestamp; the date part is
         // what matters, so send only that.
-        const since = lookbackDate.toISOString().slice(0, 10);
+        const since = toLocalISODate(lookbackDate);
 
         let query = supabase
           .from("habits")

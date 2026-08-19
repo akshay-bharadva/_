@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { FxRateRow } from "@/types";
 import { useCacheFxRatesMutation } from "@/store/api/adminApi";
 import { fetchLatestRates, isRateAvailable, snapshotToRows } from "./fx-source";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * Keep the rate cache current, quietly.
@@ -37,7 +38,7 @@ export function useFxSync(base: string | undefined, cached: FxRateRow[]) {
       (latest, row) => (row.as_of > latest ? row.as_of : latest),
       "",
     );
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalISODate();
     if (newest >= today) return;
 
     let cancelled = false;

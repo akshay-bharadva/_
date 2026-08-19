@@ -89,6 +89,10 @@ export function fillDailySeries(
 
   for (let offset = days - 1; offset >= 0; offset -= 1) {
     const date = new Date(end - offset * 86_400_000);
+    // utc-intentional: UTC deliberately — see above. `toLocalISODate` is
+    // wrong here:
+    // the bucket keys come from the database in UTC, and formatting them
+    // locally shifts every point by the viewer's offset.
     const key = date.toISOString().slice(0, 10);
     const entry = known.get(key);
     out.push({

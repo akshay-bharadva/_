@@ -18,6 +18,7 @@ import {
 import { formatMoney } from "@/lib/money";
 import { getErrorMessage } from "@/lib/utils";
 import { buildTransferLegs, effectiveRate } from "./transfers";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * Move money between your own accounts, including across a border.
@@ -46,7 +47,7 @@ export function TransferForm({
   const [amountOut, setAmountOut] = useState("");
   const [amountIn, setAmountIn] = useState("");
   const [fee, setFee] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(toLocalISODate());
   const [description, setDescription] = useState("");
 
   const from = usable.find((account) => account.id === fromId);

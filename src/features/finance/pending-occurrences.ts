@@ -2,6 +2,7 @@ import { addDays, isAfter, isBefore, startOfDay } from "date-fns";
 import type { RecurringTransaction, Transaction } from "@/types";
 import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 import { parseLocalDate } from "@/lib/utils";
+import { toLocalISODate } from "@/lib/date-utils";
 
 /**
  * What a recurring rule *proposes*, as opposed to what it has posted.
@@ -62,7 +63,7 @@ function skipKeys(skips: SkippedOccurrence[]): Set<string> {
   return new Set(skips.map((skip) => `${skip.recurring_id}:${skip.due_date}`));
 }
 
-const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
+const isoDate = (date: Date): string => toLocalISODate(date);
 
 /**
  * Every occurrence a rule owes between its start and `until`.
