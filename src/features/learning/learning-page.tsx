@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { LearningSubject, LearningTopic } from "@/types";
 import {
   useDeleteSubjectMutation,
+  useArchiveTopicMutation,
   useDeleteTopicMutation,
   useGetLearningDataQuery,
 } from "@/store/api/adminApi";
@@ -46,6 +47,31 @@ export default function LearningPage() {
   const { data, isLoading } = useGetLearningDataQuery();
   const [deleteSubject] = useDeleteSubjectMutation();
   const [deleteTopic] = useDeleteTopicMutation();
+  const [archiveTopic] = useArchiveTopicMutation();
+
+  /**
+   * Retire a topic without losing what it recorded.
+   *
+   * Deleting a settled topic throws away its interval and review history,
+   * which is the evidence that it was ever learned. Archiving keeps the row and
+   * takes it out of the lists — which every list here already expected, since
+   * they all filter on `archived_at`.
+   */
+  const handleArchiveTopic = async (topic: LearningTopic) => {
+    const restoring = Boolean(topic.archived_at);
+    try {
+      await archiveTopic({ id: topic.id, archived: !restoring }).unwrap();
+      toast.success(restoring ? "Topic restored" : "Topic archived", {
+        description: restoring
+          ? undefined
+          : "Its review history is kept — restore it any time.",
+      });
+    } catch (error) {
+      toast.error(restoring ? "Could not restore it" : "Could not archive it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
 
   const subjects = useMemo(() => data?.subjects ?? [], [data]);
   const topics = useMemo(() => data?.topics ?? [], [data]);
@@ -218,6 +244,7 @@ export default function LearningPage() {
                     setSheetState({ type: "edit-topic", data: topic })
                   }
                   onDeleteTopic={(id) => handleDelete("topic", id)}
+                  onArchiveTopic={(topic) => void handleArchiveTopic(topic)}
                 />
               ))}
 
@@ -234,6 +261,7 @@ export default function LearningPage() {
                     setSheetState({ type: "edit-topic", data: topic })
                   }
                   onDeleteTopic={(id) => handleDelete("topic", id)}
+                  onArchiveTopic={(topic) => void handleArchiveTopic(topic)}
                 />
               )}
             </div>

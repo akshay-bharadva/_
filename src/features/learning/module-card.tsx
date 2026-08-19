@@ -11,6 +11,8 @@ import {
   MoreHorizontal,
   PlayCircle,
   Plus,
+  Archive,
+  ArchiveRestore,
   Trash2,
 } from "lucide-react";
 import type { LearningSubject, LearningTopic } from "@/types";
@@ -38,6 +40,13 @@ interface ModuleCardProps {
   onAddTopic: () => void;
   onEditTopic: (topic: LearningTopic) => void;
   onDeleteTopic: (topicId: string) => void;
+  /**
+   * Retire a topic without losing its review history. Every list in the module
+   * already filters on `archived_at`; until now nothing could set it, so the
+   * only way to clear a finished topic was to delete it and lose the record of
+   * having learned it.
+   */
+  onArchiveTopic: (topic: LearningTopic) => void;
 }
 
 const statusConfig = {
@@ -57,6 +66,7 @@ export function ModuleCard({
   onAddTopic,
   onEditTopic,
   onDeleteTopic,
+  onArchiveTopic,
 }: ModuleCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   // "Settled" is a topic on a three-week-plus interval — earned by recall
@@ -196,6 +206,17 @@ export function ModuleCard({
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onEditTopic(topic)}>
                           <Edit className="mr-2 size-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onArchiveTopic(topic)}>
+                          {topic.archived_at ? (
+                            <>
+                              <ArchiveRestore className="mr-2 size-4" /> Restore
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="mr-2 size-4" /> Archive
+                            </>
+                          )}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => onDeleteTopic(topic.id)}
