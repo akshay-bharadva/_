@@ -793,6 +793,62 @@ and silently matches nothing — use `String.raw`.
 
 ---
 
+## Dashboard
+
+**Was** — eleven cards of equal weight, where overdue tasks sat beside total
+blog views: a number that has never once required a decision. Equal weight is
+the failure, because it makes the reader do the triage the screen exists to do.
+
+**Is** — the workbench the design vision specified. One asymmetric grid: the
+left column is a single ranked list of what needs you, the right a few small
+gauges. Recharts is gone from the route, which took `/admin` to 100 kB.
+
+**Carried forward:**
+
+- **The ranking is the design, so it is testable.** `attention.ts` orders by
+  what it costs to miss — an overdue task is a broken promise, a meeting in
+  progress is one you are absent from, a habit has all evening, a message has
+  tomorrow. Eighteen tests cover that ordering, because it is judgement rather
+  than layout.
+- **A "needs you now" panel must forget.** An event that finished at nine is
+  not something that needs you at ten. Without that rule the panel becomes a
+  log of the day so far.
+- **Cross-feature derivation belongs to the feature that owns it.** Whether a
+  habit counts as done comes from the habits module's own pure helpers.
+  Schedules can be weekday-only, weekly-count or quantified; a second
+  implementation here would drift from what Habits itself shows. The dependency
+  is on two pure functions, never on the module's state.
+- **Say "nothing is waiting" out loud.** An empty panel reads as a page that
+  failed to load.
+
+---
+
+## Discover (new)
+
+**Is** — weather for the places that matter, and what is being written about
+the subjects you follow. Migration `012`.
+
+**Carried forward:**
+
+- **A key in a static export is a published key.** There is no server, so a key
+  would travel as `NEXT_PUBLIC_*` and be compiled into the bundle. That is the
+  whole reason the module is built on Open-Meteo, Hacker News via Algolia,
+  dev.to and Wikipedia: no key at all, and all four verified CORS-open. A
+  key-based service cannot be added here without a server to hold the key.
+- **Store what to ask for, never the answer.** Caching a forecast means
+  deciding when it goes stale, and a stale forecast is worse than none.
+- **Third-party calls resolve, never throw.** These sit on someone else's
+  uptime and behind whatever the visitor's ad-blocker decides. A failed panel
+  says so; the page carries on. The visit tracker established the pattern.
+- **Capture fixtures from the live service.** The tests here parse real
+  responses, so when a shape moves they fail in CI rather than as an empty
+  panel in production — the opposite of the Notes wikilink parser, which had 31
+  passing tests against payloads its author invented.
+- **Encode a search term, never interpolate it.** A topic containing `&`
+  truncates the query and silently searches for something else.
+
+---
+
 # Part three — Recurring patterns
 
 Reach for these; they are already tested and already argued for.
@@ -1078,6 +1134,7 @@ Run in order. All are additive and safe to re-run.
 | `db/migrations/009-finance-foundation.sql`          | Accounts, categories, budgets, scenarios, FX rates, per-transaction frozen rates, `account_balance`                  |
 | `db/migrations/010-calendar.sql`                    | `calendars`, `event_exceptions`, `calendar_settings`, recurrence and overlap-filtered `get_calendar_data`            |
 | `db/migrations/011-harden-definer-functions.sql`    | **Security.** Adds the AAL2 check and a pinned `search_path` to six `SECURITY DEFINER` functions that lacked both    |
+| `db/migrations/012-discover.sql`                    | `discover_places` and `discover_topics` — what to ask the public APIs for. Nothing fetched is stored                 |
 
 `db/reset-habits.sql` and `db/reset-learning.sql` are destructive alternatives
 that drop and rebuild with seed data. They keep nothing.
@@ -1091,20 +1148,17 @@ place without running any migration.
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
 Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new),
-Analytics (new), Finance, Calendar.
+Analytics (new), Finance, Calendar, Dashboard, Discover (new).
 
-**Not yet rebuilt:** Dashboard — the last module on v2, and the reason
-`useGetAnalyticsDataQuery` is still allowlisted as unreachable.
+**Not yet rebuilt:** none. Dashboard was the last, and Discover is new.
 
 **Audited:** everything except Dashboard, in Part six. Four classes of defect
 found and fixed, each now held by a test that was watched failing first.
 
 **Open:**
 
-- **`011` closes an MFA bypass and has not been applied.** Until it runs, six
-  `SECURITY DEFINER` functions hand calendar, balance and category access to a
-  session that has passed a password but not the second factor. `006` remains
-  opt-in and awaiting a decision; everything up to `010` is applied.
+- Everything up to `011` is applied. `012` adds the two Discover tables and
+  must be run before that module works. `006` remains opt-in.
 - Retention is a function and a button, not a schedule. `prune_site_visits()`
   can be put on `pg_cron` if the table ever grows enough to matter.
 - `[[` autocomplete against existing titles in `note-form.tsx`.
@@ -1112,9 +1166,6 @@ found and fixed, each now held by a test that was watched failing first.
   editor only; it is not wired into the review flow, deliberately — a review is
   thirty seconds and a stopwatch on it would reintroduce the friction the
   rebuild removed.
-- `@typescript-eslint` is not in `devDependencies`. The unused-code rule that
-  found three unwired features depends on it, and it currently resolves only as
-  a transitive dependency of `eslint-config-next` — which works, but by luck.
 - CSV import and auto-categorisation in Finance, and investment holdings, are
   named in the guide and not built.
 - **Nothing here has been exercised against real data by a person.** Every
