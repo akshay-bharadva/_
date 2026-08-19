@@ -1,5 +1,6 @@
 import {
   ArrowRightLeft,
+  BookOpen,
   Landmark,
   LayoutDashboard,
   Receipt,
@@ -60,6 +61,12 @@ export const FINANCE_SECTIONS: readonly FinanceSection[] = [
     label: "Forecast",
     description: "What happens next, and what would change it.",
     icon: TrendingUp,
+  },
+  {
+    id: "guide",
+    label: "Guide",
+    description: "How this works, and what to do about it.",
+    icon: BookOpen,
   },
   {
     id: "exchange",

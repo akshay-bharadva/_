@@ -16,6 +16,7 @@ import {
   useDeleteTransactionMutation,
   useGetAccountBalancesQuery,
   useGetFinanceAccountsQuery,
+  useGetFinanceBudgetsQuery,
   useGetFinanceCategoriesQuery,
   useGetFinanceSettingsQuery,
   useGetFinancialDataQuery,
@@ -102,6 +103,11 @@ const FinancialGoalForm = dynamic(
   { ssr: false, loading: sectionLoader },
 );
 
+const GuideSection = dynamic(
+  () => import("./guide-section").then((mod) => mod.GuideSection),
+  { ssr: false, loading: sectionLoader },
+);
+
 const RecurringSection = dynamic(
   () => import("./recurring-section").then((mod) => mod.RecurringSection),
   { ssr: false, loading: sectionLoader },
@@ -114,6 +120,7 @@ export default function FinancePage() {
   const { data: categories = [] } = useGetFinanceCategoriesQuery();
   const { data: balances = {} } = useGetAccountBalancesQuery();
   const { data: skips = [] } = useGetRecurringSkipsQuery();
+  const { data: budgets = [] } = useGetFinanceBudgetsQuery();
   const { data: fxRates = [] } = useGetFxRatesQuery(
     settings?.base_currency ?? "CAD",
     { skip: !settings },
@@ -358,6 +365,17 @@ export default function FinancePage() {
               transactions={transactions}
               categories={categories}
               settings={settings}
+            />
+          )}
+
+          {sectionId === "guide" && (
+            <GuideSection
+              accounts={accounts}
+              categories={categories}
+              recurring={recurring}
+              transactions={transactions}
+              budgets={budgets}
+              onGo={setSectionId}
             />
           )}
 

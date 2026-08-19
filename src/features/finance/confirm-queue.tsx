@@ -8,6 +8,7 @@ import type { FinanceAccount } from "@/types";
 import {
   useSaveTransactionMutation,
   useSkipOccurrenceMutation,
+  useUnskipOccurrenceMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,6 +115,7 @@ function OccurrenceRow({
     useSaveTransactionMutation();
   const [skipOccurrence, { isLoading: isSkipping }] =
     useSkipOccurrenceMutation();
+  const [unskipOccurrence] = useUnskipOccurrenceMutation();
 
   // A string, not a number: a controlled numeric input that coerces on every
   // keystroke fights the user while they clear the field to type a new figure.
@@ -154,6 +156,17 @@ function OccurrenceRow({
       }).unwrap();
       toast.success(`Skipped ${rule.description}`, {
         description: "It will not be proposed again for this date.",
+        // Skipping is one click and easy to do by accident, and without this
+        // the only way back is a SQL editor.
+        action: {
+          label: "Undo",
+          onClick: () => {
+            void unskipOccurrence({
+              recurring_id: rule.id,
+              due_date: isoDate(occurrence.dueDate),
+            });
+          },
+        },
       });
     } catch (error) {
       toast.error("Could not skip it", {

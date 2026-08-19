@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CURRENCIES } from "@/lib/money";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import { accountKindLabel } from "./account-card";
 
@@ -53,6 +54,7 @@ export function AccountForm({
   onDone: () => void;
 }) {
   const [saveAccount, { isLoading }] = useSaveFinanceAccountMutation();
+  const confirm = useConfirm();
 
   const [name, setName] = useState(account?.name ?? "");
   const [kind, setKind] = useState<AccountKind>(account?.kind ?? "chequing");
@@ -93,6 +95,42 @@ export function AccountForm({
       onDone();
     } catch (error) {
       toast.error("Could not save the account", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  /**
+   * Archive rather than delete.
+   *
+   * An account you closed still holds the history of everything that went
+   * through it. Deleting it would orphan those transactions and silently
+   * change every past total; archiving takes it out of the pickers and the
+   * balances while leaving the ledger intact.
+   */
+  const archive = async () => {
+    if (!account) return;
+    const restoring = Boolean(account.archived_at);
+
+    if (!restoring) {
+      const ok = await confirm({
+        title: `Archive ${account.name}?`,
+        description:
+          "It leaves the account list and stops counting towards net worth. Every transaction against it is kept, and you can restore it later.",
+        confirmText: "Archive",
+      });
+      if (!ok) return;
+    }
+
+    try {
+      await saveAccount({
+        id: account.id,
+        archived_at: restoring ? null : new Date().toISOString(),
+      }).unwrap();
+      toast.success(restoring ? "Account restored" : "Account archived");
+      onDone();
+    } catch (error) {
+      toast.error("Could not archive it", {
         description: getErrorMessage(error),
       });
     }
@@ -240,7 +278,17 @@ export function AccountForm({
         />
       </div>
 
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
+        {account && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => void archive()}
+            className="mr-auto text-muted-foreground hover:text-destructive"
+          >
+            {account.archived_at ? "Restore" : "Archive"}
+          </Button>
+        )}
         <Button type="button" variant="ghost" onClick={onDone}>
           Cancel
         </Button>
