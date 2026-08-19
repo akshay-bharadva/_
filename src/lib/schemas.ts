@@ -513,6 +513,28 @@ export type LifeUpdateFormValues = z.infer<typeof lifeUpdateSchema>;
 // EVENT SCHEMAS
 // =============================================================================
 
+/**
+ * Bounds taken from the `events` CHECK constraints, not chosen here.
+ *
+ * A value the form accepts and Postgres rejects surfaces as an opaque write
+ * failure *after* the user has been told the input was fine — so these must
+ * track `db/schema.sql`. The calendar rebuild added the columns below without
+ * extending this schema, and the sheet was validating nothing but a non-empty
+ * title, so a pasted address or a long meeting link failed at the database.
+ */
+export const EVENT_LIMITS = {
+  /** `char_length(location) <= 300` */
+  LOCATION: 300,
+  /** `char_length(meeting_url) <= 2048` */
+  MEETING_URL: 2_048,
+  /** `char_length(rrule) <= 500` */
+  RRULE: 500,
+  /** `travel_minutes BETWEEN 0 AND 1440` — a day. */
+  TRAVEL_MINUTES: 1_440,
+  /** `reminder_minutes BETWEEN 0 AND 40320` — four weeks. */
+  REMINDER_MINUTES: 40_320,
+} as const;
+
 export const eventSchema = z
   .object({
     title: boundedRequiredString(LIMITS.TITLE, "Title"),
@@ -520,6 +542,23 @@ export const eventSchema = z
     start_time: z.string().min(1, "Start time is required"),
     end_time: optionalString,
     is_all_day: z.boolean().optional(),
+    location: boundedOptionalString(EVENT_LIMITS.LOCATION, "Location"),
+    meeting_url: boundedOptionalString(
+      EVENT_LIMITS.MEETING_URL,
+      "Meeting link",
+    ),
+    rrule: boundedOptionalString(EVENT_LIMITS.RRULE, "Repeat rule"),
+    calendar_id: z.string().uuid("Pick a real calendar").optional().nullable(),
+    // Mirrors the column's CHECK exactly; a token outside this set renders
+    // with no colour at all rather than falling back.
+    color_token: z
+      .enum(["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"])
+      .optional()
+      .nullable(),
+    status: z.enum(["confirmed", "tentative", "cancelled"]).optional(),
+    travel_minutes: optionalInt(0, EVENT_LIMITS.TRAVEL_MINUTES, "Travel time"),
+    reminder_minutes: optionalInt(0, EVENT_LIMITS.REMINDER_MINUTES, "Reminder"),
+    task_id: z.string().uuid().optional().nullable(),
   })
   // An event ending before it starts renders as a zero/negative-width block and
   // breaks the calendar's day grouping.

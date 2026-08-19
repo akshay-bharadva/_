@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { addMinutes, format } from "date-fns";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { eventSchema } from "@/lib/schemas";
 import { OverlayDetailView } from "./overlay-detail-view";
 import {
   calendarOptionsFor,
@@ -133,6 +134,23 @@ export function EventSheet({
 
   const save = async () => {
     if (!valid) return;
+
+    /*
+      Validated against the shared schema before the write, not just checked
+      for a non-empty title. The sheet is built on plain `useState` rather than
+      react-hook-form, which is exactly the case the project rule calls out:
+      `events` bounds `location` at 300 characters, `meeting_url` at 2048 and
+      `rrule` at 500, and without this a pasted address failed at Postgres as
+      an opaque write error after the form had said it was fine.
+    */
+    const parsed = eventSchema.safeParse(payload());
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      toast.error("Check the form", {
+        description: first?.message ?? "Something here is not valid.",
+      });
+      return;
+    }
 
     try {
       if (!editing) {
