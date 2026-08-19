@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addMinutes, format } from "date-fns";
 import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  calendarOptionsFor,
+  FREQUENCIES,
+  frequencyOptionsFor,
+  NONE,
+} from "./select-options";
 import type { Calendar, CalendarColorToken, CalendarEntry } from "@/types";
 import {
   useAddEventMutation,
@@ -28,21 +34,6 @@ import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { FormSheet } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import { describeRRule } from "./recurrence";
-
-/**
- * Radix refuses an empty-string `SelectItem` value — it reserves "" to mean
- * "nothing selected" and throws rather than rendering. So "no recurrence" and
- * "no calendar" get a sentinel, mapped back to null on the way to the database.
- */
-export const NONE = "none";
-
-export const FREQUENCIES = [
-  { value: NONE, label: "Does not repeat" },
-  { value: "FREQ=DAILY", label: "Daily" },
-  { value: "FREQ=WEEKLY", label: "Weekly" },
-  { value: "FREQ=MONTHLY", label: "Monthly" },
-  { value: "FREQ=YEARLY", label: "Yearly" },
-];
 
 /** `datetime-local` wants local wall time, not an ISO instant. */
 const toLocalInput = (date: Date) => format(date, "yyyy-MM-dd'T'HH:mm");
@@ -114,6 +105,15 @@ export function EventSheet({
     setCalendarId(defaultCalendarId ?? NONE);
     setRrule(NONE);
   }, [open, editing, draftStart, defaultCalendarId]);
+
+  // Both lists can contain a value the picker would otherwise omit; see
+  // select-options.ts for why that matters.
+  const calendarOptions = useMemo(
+    () => calendarOptionsFor(calendars, calendarId),
+    [calendars, calendarId],
+  );
+
+  const frequencyOptions = useMemo(() => frequencyOptionsFor(rrule), [rrule]);
 
   const busy = isAdding || isUpdating;
   const valid = title.trim().length > 0 && start !== "";
@@ -357,7 +357,7 @@ export function EventSheet({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {FREQUENCIES.map((option) => (
+                {frequencyOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -380,13 +380,11 @@ export function EventSheet({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>No calendar</SelectItem>
-                  {calendars
-                    .filter((entry) => !entry.archived_at)
-                    .map((entry) => (
-                      <SelectItem key={entry.id} value={entry.id}>
-                        {entry.name}
-                      </SelectItem>
-                    ))}
+                  {calendarOptions.map((entry) => (
+                    <SelectItem key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
