@@ -12,6 +12,22 @@ export const dashboardApi = adminApi.injectEndpoints({
 
         const now = new Date();
         const todayISO = format(now, "yyyy-MM-dd");
+        // Real instants for the day's bounds. A bare "2026-08-15T00:00:00" is
+        // read in the *server's* zone, which is UTC — so "today" would start
+        // and end at the wrong moment for anyone not on it.
+        const dayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        ).toISOString();
+        const dayEnd = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59,
+        ).toISOString();
         const firstDayOfMonth = format(
           new Date(now.getFullYear(), now.getMonth(), 1),
           "yyyy-MM-dd",
@@ -81,23 +97,40 @@ export const dashboardApi = adminApi.injectEndpoints({
           supabase
             .from("events")
             .select("id, title, start_time, end_time, is_all_day")
-            .gte("start_time", `${todayISO}T00:00:00`)
-            .lte("start_time", `${todayISO}T23:59:59`)
+            .gte("start_time", dayStart)
+            .lte("start_time", dayEnd)
             .order("start_time"),
           supabase
             .from("contact_submissions")
             .select("id", { count: "exact", head: true })
-            .eq("status", "new"),
+            .eq("is_read", false)
+            .eq("is_archived", false),
           supabase
             .from("learning_topics")
             .select("id", { count: "exact", head: true })
-            .lte("next_review_at", todayISO)
+            // `due_date` NULL means never reviewed — new, not overdue — so the
+            // filter is on a date that has arrived, not on the absence of one.
+            .lte("due_date", todayISO)
             .is("archived_at", null),
         ];
 
         const results = await Promise.all(promises);
         const errors = results.map((r) => r.error).filter(Boolean);
-        if (errors.length > 0) return { error: errors[0] };
+
+        /*
+          Degrade, do not blank.
+
+          This was `if (errors.length > 0) return { error }` — so one failing
+          read out of fifteen produced an empty page. That is exactly what
+          happened when two of these queries named columns that do not exist:
+          the whole workbench went dark over a count nobody would have missed.
+
+          A dashboard showing fourteen of fifteen things is useful. One showing
+          nothing is not. Only a total failure is reported as an error, because
+          that means the connection or the session is gone, and pretending
+          otherwise would show an empty page as though the day were clear.
+        */
+        if (errors.length === results.length) return { error: errors[0] };
 
         const [
           { data: totalViewsRes },
