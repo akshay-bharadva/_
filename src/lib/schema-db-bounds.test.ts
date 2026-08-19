@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import {
+  calendarSchema,
+  CALENDAR_LIMITS,
   eventSchema,
   EVENT_LIMITS,
   MONEY_MAX_10_2,
@@ -259,5 +261,45 @@ describe("money ceilings mirror the column widths", () => {
     expect(schema).toMatch(/NUMERIC\(10, ?2\)/);
     expect(schema).toMatch(/NUMERIC\(12, ?2\)/);
     expect(schema).toMatch(/NUMERIC\(18, ?4\)/);
+  });
+});
+
+describe("calendarSchema", () => {
+  const valid = { name: "Work", color_token: "chart-1" as const };
+
+  it("accepts a normal calendar", () => {
+    expect(calendarSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects an empty name", () => {
+    expect(calendarSchema.safeParse({ ...valid, name: "  " }).success).toBe(
+      false,
+    );
+  });
+
+  it("bounds the name at the column's limit", () => {
+    const max = CALENDAR_LIMITS.NAME;
+    expect(
+      calendarSchema.safeParse({ ...valid, name: "x".repeat(max) }).success,
+    ).toBe(true);
+    expect(
+      calendarSchema.safeParse({ ...valid, name: "x".repeat(max + 1) }).success,
+    ).toBe(false);
+  });
+
+  it("matches the CHECK in the schema", () => {
+    const schema = readFileSync(
+      resolve(__dirname, "../../db/schema.sql"),
+      "utf-8",
+    );
+    // Scoped to the calendars block. Four tables bound a `name` column, and an
+    // unanchored search picks up whichever appears first in the file — which
+    // is a different table with a different limit.
+    const table = schema.slice(
+      schema.indexOf("CREATE TABLE IF NOT EXISTS calendars"),
+    );
+    const match = table.match(/char_length\(name\) BETWEEN 1 AND (\d+)/);
+    expect(match, "no CHECK found for calendars.name").not.toBeNull();
+    expect(Number(match![1])).toBe(CALENDAR_LIMITS.NAME);
   });
 });

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useAddEventMutation } from "@/store/api/adminApi";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { eventSchema } from "@/lib/schemas";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import { parseQuickAdd } from "./quick-add";
@@ -39,15 +40,29 @@ export function QuickAddBar({
 
   const submit = async () => {
     if (!parsed?.start) return;
+
+    const draft = {
+      title: parsed.title,
+      start_time: parsed.start.toISOString(),
+      end_time: parsed.end?.toISOString() ?? null,
+      is_all_day: parsed.isAllDay,
+      ...(parsed.rrule ? { rrule: parsed.rrule } : {}),
+      ...(defaultCalendarId ? { calendar_id: defaultCalendarId } : {}),
+    };
+
+    // The same check the full sheet runs. Quick-add builds its payload from
+    // free text, so it is the more likely of the two to produce something the
+    // columns will not take.
+    const checked = eventSchema.safeParse(draft);
+    if (!checked.success) {
+      toast.error("Could not add it", {
+        description: checked.error.errors[0]?.message,
+      });
+      return;
+    }
+
     try {
-      await addEvent({
-        title: parsed.title,
-        start_time: parsed.start.toISOString(),
-        end_time: parsed.end?.toISOString() ?? null,
-        is_all_day: parsed.isAllDay,
-        ...(parsed.rrule ? { rrule: parsed.rrule } : {}),
-        ...(defaultCalendarId ? { calendar_id: defaultCalendarId } : {}),
-      } as never).unwrap();
+      await addEvent(draft as never).unwrap();
       setText("");
       toast.success(`Added “${parsed.title}”`);
     } catch (error) {

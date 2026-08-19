@@ -22,6 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import { calendarSchema, CALENDAR_LIMITS } from "@/lib/schemas";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 
@@ -114,6 +115,19 @@ export function CalendarList({
     const trimmed = name.trim();
     setEditingId(null);
     if (!trimmed || trimmed === calendar.name) return;
+
+    // The column bounds the name at 80 characters; without this the write
+    // failed at Postgres with nothing to say which field was at fault.
+    const checked = calendarSchema
+      .pick({ name: true })
+      .safeParse({ name: trimmed });
+    if (!checked.success) {
+      toast.error("Could not rename it", {
+        description: checked.error.errors[0]?.message,
+      });
+      return;
+    }
+
     try {
       await saveCalendar({ id: calendar.id, name: trimmed }).unwrap();
     } catch (error) {
@@ -126,6 +140,15 @@ export function CalendarList({
   const add = async () => {
     const name = newName.trim();
     if (!name) return;
+
+    const checked = calendarSchema.pick({ name: true }).safeParse({ name });
+    if (!checked.success) {
+      toast.error("Could not add it", {
+        description: checked.error.errors[0]?.message,
+      });
+      return;
+    }
+
     try {
       await saveCalendar({
         name,
@@ -254,6 +277,7 @@ export function CalendarList({
 
       <div className="flex items-center gap-1.5">
         <Input
+          maxLength={CALENDAR_LIMITS.NAME}
           value={newName}
           onChange={(event) => setNewName(event.target.value)}
           onKeyDown={(event) => {

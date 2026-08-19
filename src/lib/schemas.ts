@@ -606,6 +606,25 @@ export const eventSchema = z
 
 export type EventFormValues = z.infer<typeof eventSchema>;
 
+/**
+ * A calendar. `name` is bounded 1..80 by the column, and the sidebar checked
+ * only that it was non-empty — so a long name failed at the database with
+ * nothing to tell the user which field was at fault.
+ */
+export const CALENDAR_LIMITS = {
+  /** `char_length(name) BETWEEN 1 AND 80` */
+  NAME: 80,
+} as const;
+
+export const calendarSchema = z.object({
+  name: boundedRequiredString(CALENDAR_LIMITS.NAME, "Calendar name"),
+  color_token: z.enum(["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"]),
+  is_visible: z.boolean().optional(),
+  sort_order: z.number().int().optional(),
+});
+
+export type CalendarFormValues = z.infer<typeof calendarSchema>;
+
 // =============================================================================
 // INVENTORY SCHEMAS
 // =============================================================================
