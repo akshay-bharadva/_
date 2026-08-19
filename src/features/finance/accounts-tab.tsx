@@ -12,8 +12,6 @@ import type {
 import {
   useGetAccountBalancesQuery,
   useGetFinanceAccountsQuery,
-  useGetFinanceCategoriesQuery,
-  useGetRecurringSkipsQuery,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,17 +24,15 @@ import { EmptyState, LoadingState, StatCard } from "@/components/admin/shared";
 import { formatMoney, rateFrom } from "@/lib/money";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./account-form";
-import { ConfirmQueue } from "./confirm-queue";
-import { buildConfirmQueue } from "./pending-occurrences";
 import { netWorth } from "./finance-insights";
-import { CoachingPanel } from "./coaching-panel";
 
 /**
- * Accounts, net worth, and the confirm queue.
+ * Accounts and what each one holds.
  *
- * The queue sits on this tab rather than its own because the two are the same
- * story: the balances above are only true if nothing is waiting to be
- * confirmed, and separating them would let you read one without the other.
+ * The confirm queue and the coaching used to live here as well. They moved to
+ * Overview, which is the screen that answers "how am I doing" — this one
+ * answers "what is in each account", and a section that tries to do both ends
+ * up being the only one anybody opens.
  */
 export function AccountsTab({
   settings,
@@ -51,8 +47,6 @@ export function AccountsTab({
 }) {
   const { data: accounts = [], isLoading } = useGetFinanceAccountsQuery();
   const { data: balances = {} } = useGetAccountBalancesQuery();
-  const { data: skips = [] } = useGetRecurringSkipsQuery();
-  const { data: categories = [] } = useGetFinanceCategoriesQuery();
 
   const [editing, setEditing] = useState<FinanceAccount | null>(null);
   const [creating, setCreating] = useState(false);
@@ -102,11 +96,6 @@ export function AccountsTab({
   const worth = useMemo(
     () => netWorth(accounts, balancesInBase, base),
     [accounts, balancesInBase, base],
-  );
-
-  const queue = useMemo(
-    () => buildConfirmQueue({ rules: recurring, transactions, skips }),
-    [recurring, transactions, skips],
   );
 
   const active = accounts.filter((account) => !account.archived_at);
@@ -178,29 +167,6 @@ export function AccountsTab({
             />
           ))}
         </div>
-      )}
-
-      <ConfirmQueue
-        queue={queue}
-        accounts={accounts}
-        baseCurrency={base}
-        className="pt-2"
-      />
-
-      {/*
-        The coaching sits below the queue on purpose: its figures are only as
-        good as the ledger, and `overdueCount` is passed in so the first thing
-        it can say is "these numbers are missing three items".
-      */}
-      {active.length > 0 && (
-        <CoachingPanel
-          transactions={transactions}
-          categories={categories}
-          accounts={accounts}
-          balancesInBase={balancesInBase}
-          settings={settings}
-          overdueCount={queue.filter((entry) => entry.isOverdue).length}
-        />
       )}
 
       <Sheet

@@ -291,6 +291,18 @@ export const recurringTransactionSchema = z
      * distinction is enforced — see the refinement below for the real bound.
      */
     occurrence_day: optionalInt(0, 31, "Occurrence day"),
+    /** Which account the money moves through; null leaves it unassigned. */
+    account_id: z.string().uuid().nullish(),
+    category_id: z.string().uuid().nullish(),
+    currency: z.string().length(3).nullish(),
+    /**
+     * Off by default, and that default carries the module's whole automation
+     * stance: a biweekly salary is 1,000 until two days of unpaid leave make it
+     * 800, so an occurrence is proposed for confirmation rather than posted.
+     */
+    auto_post: z.boolean().default(false),
+    /** The amount is typical rather than fixed — the forecast draws a band. */
+    is_estimate: z.boolean().default(false),
   })
   // A rule that ends before it starts projects zero occurrences and silently
   // does nothing — better to reject it at the form than to save dead config.

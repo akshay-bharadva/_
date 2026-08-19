@@ -24,11 +24,13 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import {
   Popover,
   PopoverContent,
@@ -65,6 +67,11 @@ export function RecurringTransactionForm({
       // `?? null` rather than leaving it undefined: day-of-week 0 (Sunday) is a
       // real value, and an undefined here made the field uncontrolled.
       occurrence_day: recurringTransaction?.occurrence_day ?? null,
+      account_id: recurringTransaction?.account_id ?? null,
+      category_id: recurringTransaction?.category_id ?? null,
+      currency: recurringTransaction?.currency ?? null,
+      auto_post: recurringTransaction?.auto_post ?? false,
+      is_estimate: recurringTransaction?.is_estimate ?? false,
     },
   });
 
@@ -347,6 +354,64 @@ export function RecurringTransactionForm({
             )}
           />
         </div>
+
+        {/*
+          The two switches that decide how this rule behaves, and the reason the
+          module has a confirm queue at all. `auto_post` off is the default and
+          the safe answer: a rule that posts itself produces a ledger that is
+          confidently wrong the first time reality differs from the plan.
+        */}
+        <div className="space-y-3 pt-2">
+          <FormField
+            control={form.control}
+            name="auto_post"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between gap-6 rounded-surface bg-card p-3.5 shadow-e1">
+                <div className="space-y-0.5">
+                  <FormLabel className="cursor-pointer">
+                    Record it automatically
+                  </FormLabel>
+                  <FormDescription>
+                    Off by default, so each occurrence waits for you to confirm
+                    the real amount. Turn this on only for genuinely fixed
+                    amounts — rent, a subscription.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="is_estimate"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between gap-6 rounded-surface bg-card p-3.5 shadow-e1">
+                <div className="space-y-0.5">
+                  <FormLabel className="cursor-pointer">
+                    The amount varies
+                  </FormLabel>
+                  <FormDescription>
+                    Marks this as a typical figure rather than a fixed one — a
+                    utility bill, a variable paycheque.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={Boolean(field.value)}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </div>
+
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
