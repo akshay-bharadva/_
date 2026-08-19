@@ -5,6 +5,8 @@ import {
   eventSchema,
   EVENT_LIMITS,
   MONEY_MAX_10_2,
+  MONEY_MAX_12_2,
+  MONEY_MAX_18_4,
   transactionSchema,
   TRANSACTION_LIMITS,
 } from "./schemas";
@@ -228,5 +230,34 @@ describe("transactionSchema", () => {
       expect(match, `no CHECK found for ${column}`).not.toBeNull();
       expect(Number(match![1])).toBe(limit);
     }
+  });
+});
+
+describe("money ceilings mirror the column widths", () => {
+  /**
+   * Each constant must be the largest value its NUMERIC(p,s) can hold. Getting
+   * this wrong in the generous direction is the whole bug — the form accepts a
+   * figure and Postgres raises `numeric field overflow`, which reaches the user
+   * as a save that simply failed.
+   */
+  it.each([
+    [MONEY_MAX_10_2, 10, 2],
+    [MONEY_MAX_12_2, 12, 2],
+    [MONEY_MAX_18_4, 18, 4],
+  ])("%s fits NUMERIC(%i,%i)", (max, precision, scale) => {
+    const whole = 10 ** (precision - scale) - 1;
+    const fraction = (10 ** scale - 1) / 10 ** scale;
+    expect(max).toBeCloseTo(whole + fraction, scale);
+  });
+
+  it("finds those widths in the schema", () => {
+    const schema = readFileSync(
+      resolve(__dirname, "../../db/schema.sql"),
+      "utf-8",
+    );
+    // Guards the constants above against a schema that no longer uses them.
+    expect(schema).toMatch(/NUMERIC\(10, ?2\)/);
+    expect(schema).toMatch(/NUMERIC\(12, ?2\)/);
+    expect(schema).toMatch(/NUMERIC\(18, ?4\)/);
   });
 });

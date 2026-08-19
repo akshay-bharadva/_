@@ -51,6 +51,15 @@ export const LIMITS = {
  */
 export const MONEY_MAX_10_2 = 99_999_999.99;
 export const MONEY_MAX_12_2 = 9_999_999_999.99;
+/**
+ * NUMERIC(18,4) — account opening balances and budget amounts.
+ *
+ * Fourteen digits before the point. Far past anything a person will type on
+ * purpose, which is the point: it catches a slipped keyboard rather than
+ * constraining a real figure, and it does so in the form instead of as a
+ * Postgres overflow the user cannot act on.
+ */
+export const MONEY_MAX_18_4 = 99_999_999_999_999.9999;
 
 // =============================================================================
 // REUSABLE SCHEMA FRAGMENTS

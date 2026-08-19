@@ -21,6 +21,7 @@ import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import { accountKindLabel } from "./account-card";
 import { toLocalISODate } from "@/lib/date-utils";
+import { MONEY_MAX_18_4 } from "@/lib/schemas";
 
 const KINDS: AccountKind[] = [
   "chequing",
@@ -72,7 +73,10 @@ export function AccountForm({
 
   const isDebt = kind === "credit" || kind === "loan";
   const parsedBalance = Number(balance);
-  const validBalance = Number.isFinite(parsedBalance);
+  // Bounded as well as finite: the column is NUMERIC(18,4), and a slipped
+  // keyboard past its ceiling is a Postgres overflow rather than a message.
+  const validBalance =
+    Number.isFinite(parsedBalance) && Math.abs(parsedBalance) <= MONEY_MAX_18_4;
   const canSave = name.trim().length > 0 && validBalance && !isLoading;
 
   const submit = async () => {

@@ -19,6 +19,7 @@ import { formatMoney } from "@/lib/money";
 import { getErrorMessage } from "@/lib/utils";
 import { buildTransferLegs, effectiveRate } from "./transfers";
 import { toLocalISODate } from "@/lib/date-utils";
+import { MONEY_MAX_10_2 } from "@/lib/schemas";
 
 /**
  * Move money between your own accounts, including across a border.
@@ -64,6 +65,12 @@ export function TransferForm({
 
   const rate = effectiveRate(parsedOut, parsedIn);
 
+  /*
+    A fee of "abc" is NaN, and NaN serialises to null — so a mistyped fee was
+    silently dropped rather than questioned. Blank still means no fee.
+  */
+  const parsedFee = fee.trim() === "" ? 0 : Number(fee);
+
   const valid =
     from !== undefined &&
     to !== undefined &&
@@ -71,7 +78,16 @@ export function TransferForm({
     Number.isFinite(parsedOut) &&
     parsedOut > 0 &&
     Number.isFinite(parsedIn) &&
-    parsedIn > 0;
+    parsedIn > 0 &&
+    Number.isFinite(parsedFee) &&
+    parsedFee >= 0 &&
+    // Both legs are transactions, and the column is NUMERIC(10,2). Past its
+    // ceiling Postgres raises a numeric overflow on the *first* write, which
+    // for a transfer means one leg written and a balance wrong in both
+    // directions.
+    parsedOut <= MONEY_MAX_10_2 &&
+    parsedIn <= MONEY_MAX_10_2 &&
+    parsedFee <= MONEY_MAX_10_2;
 
   const submit = async () => {
     if (!valid || !from || !to) return;
@@ -87,7 +103,7 @@ export function TransferForm({
         toAccount: to,
         amountOut: parsedOut,
         amountIn: parsedIn,
-        fee: fee ? Number(fee) : undefined,
+        fee: parsedFee > 0 ? parsedFee : undefined,
         date,
         description: description.trim() || undefined,
         categoryId: transferCategory?.id ?? null,

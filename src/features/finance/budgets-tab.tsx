@@ -23,6 +23,7 @@ import {
   unbudgetedSuggestions,
   type BudgetLine,
 } from "./budgets";
+import { MONEY_MAX_18_4 } from "@/lib/schemas";
 
 /**
  * Budgets, read as pace rather than as a limit.
@@ -76,7 +77,16 @@ export function BudgetsTab({
   );
 
   const add = async (categoryId: string, amount: number) => {
-    if (!categoryId || !Number.isFinite(amount) || amount < 0) return;
+    // The column is NUMERIC(18,4) with a `>= 0` CHECK; both ends are enforced
+    // here so neither reaches Postgres as an opaque failure.
+    if (
+      !categoryId ||
+      !Number.isFinite(amount) ||
+      amount < 0 ||
+      amount > MONEY_MAX_18_4
+    ) {
+      return;
+    }
     try {
       await saveBudget({
         category_id: categoryId,
