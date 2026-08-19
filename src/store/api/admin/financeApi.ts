@@ -101,46 +101,6 @@ export const financeApi = adminApi.injectEndpoints({
       queryFn: deleteQueryFn("financial_goals"),
       invalidatesTags: ["Goals"],
     }),
-    manageCategory: builder.mutation<
-      null,
-      { type: "edit" | "merge" | "delete"; oldName: string; newName?: string }
-    >({
-      queryFn: async ({ type, oldName, newName }) => {
-        if (!supabase) return { error: NO_DB_ERROR };
-        let rpcName:
-          | "rename_transaction_category"
-          | "merge_transaction_categories"
-          | "delete_transaction_category"
-          | null = null;
-        let params: Record<string, string> = {};
-
-        if (type === "edit" && newName) {
-          rpcName = "rename_transaction_category";
-          params = { old_name: oldName, new_name: newName };
-        } else if (type === "merge" && newName) {
-          rpcName = "merge_transaction_categories";
-          params = { source_name: oldName, target_name: newName };
-        } else if (type === "delete") {
-          rpcName = "delete_transaction_category";
-          params = { category_name: oldName };
-        }
-
-        if (!rpcName)
-          return {
-            error: {
-              message: "Invalid action",
-              details: "",
-              hint: "",
-              code: "400",
-            },
-          };
-
-        const { error } = await supabase.rpc(rpcName, params);
-        if (error) return { error };
-        return { data: null };
-      },
-      invalidatesTags: ["Transactions"],
-    }),
   }),
 });
 
@@ -153,5 +113,4 @@ export const {
   useSaveGoalMutation,
   useAddFundsToGoalMutation,
   useDeleteGoalMutation,
-  useManageCategoryMutation,
 } = financeApi;

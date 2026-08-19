@@ -50,7 +50,6 @@ const EXPECTED_HOOKS = [
   "useSaveGoalMutation",
   "useAddFundsToGoalMutation",
   "useDeleteGoalMutation",
-  "useManageCategoryMutation",
   // learning
   "useGetLearningDataQuery",
   "useAddLearningSessionMutation",

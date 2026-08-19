@@ -15,6 +15,7 @@ import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { EmptyState } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
+import { FINANCE_LIMITS } from "@/lib/schemas";
 
 /**
  * Categories, and the two fields that make the coaching work.
@@ -198,6 +199,7 @@ export function CategoriesSection({
           </label>
           <Input
             id="new-category"
+            maxLength={FINANCE_LIMITS.CATEGORY_NAME}
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
             onKeyDown={(event) => {
@@ -285,6 +287,7 @@ function InlineName({
     <span className="flex min-w-32 flex-1 items-center gap-1">
       <Input
         value={draft}
+        maxLength={FINANCE_LIMITS.CATEGORY_NAME}
         autoFocus
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {

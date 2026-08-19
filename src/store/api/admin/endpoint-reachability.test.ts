@@ -34,11 +34,6 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   useDeleteFinanceAccountMutation:
     "accounts archive instead; see account-form.tsx",
 
-  // Superseded by useSaveFinanceCategoryMutation during the finance rebuild.
-  // Left in place because removing an endpoint needs a migration pass over the
-  // tag invalidations, which is not worth doing on its own.
-  useManageCategoryMutation: "superseded by useSaveFinanceCategoryMutation",
-
   // Dashboard is the last module still on v2 and is being rebuilt; its
   // analytics query is dead until that lands.
   useGetAnalyticsDataQuery: "dashboard still on v2, rebuild pending",
