@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Plus, Settings2 } from "lucide-react";
+import { Check, Pencil, Plus, Settings2, Trash2, X } from "lucide-react";
 import type { Calendar, CalendarColorToken, CalendarSettings } from "@/types";
 import {
+  useDeleteCalendarMutation,
   useSaveCalendarMutation,
   useSaveCalendarSettingsMutation,
   useSeedCalendarDefaultsMutation,
@@ -20,6 +21,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 
@@ -55,11 +57,14 @@ export function CalendarList({
   settings: CalendarSettings;
 }) {
   const [saveCalendar] = useSaveCalendarMutation();
+  const [deleteCalendar] = useDeleteCalendarMutation();
   const [saveSettings] = useSaveCalendarSettingsMutation();
+  const confirm = useConfirm();
   const [seedDefaults, { isLoading: isSeeding }] =
     useSeedCalendarDefaultsMutation();
 
   const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const active = calendars.filter((entry) => !entry.archived_at);
 
@@ -71,6 +76,48 @@ export function CalendarList({
       }).unwrap();
     } catch (error) {
       toast.error("Could not update it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const remove = async (calendar: Calendar) => {
+    const ok = await confirm({
+      title: `Delete ${calendar.name}?`,
+      description:
+        "Events on it are kept — they lose the label and become uncategorised, so nothing disappears from the grid.",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deleteCalendar(calendar.id).unwrap();
+      toast.success("Calendar deleted");
+    } catch (error) {
+      toast.error("Could not delete it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const recolour = async (calendar: Calendar, token: CalendarColorToken) => {
+    try {
+      await saveCalendar({ id: calendar.id, color_token: token }).unwrap();
+    } catch (error) {
+      toast.error("Could not change the colour", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const rename = async (calendar: Calendar, name: string) => {
+    const trimmed = name.trim();
+    setEditingId(null);
+    if (!trimmed || trimmed === calendar.name) return;
+    try {
+      await saveCalendar({ id: calendar.id, name: trimmed }).unwrap();
+    } catch (error) {
+      toast.error("Could not rename it", {
         description: getErrorMessage(error),
       });
     }
@@ -147,34 +194,59 @@ export function CalendarList({
         <ul className="space-y-0.5">
           {active.map((calendar) => (
             <li key={calendar.id}>
-              <button
-                type="button"
-                onClick={() => void toggle(calendar)}
-                aria-pressed={calendar.is_visible}
-                className="flex w-full items-center gap-2.5 rounded-control px-1.5 py-1.5 text-left transition-colors hover:bg-secondary/60"
-              >
-                <span
-                  className={cn(
-                    "flex size-3.5 shrink-0 items-center justify-center rounded-[4px] transition-opacity",
-                    SWATCH[calendar.color_token],
-                    !calendar.is_visible && "opacity-25",
-                  )}
-                >
-                  {calendar.is_visible && (
-                    <Check className="size-2.5 text-background" aria-hidden />
-                  )}
-                </span>
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 truncate text-sm",
-                    calendar.is_visible
-                      ? "text-foreground"
-                      : "text-muted-foreground line-through",
-                  )}
-                >
-                  {calendar.name}
-                </span>
-              </button>
+              {editingId === calendar.id ? (
+                <CalendarRowEditor
+                  calendar={calendar}
+                  onRename={(name) => void rename(calendar, name)}
+                  onRecolour={(token) => void recolour(calendar, token)}
+                  onDelete={() => void remove(calendar)}
+                  onCancel={() => setEditingId(null)}
+                />
+              ) : (
+                <div className="group flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => void toggle(calendar)}
+                    aria-pressed={calendar.is_visible}
+                    className="flex min-w-0 flex-1 items-center gap-2.5 rounded-control px-1.5 py-1.5 text-left transition-colors hover:bg-secondary/60"
+                  >
+                    <span
+                      className={cn(
+                        "flex size-3.5 shrink-0 items-center justify-center rounded-[4px] transition-opacity",
+                        SWATCH[calendar.color_token],
+                        !calendar.is_visible && "opacity-25",
+                      )}
+                    >
+                      {calendar.is_visible && (
+                        <Check
+                          className="size-2.5 text-background"
+                          aria-hidden
+                        />
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        "min-w-0 flex-1 truncate text-sm",
+                        calendar.is_visible
+                          ? "text-foreground"
+                          : "text-muted-foreground line-through",
+                      )}
+                    >
+                      {calendar.name}
+                    </span>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditingId(calendar.id)}
+                    aria-label={`Edit ${calendar.name}`}
+                    className="size-6 shrink-0 text-muted-foreground opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+                  >
+                    <Pencil className="size-3" />
+                  </Button>
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -225,6 +297,102 @@ export function CalendarList({
         />
       </div>
     </section>
+  );
+}
+
+/**
+ * Rename, recolour or delete, in place.
+ *
+ * A sheet to change one word and a colour would be three interactions and a
+ * context switch for the only two edits a calendar ever gets.
+ */
+function CalendarRowEditor({
+  calendar,
+  onRename,
+  onRecolour,
+  onDelete,
+  onCancel,
+}: {
+  calendar: Calendar;
+  onRename: (name: string) => void;
+  onRecolour: (token: CalendarColorToken) => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(calendar.name);
+
+  return (
+    <div className="space-y-2 rounded-surface bg-card p-2 shadow-e1">
+      <div className="flex items-center gap-1">
+        <Input
+          value={draft}
+          autoFocus
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") onRename(draft);
+            if (event.key === "Escape") onCancel();
+          }}
+          aria-label={`Rename ${calendar.name}`}
+          className="h-7 text-xs"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7 shrink-0"
+          onClick={() => onRename(draft)}
+          aria-label="Save name"
+        >
+          <Check className="size-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7 shrink-0"
+          onClick={onCancel}
+          aria-label="Cancel"
+        >
+          <X className="size-3.5" />
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <div
+          role="radiogroup"
+          aria-label="Colour"
+          className="flex flex-1 gap-1.5"
+        >
+          {TOKENS.map((token) => (
+            <button
+              key={token}
+              type="button"
+              role="radio"
+              aria-checked={calendar.color_token === token}
+              aria-label={token}
+              onClick={() => onRecolour(token)}
+              className={cn(
+                "size-5 rounded-[5px] transition-transform",
+                SWATCH[token],
+                calendar.color_token === token
+                  ? "ring-2 ring-foreground ring-offset-1 ring-offset-card"
+                  : "hover:scale-110",
+              )}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+          aria-label={`Delete ${calendar.name}`}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

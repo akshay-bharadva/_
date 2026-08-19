@@ -28,8 +28,15 @@ import { FormSheet } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
 import { describeRRule } from "./recurrence";
 
-const FREQUENCIES = [
-  { value: "", label: "Does not repeat" },
+/**
+ * Radix refuses an empty-string `SelectItem` value — it reserves "" to mean
+ * "nothing selected" and throws rather than rendering. So "no recurrence" and
+ * "no calendar" get a sentinel, mapped back to null on the way to the database.
+ */
+export const NONE = "none";
+
+export const FREQUENCIES = [
+  { value: NONE, label: "Does not repeat" },
   { value: "FREQ=DAILY", label: "Daily" },
   { value: "FREQ=WEEKLY", label: "Weekly" },
   { value: "FREQ=MONTHLY", label: "Monthly" },
@@ -78,7 +85,7 @@ export function EventSheet({
   const [meetingUrl, setMeetingUrl] = useState("");
   const [description, setDescription] = useState("");
   const [calendarId, setCalendarId] = useState("");
-  const [rrule, setRrule] = useState("");
+  const [rrule, setRrule] = useState(NONE);
 
   useEffect(() => {
     if (!open) return;
@@ -90,8 +97,8 @@ export function EventSheet({
       setLocation(editing.location ?? "");
       setMeetingUrl(editing.meetingUrl ?? "");
       setDescription(editing.description ?? "");
-      setCalendarId(editing.calendarId ?? defaultCalendarId ?? "");
-      setRrule(editing.rrule ?? "");
+      setCalendarId(editing.calendarId ?? defaultCalendarId ?? NONE);
+      setRrule(editing.rrule || NONE);
       return;
     }
     const base = draftStart ?? new Date();
@@ -102,8 +109,8 @@ export function EventSheet({
     setLocation("");
     setMeetingUrl("");
     setDescription("");
-    setCalendarId(defaultCalendarId ?? "");
-    setRrule("");
+    setCalendarId(defaultCalendarId ?? NONE);
+    setRrule(NONE);
   }, [open, editing, draftStart, defaultCalendarId]);
 
   const busy = isAdding || isUpdating;
@@ -117,8 +124,9 @@ export function EventSheet({
     location: location.trim() || null,
     meeting_url: meetingUrl.trim() || null,
     description: description.trim() || null,
-    calendar_id: calendarId || null,
-    rrule: rrule || null,
+    // The sentinels never reach the database.
+    calendar_id: calendarId === NONE ? null : calendarId || null,
+    rrule: rrule === NONE ? null : rrule || null,
   });
 
   const save = async () => {
@@ -317,13 +325,13 @@ export function EventSheet({
               </SelectTrigger>
               <SelectContent>
                 {FREQUENCIES.map((option) => (
-                  <SelectItem key={option.value || "none"} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {rrule && (
+            {rrule !== NONE && (
               <p className="text-xs text-muted-foreground">
                 {describeRRule(rrule)}
               </p>
@@ -338,6 +346,7 @@ export function EventSheet({
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NONE}>No calendar</SelectItem>
                   {calendars
                     .filter((entry) => !entry.archived_at)
                     .map((entry) => (
