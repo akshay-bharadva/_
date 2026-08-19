@@ -27,6 +27,7 @@ export const adminApi = createApi({
     "SiteSettings",
     "AdminPosts",
     "Calendar",
+    "CalendarSetup",
     "Analytics",
     "Dashboard",
     "MFA",

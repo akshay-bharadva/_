@@ -1,398 +1,356 @@
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useMemo, useState } from "react";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfMonth,
+  format,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
+import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { endOfDay, isAfter, startOfDay } from "date-fns";
-import { skipToken } from "@reduxjs/toolkit/query";
-import FullCalendar from "@fullcalendar/react";
-import type { DatesSetArg, EventClickArg } from "@fullcalendar/core";
-import { getErrorMessage } from "@/lib/utils";
-import { projectRecurringOccurrences } from "@/lib/finance-utils";
+import type { CalendarEntry, Task } from "@/types";
 import {
   useAddEventMutation,
-  useDeleteEventMutation,
   useGetCalendarDataQuery,
-  useUpdateEventMutation,
+  useGetCalendarSettingsQuery,
+  useGetCalendarsQuery,
+  useGetEventExceptionsQuery,
+  useGetTasksQuery,
 } from "@/store/api/adminApi";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { ManagerWrapper } from "@/components/admin/shared";
-import { mapItemToEvent } from "./calendar-utils";
-import { toFcEvent } from "./calendar-constants";
-import { CalendarTopBar } from "./calendar-top-bar";
-import { CalendarSidebar } from "./calendar-sidebar";
-import { CalendarMainView } from "./calendar-main-view";
-import { EventFormSheet } from "./event-form-sheet";
-import { ResponsiveDayEvents } from "./responsive-day-events";
-import { ResponsiveEventDetails } from "./responsive-event-details";
-import type {
-  DayListState,
-  EventFormData,
-  EventType,
-  SheetState,
-  ViewEventState,
-} from "./calendar-types";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { LoadingState, ManagerWrapper } from "@/components/admin/shared";
+import { getErrorMessage } from "@/lib/utils";
+import { cn } from "@/lib/cn";
+import { buildEntries, filterEntries } from "./build-entries";
+import { WeekGrid } from "./week-grid";
+import { AgendaView } from "./agenda-view";
+import { MonthView } from "./month-view";
+import { CalendarList } from "./calendar-list";
+import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
+import { QuickAddBar } from "./quick-add-bar";
+import { EventSheet } from "./event-sheet";
 
-export default function CalendarPage({
-  onNavigate,
-}: {
-  onNavigate: (tab: string) => void;
-}) {
-  const confirm = useConfirm();
-  const calendarRef = useRef<FullCalendar>(null);
-  const isMobile = useIsMobile();
+type View = "day" | "week" | "month" | "agenda";
 
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [activeView, setActiveView] = useState("dayGridMonth");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date(),
-  );
-  const [dateRange, setDateRange] = useState<{
-    start: string;
-    end: string;
-  } | null>(null);
-  const [filters, setFilters] = useState<string[]>([
-    "event",
-    "task",
-    "transaction_summary",
-    "forecast",
-    "habit_summary",
-  ]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
+const VIEWS: { id: View; label: string }[] = [
+  { id: "day", label: "Day" },
+  { id: "week", label: "Week" },
+  { id: "month", label: "Month" },
+  { id: "agenda", label: "Agenda" },
+];
 
-  const { data, isLoading, error } = useGetCalendarDataQuery(
-    dateRange ?? skipToken,
-  );
+/**
+ * The calendar.
+ *
+ * Rebuilt natively. The grid, the recurrence expansion and the overlap layout
+ * are all this module's own — five FullCalendar packages and a CSS override
+ * block went with the previous version, and with them the nine hard-coded hex
+ * colours that library required.
+ */
+export default function CalendarPage() {
+  const { data: settings } = useGetCalendarSettingsQuery();
+  const { data: calendars = [] } = useGetCalendarsQuery();
+  const { data: exceptions = [] } = useGetEventExceptionsQuery();
+  const { data: tasks = [] } = useGetTasksQuery();
   const [addEvent] = useAddEventMutation();
-  const [updateEvent] = useUpdateEventMutation();
-  const [deleteEvent] = useDeleteEventMutation();
 
-  const [sheetState, setSheetState] = useState<SheetState>({
-    open: false,
-    isNew: false,
-  });
-  const [viewEventState, setViewEventState] = useState<ViewEventState>({
-    open: false,
-    event: null,
-  });
-  const [eventFormData, setEventFormData] = useState<EventFormData>({
-    id: "",
-    title: "",
-    description: "",
-    start_time: new Date().toISOString(),
-    end_time: new Date().toISOString(),
-    is_all_day: false,
-  });
-  const [dayListState, setDayListState] = useState<DayListState>({
-    open: false,
-    date: null,
-    events: [],
-  });
+  const [view, setView] = useState<View>("week");
+  const [anchor, setAnchor] = useState(() => new Date());
+  const [selected, setSelected] = useState<CalendarEntry | null>(null);
+  const [draftStart, setDraftStart] = useState<Date | null>(null);
 
-  useEffect(() => {
-    if (error)
-      toast.error("Failed to load calendar data", {
-        description:
-          error && typeof error === "object" && "message" in error
-            ? String((error as { message: unknown }).message)
-            : "Unknown error",
-      });
-  }, [error]);
+  const weekStartsOn = (settings?.week_starts_on ?? 1) as
+    | 0
+    | 1
+    | 2
+    | 3
+    | 4
+    | 5
+    | 6;
 
-  const handleDatesSet = useCallback((info: DatesSetArg) => {
-    setCurrentDate(info.view.currentStart);
-    setActiveView(info.view.type);
-    setDateRange({
-      start: info.start.toISOString(),
-      end: info.end.toISOString(),
-    });
-  }, []);
-
-  // Merge base events with projected recurring-transaction forecasts
-  const events = useMemo(() => {
-    if (!data) return [];
-
-    const baseEvents = data.baseEvents.map(mapItemToEvent);
-
-    const today = startOfDay(new Date());
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const viewStart = startOfDay(new Date(year, month - 1, 1));
-    const viewEnd = endOfDay(new Date(year, month + 2, 0));
-
-    const projectionStart = isAfter(today, viewStart) ? today : viewStart;
-
-    const forecastEvents: EventType[] = projectRecurringOccurrences(
-      data.recurring ?? [],
-      projectionStart,
-      viewEnd,
-    ).map(({ rule, date }) => ({
-      id: `forecast-${rule.id}-${date.getTime()}`,
-      title: rule.description,
-      start: date,
-      allDay: true,
-      type: "forecast",
-      amount: rule.amount,
-      transactionType: rule.type,
-    }));
-
-    let filtered = [...baseEvents, ...forecastEvents].filter((event) =>
-      filters.includes(event.type),
-    );
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter((e) => e.title.toLowerCase().includes(q));
+  /** The days on screen, and the range to fetch. */
+  const { days, rangeStart, rangeEnd } = useMemo(() => {
+    if (view === "day") {
+      return { days: [anchor], rangeStart: anchor, rangeEnd: anchor };
     }
+    if (view === "month") {
+      const first = startOfWeek(startOfMonth(anchor), { weekStartsOn });
+      const last = addDays(
+        startOfWeek(endOfMonth(anchor), { weekStartsOn }),
+        6,
+      );
+      const count =
+        Math.round((last.getTime() - first.getTime()) / 86_400_000) + 1;
+      return {
+        days: Array.from({ length: count }, (_, i) => addDays(first, i)),
+        rangeStart: first,
+        rangeEnd: last,
+      };
+    }
+    if (view === "agenda") {
+      return {
+        days: [],
+        rangeStart: anchor,
+        rangeEnd: addDays(anchor, 30),
+      };
+    }
+    const first = startOfWeek(anchor, { weekStartsOn });
+    return {
+      days: Array.from({ length: 7 }, (_, i) => addDays(first, i)),
+      rangeStart: first,
+      rangeEnd: addDays(first, 6),
+    };
+  }, [view, anchor, weekStartsOn]);
 
-    return filtered;
-  }, [data, filters, currentDate, searchQuery]);
+  const iso = (date: Date) => format(date, "yyyy-MM-dd");
 
-  const fcEvents = useMemo(() => events.map(toFcEvent), [events]);
+  const { data: rows = [], isLoading } = useGetCalendarDataQuery({
+    start: iso(rangeStart),
+    end: iso(rangeEnd),
+  });
 
-  // --- Handlers ---
-
-  const handleEventClick = useCallback((info: EventClickArg) => {
-    const original = info.event.extendedProps.originalEvent as EventType;
-    setViewEventState({ open: true, event: original });
-  }, []);
-
-  const handleSelect = useCallback(
-    (info: { start: Date; end: Date; allDay: boolean }) => {
-      let endDate = info.end;
-      if (info.allDay) {
-        endDate = new Date(info.end);
-        endDate.setDate(endDate.getDate() - 1);
-      }
-      setEventFormData({
-        id: "",
-        title: "",
-        description: "",
-        start_time: info.start.toISOString(),
-        end_time: endDate.toISOString(),
-        is_all_day: info.allDay,
-      });
-      setSheetState({ open: true, isNew: true });
-    },
-    [],
+  const hiddenCalendars = useMemo(
+    () =>
+      new Set(
+        calendars.filter((entry) => !entry.is_visible).map((entry) => entry.id),
+      ),
+    [calendars],
   );
 
-  const handleAddNewEvent = () => {
-    const base = selectedDate || new Date();
-    setEventFormData({
-      id: "",
-      title: "",
-      description: "",
-      start_time: base.toISOString(),
-      end_time: base.toISOString(),
-      is_all_day: false,
+  const entries = useMemo(() => {
+    const built = buildEntries({
+      rows,
+      exceptions,
+      windowStart: rangeStart,
+      windowEnd: addDays(rangeEnd, 1),
     });
-    setSheetState({ open: true, isNew: true });
-  };
+    return filterEntries(built, {
+      hiddenCalendars,
+      showTasks: settings?.show_tasks ?? true,
+      showHabits: settings?.show_habits ?? false,
+      showFinance: settings?.show_finance ?? false,
+    });
+  }, [rows, exceptions, rangeStart, rangeEnd, hiddenCalendars, settings]);
 
-  const handleToday = () => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.today();
-      const now = new Date();
-      setSelectedDate(now);
-      setCurrentDate(now);
-    }
-  };
+  /** Tasks that already have a block, so the rail does not offer them twice. */
+  const scheduledTaskIds = useMemo(
+    () =>
+      new Set(
+        entries
+          .map((entry) => entry.taskId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [entries],
+  );
 
-  const handlePrev = () => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.prev();
-      setSelectedDate(api.getDate());
-    }
-  };
+  const defaultCalendarId =
+    calendars.find((entry) => entry.is_default)?.id ?? calendars[0]?.id ?? null;
 
-  const handleNext = () => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.next();
-      setSelectedDate(api.getDate());
-    }
-  };
-
-  const handleChangeView = (viewKey: string) => {
-    const api = calendarRef.current?.getApi();
-    if (api) {
-      api.changeView(viewKey);
-      setActiveView(viewKey);
-    }
-  };
-
-  const handleMiniCalendarSelect = (date: Date | undefined) => {
-    if (!date) return;
-    setSelectedDate(date);
-    setCurrentDate(date);
-    const api = calendarRef.current?.getApi();
-    if (api) api.gotoDate(date);
-  };
-
-  const handleMiniCalendarMonthChange = (month: Date) => {
-    const api = calendarRef.current?.getApi();
-    if (api) api.gotoDate(month);
-  };
-
-  const toggleFilter = (key: string) => {
-    setFilters((prev) =>
-      prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key],
+  const step = (direction: 1 | -1) => {
+    setAnchor((current) =>
+      view === "month"
+        ? addMonths(current, direction)
+        : view === "day"
+          ? addDays(current, direction)
+          : view === "agenda"
+            ? addDays(current, direction * 30)
+            : addWeeks(current, direction),
     );
   };
 
-  const handleEventFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /** Turn a dragged task into a block of time. */
+  const scheduleTask = async (taskId: string, start: Date) => {
+    const task = tasks.find((entry: Task) => entry.id === taskId);
+    if (!task) return;
 
-    const dataToSave: Record<string, unknown> = {
-      title: eventFormData.title,
-      description: eventFormData.description || null,
-      start_time: eventFormData.start_time,
-      end_time: eventFormData.end_time || null,
-      is_all_day: eventFormData.is_all_day,
-    };
-
-    if (eventFormData.id && eventFormData.id.trim() !== "") {
-      dataToSave.id = eventFormData.id;
-    }
-
+    const minutes = task.estimate_minutes ?? DEFAULT_BLOCK_MINUTES;
     try {
-      if (sheetState.isNew) {
-        await addEvent(dataToSave).unwrap();
-      } else {
-        await updateEvent(dataToSave).unwrap();
-      }
+      await addEvent({
+        title: task.title,
+        start_time: start.toISOString(),
+        end_time: new Date(start.getTime() + minutes * 60_000).toISOString(),
+        is_all_day: false,
+        task_id: taskId,
+        ...(defaultCalendarId ? { calendar_id: defaultCalendarId } : {}),
+      } as never).unwrap();
       toast.success(
-        `Event ${sheetState.isNew ? "created" : "updated"} successfully.`,
+        `Blocked ${format(start, "EEE HH:mm")} for “${task.title}”`,
+        {
+          description: task.estimate_minutes
+            ? undefined
+            : "No estimate on this task, so an hour was set aside.",
+        },
       );
-      setSheetState({ open: false, isNew: false });
-    } catch (err: unknown) {
-      toast.error("Failed to save event", {
-        description: getErrorMessage(err),
+    } catch (error) {
+      toast.error("Could not schedule it", {
+        description: getErrorMessage(error),
       });
     }
   };
 
-  const handleDeleteEvent = async (id?: string) => {
-    const targetId = id || eventFormData.id;
-    if (!targetId) return;
+  if (!settings)
+    return <LoadingState variant="page" label="Loading calendar" />;
 
-    const isConfirmed = await confirm({
-      title: "Delete Event?",
-      description: "Are you sure you want to delete this event?",
-      variant: "destructive",
-      confirmText: "Delete",
-    });
+  const heading =
+    view === "month"
+      ? format(anchor, "MMMM yyyy")
+      : view === "day"
+        ? format(anchor, "EEEE d MMMM")
+        : view === "agenda"
+          ? "Next 30 days"
+          : `${format(days[0], "d MMM")} – ${format(days[6], "d MMM yyyy")}`;
 
-    if (!isConfirmed) return;
-
-    try {
-      await deleteEvent(targetId).unwrap();
-      toast.success("Event deleted.");
-      setSheetState({ open: false, isNew: false });
-      setViewEventState({ open: false, event: null });
-    } catch (err: unknown) {
-      toast.error("Failed to delete event", {
-        description: getErrorMessage(err),
-      });
-    }
-  };
-
-  const handleEditClick = () => {
-    const eventToEdit = viewEventState.event;
-    if (!eventToEdit) return;
-
-    setEventFormData({
-      id: eventToEdit.id,
-      title: eventToEdit.title,
-      description: eventToEdit.description || "",
-      start_time: eventToEdit.start.toISOString(),
-      end_time:
-        eventToEdit.end?.toISOString() || eventToEdit.start.toISOString(),
-      is_all_day: eventToEdit.allDay,
-    });
-    setViewEventState({ open: false, event: null });
-    setSheetState({ open: true, isNew: false });
-  };
+  const sidebar = (
+    <div className="space-y-6">
+      <CalendarList calendars={calendars} settings={settings} />
+      <TaskRail tasks={tasks} scheduledTaskIds={scheduledTaskIds} />
+    </div>
+  );
 
   return (
-    <ManagerWrapper className="-mx-4 -mb-20 -mt-4 flex h-[calc(100vh-4rem)] flex-col !space-y-0 !pb-0 lg:-mx-6 lg:-mb-6 lg:-mt-6">
-      {/* Top Bar */}
-      <CalendarTopBar
-        currentDate={currentDate}
-        activeView={activeView}
-        searchQuery={searchQuery}
-        showSearch={showSearch}
-        onSearchQueryChange={setSearchQuery}
-        onShowSearchChange={setShowSearch}
-        onToday={handleToday}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onChangeView={handleChangeView}
-        onAddNewEvent={handleAddNewEvent}
-      />
+    <ManagerWrapper className="pb-4">
+      <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
+        <header className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => step(-1)}
+              aria-label="Previous"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => step(1)}
+              aria-label="Next"
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAnchor(new Date())}
+            >
+              Today
+            </Button>
+          </div>
 
-      {/* Body: Sidebar + Calendar */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {!isMobile && (
-          <CalendarSidebar
-            currentDate={currentDate}
-            selectedDate={selectedDate}
-            filters={filters}
-            events={events}
-            onMiniCalendarSelect={handleMiniCalendarSelect}
-            onMiniCalendarMonthChange={handleMiniCalendarMonthChange}
-            onToggleFilter={toggleFilter}
-            onViewEvent={setViewEventState}
-          />
-        )}
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
+            {heading}
+          </h1>
 
-        <CalendarMainView
-          calendarRef={calendarRef}
-          isMobile={isMobile}
-          isLoading={isLoading}
-          fcEvents={fcEvents}
-          events={events}
-          filters={filters}
-          onFiltersChange={setFilters}
-          onDatesSet={handleDatesSet}
-          onEventClick={handleEventClick}
-          onSelect={handleSelect}
-          onDayListOpen={setDayListState}
-        />
+          <div role="tablist" aria-label="View" className="flex gap-1">
+            {VIEWS.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                role="tab"
+                aria-selected={entry.id === view}
+                onClick={() => setView(entry.id)}
+                className={cn(
+                  "rounded-control px-2.5 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+                  entry.id === view
+                    ? "bg-card text-foreground shadow-e2"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {entry.label}
+              </button>
+            ))}
+          </div>
+
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="xl:hidden"
+              >
+                Calendars
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>Calendar</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">{sidebar}</div>
+            </SheetContent>
+          </Sheet>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setDraftStart(new Date())}
+          >
+            <Plus className="mr-1.5 size-3.5" />
+            Event
+          </Button>
+        </header>
+
+        <QuickAddBar defaultCalendarId={defaultCalendarId} />
+
+        <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]">
+          <div className="flex min-h-0 flex-col">
+            {isLoading && rows.length === 0 ? (
+              <LoadingState variant="section" label="Loading" />
+            ) : view === "agenda" ? (
+              <AgendaView entries={entries} onSelect={setSelected} />
+            ) : view === "month" ? (
+              <MonthView
+                days={days}
+                anchor={anchor}
+                entries={entries}
+                onSelect={setSelected}
+                onPickDay={(day) => {
+                  setAnchor(day);
+                  setView("day");
+                }}
+              />
+            ) : (
+              <WeekGrid
+                days={days}
+                entries={entries}
+                settings={settings}
+                homeTimezone={settings.home_timezone ?? null}
+                onSelect={setSelected}
+                onCreate={setDraftStart}
+                onDropTask={(taskId, start) => void scheduleTask(taskId, start)}
+              />
+            )}
+          </div>
+
+          <aside className="hidden min-h-0 overflow-y-auto xl:block">
+            {sidebar}
+          </aside>
+        </div>
       </div>
 
-      {/* Overlays */}
-      <ResponsiveEventDetails
-        state={viewEventState}
-        onClose={() => setViewEventState({ open: false, event: null })}
-        onEdit={handleEditClick}
-        onDelete={() => handleDeleteEvent(viewEventState.event?.id)}
-        onNavigate={onNavigate}
-      />
-
-      <EventFormSheet
-        sheetState={sheetState}
-        formData={eventFormData}
-        onFormDataChange={setEventFormData}
-        onClose={() => setSheetState({ ...sheetState, open: false })}
-        onSubmit={handleEventFormSubmit}
-        onDelete={() => handleDeleteEvent()}
-      />
-
-      <ResponsiveDayEvents
-        state={dayListState}
-        onClose={() => setDayListState({ ...dayListState, open: false })}
-        onViewEvent={setViewEventState}
+      <EventSheet
+        entry={selected}
+        draftStart={draftStart}
+        calendars={calendars}
+        defaultCalendarId={defaultCalendarId}
+        onClose={() => {
+          setSelected(null);
+          setDraftStart(null);
+        }}
       />
     </ManagerWrapper>
   );

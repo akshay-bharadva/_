@@ -1,5 +1,5 @@
 import { supabase } from "@/supabase/client";
-import type { CalendarItem, Event, RecurringTransaction } from "@/types";
+import type { CalendarRow, Event } from "@/types";
 import { adminApi } from "./baseApi";
 import {
   NO_DB_ERROR,
@@ -10,32 +10,27 @@ import {
 
 export const calendarApi = adminApi.injectEndpoints({
   endpoints: (builder) => ({
+    /**
+     * Everything in a date range, as rows.
+     *
+     * Recurring series come back unexpanded with their rule attached — the
+     * client expands them, because a weekly 09:00 standup is 09:00 *local* on
+     * both sides of a clock change, which only the browser knows.
+     */
     getCalendarData: builder.query<
-      { baseEvents: CalendarItem[]; recurring: RecurringTransaction[] },
+      CalendarRow[],
       { start: string; end: string }
     >({
       queryFn: async ({ start, end }) => {
         if (!supabase) return { error: NO_DB_ERROR };
-        const [calendarDataRes, recurringRes] = await Promise.all([
-          supabase.rpc("get_calendar_data", {
-            start_date_param: start,
-            end_date_param: end,
-          }),
-          supabase.from("recurring_transactions").select("*"),
-        ]);
-
-        if (calendarDataRes.error || recurringRes.error) {
-          return { error: calendarDataRes.error || recurringRes.error };
-        }
-
-        return {
-          data: {
-            baseEvents: calendarDataRes.data,
-            recurring: recurringRes.data,
-          },
-        };
+        const { data, error } = await supabase.rpc("get_calendar_data", {
+          start_date_param: start,
+          end_date_param: end,
+        });
+        if (error) return { error };
+        return { data: (data ?? []) as CalendarRow[] };
       },
-      providesTags: ["Calendar", "Tasks", "Transactions", "Recurring"],
+      providesTags: ["Calendar", "Tasks", "Transactions"],
     }),
     addEvent: builder.mutation<Event, Partial<Event>>({
       queryFn: insertQueryFn<Event>("events"),

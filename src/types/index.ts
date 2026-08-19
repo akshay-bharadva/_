@@ -775,3 +775,102 @@ export interface VisitorAnalytics {
   by_device: VisitorSlice[];
   by_hour: { hour: number; value: number }[];
 }
+
+// =============================================================================
+// CALENDAR
+// =============================================================================
+
+/** One of the app's chart tokens, resolved to a colour at render time. */
+export type CalendarColorToken =
+  | "chart-1"
+  | "chart-2"
+  | "chart-3"
+  | "chart-4"
+  | "chart-5";
+
+export interface Calendar {
+  id: string;
+  user_id?: string;
+  name: string;
+  /**
+   * A token name, not a hex value. The previous module hard-coded nine
+   * literals copied from Google Calendar, which did not move with any of the
+   * 52 theme presets.
+   */
+  color_token: CalendarColorToken;
+  is_visible: boolean;
+  is_default: boolean;
+  sort_order: number;
+  archived_at?: string | null;
+}
+
+export interface CalendarSettings {
+  user_id?: string;
+  /** IANA zone. Null hides the second hour gutter entirely. */
+  home_timezone?: string | null;
+  day_start_hour: number;
+  day_end_hour: number;
+  /** 0 = Sunday. */
+  week_starts_on: number;
+  default_view: "day" | "week" | "month" | "agenda";
+  show_tasks: boolean;
+  show_habits: boolean;
+  show_finance: boolean;
+}
+
+/**
+ * A moved or cancelled occurrence of a recurring series.
+ *
+ * Keyed by `original_start`, because that is the only stable identifier an
+ * expanded occurrence has — it is computed from the rule rather than stored.
+ */
+export interface EventException {
+  id: string;
+  user_id?: string;
+  event_id: string;
+  original_start: string;
+  is_cancelled: boolean;
+  new_start?: string | null;
+  new_end?: string | null;
+  new_title?: string | null;
+}
+
+/** A row as `get_calendar_data` returns it. */
+export interface CalendarRow {
+  item_id: string;
+  title: string;
+  start_time: string;
+  end_time: string | null;
+  item_type: "event" | "task" | "habit_summary" | "transaction_summary";
+  is_all_day: boolean;
+  data: Record<string, unknown>;
+}
+
+/**
+ * One thing on the grid, after recurrence has been expanded.
+ *
+ * `id` is unique per *occurrence*, not per row: a weekly standup is one
+ * database row and fifty-two of these.
+ */
+export interface CalendarEntry {
+  id: string;
+  /** The database row this came from. Same for every occurrence of a series. */
+  sourceId: string;
+  kind: CalendarRow["item_type"];
+  title: string;
+  start: Date;
+  end: Date;
+  isAllDay: boolean;
+  colorToken?: CalendarColorToken | null;
+  calendarId?: string | null;
+  location?: string | null;
+  meetingUrl?: string | null;
+  description?: string | null;
+  status?: "confirmed" | "tentative" | "cancelled";
+  /** Present when this is one occurrence of a recurring series. */
+  rrule?: string | null;
+  /** The start this occurrence would have had, for writing an exception. */
+  occurrenceStart?: Date;
+  taskId?: string | null;
+  data?: Record<string, unknown>;
+}
