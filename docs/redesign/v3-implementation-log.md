@@ -744,6 +744,53 @@ drag-to-schedule from the task list. Migration `010`.
   wants a concrete colour per event rather than a class. Colours are tokens now
   and move with all 52 presets.
 
+### Audit pass — findings
+
+The module was reviewed after it was declared finished. Four defects, none of
+which a type check, a lint or the existing suite had an opinion about.
+
+- **`<SelectItem value="">` throws.** Radix reserves the empty string to mean
+  "nothing selected", so an item carrying it does not warn or degrade — it
+  raises, and takes the whole sheet down. The recurrence dropdown's "Does not
+  repeat" option was `{ value: "" }`, so clicking any event crashed the sheet.
+  Use a named sentinel (`none`) and map it back to `null` at the write. The
+  same applies to any "no calendar" / "no category" option: a select that
+  represents absence needs a value for it.
+
+- **`auto-rows-fr` sizes every row to the tallest.** One day with several
+  events stretched all six rows of the month grid past its container. A month
+  cell must have a **fixed** height and clip, reporting the remainder as a
+  count — that is why every real calendar shows "+3 more" rather than growing.
+  The count itself must be derived from the row and chip heights, not
+  hard-coded, or the two drift and the cell overflows the clip it was given.
+
+- **Walking days by adding 86,400,000ms is wrong twice a year.** A day is 23 or
+  25 hours across a clock change, so a cursor stepped in fixed milliseconds
+  drifts off midnight and every bucket lookup past the boundary misses. Events
+  vanished from the last week of March and October. Step with `addDays`. This
+  is the same family as the `new Date("2026-12-31")` trap recorded above — the
+  fourth appearance of local-versus-absolute time in this rebuild.
+
+- **An endpoint with no call site is not dead code — it is a missing feature
+  that looks present.** `useDeleteCalendarMutation` shipped unused, so a
+  calendar could be created and then never renamed, recoloured or deleted;
+  `useDeleteEventExceptionMutation` meant a moved occurrence could never be put
+  back in step with its series. Nothing flags this, so
+  `calendarApi.test.ts` now asserts every calendar hook is reachable from the
+  UI. Worth copying to other modules.
+
+**A detached occurrence must be reversible.** Writing an exception row is easy;
+living with one is not. The exception outlives every later edit to the series,
+so an occurrence moved once silently stops tracking the rest forever. Carry the
+exception's id on the occurrence and offer to discard it.
+
+**A source scan is a weak test — check the data, not the JSX.** The first guard
+for the empty-`SelectItem` bug scanned for `value=""` in markup and passed with
+the bug reintroduced, because the empty string lived in an options array as
+`value:`. Test the array the component maps over. Related: ``new RegExp(`\b${x}\b`)``
+in a plain template literal is a _backspace_ character, not a word boundary,
+and silently matches nothing — use `String.raw`.
+
 ---
 
 # Part three — Recurring patterns
@@ -787,6 +834,23 @@ stand in for — a masonry skeleton for a masonry list, not a generic grid.
 # Part four — Traps already paid for
 
 Do not rediscover these.
+
+**`<SelectItem value="">` throws — Radix reserves `""` for "nothing
+selected".** It does not warn or degrade; it raises and unmounts the tree
+around it. Any "none" / "no category" option needs a named sentinel mapped back
+to `null` at the write. Applies to every Radix `Select` in the app, not just
+the one it was found in.
+
+**A day is not 86,400,000ms.** Twice a year it is 23 or 25 hours, so any cursor
+stepped in fixed milliseconds drifts off midnight and every keyed lookup after
+the boundary misses. Step with `addDays`. This is the same family as the
+`new Date("2026-12-31")` trap below — local calendar arithmetic must be done
+with calendar functions, never with arithmetic on the epoch.
+
+**An RTK Query endpoint with no call site is a missing feature, not dead
+code.** Nothing flags it: the hook exists, the reducer is registered, the types
+check. The user just finds a thing they can create and never edit. Assert
+reachability in a test — see `src/store/api/admin/calendarApi.test.ts`.
 
 **Postgres forbids subqueries in CHECK constraints.** `NOT EXISTS (SELECT ...)`
 fails the whole migration. Use an operator — `schedule_days <@ ARRAY[1,...,7]`.
@@ -838,6 +902,19 @@ lives.
 **Unit tests are not proof the feature works.** The Notes wikilink parser had 31
 passing tests and did not match a single link the editor produced, because every
 fixture was written by hand rather than taken from the editor's output.
+
+**Scan the data, not the markup.** The first guard written for the empty
+`SelectItem` bug searched the JSX for `value=""` and passed with the bug
+reintroduced, because the empty string lived in an options array as `value:`.
+If a component maps over a list to render, test the list.
+
+**Every new test must be watched failing.** Revert the fix, run it, confirm red,
+restore. Three tests in this rebuild would have passed with their bug in place —
+the source scan above, an `AnimatePresence` visibility assertion that never
+completed in jsdom, and ``new RegExp(`\b${x}\b`)``, where `\b` inside a plain
+template literal is a _backspace_ character rather than a word boundary, so the
+pattern silently matched nothing and every case in the suite failed at once.
+Use `String.raw` for regex fragments built from templates.
 
 **The gate before any commit:** `npx tsc --noEmit`, `npm run lint`,
 `npx vitest run`, and a cold `npm run build` for anything touching build or
