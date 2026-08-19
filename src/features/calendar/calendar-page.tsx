@@ -46,7 +46,12 @@ import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
 import { FreeTimeBar } from "./free-time-bar";
-import { DENSITY_OPTIONS, HOUR_HEIGHT, useDensity } from "./density";
+import {
+  DENSITY_OPTIONS,
+  HOUR_HEIGHT,
+  MONTH_ROW_HEIGHT,
+  useDensity,
+} from "./density";
 
 type View = "day" | "week" | "month" | "agenda";
 
@@ -360,6 +365,37 @@ export default function CalendarPage() {
             {heading}
           </h1>
 
+          {/*
+            Density was wired to the grid but never given a control, so the
+            setting existed and nothing could change it. Hidden in agenda,
+            which has no rows to size.
+          */}
+          {view !== "agenda" && (
+            <div
+              role="radiogroup"
+              aria-label="Density"
+              className="hidden gap-1 sm:flex"
+            >
+              {DENSITY_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={option.id === density}
+                  onClick={() => setDensity(option.id)}
+                  className={cn(
+                    "rounded-control px-2.5 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+                    option.id === density
+                      ? "bg-card text-foreground shadow-e2"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div role="tablist" aria-label="View" className="flex gap-1">
             {VIEWS.map((entry) => (
               <button
@@ -428,6 +464,7 @@ export default function CalendarPage() {
                 entries={entries}
                 onSelect={setSelected}
                 onMoveEntryToDay={moveEntryToDay}
+                rowHeight={MONTH_ROW_HEIGHT[density]}
                 onPickDay={(day) => {
                   setAnchor(day);
                   setView("day");

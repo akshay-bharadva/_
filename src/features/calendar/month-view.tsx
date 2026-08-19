@@ -12,6 +12,11 @@ import {
 import type { CalendarEntry } from "@/types";
 import { cn } from "@/lib/cn";
 import { entryClasses } from "./entry-block";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 /**
  * The month, for orientation rather than detail.
@@ -29,9 +34,6 @@ import { entryClasses } from "./entry-block";
  * everything sideways.
  */
 
-/** Fixed, so one busy day cannot resize the other forty-one cells. */
-const ROW_HEIGHT = 116;
-
 /** Height of one chip plus its gap, used to work out how many fit. */
 const CHIP_HEIGHT = 22;
 
@@ -45,6 +47,7 @@ export function MonthView({
   onSelect,
   onPickDay,
   onMoveEntryToDay,
+  rowHeight,
 }: {
   days: Date[];
   anchor: Date;
@@ -56,14 +59,16 @@ export function MonthView({
    * cell, only a date, so the page keeps the entry's existing clock time.
    */
   onMoveEntryToDay: (entryId: string, day: Date) => void;
+  /**
+   * How tall a week's row is, from the density setting. Fixed per render, so
+   * one busy day still cannot resize the other forty-one cells — but the
+   * reader gets to choose whether that fixed height shows two events or six.
+   */
+  rowHeight: number;
 }) {
   const weekdayLabels = days.slice(0, 7);
 
-  const visiblePerDay = visibleChipCount(
-    ROW_HEIGHT,
-    CHIP_HEIGHT,
-    HEADER_HEIGHT,
-  );
+  const visiblePerDay = visibleChipCount(rowHeight, CHIP_HEIGHT, HEADER_HEIGHT);
 
   const byDay = useMemo(() => bucketByDay(days, entries), [days, entries]);
 
@@ -98,7 +103,7 @@ export function MonthView({
                 key={day.toISOString()}
                 // Fixed height and clipped: a day with twenty events is the
                 // same size as a day with none.
-                style={{ height: ROW_HEIGHT }}
+                style={{ height: rowHeight }}
                 className={cn(
                   "flex flex-col overflow-hidden border-b border-l border-border p-1.5 transition-colors",
                   outside && "bg-secondary/30",
@@ -176,13 +181,12 @@ export function MonthView({
                   ))}
 
                   {hidden > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => onPickDay(day)}
-                      className="block h-[20px] px-1 text-[11px] leading-[20px] text-muted-foreground hover:text-foreground"
-                    >
-                      +{hidden} more
-                    </button>
+                    <MorePopover
+                      day={day}
+                      entries={forDay}
+                      hidden={hidden}
+                      onSelect={onSelect}
+                    />
                   )}
                 </div>
               </div>
@@ -191,5 +195,75 @@ export function MonthView({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * The rest of a day's entries, in place.
+ *
+ * This used to jump to day view, which was wrong twice over: the date button
+ * directly above already does that, and asking to see the rest of a day is not
+ * asking to leave the month. Opening the full list against the cell keeps the
+ * month on screen and still reaches every entry.
+ */
+function MorePopover({
+  day,
+  entries,
+  hidden,
+  onSelect,
+}: {
+  day: Date;
+  entries: CalendarEntry[];
+  hidden: number;
+  onSelect: (entry: CalendarEntry) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="block h-[20px] px-1 text-[11px] font-medium leading-[20px] text-muted-foreground hover:text-foreground"
+        >
+          +{hidden} more
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-2">
+        <p className="px-1 pb-1.5 text-xs font-semibold text-foreground">
+          {format(day, "EEEE d MMMM")}
+        </p>
+        {/*
+          Capped and scrollable rather than unbounded: a day with forty entries
+          would otherwise produce a panel taller than the window, which is the
+          same failure the cells themselves had.
+        */}
+        <ul className="max-h-64 space-y-0.5 overflow-y-auto">
+          {entries.map((entry) => (
+            <li key={entry.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onSelect(entry);
+                }}
+                className={cn(
+                  "block w-full truncate rounded-control border-l-2 px-1.5 py-1 text-left text-xs text-foreground",
+                  entryClasses(entry.colorToken).bg,
+                  entryClasses(entry.colorToken).border,
+                )}
+              >
+                {!entry.isAllDay && (
+                  <span className="tabular-nums text-muted-foreground">
+                    {format(entry.start, "HH:mm")}{" "}
+                  </span>
+                )}
+                {entry.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
   );
 }

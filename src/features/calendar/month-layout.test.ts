@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { addDays, startOfDay } from "date-fns";
 import type { CalendarEntry } from "@/types";
 import { bucketByDay, visibleChipCount } from "./month-layout";
+import { MONTH_ROW_HEIGHT } from "./density";
 
 const at = (y: number, m: number, d: number, h = 9, min = 0) =>
   new Date(y, m - 1, d, h, min);
@@ -32,6 +33,22 @@ describe("visibleChipCount", () => {
     expect(visibleChipCount(200, 22, 34)).toBeGreaterThan(
       visibleChipCount(116, 22, 34),
     );
+  });
+
+  /**
+   * The month row height is driven by the density control. If two settings
+   * produced the same chip count the control would appear to do nothing in
+   * month view — which is exactly what it did before the heights were split
+   * out, when the row was a single hard-coded 116.
+   */
+  it("shows a different number of events at each density", () => {
+    const counts = (["compact", "comfortable", "spacious"] as const).map(
+      (density) => visibleChipCount(MONTH_ROW_HEIGHT[density], 22, 34),
+    );
+    expect(new Set(counts).size).toBe(3);
+    // And in the order the labels imply.
+    expect(counts[0]).toBeLessThan(counts[1]);
+    expect(counts[1]).toBeLessThan(counts[2]);
   });
 
   /**
