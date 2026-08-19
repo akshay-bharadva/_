@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { addMinutes, format } from "date-fns";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Calendar, CalendarColorToken, CalendarEntry } from "@/types";
 import {
   useAddEventMutation,
+  useDeleteEventExceptionMutation,
   useDeleteEventMutation,
   useSaveEventExceptionMutation,
   useUpdateEventMutation,
@@ -70,6 +71,7 @@ export function EventSheet({
   const [addEvent, { isLoading: isAdding }] = useAddEventMutation();
   const [updateEvent, { isLoading: isUpdating }] = useUpdateEventMutation();
   const [deleteEvent] = useDeleteEventMutation();
+  const [deleteException] = useDeleteEventExceptionMutation();
   const [saveException] = useSaveEventExceptionMutation();
   const confirm = useConfirm();
 
@@ -237,6 +239,37 @@ export function EventSheet({
     }
   };
 
+  /**
+   * Put a detached occurrence back in step with its series.
+   *
+   * Without this, moving one Thursday's standup to Friday is permanent: the
+   * exception row outlives any later edit to the series, so the occurrence
+   * quietly stops tracking the times everything else follows and there is no
+   * way back short of deleting the series. Only offered when an exception
+   * actually exists — an untouched occurrence has nothing to reset.
+   */
+  const resetOccurrence = async () => {
+    if (!editing?.exceptionId) return;
+
+    const ok = await confirm({
+      title: "Reset this occurrence?",
+      description:
+        "The changes made to this one occurrence are discarded and it follows the series again.",
+      confirmText: "Reset",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteException(editing.exceptionId).unwrap();
+      toast.success("Back in step with the series");
+      onClose();
+    } catch (error) {
+      toast.error("Could not reset it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
   return (
     <FormSheet
       open={open}
@@ -398,6 +431,17 @@ export function EventSheet({
               >
                 <Trash2 className="mr-1.5 size-3.5" />
                 Delete
+              </Button>
+            )}
+            {editing?.exceptionId && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void resetOccurrence()}
+                className="text-muted-foreground"
+              >
+                <RotateCcw className="mr-1.5 size-3.5" />
+                Reset to series
               </Button>
             )}
             <Button type="button" variant="ghost" onClick={onClose}>

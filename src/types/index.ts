@@ -871,6 +871,13 @@ export interface CalendarEntry {
   rrule?: string | null;
   /** The start this occurrence would have had, for writing an exception. */
   occurrenceStart?: Date;
+  /**
+   * Set when this occurrence has been detached from its series by an
+   * exception row. Carrying the id is what makes the change reversible — the
+   * sheet can offer to put the occurrence back rather than leaving a moved
+   * meeting permanently out of step with the rest.
+   */
+  exceptionId?: string;
   taskId?: string | null;
   data?: Record<string, unknown>;
 }

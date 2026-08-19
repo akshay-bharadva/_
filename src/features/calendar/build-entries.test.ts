@@ -166,6 +166,28 @@ describe("buildEntries — exceptions", () => {
     ).toBeGreaterThan(0);
   });
 
+  /**
+   * The occurrence has to carry the id of the row that detached it, or the
+   * change is irreversible: the exception outlives every later edit to the
+   * series and there is no way to put the occurrence back.
+   */
+  it("carries the exception id onto the occurrence it changed", () => {
+    const entries = build(
+      [weekly],
+      [exception({ id: "exc-9", new_title: "Moved standup" })],
+    );
+    const moved = entries.find((entry) => entry.title === "Moved standup")!;
+    expect(moved.exceptionId).toBe("exc-9");
+  });
+
+  /** An untouched occurrence has nothing to reset, so it carries no id. */
+  it("leaves untouched occurrences without an exception id", () => {
+    const entries = build([weekly], [exception({ new_title: "Moved" })]);
+    const untouched = entries.filter((entry) => entry.title === "Standup");
+    expect(untouched.length).toBeGreaterThan(0);
+    for (const entry of untouched) expect(entry.exceptionId).toBeUndefined();
+  });
+
   /** An exception for one series must not touch another. */
   it("only applies to its own event", () => {
     const other = row({ item_id: "e2", data: { rrule: "FREQ=WEEKLY" } });
