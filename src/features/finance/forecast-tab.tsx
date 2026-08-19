@@ -12,14 +12,30 @@ import {
   YAxis,
 } from "recharts";
 import { format, parseISO } from "date-fns";
-import { RotateCcw, TriangleAlert } from "lucide-react";
+import { Loader2, RotateCcw, Trash2, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import type {
   FinanceCategory,
+  FinanceScenario,
   FinanceSettings,
   RecurringTransaction,
   ScenarioAdjustment,
   Transaction,
 } from "@/types";
+import {
+  useDeleteFinanceScenarioMutation,
+  useGetFinanceScenariosQuery,
+  useSaveFinanceScenarioMutation,
+} from "@/store/api/adminApi";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import { financeScenarioSchema, FINANCE_LIMITS } from "@/lib/schemas";
+import { getErrorMessage } from "@/lib/utils";
+import {
+  fromAdjustments,
+  hasAdjustments,
+  toAdjustments,
+  type ScenarioInputs,
+} from "./scenario-io";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,8 +53,8 @@ import { buildForecast, readForecast } from "./forecast";
  *
  * Adjustments live in component state rather than being saved. A scenario is a
  * thing you try for thirty seconds — persisting every drag would turn an
- * exploration into a commitment, and the saved-scenario table is there for the
- * ones worth keeping.
+ * exploration into a commitment. Saving is therefore explicit: the ones worth
+ * keeping get a name, and everything else evaporates when you leave.
  */
 
 const HORIZONS = [
@@ -67,41 +83,18 @@ export function ForecastTab({
   const [incomeDelta, setIncomeDelta] = useState(0);
   const [oneOff, setOneOff] = useState("");
   const [oneOffDate, setOneOffDate] = useState("");
+  /** Which saved scenario the controls currently reflect, if any. */
+  const [loadedId, setLoadedId] = useState<string | null>(null);
 
-  const adjustments = useMemo<ScenarioAdjustment[]>(() => {
-    const list: ScenarioAdjustment[] = [];
+  const inputs = useMemo<ScenarioInputs>(
+    () => ({ spendDelta, incomeDelta, oneOff, oneOffDate }),
+    [spendDelta, incomeDelta, oneOff, oneOffDate],
+  );
 
-    if (spendDelta !== 0) {
-      // Applied to every discretionary category rather than one, because the
-      // slider asks "what if I spent less", not "what if I spent less on
-      // exactly this". Per-category tuning belongs in a saved scenario.
-      for (const category of categories) {
-        if (category.bucket === "want" || category.bucket === "need") {
-          list.push({
-            kind: "category_delta",
-            category_id: category.id,
-            percent: spendDelta,
-          });
-        }
-      }
-    }
-
-    if (incomeDelta !== 0) {
-      list.push({ kind: "income_delta", percent: incomeDelta });
-    }
-
-    const amount = Number(oneOff);
-    if (Number.isFinite(amount) && amount !== 0 && oneOffDate) {
-      list.push({
-        kind: "one_off",
-        label: "One-off",
-        amount: -Math.abs(amount),
-        date: oneOffDate,
-      });
-    }
-
-    return list;
-  }, [spendDelta, incomeDelta, oneOff, oneOffDate, categories]);
+  const adjustments = useMemo(
+    () => toAdjustments(inputs, categories),
+    [inputs, categories],
+  );
 
   const baseline = useMemo(
     () =>
@@ -465,7 +458,200 @@ export function ForecastTab({
             />
           </div>
         </div>
+
+        <SavedScenarios
+          inputs={inputs}
+          adjustments={adjustments}
+          loadedId={loadedId}
+          onLoad={(scenario) => {
+            const { inputs: restored, exact } = fromAdjustments(
+              scenario.adjustments,
+            );
+            setSpendDelta(restored.spendDelta);
+            setIncomeDelta(restored.incomeDelta);
+            setOneOff(restored.oneOff);
+            setOneOffDate(restored.oneOffDate);
+            setLoadedId(scenario.id);
+            if (!exact) {
+              toast.info("Loaded, roughly", {
+                description:
+                  "This scenario holds adjustments these controls cannot show exactly.",
+              });
+            }
+          }}
+          onClear={() => {
+            setSpendDelta(0);
+            setIncomeDelta(0);
+            setOneOff("");
+            setOneOffDate("");
+            setLoadedId(null);
+          }}
+        />
       </section>
+    </div>
+  );
+}
+
+/**
+ * Keeping a scenario worth returning to.
+ *
+ * Deliberately below the controls rather than beside them: the sliders are the
+ * thing you came for, and saving is what you do *after* one of them turns out
+ * to be worth a second look.
+ */
+function SavedScenarios({
+  inputs,
+  adjustments,
+  loadedId,
+  onLoad,
+  onClear,
+}: {
+  inputs: ScenarioInputs;
+  adjustments: ScenarioAdjustment[];
+  loadedId: string | null;
+  onLoad: (scenario: FinanceScenario) => void;
+  onClear: () => void;
+}) {
+  const { data: scenarios = [] } = useGetFinanceScenariosQuery();
+  const [saveScenario, { isLoading: isSaving }] =
+    useSaveFinanceScenarioMutation();
+  const [deleteScenario] = useDeleteFinanceScenarioMutation();
+  const confirm = useConfirm();
+
+  const [name, setName] = useState("");
+
+  const save = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    // The column bounds the name at 120; without this the write fails at
+    // Postgres with nothing to say which field was at fault.
+    const checked = financeScenarioSchema.safeParse({
+      name: trimmed,
+      adjustments,
+    });
+    if (!checked.success) {
+      toast.error("Could not save it", {
+        description: checked.error.errors[0]?.message,
+      });
+      return;
+    }
+
+    try {
+      await saveScenario({
+        // Saving over a loaded scenario updates it rather than making a second
+        // copy under the same name.
+        ...(loadedId ? { id: loadedId } : {}),
+        name: trimmed,
+        adjustments,
+      }).unwrap();
+      setName("");
+      toast.success(loadedId ? "Scenario updated" : "Scenario saved");
+    } catch (error) {
+      toast.error("Could not save it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const remove = async (scenario: FinanceScenario) => {
+    const ok = await confirm({
+      title: `Delete “${scenario.name}”?`,
+      description: "Only the scenario goes — nothing in your ledger changes.",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteScenario(scenario.id).unwrap();
+      if (loadedId === scenario.id) onClear();
+      toast.success("Scenario deleted");
+    } catch (error) {
+      toast.error("Could not delete it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  return (
+    <div className="mt-6 space-y-3 border-t border-border pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-medium text-foreground">Saved scenarios</h3>
+        {hasAdjustments(inputs) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={onClear}
+          >
+            Reset controls
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Input
+          value={name}
+          maxLength={FINANCE_LIMITS.SCENARIO_NAME}
+          onChange={(event) => setName(event.target.value)}
+          placeholder={
+            loadedId ? "Rename, or save as new" : "Name this scenario"
+          }
+          className="h-8 max-w-xs text-sm"
+        />
+        <Button
+          type="button"
+          size="sm"
+          className="h-8"
+          disabled={!name.trim() || !hasAdjustments(inputs) || isSaving}
+          onClick={() => void save()}
+        >
+          {isSaving && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+          Save
+        </Button>
+      </div>
+
+      {!hasAdjustments(inputs) && (
+        <p className="text-xs text-muted-foreground">
+          Move a control above, then give the result a name to keep it.
+        </p>
+      )}
+
+      {scenarios.length > 0 && (
+        <ul className="space-y-1">
+          {scenarios.map((scenario) => (
+            <li
+              key={scenario.id}
+              className={cn(
+                "group flex items-center gap-2 rounded-control px-2 py-1.5 transition-colors",
+                loadedId === scenario.id
+                  ? "bg-secondary"
+                  : "hover:bg-secondary/60",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onLoad(scenario)}
+                className="min-w-0 flex-1 truncate break-words text-left text-sm text-foreground"
+              >
+                {scenario.name}
+              </button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+                aria-label={`Delete ${scenario.name}`}
+                onClick={() => void remove(scenario)}
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

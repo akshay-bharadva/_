@@ -34,14 +34,6 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   useDeleteFinanceAccountMutation:
     "accounts archive instead; see account-form.tsx",
 
-  // Forecast adjustments live in component state on purpose — a scenario is a
-  // question, not a commitment. The table and endpoints are the hook for the
-  // day that changes; see the note at the top of forecast-tab.tsx.
-  useGetFinanceScenariosQuery: "saved scenarios not built yet, by decision",
-  useSaveFinanceScenarioMutation: "saved scenarios not built yet, by decision",
-  useDeleteFinanceScenarioMutation:
-    "saved scenarios not built yet, by decision",
-
   // Superseded by useSaveFinanceCategoryMutation during the finance rebuild.
   // Left in place because removing an endpoint needs a migration pass over the
   // tag invalidations, which is not worth doing on its own.

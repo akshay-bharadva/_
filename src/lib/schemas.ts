@@ -278,7 +278,50 @@ export const FINANCE_LIMITS = {
   CATEGORY_NAME: 80,
   /** `char_length(icon) <= 40` */
   CATEGORY_ICON: 40,
+  /** `char_length(name) BETWEEN 1 AND 120` on finance_scenarios. */
+  SCENARIO_NAME: 120,
+  /** `char_length(description) <= 2000` on finance_scenarios. */
+  SCENARIO_DESCRIPTION: 2_000,
 } as const;
+
+/**
+ * A saved forecast scenario. `adjustments` is unconstrained JSONB, so its
+ * shape is checked here rather than by the column.
+ */
+export const financeScenarioSchema = z.object({
+  name: boundedRequiredString(FINANCE_LIMITS.SCENARIO_NAME, "Scenario name"),
+  description: boundedOptionalString(
+    FINANCE_LIMITS.SCENARIO_DESCRIPTION,
+    "Description",
+  ),
+  adjustments: z.array(
+    z.discriminatedUnion("kind", [
+      z.object({
+        kind: z.literal("category_delta"),
+        category_id: z.string(),
+        percent: z.number().finite(),
+      }),
+      z.object({
+        kind: z.literal("recurring_delta"),
+        recurring_id: z.string(),
+        amount: z.number().finite(),
+      }),
+      z.object({
+        kind: z.literal("one_off"),
+        label: z.string().max(LIMITS.TITLE),
+        amount: z.number().finite(),
+        date: z.string(),
+      }),
+      z.object({
+        kind: z.literal("income_delta"),
+        percent: z.number().finite(),
+      }),
+    ]),
+  ),
+  is_active: z.boolean().optional(),
+});
+
+export type FinanceScenarioFormValues = z.infer<typeof financeScenarioSchema>;
 
 export const TRANSACTION_LIMITS = {
   /** `char_length(notes) <= 2000` */
