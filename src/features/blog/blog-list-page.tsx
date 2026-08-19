@@ -33,7 +33,7 @@ function PostCard({ post }: { post: BlogPost }) {
     <li>
       <Link
         href={`/blog/view?slug=${post.slug}`}
-        className="group grid gap-5 rounded-surface bg-card shadow-e1 p-5 transition-colors hover:border-primary/50 sm:grid-cols-[1fr_auto]"
+        className="group grid gap-5 rounded-surface bg-card shadow-e1 p-5 transition-shadow duration-200 ease-enter hover:shadow-e2 sm:grid-cols-[1fr_auto]"
       >
         <div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-muted-foreground">

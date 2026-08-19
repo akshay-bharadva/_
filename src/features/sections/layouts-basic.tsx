@@ -93,7 +93,7 @@ function GridCard({ item }: { item: PortfolioItem }) {
   return (
     <MaybeLink
       href={item.link_url}
-      className="flex h-full flex-col rounded-surface bg-card shadow-e1 p-5 transition-colors hover:border-primary/50"
+      className="flex h-full flex-col rounded-surface bg-card shadow-e1 p-5 transition-shadow duration-200 ease-enter hover:shadow-e2"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="min-w-0 font-heading font-semibold [overflow-wrap:anywhere] group-hover/link:text-primary">
@@ -141,7 +141,7 @@ export function CardsWithImageLayout({ items }: LayoutProps) {
         <MaybeLink
           key={item.id}
           href={item.link_url}
-          className="flex flex-col overflow-hidden rounded-surface bg-card shadow-e1 transition-colors hover:border-primary/50"
+          className="flex flex-col overflow-hidden rounded-surface bg-card shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2"
         >
           <ItemImage
             src={item.image_url}
@@ -178,7 +178,7 @@ export function CompactCardsLayout({ items }: LayoutProps) {
         <li key={item.id} className="max-w-full">
           <MaybeLink
             href={item.link_url}
-            className="flex max-w-full items-baseline gap-2 rounded-md border bg-card px-3 py-1.5 transition-colors hover:border-primary/50"
+            className="flex max-w-full items-baseline gap-2 rounded-md border bg-card px-3 py-1.5 transition-shadow duration-200 ease-enter hover:shadow-e2"
           >
             <span className="truncate text-sm font-medium group-hover/link:text-primary">
               {item.title}
@@ -243,7 +243,7 @@ export function MasonryLayout({ items }: LayoutProps) {
         >
           <MaybeLink
             href={item.link_url}
-            className="overflow-hidden rounded-surface bg-card shadow-e1 transition-colors hover:border-primary/50"
+            className="overflow-hidden rounded-surface bg-card shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2"
           >
             <ItemImage
               src={item.image_url}

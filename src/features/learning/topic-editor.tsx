@@ -112,8 +112,8 @@ const ResourceCard = ({
 }) => {
   const { type, title } = parseResource(resource.name);
   return (
-    <div className="group relative flex items-start gap-3 rounded-surface bg-card shadow-e1/50 p-3 transition-all duration-200 hover:border-primary/20 hover:bg-card hover:shadow-e1">
-      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-surface border border-border bg-background shadow-e1">
+    <div className="group relative flex items-start gap-3 rounded-surface bg-card shadow-e1 p-3 transition-shadow duration-200 ease-enter hover:bg-card hover:shadow-e1">
+      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-control bg-secondary">
         {getResourceIcon(type)}
       </div>
       <div className="min-w-0 flex-1 pr-6">
@@ -363,7 +363,7 @@ export function TopicEditor({
             {/* Mobile-only: timer above editor */}
             {isMobile && (
               <div className="px-4 pb-2 pt-6">
-                <div className="mb-6 rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-e1">
+                <div className="mb-6 rounded-surface bg-card p-4 shadow-e1">
                   <div className="t-micro mb-3 flex items-center gap-2">
                     <Hourglass className="size-3.5" /> Study Session
                   </div>
@@ -399,7 +399,7 @@ export function TopicEditor({
           {!isMobile && (
             <div className="w-80 shrink-0 overflow-y-auto border-l bg-muted/5 xl:w-96">
               <div className="p-4">
-                <div className="rounded-xl border border-border bg-gradient-to-br from-background to-secondary/30 p-4 shadow-e1">
+                <div className="rounded-surface bg-card p-4 shadow-e1">
                   <div className="t-micro mb-3 flex items-center gap-2">
                     <Hourglass className="size-3.5" /> Study Session
                   </div>

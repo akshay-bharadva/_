@@ -124,7 +124,7 @@ export default function GlobalCommandPalette() {
         variant="outline"
         size="icon"
         onClick={() => setOpen(true)}
-        className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full shadow-e3 md:hidden bg-background/80 backdrop-blur-sm border-primary/20"
+        className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full bg-background/80 shadow-e3 backdrop-blur-sm md:hidden"
         aria-label="Open Command Palette"
       >
         <Search className="h-5 w-5" />

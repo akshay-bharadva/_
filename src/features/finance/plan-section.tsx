@@ -126,7 +126,7 @@ export function PlanSection({
 /**
  * One goal.
  *
- * The old card was a fixed 320px tall with a hover lift and `shadow-xl` — a
+ * The old card was a fixed 320px tall with a hover lift and `shadow-e3` — a
  * decorative object where the information is three numbers. This is a surface
  * sized by its content, and it adds the figure that actually decides anything:
  * what you would have to put aside each month to arrive on time.

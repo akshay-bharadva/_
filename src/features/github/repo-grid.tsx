@@ -16,7 +16,7 @@ function RepoCard({ repo }: { repo: GitHubRepo }) {
       href={repo.html_url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-colors hover:border-primary/50"
+      className="group flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
     >
       <p className="truncate font-mono text-sm font-medium group-hover:text-primary">
         {repo.name}
@@ -106,7 +106,7 @@ export function RepoGrid() {
           <button
             type="button"
             onClick={() => setVisibleCount(shown + perPage)}
-            className="rounded-md border px-4 py-2 font-mono text-xs transition-colors hover:border-primary/50 hover:text-primary"
+            className="rounded-md border px-4 py-2 font-mono text-xs transition-shadow duration-200 ease-enter hover:shadow-e2 hover:text-primary"
           >
             Load more ({repos.length - shown})
           </button>

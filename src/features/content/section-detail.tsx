@@ -491,7 +491,7 @@ export function SectionDetail({
 
                     return (
                       <li key={item.id}>
-                        <Card className="group relative flex flex-col gap-4 overflow-hidden p-4 transition-colors hover:border-primary/50 sm:flex-row">
+                        <Card className="group relative flex flex-col gap-4 overflow-hidden p-4 transition-shadow duration-200 ease-enter hover:shadow-e2 sm:flex-row">
                           {/* Ordinal — display_order is otherwise invisible in the admin. */}
                           <span className="absolute left-0 top-0 rounded-br bg-secondary px-1.5 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
                             {String(index + 1).padStart(2, "0")}

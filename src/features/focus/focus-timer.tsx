@@ -116,7 +116,7 @@ export function FocusTimer() {
         animate={{ y: 0, opacity: 1 }}
         className="fixed bottom-6 right-6 z-50"
       >
-        <Card className="flex items-center gap-4 border-primary/20 bg-background/80 p-3 shadow-2xl backdrop-blur">
+        <Card className="flex items-center gap-4 border-primary/20 bg-background/80 p-3 shadow-e3 backdrop-blur">
           <div className="flex flex-col">
             <span className="t-micro">
               {mode === "work" ? "Focusing" : "Break"}

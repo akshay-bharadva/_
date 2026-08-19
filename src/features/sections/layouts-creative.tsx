@@ -18,7 +18,7 @@ export function OpenSourceLayout({ items }: LayoutProps) {
         <li key={item.id}>
           <MaybeLink
             href={item.link_url}
-            className="flex items-start gap-3 rounded-surface bg-card shadow-e1 p-4 transition-colors hover:border-primary/50"
+            className="flex items-start gap-3 rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
           >
             {item.image_url && (
               <ItemImage
@@ -96,7 +96,7 @@ export function PressAwardsLayout({ items }: LayoutProps) {
         <li key={item.id} className="max-w-full">
           <MaybeLink
             href={item.link_url}
-            className="flex max-w-full items-center gap-2.5 rounded-surface bg-card shadow-e1 px-4 py-2.5 transition-colors hover:border-primary/50"
+            className="flex max-w-full items-center gap-2.5 rounded-surface bg-card shadow-e1 px-4 py-2.5 transition-shadow duration-200 ease-enter hover:shadow-e2"
           >
             <span aria-hidden className="shrink-0 text-primary">
               ◆
@@ -130,7 +130,7 @@ export function ClientLogosLayout({ items }: LayoutProps) {
         <li key={item.id}>
           <MaybeLink
             href={item.link_url}
-            className="flex aspect-[2/1] items-center justify-center rounded-surface bg-card shadow-e1 p-4 transition-colors hover:border-primary/50"
+            className="flex aspect-[2/1] items-center justify-center rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
             ariaLabel={item.title}
           >
             {item.image_url ? (
@@ -225,7 +225,7 @@ export function UsesLayout({ items }: LayoutProps) {
               <li key={item.id}>
                 <MaybeLink
                   href={item.link_url}
-                  className="flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-colors hover:border-primary/50"
+                  className="flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
                 >
                   <PlainText className="text-sm font-medium group-hover/link:text-primary">
                     {item.title}

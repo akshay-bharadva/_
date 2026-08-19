@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "fs";
 import { join, resolve } from "path";
+import {
+  bordersAndElevates,
+  classLists,
+  hasDeadHoverBorder,
+} from "./class-rules";
 
 /**
  * Regression gate for the v3 "Surface" design system.
@@ -51,6 +56,10 @@ const RETIRED_IDIOMS = [
   { pattern: /(?<!drop-)\bshadow-sm\b/, use: "shadow-e1" },
   { pattern: /(?<!drop-)\bshadow-md\b/, use: "shadow-e2" },
   { pattern: /(?<!drop-)\bshadow-lg\b/, use: "shadow-e3" },
+  // The audit found three of these. The rule had only ever covered sm/md/lg,
+  // so the two largest defaults passed straight through it.
+  { pattern: /(?<!drop-)\bshadow-xl\b/, use: "shadow-e3" },
+  { pattern: /(?<!drop-)\bshadow-2xl\b/, use: "shadow-e3" },
 ];
 
 describe("v3 design system", () => {
@@ -79,6 +88,56 @@ describe("v3 design system", () => {
         if (pattern.test(source)) offenders.push(`${path} → use ${use}`);
       }
     }
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * "A surface is a fill plus an elevation: do not give it both a border and
+   * an elevation." Drawing the edge twice is the v2 habit the Surface system
+   * replaced — the elevation is what separates the panel from its ground.
+   *
+   * A border that is swapped *for* an elevation on hover is the correct
+   * pattern and is allowed.
+   */
+  it("never gives one element both a border and an elevation", () => {
+    const offenders: string[] = [];
+
+    for (const { path, source } of FILES) {
+      // Third-party editor chrome whose class list we do not own.
+      if (path.includes("novel-editor")) continue;
+
+      for (const list of classLists(source)) {
+        if (bordersAndElevates(list)) {
+          offenders.push(`${path} → ${list.slice(0, 70)}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * A hover border colour with no border *width* renders nothing at all — the
+   * card looks identical on hover, on a surface that looks interactive.
+   *
+   * Eleven of these were left behind when v3 replaced bordered cards with
+   * elevated ones and kept the old hover. They are the reason this check
+   * exists rather than a general "prefer elevation" note: the failure is
+   * invisible in the source and invisible on screen.
+   */
+  it("has no hover border on an element with no border width", () => {
+    const offenders: string[] = [];
+
+    for (const { path, source } of FILES) {
+      if (path.includes("novel-editor")) continue;
+
+      for (const list of classLists(source)) {
+        if (hasDeadHoverBorder(list)) {
+          offenders.push(`${path} → ${list.slice(0, 70)}`);
+        }
+      }
+    }
+
     expect(offenders).toEqual([]);
   });
 
