@@ -268,6 +268,18 @@ export type SubTaskFormValues = z.infer<typeof subTaskSchema>;
  * number" — so an amount past NUMERIC(10,2) reached Postgres as a `numeric
  * field overflow`, which the user sees as a save that simply failed.
  */
+/** Bounds on the finance tables' own text columns, from their CHECKs. */
+export const FINANCE_LIMITS = {
+  /** `char_length(name) BETWEEN 1 AND 120` on finance_accounts. */
+  ACCOUNT_NAME: 120,
+  /** `char_length(institution) <= 120` */
+  INSTITUTION: 120,
+  /** `char_length(name) BETWEEN 1 AND 80` on finance_categories. */
+  CATEGORY_NAME: 80,
+  /** `char_length(icon) <= 40` */
+  CATEGORY_ICON: 40,
+} as const;
+
 export const TRANSACTION_LIMITS = {
   /** `char_length(notes) <= 2000` */
   NOTES: 2_000,
@@ -614,6 +626,8 @@ export type EventFormValues = z.infer<typeof eventSchema>;
 export const CALENDAR_LIMITS = {
   /** `char_length(name) BETWEEN 1 AND 80` */
   NAME: 80,
+  /** `char_length(home_timezone) <= 64` on calendar_settings. */
+  TIMEZONE: 64,
 } as const;
 
 export const calendarSchema = z.object({

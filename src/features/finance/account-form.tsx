@@ -21,7 +21,7 @@ import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import { accountKindLabel } from "./account-card";
 import { toLocalISODate } from "@/lib/date-utils";
-import { MONEY_MAX_18_4 } from "@/lib/schemas";
+import { FINANCE_LIMITS, MONEY_MAX_18_4 } from "@/lib/schemas";
 
 const KINDS: AccountKind[] = [
   "chequing",
@@ -147,6 +147,7 @@ export function AccountForm({
         <Label htmlFor="account-name">Name</Label>
         <Input
           id="account-name"
+          maxLength={FINANCE_LIMITS.ACCOUNT_NAME}
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Everyday chequing"
@@ -194,6 +195,7 @@ export function AccountForm({
         <Label htmlFor="account-institution">Bank (optional)</Label>
         <Input
           id="account-institution"
+          maxLength={FINANCE_LIMITS.INSTITUTION}
           value={institution}
           onChange={(event) => setInstitution(event.target.value)}
           placeholder="RBC"

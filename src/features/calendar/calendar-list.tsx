@@ -479,6 +479,7 @@ function CalendarSettingsForm({
         <Input
           id="home-zone"
           list="calendar-zones"
+          maxLength={CALENDAR_LIMITS.TIMEZONE}
           value={homeZone}
           onChange={(event) => setHomeZone(event.target.value)}
           onBlur={() => void commit(homeZone.trim())}
