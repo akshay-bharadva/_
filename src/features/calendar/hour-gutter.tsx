@@ -69,12 +69,20 @@ export function HourGutter({
       {labels.map((label, index) => (
         <div
           key={hours[index]}
-          className="flex items-start justify-end border-b border-border/60 pr-2"
+          /*
+            The label sits just *inside* the top of its own hour, not straddling
+            the line above it. Straddling is the Google convention — the label
+            marks the instant, and the instant is the line — but the topmost
+            hour has no line above it, so the first label was pulled half out of
+            the scroll container and clipped. Reading "09" at the top of the 09
+            block says the same thing and never runs off the edge.
+          */
+          className="flex items-start justify-end border-b border-border/60 pr-2 pt-1"
           style={{ height: hourHeight }}
         >
           <span
             className={cn(
-              "-mt-2 text-[11px] tabular-nums",
+              "text-[11px] leading-none tabular-nums",
               variant === "home" ? "text-primary/70" : "text-muted-foreground",
             )}
           >
