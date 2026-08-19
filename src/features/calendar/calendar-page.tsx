@@ -10,7 +10,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { CalendarEntry, Task } from "@/types";
 import {
@@ -40,6 +40,7 @@ import { CalendarList } from "./calendar-list";
 import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
+import { FreeTimeBar } from "./free-time-bar";
 
 type View = "day" | "week" | "month" | "agenda";
 
@@ -305,6 +306,10 @@ export default function CalendarPage() {
         </header>
 
         <QuickAddBar defaultCalendarId={defaultCalendarId} />
+
+        {(view === "week" || view === "day") && (
+          <FreeTimeBar days={days} entries={entries} settings={settings} />
+        )}
 
         <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]">
           <div className="flex min-h-0 flex-col">
