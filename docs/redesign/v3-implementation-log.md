@@ -923,6 +923,144 @@ corrupts the build with `PageNotFoundError`.
 
 ---
 
+---
+
+# Part six — The readiness audit
+
+Run after every module except Dashboard was declared finished, to answer one
+question: is this safe to put in front of a user. The answer was no, four times
+over. What follows is what a "done" module still had wrong, and the checks that
+now hold each line.
+
+The shape of every finding is the same: **none of them failed a type check, a
+lint, or the test suite.** They were invisible to every gate the project had.
+
+## The MFA bypass
+
+The schema enforces mandatory TOTP through RLS — every policy reads
+`auth.uid() = user_id AND is_aal2()`. **`SECURITY DEFINER` bypasses RLS**, and
+six functions checked only `auth.uid()`, or nothing beyond a `GRANT` to
+`authenticated` — which includes a session that has passed a password and not
+the second factor.
+
+With a password alone: `get_calendar_data` returned the whole calendar,
+`account_balance` the account balances, `get_analytics_overview` the dashboard
+aggregates, and the three `*_transaction_category` functions could rewrite
+categories across the entire ledger. All scoped to `auth.uid()`, so nothing
+leaked between users — but the second factor was optional for a meaningful
+slice of the data it was supposed to protect.
+
+Three of the six came from this rebuild.
+
+**The rule:** a `SECURITY DEFINER` function is _outside_ RLS. Whatever the
+policy on its tables would have required, the function has to require itself.
+`REVOKE ... FROM anon; GRANT ... TO authenticated` is not that check —
+`authenticated` includes AAL1.
+
+Four also had no `SET search_path`, which resolves unqualified names through
+the _caller's_ path. Supabase's own advisor flags this as "Function Search Path
+Mutable".
+
+Held by `src/lib/db-security.test.ts`: pinned search_path, AAL2 with a
+documented allowlist for the triggers and public endpoints that must not
+require it, and RLS on every table.
+
+## Every date was the UTC date
+
+`toISOString().slice(0, 10)` formats the **UTC** day, which is a different day
+for part of every day. In Toronto at 20:30 on 15 August it already reads the
+16th. Twelve call sites.
+
+So, every evening after 8pm: a transaction was dated tomorrow, an FX cache key
+never matched the day it was written for, a recurrence `UNTIL` serialised a day
+late, and the recurring-payment queue keyed occurrences by a day its own
+producer never generates. East of Greenwich it fails the other way — local
+midnight in Kolkata is still the previous day in UTC.
+
+The cause was an asymmetry: the codebase had `parseLocalDate` for reading and
+**no counterpart for writing**, so every writer improvised the same wrong thing.
+Where a codebase gives you half a pair, expect the other half to have been
+reinvented badly in a dozen places.
+
+`toLocalISODate` is the other half. One place keeps UTC deliberately — analytics
+buckets arrive from the database already grouped in UTC — and opts out through a
+marker comment rather than a filename exemption, so the exception stays visible.
+
+## Forms accepted what the columns would not
+
+Zod schemas existed and were correct; the forms did not use them.
+
+The transaction form asked whether the amount was a positive number. The column
+is `NUMERIC(10,2)`, so anything past 99,999,999.99 arrived as `numeric field
+overflow` — which the user sees as a save that simply failed, on a form that had
+already accepted the figure. Transfers were worse: both legs are transactions,
+so the overflow raises on the _first_ write and leaves the balance wrong in both
+directions.
+
+The calendar's event sheet checked that the title was non-empty and wrote
+everything else unvalidated, against columns bounding `location` at 300,
+`meeting_url` at 2048 and `rrule` at 500.
+
+Both were the same drift: a rebuild added columns and did not extend the schema
+that guards them.
+
+**The rule, now mechanical:** the bounds are read back out of `db/schema.sql` in
+a test. A migration that moves a column fails there rather than at someone's
+next save. All 34 `char_length` constraints were swept against the form that
+writes them.
+
+## Features that existed only as endpoints
+
+An RTK Query endpoint with no call site is not dead code that lints away — it is
+a feature that _appears_ to exist. The hook is there, the reducer is registered,
+the types check. The user simply finds a thing they can create and never edit.
+
+Nine came back from the sweep. The genuine ones: a calendar could be created and
+never renamed, recoloured or deleted; a moved occurrence could never be put back
+in step with its series; Learning filtered on `archived_at` in every list while
+nothing could ever set it, so clearing a settled topic meant destroying the
+review history that proved it had been learned; and both Tasks and Habits had a
+`display_order`, a query sorting by it, and a reorder RPC — with no gesture. The
+tasks query even carries a comment reading "manual rank first so drag-to-reorder
+sticks".
+
+The root cause was one line of config: `next/core-web-vitals` does not enable
+`no-unused-vars`, so a symbol could be imported, wired to nothing, and pass every
+gate. Enabling it found sixteen more, including the calendar's own density
+picker — imported, never rendered, which is why the control the user had been
+told about was never clickable.
+
+`endpoint-reachability.test.ts` now holds every admin slice, with an allowlist
+where not-calling is a decision. **The allowlist is checked in both directions**,
+and that second half earned itself immediately: wiring the reorder gestures and
+the saved scenarios turned six entries stale, and the test said so.
+
+## What the audit says about testing
+
+Five tests written during this rebuild **would have passed with their bug in
+place.** Two of them were written during this audit, to catch the bugs the audit
+had just found:
+
+- A scan for empty `SelectItem` values searched the JSX for `value=""`, while
+  the real one lived in an options array as `value:`. It passed with the bug
+  reintroduced.
+- The first `SECURITY DEFINER` test split functions on a `$$` terminator the
+  schema uses three different forms of, so most bodies came out two characters
+  long, matched nothing, and reported the whole schema clean **while the bypass
+  was still open**.
+
+Both were only caught by seeding the regression and watching for red. A test
+written to catch a bug you have already fixed has no evidence it works. The bug
+is the only fixture that proves it.
+
+Two smaller traps, both of which produced a silently-empty result rather than an
+error: ``new RegExp(`\b${x}\b`)`` — inside a plain template literal `\b` is a
+_backspace_, not a word boundary — and a `glob` pattern that matched nothing, so
+a scan over "every file" scanned none. Any test that filters a collection needs
+an assertion that the collection is non-empty.
+
+---
+
 # Appendix — Migrations
 
 Run in order. All are additive and safe to re-run.
@@ -935,6 +1073,11 @@ Run in order. All are additive and safe to re-run.
 | `db/migrations/004-notes.sql`                       | Note archiving and bounds                                                                                            |
 | `db/migrations/005-inventory.sql`                   | Item location, quantity, tags, archiving, and a warranty/purchase-date check                                         |
 | `db/migrations/006-lockdown-enforcement.sql`        | **Opt-in.** Makes lockdown level 2 refuse admin writes at the database                                               |
+| `db/migrations/007-contact-inbox.sql`               | `contact_submissions` triage columns, `integration_settings`, rate limit and Discord notify triggers                 |
+| `db/migrations/008-visitor-analytics.sql`           | `site_visits`, `analytics_secret`, daily-salted visitor hashing, `get_visitor_analytics`, `prune_site_visits`        |
+| `db/migrations/009-finance-foundation.sql`          | Accounts, categories, budgets, scenarios, FX rates, per-transaction frozen rates, `account_balance`                  |
+| `db/migrations/010-calendar.sql`                    | `calendars`, `event_exceptions`, `calendar_settings`, recurrence and overlap-filtered `get_calendar_data`            |
+| `db/migrations/011-harden-definer-functions.sql`    | **Security.** Adds the AAL2 check and a pinned `search_path` to six `SECURITY DEFINER` functions that lacked both    |
 
 `db/reset-habits.sql` and `db/reset-learning.sql` are destructive alternatives
 that drop and rebuild with seed data. They keep nothing.
@@ -950,14 +1093,18 @@ place without running any migration.
 Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new),
 Analytics (new), Finance, Calendar.
 
-**Not yet rebuilt:** Dashboard.
+**Not yet rebuilt:** Dashboard — the last module on v2, and the reason
+`useGetAnalyticsDataQuery` is still allowlisted as unreachable.
+
+**Audited:** everything except Dashboard, in Part six. Four classes of defect
+found and fixed, each now held by a test that was watched failing first.
 
 **Open:**
 
-- Migrations `002`, `004`, `005`, `007`, `008`, `009` and `010` have not been
-  applied to the live database; `006` is opt-in and awaiting a decision. **Nothing in Analytics
-  works until `008` runs** — the page says so rather than showing an empty
-  dashboard that looks like a site nobody visits.
+- **`011` closes an MFA bypass and has not been applied.** Until it runs, six
+  `SECURITY DEFINER` functions hand calendar, balance and category access to a
+  session that has passed a password but not the second factor. `006` remains
+  opt-in and awaiting a decision; everything up to `010` is applied.
 - Retention is a function and a button, not a schedule. `prune_site_visits()`
   can be put on `pg_cron` if the table ever grows enough to matter.
 - `[[` autocomplete against existing titles in `note-form.tsx`.
@@ -965,3 +1112,11 @@ Analytics (new), Finance, Calendar.
   editor only; it is not wired into the review flow, deliberately — a review is
   thirty seconds and a stopwatch on it would reintroduce the friction the
   rebuild removed.
+- `@typescript-eslint` is not in `devDependencies`. The unused-code rule that
+  found three unwired features depends on it, and it currently resolves only as
+  a transitive dependency of `eslint-config-next` — which works, but by luck.
+- CSV import and auto-categorisation in Finance, and investment holdings, are
+  named in the guide and not built.
+- **Nothing here has been exercised against real data by a person.** Every
+  check in Part six is static or unit-level. That is the remaining gap between
+  "the gates are green" and "this is safe to use".
