@@ -2,12 +2,17 @@
 
 import { useMemo } from "react";
 import { format } from "date-fns";
-import { Repeat, Zap } from "lucide-react";
+import { Pencil, Repeat, Trash2, Zap } from "lucide-react";
+import { toast } from "sonner";
 import type {
   FinanceAccount,
   FinanceSettings,
   RecurringTransaction,
 } from "@/types";
+import { useDeleteRecurringMutation } from "@/store/api/adminApi";
+import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import { getErrorMessage } from "@/lib/utils";
 import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 import { parseLocalDate } from "@/lib/utils";
 import { formatMoney } from "@/lib/money";
@@ -16,10 +21,10 @@ import { cn } from "@/lib/cn";
 /**
  * The rules that repeat.
  *
- * Read-only here on purpose. This section answers "what is set up and what is
- * it going to do", which is a different question from "record this month's
- * one" — that happens in the confirm queue on Overview, where it belongs
- * because it is a thing waiting on you rather than a thing to configure.
+ * Configuration only. Recording *this month's* occurrence happens in the
+ * confirm queue on Overview, where it belongs — that is a thing waiting on
+ * you, not a thing to set up, and mixing the two is how a list of settings
+ * turns into a to-do list you stop reading.
  *
  * Each rule states whether it posts itself or asks first, because that is the
  * single most consequential thing about it and the old list did not show it at
@@ -29,11 +34,35 @@ export function RecurringSection({
   recurring,
   accounts,
   settings,
+  onEdit,
 }: {
   recurring: RecurringTransaction[];
   accounts: FinanceAccount[];
   settings: FinanceSettings;
+  onEdit: (rule: RecurringTransaction) => void;
 }) {
+  const [deleteRecurring] = useDeleteRecurringMutation();
+  const confirm = useConfirm();
+
+  const remove = async (rule: RecurringTransaction) => {
+    const ok = await confirm({
+      title: `Delete "${rule.description}"?`,
+      description:
+        "The rule stops proposing occurrences. Transactions already recorded from it are kept — deleting the rule does not rewrite your history.",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deleteRecurring(rule.id).unwrap();
+      toast.success("Rule deleted");
+    } catch (error) {
+      toast.error("Could not delete it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
   const accountById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
     [accounts],
@@ -78,7 +107,7 @@ export function RecurringSection({
           return (
             <li
               key={rule.id}
-              className="flex items-center gap-3 rounded-surface bg-card p-3 shadow-e1"
+              className="group flex items-center gap-3 rounded-surface bg-card p-3 shadow-e1"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">
@@ -120,6 +149,29 @@ export function RecurringSection({
                   { signed: true },
                 )}
               </p>
+
+              <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(rule)}
+                  aria-label={`Edit ${rule.description}`}
+                  className="size-8 text-muted-foreground"
+                >
+                  <Pencil className="size-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void remove(rule)}
+                  aria-label={`Delete ${rule.description}`}
+                  className="size-8 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
             </li>
           );
         })}

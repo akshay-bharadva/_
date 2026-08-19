@@ -11,7 +11,7 @@ import {
   Target,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { FinanceAccount, Transaction } from "@/types";
+import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
 import {
   useDeleteTransactionMutation,
   useGetAccountBalancesQuery,
@@ -130,6 +130,10 @@ export default function FinancePage() {
   const [configuring, setConfiguring] = useState(false);
   const [addingRule, setAddingRule] = useState(false);
   const [addingGoal, setAddingGoal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+  const [editingRule, setEditingRule] = useState<RecurringTransaction | null>(
+    null,
+  );
 
   const transactions = financialData?.transactions ?? [];
   const recurring = financialData?.recurring ?? [];
@@ -329,6 +333,7 @@ export default function FinancePage() {
                 recurring={recurring}
                 accounts={accounts}
                 settings={settings}
+                onEdit={setEditingRule}
               />
             </div>
           )}
@@ -339,6 +344,7 @@ export default function FinancePage() {
               transactions={transactions}
               goals={goals}
               settings={settings}
+              onEditGoal={setEditingGoal}
             />
           )}
 
@@ -397,24 +403,45 @@ export default function FinancePage() {
       </FormSheet>
 
       <FormSheet
-        open={addingRule}
-        onOpenChange={setAddingRule}
-        title="New recurring rule"
+        open={addingRule || editingRule !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAddingRule(false);
+            setEditingRule(null);
+          }
+        }}
+        title={
+          editingRule ? `Edit ${editingRule.description}` : "New recurring rule"
+        }
         description="Something that repeats. You choose whether it records itself or asks first."
       >
         <RecurringTransactionForm
-          recurringTransaction={null}
-          onSuccess={() => setAddingRule(false)}
+          recurringTransaction={editingRule}
+          onSuccess={() => {
+            setAddingRule(false);
+            setEditingRule(null);
+          }}
         />
       </FormSheet>
 
       <FormSheet
-        open={addingGoal}
-        onOpenChange={setAddingGoal}
-        title="New goal"
+        open={addingGoal || editingGoal !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAddingGoal(false);
+            setEditingGoal(null);
+          }
+        }}
+        title={editingGoal ? `Edit ${editingGoal.name}` : "New goal"}
         description="What the money left over is for."
       >
-        <FinancialGoalForm goal={null} onSuccess={() => setAddingGoal(false)} />
+        <FinancialGoalForm
+          goal={editingGoal}
+          onSuccess={() => {
+            setAddingGoal(false);
+            setEditingGoal(null);
+          }}
+        />
       </FormSheet>
 
       <FormSheet

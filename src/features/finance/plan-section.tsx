@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { differenceInCalendarMonths, format } from "date-fns";
-import { Target } from "lucide-react";
+import { Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type {
   FinanceCategory,
   FinanceSettings,
@@ -12,7 +13,16 @@ import type {
 import { formatMoney } from "@/lib/money";
 import { parseLocalDate } from "@/lib/utils";
 import { cn } from "@/lib/cn";
+import {
+  useAddFundsToGoalMutation,
+  useDeleteGoalMutation,
+} from "@/store/api/adminApi";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
+import { getErrorMessage } from "@/lib/utils";
 import { BudgetsTab } from "./budgets-tab";
+import { CategoriesSection } from "./categories-section";
 
 /**
  * Budgets and goals together.
@@ -27,13 +37,50 @@ export function PlanSection({
   transactions,
   goals,
   settings,
+  onEditGoal,
 }: {
   categories: FinanceCategory[];
   transactions: Transaction[];
   goals: FinancialGoal[];
   settings: FinanceSettings;
+  onEditGoal: (goal: FinancialGoal) => void;
 }) {
+  const [addFunds] = useAddFundsToGoalMutation();
+  const [deleteGoal] = useDeleteGoalMutation();
+  const confirm = useConfirm();
+
   const active = goals.filter((goal) => !goal.archived_at);
+
+  const contribute = async (goal: FinancialGoal, amount: number) => {
+    if (!Number.isFinite(amount) || amount === 0) return;
+    try {
+      await addFunds({ goal, amount }).unwrap();
+      toast.success(`Added to ${goal.name}`);
+    } catch (error) {
+      toast.error("Could not add funds", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const remove = async (goal: FinancialGoal) => {
+    const ok = await confirm({
+      title: `Delete ${goal.name}?`,
+      description:
+        "The goal and its recorded progress are removed. Money in the account it tracked is unaffected.",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    try {
+      await deleteGoal(goal.id).unwrap();
+      toast.success("Goal deleted");
+    } catch (error) {
+      toast.error("Could not delete it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -42,6 +89,8 @@ export function PlanSection({
         transactions={transactions}
         settings={settings}
       />
+
+      <CategoriesSection categories={categories} />
 
       {active.length > 0 && (
         <section aria-label="Goals" className="space-y-3">
@@ -58,7 +107,13 @@ export function PlanSection({
           <ul className="grid gap-3 sm:grid-cols-2">
             {active.map((goal) => (
               <li key={goal.id}>
-                <GoalRow goal={goal} settings={settings} />
+                <GoalRow
+                  goal={goal}
+                  settings={settings}
+                  onContribute={(amount) => void contribute(goal, amount)}
+                  onEdit={() => onEditGoal(goal)}
+                  onDelete={() => void remove(goal)}
+                />
               </li>
             ))}
           </ul>
@@ -79,10 +134,17 @@ export function PlanSection({
 function GoalRow({
   goal,
   settings,
+  onContribute,
+  onEdit,
+  onDelete,
 }: {
   goal: FinancialGoal;
   settings: FinanceSettings;
+  onContribute: (amount: number) => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
+  const [contribution, setContribution] = useState("");
   const currency = goal.currency ?? settings.base_currency;
   const target = Number(goal.target_amount);
   const current = Number(goal.current_amount);
@@ -136,6 +198,52 @@ function GoalRow({
           )}
           style={{ width: `${Math.max(progress * 100, 2)}%` }}
         />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Input
+          type="number"
+          inputMode="decimal"
+          value={contribution}
+          onChange={(event) => setContribution(event.target.value)}
+          placeholder="Add"
+          aria-label={`Amount to add to ${goal.name}`}
+          className="h-8 w-24 tabular-nums"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8"
+          disabled={!contribution}
+          onClick={() => {
+            onContribute(Number(contribution));
+            setContribution("");
+          }}
+        >
+          <Plus className="mr-1 size-3" />
+          Add
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="ml-auto size-8 text-muted-foreground"
+          onClick={onEdit}
+          aria-label={`Edit ${goal.name}`}
+        >
+          <Pencil className="size-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground hover:text-destructive"
+          onClick={onDelete}
+          aria-label={`Delete ${goal.name}`}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
