@@ -213,3 +213,39 @@ describe("freeMinutes", () => {
     ).toBe(480);
   });
 });
+
+describe("layoutDay — durationMinutes", () => {
+  /**
+   * Carried so a renderer can ask "is there room for a second line" in pixels.
+   * The same 30-minute meeting is a different share of the column on an
+   * eight-hour day and a sixteen-hour one, so a percentage threshold hides the
+   * time on one and shows it on the other.
+   */
+  it("reports the drawn duration, not the percentage", () => {
+    const [placed] = lay([ev("a", at(9), at(10, 30))]);
+    expect(placed.durationMinutes).toBe(90);
+  });
+
+  it("reports the readable minimum for a very short event", () => {
+    const [placed] = lay([ev("a", at(9), at(9, 5))]);
+    expect(placed.durationMinutes).toBeGreaterThan(5);
+  });
+
+  it("is independent of how many hours the day spans", () => {
+    const short = layoutDay({
+      events: [ev("a", at(9), at(10))],
+      day: DAY,
+      startHour: 8,
+      endHour: 12,
+    });
+    const long = layoutDay({
+      events: [ev("a", at(9), at(10))],
+      day: DAY,
+      startHour: 0,
+      endHour: 24,
+    });
+    expect(short[0].durationMinutes).toBe(long[0].durationMinutes);
+    // The percentage differs precisely because the column differs.
+    expect(short[0].height).not.toBeCloseTo(long[0].height, 3);
+  });
+});

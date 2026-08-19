@@ -27,17 +27,22 @@ export function entryClasses(token: string | null | undefined) {
 
 export function EntryBlock({
   placed,
+  hourHeight,
   onSelect,
 }: {
   placed: PlacedEvent<CalendarEntry>;
+  /** Pixels per hour, so "is there room for a second line" is a real answer. */
+  hourHeight: number;
   onSelect: () => void;
 }) {
   const entry = placed.event;
   const colors = entryClasses(entry.colorToken);
 
-  // Below roughly 40 minutes there is only room for one line, so the time is
-  // dropped rather than wrapped into an unreadable smear.
-  const compact = placed.height < 5;
+  // Measured in pixels rather than as a percentage of the column: the same
+  // 30-minute meeting is a different share of the column depending on how many
+  // hours the day spans, so a percentage threshold hid the time on a long day
+  // and showed it on a short one.
+  const compact = (placed.durationMinutes / 60) * hourHeight < 34;
 
   return (
     <button
@@ -51,7 +56,7 @@ export function EntryBlock({
         zIndex: 10,
       }}
       className={cn(
-        "absolute overflow-hidden rounded-control border-l-2 px-1.5 py-0.5 text-left transition-shadow duration-150 ease-enter hover:shadow-e2",
+        "absolute overflow-hidden rounded-control border-l-[3px] px-2 py-1 text-left transition-shadow duration-150 ease-enter hover:shadow-e2",
         colors.bg,
         colors.border,
         entry.status === "tentative" && "border-dashed opacity-80",
@@ -59,7 +64,7 @@ export function EntryBlock({
       title={`${entry.title} · ${format(entry.start, "HH:mm")}–${format(entry.end, "HH:mm")}`}
     >
       <span className="flex items-center gap-1">
-        <span className="min-w-0 flex-1 truncate text-[11px] font-medium leading-tight text-foreground">
+        <span className="min-w-0 flex-1 truncate text-xs font-medium leading-snug text-foreground">
           {entry.title}
         </span>
         {entry.rrule && (
@@ -71,7 +76,7 @@ export function EntryBlock({
       </span>
 
       {!compact && (
-        <span className="flex items-center gap-1 text-[10px] leading-tight text-muted-foreground">
+        <span className="mt-0.5 flex items-center gap-1 text-[11px] leading-tight text-muted-foreground">
           <span className="tabular-nums">{format(entry.start, "HH:mm")}</span>
           {entry.location && (
             <>

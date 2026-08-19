@@ -29,6 +29,7 @@ export function WeekGrid({
   onSelect,
   onCreate,
   onDropTask,
+  hourHeight,
 }: {
   days: Date[];
   entries: CalendarEntry[];
@@ -39,6 +40,8 @@ export function WeekGrid({
   onCreate: (start: Date) => void;
   /** A task dragged in from the rail. */
   onDropTask: (taskId: string, start: Date) => void;
+  /** Pixels per hour. */
+  hourHeight: number;
 }) {
   const { day_start_hour: startHour, day_end_hour: endHour } = settings;
   const hours = useMemo(
@@ -60,10 +63,10 @@ export function WeekGrid({
     const now = new Date();
     const fraction = dayFraction(now, now, startHour, endHour);
     container.scrollTop = Math.max(
-      fraction * container.scrollHeight - container.clientHeight / 3,
+      fraction * hours.length * hourHeight - container.clientHeight / 3,
       0,
     );
-  }, [startHour, endHour]);
+  }, [startHour, endHour, hours.length, hourHeight]);
 
   const timed = entries.filter((entry) => !entry.isAllDay);
   const allDay = entries.filter((entry) => entry.isAllDay);
@@ -76,14 +79,14 @@ export function WeekGrid({
         {days.map((day) => (
           <div
             key={day.toISOString()}
-            className="min-w-0 flex-1 border-l border-border px-1 py-2 text-center"
+            className="min-w-0 flex-1 border-l border-border px-1 py-2.5 text-center"
           >
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
               {format(day, "EEE")}
             </p>
             <p
               className={cn(
-                "mx-auto mt-0.5 flex size-7 items-center justify-center rounded-full text-sm font-medium tabular-nums",
+                "mx-auto mt-1 flex size-8 items-center justify-center rounded-full text-[15px] font-medium tabular-nums",
                 isToday(day)
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground",
@@ -110,9 +113,15 @@ export function WeekGrid({
               timezone={homeTimezone}
               variant="home"
               day={days[0]}
+              hourHeight={hourHeight}
             />
           )}
-          <HourGutter hours={hours} variant="local" day={days[0]} />
+          <HourGutter
+            hours={hours}
+            variant="local"
+            day={days[0]}
+            hourHeight={hourHeight}
+          />
 
           {days.map((day) => (
             <DayColumn
@@ -125,6 +134,7 @@ export function WeekGrid({
               onSelect={onSelect}
               onCreate={onCreate}
               onDropTask={onDropTask}
+              hourHeight={hourHeight}
             />
           ))}
         </div>
@@ -138,7 +148,7 @@ function GutterSpacer({ homeTimezone }: { homeTimezone: string | null }) {
   return (
     <div
       aria-hidden
-      className={cn("shrink-0", homeTimezone ? "w-[104px]" : "w-[52px]")}
+      className={cn("shrink-0", homeTimezone ? "w-[116px]" : "w-[58px]")}
     />
   );
 }
@@ -154,6 +164,7 @@ function DayColumn({
   onSelect,
   onCreate,
   onDropTask,
+  hourHeight,
 }: {
   day: Date;
   hours: number[];
@@ -163,6 +174,7 @@ function DayColumn({
   onSelect: (entry: CalendarEntry) => void;
   onCreate: (start: Date) => void;
   onDropTask: (taskId: string, start: Date) => void;
+  hourHeight: number;
 }) {
   const placed = useMemo(
     () => layoutDay({ events: entries, day, startHour, endHour }),
@@ -193,6 +205,11 @@ function DayColumn({
         "relative min-w-0 flex-1 border-l border-border",
         isToday(day) && "bg-primary/[0.03]",
       )}
+      // An explicit height rather than filling the flex parent: the
+      // percentages `layoutDay` returns resolve against this, so an hour is
+      // the same size no matter how tall the window is or how many hours the
+      // day spans.
+      style={{ height: hours.length * hourHeight }}
       onClick={(event) => {
         // Only a click on the column itself, never one that bubbled up from an
         // event block — otherwise opening an event also creates a new one.
@@ -215,7 +232,7 @@ function DayColumn({
           <div
             key={hour}
             className="border-b border-border/60"
-            style={{ height: `${100 / hours.length}%` }}
+            style={{ height: hourHeight }}
           />
         ))}
       </div>
@@ -226,6 +243,7 @@ function DayColumn({
         <EntryBlock
           key={item.event.id}
           placed={item}
+          hourHeight={hourHeight}
           onSelect={() => onSelect(item.event)}
         />
       ))}

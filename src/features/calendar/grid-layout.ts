@@ -38,6 +38,15 @@ export interface PlacedEvent<T extends Placeable> {
   width: number;
   /** Higher sits above; later-starting events overlap earlier ones. */
   z: number;
+  /**
+   * Drawn duration in minutes, after clipping and the readable minimum.
+   *
+   * Carried so a renderer can ask "is there room for a second line" in pixels
+   * rather than from the percentage — the same 30-minute meeting is a
+   * different share of the column on an eight-hour day and a sixteen-hour one,
+   * so a percentage threshold hides the time on one and shows it on the other.
+   */
+  durationMinutes: number;
 }
 
 /** Anything shorter than this is unreadable, so it is drawn taller than it is. */
@@ -192,6 +201,7 @@ export function layoutDay<T extends Placeable>({
         event: entry.event,
         top,
         height: Math.max(height, 1),
+        durationMinutes: minutes,
         left: (column / total) * 100,
         width: (1 / total) * 100,
         // Later starts sit above, so a short meeting inside a long block stays

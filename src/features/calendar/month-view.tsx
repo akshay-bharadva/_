@@ -36,7 +36,7 @@ export function MonthView({
         {weekdayLabels.map((day) => (
           <div
             key={day.toISOString()}
-            className="px-2 py-1.5 text-center text-[11px] uppercase tracking-wide text-muted-foreground"
+            className="px-2 py-2 text-center text-xs uppercase tracking-wide text-muted-foreground"
           >
             {format(day, "EEE")}
           </div>
@@ -57,7 +57,7 @@ export function MonthView({
             <div
               key={day.toISOString()}
               className={cn(
-                "min-h-24 border-b border-l border-border p-1",
+                "min-h-28 border-b border-l border-border p-1.5",
                 outside && "bg-secondary/30",
               )}
             >
@@ -65,7 +65,7 @@ export function MonthView({
                 type="button"
                 onClick={() => onPickDay(day)}
                 className={cn(
-                  "mb-1 flex size-6 items-center justify-center rounded-full text-xs tabular-nums transition-colors",
+                  "mb-1.5 flex size-7 items-center justify-center rounded-full text-[13px] tabular-nums transition-colors",
                   isToday(day)
                     ? "bg-primary font-semibold text-primary-foreground"
                     : outside
@@ -83,7 +83,7 @@ export function MonthView({
                     type="button"
                     onClick={() => onSelect(entry)}
                     className={cn(
-                      "block w-full truncate rounded-control border-l-2 px-1 py-0.5 text-left text-[10px] text-foreground",
+                      "block w-full truncate rounded-control border-l-2 px-1.5 py-1 text-left text-[11px] text-foreground",
                       entryClasses(entry.colorToken).bg,
                       entryClasses(entry.colorToken).border,
                     )}
@@ -101,7 +101,7 @@ export function MonthView({
                   <button
                     type="button"
                     onClick={() => onPickDay(day)}
-                    className="px-1 text-[10px] text-muted-foreground hover:text-foreground"
+                    className="px-1 text-[11px] text-muted-foreground hover:text-foreground"
                   >
                     +{forDay.length - VISIBLE_PER_DAY} more
                   </button>

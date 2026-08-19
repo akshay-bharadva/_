@@ -21,6 +21,7 @@ export function HourGutter({
   day,
   timezone,
   variant,
+  hourHeight,
 }: {
   hours: number[];
   /** Any day in the visible range; only the date part is used. */
@@ -28,6 +29,8 @@ export function HourGutter({
   /** Absent for the local column. */
   timezone?: string;
   variant: "local" | "home";
+  /** Pixels per hour. Fixed, so the scale is the same at any window size. */
+  hourHeight: number;
 }) {
   const labels = useMemo(() => {
     if (!timezone) {
@@ -59,7 +62,7 @@ export function HourGutter({
     <div
       className={cn(
         "shrink-0 select-none",
-        variant === "home" ? "w-[52px] bg-primary/[0.05]" : "w-[52px]",
+        variant === "home" ? "w-[58px] bg-primary/[0.05]" : "w-[58px]",
       )}
       aria-label={variant === "home" ? `Home time (${timezone})` : "Local time"}
     >
@@ -67,11 +70,11 @@ export function HourGutter({
         <div
           key={hours[index]}
           className="flex items-start justify-end border-b border-border/60 pr-2"
-          style={{ height: `${100 / hours.length}%` }}
+          style={{ height: hourHeight }}
         >
           <span
             className={cn(
-              "-mt-1.5 text-[10px] tabular-nums",
+              "-mt-2 text-[11px] tabular-nums",
               variant === "home" ? "text-primary/70" : "text-muted-foreground",
             )}
           >

@@ -43,7 +43,7 @@ export function AllDayRow({
         return (
           <div
             key={day.toISOString()}
-            className="min-w-0 flex-1 space-y-0.5 border-l border-border p-1"
+            className="min-w-0 flex-1 space-y-1 border-l border-border p-1.5"
           >
             {forDay.map((entry) => (
               <button
@@ -51,7 +51,7 @@ export function AllDayRow({
                 type="button"
                 onClick={() => onSelect(entry)}
                 className={cn(
-                  "block w-full truncate rounded-control border-l-2 px-1.5 py-0.5 text-left text-[11px] font-medium text-foreground",
+                  "block w-full truncate rounded-control border-l-[3px] px-2 py-1 text-left text-xs font-medium text-foreground",
                   entryClasses(entry.colorToken).bg,
                   entryClasses(entry.colorToken).border,
                 )}

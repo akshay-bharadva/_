@@ -41,6 +41,7 @@ import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
 import { FreeTimeBar } from "./free-time-bar";
+import { DENSITY_OPTIONS, HOUR_HEIGHT, useDensity } from "./density";
 
 type View = "day" | "week" | "month" | "agenda";
 
@@ -70,6 +71,7 @@ export default function CalendarPage() {
   const [anchor, setAnchor] = useState(() => new Date());
   const [selected, setSelected] = useState<CalendarEntry | null>(null);
   const [draftStart, setDraftStart] = useState<Date | null>(null);
+  const [density, setDensity] = useDensity();
 
   const weekStartsOn = (settings?.week_starts_on ?? 1) as
     | 0
@@ -221,7 +223,7 @@ export default function CalendarPage() {
 
   return (
     <ManagerWrapper className="pb-4">
-      <div className="flex h-[calc(100vh-8rem)] flex-col gap-4">
+      <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
         <header className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1">
             <Button
@@ -337,6 +339,7 @@ export default function CalendarPage() {
                 onSelect={setSelected}
                 onCreate={setDraftStart}
                 onDropTask={(taskId, start) => void scheduleTask(taskId, start)}
+                hourHeight={HOUR_HEIGHT[density]}
               />
             )}
           </div>
