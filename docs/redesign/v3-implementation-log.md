@@ -682,6 +682,70 @@ scenarios, remittance tracking and coaching. Migration `009`.
 
 ---
 
+## Calendar
+
+**Was** — six usable columns on `events`, no recurrence, no grouping, nine
+hard-coded hex colours, and a range query with two real bugs. FullCalendar plus
+a 352-line CSS override block fighting it.
+
+**Is** — a native grid with recurrence, calendars, a second time-zone gutter and
+drag-to-schedule from the task list. Migration `010`.
+
+**Carried forward:**
+
+- **Filter a range query on overlap, never on start date.** The old query used
+  `start_time::date BETWEEN start AND end`, so a trip from the 28th to the 4th
+  was invisible when you looked at the following week — it did not _start_
+  there. Any event crossing a view boundary disappeared from the far side.
+- **A synthetic id must be deterministic.** Summary rows were built with
+  `gen_random_uuid()` inside the query, so the same day's habit summary was a
+  different object on every refetch: an unusable React key, and nothing that
+  could be selected or scrolled to. Derive it from the kind and the date.
+- **Do not invent a clock time to make a date fit a grid.** Tasks were pinned to
+  09:00, habits to 07:00, transactions to 12:00 by literal `interval '9 hour'`
+  arithmetic. Those times are wrong in every timezone. Date-only records are
+  all-day, and the grid has a row for them.
+- **Expand recurrence on the client, not in SQL.** A weekly 09:00 standup is
+  09:00 _local_ on both sides of a clock change — a property of the viewer's
+  zone, which only the browser knows. Postgres would have to pick one.
+- **A parser that cannot read a rule must produce nothing, not a guess.** The
+  RRULE subset is deliberate (FREQ, INTERVAL, BYDAY, COUNT, UNTIL); anything
+  else yields no occurrences. A rule that silently expands to the wrong dates
+  is a missed appointment.
+- **`new Date("2026-12-31")` is UTC midnight.** The third time this trap has
+  appeared — after the budget month key and the analytics fixtures. A series
+  ending 31 December would have stopped on the 30th for every viewer behind
+  UTC. Parse date strings from their parts.
+- **Compute grid positions from real dates, never an hour index.** A week
+  containing a clock change has 167 or 169 hours. Doing the arithmetic in dates
+  means no special case for it at all.
+- **Overlap layout is clustering plus greedy first-fit.** Group events by
+  transitive overlap so one event cannot need two widths, then reuse the
+  leftmost free column — consecutive meetings stack rather than marching
+  rightwards. Three overlapping events do not always need three columns.
+- **A second hour gutter is read through `Intl`, not an offset.** India is +5:30
+  and never changes; most zones shift twice a year, and an offset captured in
+  summer is wrong all winter.
+- **Show the parse before saving it.** Natural-language entry does not have to
+  be perfect if the interpretation is visible first. A bare number is only a
+  time after "at", so "sprint 3 review" is not a 3am meeting.
+- **Editing one occurrence of a series is ambiguous, so ask.** This Thursday or
+  every Thursday? The sheet offers both and writes either an exception row or a
+  series update. Deleting one occurrence is a cancellation, not a delete —
+  removing the row would take every other Thursday with it.
+- **Aggregated rows stay read-only.** Tasks, habits and finance appear on the
+  calendar and say which module owns them. Two places that can edit the same
+  row is how they drift.
+- **Month view stays shallow on purpose.** A month grid at full fidelity is
+  where calendars go to become unreadable — thirty cells of four-pixel text.
+  Three items and a count, then click through.
+- **Removing a library removed its constraints.** The nine hard-coded hex
+  colours were not carelessness; they were what FullCalendar requires, since it
+  wants a concrete colour per event rather than a class. Colours are tokens now
+  and move with all 52 presets.
+
+---
+
 # Part three — Recurring patterns
 
 Reach for these; they are already tested and already argued for.
@@ -807,14 +871,14 @@ place without running any migration.
 
 **Rebuilt:** Content, Blog, Updates, Navigation, Assets, Tasks, Habits,
 Learning, Notes, Whiteboard, Inventory, Security, Settings, Inbox (new),
-Analytics (new), Finance.
+Analytics (new), Finance, Calendar.
 
-**Not yet rebuilt:** Calendar, Dashboard.
+**Not yet rebuilt:** Dashboard.
 
 **Open:**
 
-- Migrations `002`, `004`, `005`, `007`, `008` and `009` have not been applied
-  to the live database; `006` is opt-in and awaiting a decision. **Nothing in Analytics
+- Migrations `002`, `004`, `005`, `007`, `008`, `009` and `010` have not been
+  applied to the live database; `006` is opt-in and awaiting a decision. **Nothing in Analytics
   works until `008` runs** — the page says so rather than showing an empty
   dashboard that looks like a site nobody visits.
 - Retention is a function and a button, not a schedule. `prune_site_visits()`
