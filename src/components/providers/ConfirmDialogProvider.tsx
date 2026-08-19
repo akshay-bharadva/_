@@ -87,7 +87,7 @@ export const ConfirmDialogProvider = ({
           - max-w-lg: Caps width on desktop for readability
           - rounded-lg: Softer corners for mobile
         */}
-        <AlertDialogContent className="w-[95vw] max-w-lg rounded-xl md:rounded-lg">
+        <AlertDialogContent className="w-[95vw] max-w-lg rounded-surface">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl">
               {options.title}

@@ -265,7 +265,7 @@ const Sidebar = React.forwardRef<
           <div
             data-sidebar="sidebar"
             className={cn(
-              "flex h-full w-full flex-col rounded-lg border bg-background shadow-e1",
+              "flex h-full w-full flex-col rounded-surface bg-background shadow-e1",
               (variant === "floating" || variant === "inset") && "rounded-lg",
               variant === "sidebar" && "shadow-none border-0 rounded-none",
             )}

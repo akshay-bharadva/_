@@ -80,7 +80,7 @@ export default function MobileBottomNav({
             variant="ghost"
             size="sm"
             className={cn(
-              "flex-1 flex flex-col items-center gap-0.5 h-12 rounded-lg",
+              "flex-1 flex flex-col items-center gap-0.5 h-12 rounded-control",
               item.active && "text-primary",
             )}
             onClick={() => handleClick(item)}

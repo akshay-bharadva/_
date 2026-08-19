@@ -103,7 +103,7 @@ export function PostPage() {
       <Band weight="content" width="prose" aria-busy>
         <Skeleton className="h-4 w-40" />
         <Skeleton className="mt-5 h-12 w-3/4" />
-        <Skeleton className="mt-8 h-64 w-full rounded-lg" />
+        <Skeleton className="mt-8 h-64 w-full rounded-surface" />
       </Band>
     );
   }

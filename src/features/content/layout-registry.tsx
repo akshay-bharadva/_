@@ -506,7 +506,7 @@ export function LayoutPreview({ layout }: { layout: string }) {
           ].map(([t, c, v]) => (
             <div key={t} className={`${block} flex items-center gap-2 p-2`}>
               <div
-                className={`flex size-6 items-center justify-center rounded-lg ${c} text-[8px] font-bold`}
+                className={`flex size-6 items-center justify-center rounded-control ${c} text-[8px] font-bold`}
               >
                 {t[0]}
               </div>

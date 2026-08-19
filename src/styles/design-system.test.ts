@@ -3,8 +3,10 @@ import { readFileSync, readdirSync, statSync } from "fs";
 import { join, resolve } from "path";
 import {
   bordersAndElevates,
+  classFragments,
   classLists,
   hasDeadHoverBorder,
+  usesRawRadius,
 } from "./class-rules";
 
 /**
@@ -106,7 +108,7 @@ describe("v3 design system", () => {
       // Third-party editor chrome whose class list we do not own.
       if (path.includes("novel-editor")) continue;
 
-      for (const list of classLists(source)) {
+      for (const list of classFragments(source)) {
         if (bordersAndElevates(list)) {
           offenders.push(`${path} → ${list.slice(0, 70)}`);
         }
@@ -133,6 +135,30 @@ describe("v3 design system", () => {
 
       for (const list of classLists(source)) {
         if (hasDeadHoverBorder(list)) {
+          offenders.push(`${path} → ${list.slice(0, 70)}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  /**
+   * `rounded-surface` for panels, `rounded-control` for controls.
+   *
+   * Tailwind's scale offers six radii that all look nearly alike, so a
+   * codebase using it drifts into a different corner on every screen. Two
+   * tokens make it one decision instead of a per-element guess.
+   */
+  it("uses the radius tokens rather than Tailwind's scale", () => {
+    const offenders: string[] = [];
+
+    for (const { path, source } of FILES) {
+      // Third-party editor chrome whose class list we do not own.
+      if (path.includes("novel-editor")) continue;
+
+      for (const list of classFragments(source)) {
+        if (usesRawRadius(list)) {
           offenders.push(`${path} → ${list.slice(0, 70)}`);
         }
       }

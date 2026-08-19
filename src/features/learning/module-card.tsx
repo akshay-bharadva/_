@@ -85,7 +85,7 @@ export function ModuleCard({
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div
               className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-lg transition-transform duration-200",
+                "flex size-8 shrink-0 items-center justify-center rounded-control transition-transform duration-200",
                 isExpanded ? "bg-primary/10" : "bg-muted",
               )}
             >

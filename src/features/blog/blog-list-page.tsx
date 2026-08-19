@@ -129,7 +129,7 @@ export function BlogListPage() {
       {isLoading ? (
         <div className="space-y-4" aria-busy>
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-36 rounded-lg" />
+            <Skeleton key={i} className="h-36 rounded-surface" />
           ))}
         </div>
       ) : isError ? (

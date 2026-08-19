@@ -15,8 +15,8 @@ function SectionSkeleton() {
         <Skeleton className="h-px w-full" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Skeleton className="h-28 rounded-lg" />
-        <Skeleton className="h-28 rounded-lg" />
+        <Skeleton className="h-28 rounded-surface" />
+        <Skeleton className="h-28 rounded-surface" />
       </div>
     </div>
   );

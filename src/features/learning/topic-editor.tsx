@@ -192,7 +192,7 @@ const ResourceList = ({
       {resources.length === 0 && (
         <div
           onClick={onAdd}
-          className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border/60 p-6 text-center transition-all hover:bg-muted/30"
+          className="flex cursor-pointer flex-col items-center justify-center rounded-surface border border-dashed border-border/60 p-6 text-center transition-all hover:bg-muted/30"
         >
           <p className="text-xs font-medium text-foreground">Empty Library</p>
           <p className="mt-1 text-[10px] text-muted-foreground">
@@ -311,7 +311,7 @@ export function TopicEditor({
     <div
       className={cn(
         "flex h-full flex-col overflow-hidden bg-background",
-        !isMobile && "rounded-xl border shadow-e3",
+        !isMobile && "rounded-surface shadow-e3",
       )}
     >
       {/* Fixed header */}

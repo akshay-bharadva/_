@@ -17,7 +17,7 @@ export function AboutPage() {
 
       {isLoading || !identity ? (
         <div className="grid gap-8 sm:grid-cols-[8rem_1fr]" aria-busy>
-          <Skeleton className="size-32 rounded-lg" />
+          <Skeleton className="size-32 rounded-surface" />
           <div className="space-y-3">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6" />

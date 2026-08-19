@@ -206,7 +206,7 @@ export function MaybeLink({
   if (!safe) return <div className={className}>{children}</div>;
 
   const classes = cn(
-    "group/link block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-lg",
+    "group/link block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-control",
     className,
   );
 

@@ -250,7 +250,7 @@ export function SectionEditorSheet({
                           });
                           setPreviewOpen(false);
                         }}
-                        className={`space-y-3 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-e2 ${
+                        className={`space-y-3 rounded-surface border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-e2 ${
                           selectedLayout === opt.value
                             ? "border-primary bg-primary/5 shadow-e1"
                             : "border-border/50 bg-card hover:border-primary/30"

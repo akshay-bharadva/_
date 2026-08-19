@@ -31,7 +31,7 @@ export function FolderGrid({
           <div
             key={folder}
             onClick={() => onOpen(folder)}
-            className="group flex cursor-pointer flex-col items-center gap-2 rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:bg-secondary/50"
+            className="group flex cursor-pointer flex-col items-center gap-2 rounded-surface border bg-card p-4 transition-all hover:border-primary/30 hover:bg-secondary/50"
           >
             <Folder className="size-10 fill-chart-1/20 text-chart-1 transition-transform group-hover:scale-110" />
             <span className="w-full truncate text-center text-xs font-medium">
