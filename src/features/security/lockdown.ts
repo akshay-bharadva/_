@@ -102,7 +102,6 @@ export function lockdownConfirmation(level: number): {
   description: string;
   destructive: boolean;
 } {
-  const meta = lockdownMeta(level);
 
   if (level === 0) {
     return {

@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { toast } from "sonner";
 
-interface UseCrudHandlersOptions<T> {
+interface UseCrudHandlersOptions {
   /** Display name for the entity (e.g., "Task", "Note") */
   entityName: string;
   /** RTK Query delete mutation hook result */
@@ -44,11 +44,11 @@ interface UseCrudHandlersReturn {
  * <Button onClick={() => handleDelete(note.id, note.title)}>Delete</Button>
  * ```
  */
-export function useCrudHandlers<T extends { id: string }>({
+export function useCrudHandlers({
   entityName,
   deleteMutation,
   onDeleteSuccess,
-}: UseCrudHandlersOptions<T>): UseCrudHandlersReturn {
+}: UseCrudHandlersOptions): UseCrudHandlersReturn {
   const confirm = useConfirm();
   const [deleteEntity, { isLoading: isDeleting }] = deleteMutation;
 

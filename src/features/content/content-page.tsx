@@ -493,6 +493,7 @@ export default function ContentPage() {
                 setSheetState({ type: "edit-section", section })
               }
               onDeleteSection={handleDeleteSection}
+              onToggleVisible={handleToggleVisible}
               onSaveContent={handleSaveSection}
               onNewItem={(sectionId) =>
                 setSheetState({ type: "new-item", sectionId })

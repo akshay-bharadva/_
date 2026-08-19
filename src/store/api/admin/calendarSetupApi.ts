@@ -1,7 +1,6 @@
 import { supabase } from "@/supabase/client";
 import type {
   Calendar,
-  CalendarRow,
   CalendarSettings,
   EventException,
 } from "@/types";

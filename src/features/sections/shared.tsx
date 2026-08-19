@@ -6,7 +6,6 @@ import type { PortfolioItem } from "@/types";
 import { cn } from "@/lib/utils";
 import {
   isInternalUrl,
-  markdownUrlTransform,
   safeImageUrl,
   safeLinkUrl,
 } from "@/lib/safe-url";

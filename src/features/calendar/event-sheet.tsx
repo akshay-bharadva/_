@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { OverlayDetailView } from "./overlay-detail-view";
 import {
   calendarOptionsFor,
-  FREQUENCIES,
   frequencyOptionsFor,
   NONE,
 } from "./select-options";

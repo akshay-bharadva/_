@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { Task, TaskProject } from "@/types";
 import { cn } from "@/lib/cn";
-import { TASK_PRIORITY_META, type TaskPriority } from "./task-meta";
+import { type TaskPriority } from "./task-meta";
 import { formatDueDate } from "./task-card";
 import { isOverdue } from "./task-filters";
 import {

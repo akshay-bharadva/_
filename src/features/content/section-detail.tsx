@@ -8,6 +8,7 @@ import {
   CloudOff,
   Edit,
   ExternalLink,
+  Eye,
   EyeOff,
   Info,
   Link as LinkIcon,
@@ -42,6 +43,11 @@ export interface SectionDetailProps {
   onBack?: () => void;
   onEditSection: (section: PortfolioSection) => void;
   onDeleteSection: (id: string) => void;
+  /**
+   * Show or hide the section on the public site. The page has always counted
+   * hidden sections; until now there was no way to make one.
+   */
+  onToggleVisible: (section: PortfolioSection) => void;
   onSaveContent: (
     data: { id: string; content: string },
     options?: { silent?: boolean },
@@ -160,6 +166,7 @@ export function SectionDetail({
   onBack: _onBack,
   onEditSection,
   onDeleteSection,
+  onToggleVisible,
   onSaveContent,
   onNewItem,
   onEditItem,
@@ -335,6 +342,17 @@ export function SectionDetail({
                     >
                       <ExternalLink className="mr-2 size-4" /> View on site
                     </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onToggleVisible(section)}>
+                    {section.is_visible === false ? (
+                      <>
+                        <Eye className="mr-2 size-4" /> Show on site
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="mr-2 size-4" /> Hide from site
+                      </>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

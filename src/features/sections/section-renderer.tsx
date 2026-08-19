@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Markdown as MarkdownBase } from "@/components/ui/markdown";
 import type { PortfolioSection } from "@/types";
 import { cn } from "@/lib/utils";
-import { markdownUrlTransform } from "@/lib/safe-url";
 import { EmptySection, sortedItems } from "./shared";
 import {
   isKnownLayout,
