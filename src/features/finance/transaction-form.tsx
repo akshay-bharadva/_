@@ -25,6 +25,7 @@ import { CURRENCIES } from "@/lib/money";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import { toLocalISODate } from "@/lib/date-utils";
+import { transactionSchema } from "@/lib/schemas";
 
 /**
  * Add or edit one transaction.
@@ -106,21 +107,42 @@ export function TransactionForm({
 
   const submit = async () => {
     if (!valid) return;
+
+    const draft = {
+      date,
+      description: description.trim(),
+      amount: parsedAmount,
+      type,
+      account_id: accountId || null,
+      category_id: categoryId || null,
+      currency: foreign ? currency : null,
+      notes: notes.trim() || null,
+      is_pending: isPending,
+    };
+
+    /*
+      Checked against the shared schema before the write. `valid` above only
+      asks whether the amount is a positive number — the column is
+      NUMERIC(10,2), so anything past 99,999,999.99 was reaching Postgres as a
+      `numeric field overflow` and surfacing as a save that just failed. Notes
+      are bounded at 2,000 characters for the same reason.
+    */
+    const parsed = transactionSchema.safeParse(draft);
+    if (!parsed.success) {
+      const first = parsed.error.errors[0];
+      toast.error("Check the form", {
+        description: first?.message ?? "Something here is not valid.",
+      });
+      return;
+    }
+
     try {
       await saveTransaction({
         ...(transaction?.id ? { id: transaction.id } : {}),
-        date,
-        description: description.trim(),
-        amount: parsedAmount,
-        type,
-        account_id: accountId || null,
-        category_id: categoryId || null,
-        // Left null when it matches the account, so the database trigger fills
-        // it — one place decides, rather than the form and the trigger both
-        // having an opinion.
-        currency: foreign ? currency : null,
-        notes: notes.trim() || null,
-        is_pending: isPending,
+        ...draft,
+        // `currency` is left null when it matches the account, so the database
+        // trigger fills it — one place decides, rather than the form and the
+        // trigger both having an opinion.
       }).unwrap();
       toast.success(transaction ? "Transaction updated" : "Transaction added");
       onDone();

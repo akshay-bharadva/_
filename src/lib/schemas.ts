@@ -251,6 +251,21 @@ export type SubTaskFormValues = z.infer<typeof subTaskSchema>;
 // TRANSACTION SCHEMAS
 // =============================================================================
 
+/**
+ * Bounds taken from the `transactions` CHECK constraints.
+ *
+ * The finance rebuild added these columns without extending the schema, and
+ * the form validated only "description is not empty" and "amount is a positive
+ * number" — so an amount past NUMERIC(10,2) reached Postgres as a `numeric
+ * field overflow`, which the user sees as a save that simply failed.
+ */
+export const TRANSACTION_LIMITS = {
+  /** `char_length(notes) <= 2000` */
+  NOTES: 2_000,
+  /** `char_length(merchant) <= 200` */
+  MERCHANT: 200,
+} as const;
+
 export const transactionSchema = z.object({
   date: requiredDateString,
   description: boundedRequiredString(LIMITS.TITLE, "Description"),
@@ -261,6 +276,19 @@ export const transactionSchema = z.object({
     .trim()
     .max(LIMITS.TITLE, "Category is too long")
     .optional(),
+  account_id: z.string().uuid().optional().nullable(),
+  category_id: z.string().uuid().optional().nullable(),
+  // CHAR(3): an ISO 4217 code, not a symbol. A longer value is silently
+  // truncated by Postgres rather than rejected, which is worse than an error.
+  currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{3}$/, "Currency must be a three-letter code")
+    .optional()
+    .nullable(),
+  merchant: boundedOptionalString(TRANSACTION_LIMITS.MERCHANT, "Merchant"),
+  notes: boundedOptionalString(TRANSACTION_LIMITS.NOTES, "Notes"),
+  is_pending: z.boolean().optional(),
 });
 
 export type TransactionFormValues = z.infer<typeof transactionSchema>;
