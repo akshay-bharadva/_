@@ -1657,7 +1657,11 @@ AS $$
       ), 0)
   FROM finance_accounts a
   WHERE a.id = account_balance.account
-    AND a.user_id = auth.uid();
+    AND a.user_id = auth.uid()
+    -- A plain SQL function has no place for an IF, so the second-factor check
+    -- is a predicate: an unverified session matches no row and gets NULL
+    -- rather than a balance. Fails closed.
+    AND public.is_aal2();
 $$;
 
 REVOKE ALL ON FUNCTION public.account_balance(UUID, DATE, BOOLEAN) FROM PUBLIC, anon;
@@ -1896,7 +1900,11 @@ AS $$
 DECLARE
   uid UUID := auth.uid();
 BEGIN
-  IF uid IS NULL THEN
+  -- AAL2 as well as signed in. SECURITY DEFINER bypasses RLS, and every table
+  -- read below is protected by a policy requiring the second factor — so
+  -- without this the function hands a password-only session data the policies
+  -- would have withheld.
+  IF uid IS NULL OR NOT public.is_aal2() THEN
     RAISE EXCEPTION 'Not authorised';
   END IF;
 
@@ -2261,11 +2269,22 @@ CREATE OR REPLACE FUNCTION get_analytics_overview()
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+-- Pinned: a definer function resolves unqualified names through the caller's
+-- search_path, so anyone able to create an object earlier in it could have
+-- theirs used instead.
+SET search_path = public, auth
 AS $$
 DECLARE
   analytics_data JSONB;
   current_user_id UUID := auth.uid();
 BEGIN
+  -- SECURITY DEFINER bypasses RLS, so the AAL2 check the policies would have
+  -- applied has to be made here. Without it this read was a way around the
+  -- mandatory second factor.
+  IF current_user_id IS NULL OR NOT public.is_aal2() THEN
+    RAISE EXCEPTION 'Not authorised';
+  END IF;
+
   WITH
   task_stats AS (
     SELECT status, count(*) AS count FROM tasks WHERE user_id = current_user_id GROUP BY status
@@ -2323,24 +2342,57 @@ $$ LANGUAGE plpgsql;
 
 -- Transaction Category Management
 CREATE OR REPLACE FUNCTION rename_transaction_category(old_name TEXT, new_name TEXT)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
 BEGIN
+  -- These write to tables whose policies require AAL2, and SECURITY DEFINER
+  -- bypasses those policies — so without this an unverified session could
+  -- rewrite categories across the whole ledger.
+  IF auth.uid() IS NULL OR NOT public.is_aal2() THEN
+    RAISE EXCEPTION 'Not authorised';
+  END IF;
+
   UPDATE transactions SET category = new_name WHERE user_id = auth.uid() AND category = old_name;
   UPDATE recurring_transactions SET category = new_name WHERE user_id = auth.uid() AND category = old_name;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION merge_transaction_categories(source_name TEXT, target_name TEXT)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
 BEGIN
+  -- These write to tables whose policies require AAL2, and SECURITY DEFINER
+  -- bypasses those policies — so without this an unverified session could
+  -- rewrite categories across the whole ledger.
+  IF auth.uid() IS NULL OR NOT public.is_aal2() THEN
+    RAISE EXCEPTION 'Not authorised';
+  END IF;
+
   UPDATE transactions SET category = target_name WHERE user_id = auth.uid() AND category = source_name;
   UPDATE recurring_transactions SET category = target_name WHERE user_id = auth.uid() AND category = source_name;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION delete_transaction_category(category_name TEXT)
-RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
 BEGIN
+  -- These write to tables whose policies require AAL2, and SECURITY DEFINER
+  -- bypasses those policies — so without this an unverified session could
+  -- rewrite categories across the whole ledger.
+  IF auth.uid() IS NULL OR NOT public.is_aal2() THEN
+    RAISE EXCEPTION 'Not authorised';
+  END IF;
+
   UPDATE transactions SET category = NULL WHERE user_id = auth.uid() AND category = category_name;
   UPDATE recurring_transactions SET category = NULL WHERE user_id = auth.uid() AND category = category_name;
 END;
