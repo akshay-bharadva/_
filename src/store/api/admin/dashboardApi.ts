@@ -71,6 +71,28 @@ export const dashboardApi = adminApi.injectEndpoints({
             .select("*")
             .order("target_date")
             .limit(1),
+          // The workbench answers "what needs me now", so it needs the four
+          // modules that can be *behind*: habits not yet done, events already
+          // starting, messages nobody has read, and reviews coming due.
+          supabase
+            .from("habits")
+            .select(`*, habit_logs(id, habit_id, completed_date, value, note)`)
+            .is("archived_at", null),
+          supabase
+            .from("events")
+            .select("id, title, start_time, end_time, is_all_day")
+            .gte("start_time", `${todayISO}T00:00:00`)
+            .lte("start_time", `${todayISO}T23:59:59`)
+            .order("start_time"),
+          supabase
+            .from("contact_submissions")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "new"),
+          supabase
+            .from("learning_topics")
+            .select("id", { count: "exact", head: true })
+            .lte("next_review_at", todayISO)
+            .is("archived_at", null),
         ];
 
         const results = await Promise.all(promises);
@@ -89,7 +111,15 @@ export const dashboardApi = adminApi.injectEndpoints({
           { data: dailyEarningsDataRaw },
           { data: recurringData },
           { data: primaryGoalData },
-        ] = results as { data: unknown; error?: unknown }[];
+          { data: habitsData },
+          { data: todaysEventsData },
+          { count: unreadMessages },
+          { count: reviewsDue },
+        ] = results as {
+          data: unknown;
+          count?: number | null;
+          error?: unknown;
+        }[];
 
         let monthlyEarnings = 0,
           monthlyExpenses = 0;
@@ -140,6 +170,13 @@ export const dashboardApi = adminApi.injectEndpoints({
           recurring: (recurringData as DashboardData["recurring"]) || [],
           primaryGoal:
             (primaryGoalData as FinancialGoal[] | undefined)?.[0] ?? null,
+          habits: (habitsData as DashboardData["habits"]) || [],
+          todaysEvents:
+            (todaysEventsData as DashboardData["todaysEvents"]) || [],
+          // `head: true` returns a count and no rows, so these cost nothing to
+          // ask for beyond the round trip.
+          unreadMessages: unreadMessages ?? 0,
+          reviewsDue: reviewsDue ?? 0,
         };
 
         return { data };

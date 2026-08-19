@@ -700,6 +700,14 @@ export interface DashboardData {
   dailyEarnings: { day: string; total: number }[];
   recurring: RecurringTransaction[];
   primaryGoal: FinancialGoal | null;
+  /** Active habits with their logs, so "done today" is derived, not stored. */
+  habits: Habit[];
+  todaysEvents: Pick<
+    Event,
+    "id" | "title" | "start_time" | "end_time" | "is_all_day"
+  >[];
+  unreadMessages: number;
+  reviewsDue: number;
 }
 
 /**

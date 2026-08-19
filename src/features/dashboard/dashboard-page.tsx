@@ -1,424 +1,317 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  AlertOctagon,
-  ArrowDownLeft,
+  AlarmClock,
   ArrowUpRight,
-  Banknote,
   CalendarClock,
-  CheckCircle,
-  ExternalLink,
-  Eye,
-  ListTodo,
-  Pin,
+  CheckCircle2,
+  Inbox,
+  Mail,
   Repeat,
+  Sparkles,
   Target,
-  Zap,
+  Wallet,
 } from "lucide-react";
-import { Bar, BarChart, XAxis } from "recharts";
-import { addDays, format, startOfDay } from "date-fns";
 import type { DashboardData } from "@/types";
-import { useGetDashboardDataQuery } from "@/store/api/adminApi";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { LoadingState, PageHeader, StatCard } from "@/components/admin/shared";
-import { cn } from "@/lib/utils";
-import {
-  goalProgressPercent,
-  projectRecurringOccurrences,
-} from "@/lib/finance-utils";
-import { toLocalISODate } from "@/lib/date-utils";
+  useGetDashboardDataQuery,
+  useGetFinanceSettingsQuery,
+} from "@/store/api/adminApi";
+import { LoadingState } from "@/components/admin/shared";
+import { formatMoney } from "@/lib/money";
+import { cn } from "@/lib/cn";
+import { buildAttention, isClear, type AttentionItem } from "./attention";
+
+/**
+ * Home — a workbench, not a dashboard.
+ *
+ * The v2 version was eleven cards of equal weight: overdue tasks sat beside
+ * total blog views, a number that has never once required a decision. Equal
+ * weight is the failure — it makes the reader do the triage the screen was
+ * supposed to do for them.
+ *
+ * So the design vision's rule holds here literally: one asymmetric grid, the
+ * left column carrying "what needs you now" at full weight, the right a set of
+ * small gauges you glance at rather than read. The ranking that fills the left
+ * column lives in `attention.ts`, because deciding that an overdue task
+ * outranks an unread message is judgement, and judgement should be testable.
+ */
+
+const KIND_ICON: Record<AttentionItem["kind"], typeof AlarmClock> = {
+  task_overdue: AlarmClock,
+  event_now: CalendarClock,
+  task_today: CheckCircle2,
+  event_today: CalendarClock,
+  habit_due: Repeat,
+  review_due: Sparkles,
+  message_unread: Mail,
+};
+
+/**
+ * Only the genuinely late thing gets the warning accent.
+ *
+ * If four kinds were coloured, colour would stop meaning anything — which is
+ * how the previous version ended up with a legend.
+ */
+const KIND_TONE: Partial<Record<AttentionItem["kind"], string>> = {
+  task_overdue: "text-chart-3",
+  event_now: "text-chart-2",
+};
 
 export default function DashboardPage() {
-  const router = useRouter();
-  // The (protected) layout guards this route, so data can load immediately.
-  const { data: dashboardData, isLoading } = useGetDashboardDataQuery();
+  const { data, isLoading } = useGetDashboardDataQuery();
+
+  const attention = useMemo(() => (data ? buildAttention(data) : []), [data]);
+
+  if (isLoading && !data) {
+    return <LoadingState variant="page" label="Loading your workbench" />;
+  }
+
+  if (!data) {
+    return (
+      <div className="mx-auto max-w-prose py-16 text-center">
+        <p className="text-sm text-muted-foreground">
+          Nothing to show yet — the workbench needs a database connection.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Dashboard"
-        description="Your portfolio's command center."
-      />
-      {isLoading || !dashboardData ? (
-        <LoadingState />
-      ) : (
-        <DashboardOverview
-          dashboardData={dashboardData}
-          onNavigate={(path) => router.push(path)}
-        />
-      )}
+    <div className="space-y-6 pb-10">
+      <Greeting count={attention.length} />
+
+      {/*
+        Asymmetric on purpose. The attention column is the page; the gauges are
+        margin notes. A 50/50 split would say they matter equally, which is the
+        exact mistake the previous version made.
+      */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
+        <AttentionColumn items={attention} />
+        <Gauges data={data} />
+      </div>
     </div>
   );
 }
 
-interface DashboardOverviewProps {
-  dashboardData: DashboardData;
-  onNavigate: (path: string) => void;
+function Greeting({ count }: { count: number }) {
+  const hour = new Date().getHours();
+  const part =
+    hour < 5
+      ? "Still up"
+      : hour < 12
+        ? "Morning"
+        : hour < 18
+          ? "Afternoon"
+          : "Evening";
+
+  return (
+    <header className="space-y-1">
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        {part}
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        {count === 0
+          ? "Nothing is waiting on you."
+          : count === 1
+            ? "One thing is waiting on you."
+            : `${count} things are waiting on you.`}
+      </p>
+    </header>
+  );
 }
 
-function DashboardOverview({
-  dashboardData,
-  onNavigate,
-}: DashboardOverviewProps) {
-  const {
-    stats,
-    recentPosts,
-    pinnedNotes,
-    overdueTasks,
-    tasksDueToday,
-    tasksDueSoon,
-    dailyExpenses,
-    dailyEarnings,
-    recurring,
-    primaryGoal,
-  } = dashboardData;
+function AttentionColumn({ items }: { items: AttentionItem[] }) {
+  if (isClear(items)) {
+    return (
+      <section
+        aria-label="What needs you"
+        className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-surface bg-card p-10 text-center shadow-e1"
+      >
+        <CheckCircle2 className="size-8 text-chart-2" aria-hidden />
+        <div className="space-y-1">
+          <p className="font-medium text-foreground">You are all caught up</p>
+          {/*
+            Said plainly rather than left as an empty panel, which reads as a
+            page that failed to load.
+          */}
+          <p className="text-sm text-muted-foreground">
+            No overdue work, nothing due today, and every habit is done.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
-  const weeklyChartData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return toLocalISODate(d);
-    }).reverse();
-    return last7Days.map((day) => {
-      const expense = dailyExpenses.find((e) => e.day === day);
-      const earning = dailyEarnings.find((e) => e.day === day);
-      return {
-        day: new Date(day).toLocaleDateString("en-US", { weekday: "short" }),
-        earnings: earning?.total || 0,
-        expenses: expense?.total || 0,
-      };
-    });
-  }, [dailyExpenses, dailyEarnings]);
-
-  // Recurring forecast for the outlook column
-  const upcomingRecurring = useMemo(() => {
-    const today = startOfDay(new Date());
-    const next7Days = addDays(today, 8); // Look 7 days ahead (inclusive)
-
-    return projectRecurringOccurrences(recurring, today, next7Days)
-      .map(({ rule, date }) => ({
-        id: `${rule.id}-${date.getTime()}`,
-        description: rule.description,
-        date,
-        amount: rule.amount,
-        type: rule.type,
-      }))
-      .slice(0, 5); // Limit to top 5 for UI space
-  }, [recurring]);
-
-  const goalProgress = primaryGoal ? goalProgressPercent(primaryGoal) : 0;
-
-  /**
-   * The workbench.
-   *
-   * v3 changed the proportions, not the content. Previously the four stat
-   * cards and the three columns below them all rendered at the same weight, so
-   * "one overdue task" and "total blog views" competed for attention equally.
-   * Now the Action Center gets the dominant column and the gauges are
-   * secondary — the grid below is 5/7 rather than 1/3 + 2/3.
-   */
   return (
-    <div className="space-y-6 pb-20 md:pb-0">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard
-          title="Total Blog Views"
-          value={stats?.totalBlogViews.toLocaleString() || "0"}
-          icon={Eye}
-        />
-        <StatCard
-          title="This Month's Net"
-          value={`$${stats?.monthlyNet.toFixed(2) || "0.00"}`}
-          icon={Banknote}
-        />
-        <StatCard
-          title="Pending Tasks"
-          value={overdueTasks.length + tasksDueToday.length}
-          icon={ListTodo}
-        />
-        <StatCard
-          title="Primary Goal"
-          value={`${goalProgress.toFixed(0)}%`}
-          icon={Target}
-          helpText={primaryGoal?.name || "No goal set"}
+    <section
+      aria-label="What needs you"
+      className="overflow-hidden rounded-surface bg-card shadow-e1"
+    >
+      <h2 className="px-5 pb-2 pt-4 text-sm font-semibold text-foreground">
+        Needs you
+      </h2>
+
+      <ul>
+        {items.map((item) => {
+          const Icon = KIND_ICON[item.kind];
+          return (
+            <li key={item.id}>
+              <Link
+                href={item.href}
+                className="group flex items-center gap-3 border-t border-border/60 px-5 py-3 transition-colors hover:bg-secondary/50"
+              >
+                <Icon
+                  className={cn(
+                    "size-4 shrink-0",
+                    KIND_TONE[item.kind] ?? "text-muted-foreground",
+                  )}
+                  aria-hidden
+                />
+                {/* min-w-0 so a long title truncates instead of pushing the
+                    chevron off the panel; break-words so one unbroken token
+                    still wraps rather than overflowing. */}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate break-words text-sm text-foreground">
+                    {item.title}
+                  </span>
+                  {item.detail && (
+                    <span className="block text-xs text-muted-foreground">
+                      {item.detail}
+                    </span>
+                  )}
+                </span>
+                <ArrowUpRight
+                  className="size-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-hidden
+                />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * The right column: numbers you glance at.
+ *
+ * Nothing here is actionable, which is why it is small, quiet, and second.
+ */
+function Gauges({ data }: { data: DashboardData }) {
+  const net = data.stats?.monthlyNet ?? 0;
+  const goal = data.primaryGoal;
+
+  // The base currency belongs to Finance, not to this screen. Hard-coding it
+  // would show a CAD symbol over an INR figure the moment the base changed.
+  const { data: financeSettings } = useGetFinanceSettingsQuery();
+  const currency = financeSettings?.base_currency ?? "CAD";
+
+  return (
+    <aside className="space-y-3" aria-label="At a glance">
+      <Gauge
+        icon={Wallet}
+        label="This month"
+        href="/admin/finance"
+        value={formatMoney({ amount: net, currency }, { signed: true })}
+        tone={net > 0 ? "positive" : net < 0 ? "negative" : "neutral"}
+        note={
+          net >= 0 ? "Earned more than you spent" : "Spent more than you earned"
+        }
+      />
+
+      <Gauge
+        icon={Inbox}
+        label="Inbox"
+        href="/admin/inbox"
+        value={String(data.unreadMessages)}
+        note={data.unreadMessages === 0 ? "Nothing unread" : "Waiting to read"}
+      />
+
+      {goal && <GoalGauge goal={goal} />}
+    </aside>
+  );
+}
+
+function Gauge({
+  icon: Icon,
+  label,
+  value,
+  note,
+  href,
+  tone = "neutral",
+}: {
+  icon: typeof Wallet;
+  label: string;
+  value: string;
+  note?: string;
+  href: string;
+  tone?: "positive" | "negative" | "neutral";
+}) {
+  return (
+    <Link
+      href={href}
+      className="block rounded-surface bg-card p-4 shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2"
+    >
+      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon className="size-3.5" aria-hidden />
+        {label}
+      </span>
+      <p
+        className={cn(
+          "mt-1 truncate text-xl font-semibold tabular-nums",
+          // chart-2 is the success accent and chart-3 the warning accent; a
+          // literal green or amber would not move with the 52 presets.
+          tone === "positive" && "text-chart-2",
+          tone === "negative" && "text-chart-3",
+          tone === "neutral" && "text-foreground",
+        )}
+      >
+        {value}
+      </p>
+      {note && <p className="mt-0.5 text-xs text-muted-foreground">{note}</p>}
+    </Link>
+  );
+}
+
+function GoalGauge({
+  goal,
+}: {
+  goal: NonNullable<DashboardData["primaryGoal"]>;
+}) {
+  const target = goal.target_amount ?? 0;
+  const saved = goal.current_amount ?? 0;
+  // Guarded: a goal with no target would divide by zero and render NaN%.
+  const percent = target > 0 ? Math.min((saved / target) * 100, 100) : 0;
+
+  return (
+    <Link
+      href="/admin/finance"
+      className="block rounded-surface bg-card p-4 shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2"
+    >
+      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Target className="size-3.5" aria-hidden />
+        {goal.name}
+      </span>
+      <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
+        {Math.round(percent)}%
+      </p>
+      <div
+        className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary"
+        role="progressbar"
+        aria-valuenow={Math.round(percent)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${goal.name} progress`}
+      >
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-enter"
+          style={{ width: `${percent}%` }}
         />
       </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Column 1: Present / "What's going on now?" */}
-        <div className="space-y-6 lg:col-span-5">
-          <Card className="flex h-full flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="size-5 text-primary" /> Action Center
-              </CardTitle>
-              <CardDescription>
-                What needs your attention right now.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              {overdueTasks.length === 0 &&
-              tasksDueToday.length === 0 &&
-              pinnedNotes.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center rounded-surface border border-dashed bg-secondary/40 p-8 text-center text-muted-foreground">
-                  <CheckCircle className="mx-auto mb-4 size-12 text-primary opacity-80" />
-                  <p className="font-heading font-semibold tracking-tight text-foreground">
-                    Inbox Zero
-                  </p>
-                  <p className="text-sm">
-                    All clear — no immediate actions required.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {overdueTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-md border border-destructive/20 bg-destructive/10 p-3 transition-colors hover:bg-destructive/15"
-                      onClick={() => onNavigate("/admin/tasks")}
-                    >
-                      <AlertOctagon className="h-5 w-5 shrink-0 text-destructive" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold leading-tight text-destructive">
-                          {task.title}
-                        </p>
-                        <p className="mt-0.5 text-[10px] font-bold uppercase text-destructive/80">
-                          Overdue Task
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {tasksDueToday.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-md border border-chart-3/20 bg-chart-3/10 p-3 transition-colors hover:bg-chart-3/15"
-                      onClick={() => onNavigate("/admin/tasks")}
-                    >
-                      <ListTodo className="h-5 w-5 shrink-0 text-chart-3" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold leading-tight">
-                          {task.title}
-                        </p>
-                        <p className="mt-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                          Due Today
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {pinnedNotes.map((note) => (
-                    <div
-                      key={note.id}
-                      className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-secondary p-3 transition-colors hover:bg-secondary/80"
-                      onClick={() => onNavigate("/admin/notes")}
-                    >
-                      <Pin className="h-5 w-5 shrink-0 text-primary" />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold leading-tight">
-                          {note.title || "Untitled Note"}
-                        </p>
-                        <p className="mt-0.5 text-[10px] font-bold uppercase text-muted-foreground">
-                          Pinned Note
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Column 2: Past / "What happened?" */}
-        <div className="space-y-6 lg:col-span-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentPosts.length > 0 ? (
-                recentPosts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="flex items-center justify-between gap-2 rounded-md p-2 text-sm transition-colors hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <Badge
-                        variant={post.published ? "default" : "secondary"}
-                        className="h-5 px-1.5 text-[10px]"
-                      >
-                        {post.published ? "Pub" : "Draft"}
-                      </Badge>
-                      <span className="truncate font-medium">{post.title}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="View post"
-                      className="h-7 w-7"
-                      asChild
-                    >
-                      <a
-                        href={`/blog/view?slug=${post.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No recent blog posts.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>7-Day Expense Trend</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer config={{}} className="h-40 w-full">
-                <BarChart
-                  data={weeklyChartData}
-                  margin={{ top: 5, right: 0, left: 0, bottom: 0 }}
-                >
-                  <XAxis
-                    dataKey="day"
-                    tick={{
-                      fill: "hsl(var(--muted-foreground))",
-                      fontSize: 10,
-                    }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={
-                      <ChartTooltipContent
-                        indicator="dot"
-                        labelClassName="font-bold"
-                        className="bg-popover/90 backdrop-blur-sm"
-                      />
-                    }
-                  />
-                  <Bar
-                    dataKey="earnings"
-                    fill="hsl(var(--chart-2))"
-                    radius={[2, 2, 0, 0]}
-                    stackId="a"
-                  />
-                  <Bar
-                    dataKey="expenses"
-                    fill="hsl(var(--chart-5))"
-                    radius={[2, 2, 0, 0]}
-                    stackId="a"
-                  />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Column 3: Future / "What's going to happen?" */}
-        <div className="space-y-6 lg:col-span-3">
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle>7-Day Outlook</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h4 className="t-micro mb-3 flex items-center gap-2">
-                  <CalendarClock className="size-3" /> Upcoming Tasks
-                </h4>
-                {tasksDueSoon.length > 0 ? (
-                  <div className="space-y-2">
-                    {tasksDueSoon.map((task) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center justify-between rounded-md bg-secondary/30 p-2 text-sm"
-                      >
-                        <span className="mr-2 truncate font-medium">
-                          {task.title}
-                        </span>
-                        <span className="whitespace-nowrap rounded border bg-background px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                          {format(new Date(task.due_date!), "MMM d")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="pl-2 text-xs italic text-muted-foreground">
-                    No tasks due in next 7 days.
-                  </p>
-                )}
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="t-micro mb-3 flex items-center gap-2">
-                  <Repeat className="size-3" /> Projected Finance
-                </h4>
-                {upcomingRecurring.length > 0 ? (
-                  <div className="space-y-2">
-                    {upcomingRecurring.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between rounded-md bg-secondary/30 p-2 text-sm"
-                      >
-                        <div className="mr-2 flex min-w-0 flex-col">
-                          <span className="truncate font-medium">
-                            {item.description}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {format(item.date, "MMM d")}
-                          </span>
-                        </div>
-                        <span
-                          className={cn(
-                            "flex items-center gap-0.5 whitespace-nowrap font-mono text-xs font-bold",
-                            item.type === "earning"
-                              ? "text-chart-2"
-                              : "text-chart-5",
-                          )}
-                        >
-                          {item.type === "earning" ? (
-                            <ArrowUpRight className="size-3" />
-                          ) : (
-                            <ArrowDownLeft className="size-3" />
-                          )}
-                          ${item.amount.toFixed(0)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="pl-2 text-xs italic text-muted-foreground">
-                    No recurring payments scheduled.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+    </Link>
   );
 }
