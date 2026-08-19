@@ -447,6 +447,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Undo"
             className="h-8 w-8"
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
@@ -457,6 +458,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Redo"
             className="h-8 w-8"
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editor.can().redo()}
@@ -473,6 +475,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Heading 1"
             className={cn(
               "h-8 w-8",
               editor.isActive("heading", { level: 1 }) && "bg-muted",
@@ -487,6 +490,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Heading 2"
             className={cn(
               "h-8 w-8",
               editor.isActive("heading", { level: 2 }) && "bg-muted",
@@ -501,6 +505,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Heading 3"
             className={cn(
               "h-8 w-8",
               editor.isActive("heading", { level: 3 }) && "bg-muted",
@@ -521,6 +526,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Bold"
             className={cn("h-8 w-8", editor.isActive("bold") && "bg-muted")}
             onClick={() => editor.chain().focus().toggleBold().run()}
           >
@@ -530,6 +536,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Italic"
             className={cn("h-8 w-8", editor.isActive("italic") && "bg-muted")}
             onClick={() => editor.chain().focus().toggleItalic().run()}
           >
@@ -539,6 +546,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Underline"
             className={cn(
               "h-8 w-8",
               editor.isActive("underline") && "bg-muted",
@@ -551,6 +559,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Strikethrough"
             className={cn("h-8 w-8", editor.isActive("strike") && "bg-muted")}
             onClick={() => editor.chain().focus().toggleStrike().run()}
           >
@@ -560,6 +569,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Highlight"
             className={cn(
               "h-8 w-8",
               editor.isActive("highlight") && "bg-muted",
@@ -572,6 +582,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Inline code"
             className={cn("h-8 w-8", editor.isActive("code") && "bg-muted")}
             onClick={() => editor.chain().focus().toggleCode().run()}
           >
@@ -587,6 +598,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Bulleted list"
             className={cn(
               "h-8 w-8",
               editor.isActive("bulletList") && "bg-muted",
@@ -599,6 +611,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Numbered list"
             className={cn(
               "h-8 w-8",
               editor.isActive("orderedList") && "bg-muted",
@@ -611,6 +624,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Task list"
             className={cn("h-8 w-8", editor.isActive("taskList") && "bg-muted")}
             onClick={() => editor.chain().focus().toggleTaskList().run()}
           >
@@ -626,6 +640,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Block quote"
             className={cn(
               "h-8 w-8",
               editor.isActive("blockquote") && "bg-muted",
@@ -638,6 +653,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Divider"
             className="h-8 w-8"
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
           >
@@ -647,6 +663,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Insert a table"
             className="h-8 w-8"
             onClick={() =>
               editor
@@ -669,6 +686,7 @@ export default function NovelEditor({
               type="button"
               variant="ghost"
               size="icon"
+              aria-label="Add a link"
               className={cn("h-8 w-8", editor.isActive("link") && "bg-muted")}
             >
               <LinkIcon className="size-4" />
@@ -704,6 +722,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Insert an image"
             className="h-8 w-8"
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
@@ -724,6 +743,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Align left"
             className={cn(
               "h-8 w-8",
               editor.isActive({ textAlign: "left" }) && "bg-muted",
@@ -736,6 +756,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Align centre"
             className={cn(
               "h-8 w-8",
               editor.isActive({ textAlign: "center" }) && "bg-muted",
@@ -748,6 +769,7 @@ export default function NovelEditor({
             type="button"
             variant="ghost"
             size="icon"
+            aria-label="Align right"
             className={cn(
               "h-8 w-8",
               editor.isActive({ textAlign: "right" }) && "bg-muted",
@@ -765,6 +787,9 @@ export default function NovelEditor({
           type="button"
           variant="ghost"
           size="icon"
+          // The button toggles, so the name has to say what pressing it now
+          // will do — "Full screen" is a lie once you are in full screen.
+          aria-label={isFullScreen ? "Exit full screen" : "Full screen"}
           className="h-8 w-8"
           onClick={() => setIsFullScreen(!isFullScreen)}
         >
