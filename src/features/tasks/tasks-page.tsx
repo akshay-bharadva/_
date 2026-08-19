@@ -11,6 +11,7 @@ import {
   useDeleteSubTaskMutation,
   useDeleteTaskDependencyMutation,
   useDeleteTaskMutation,
+  useUpdateTaskOrderMutation,
   useGetTaskDependenciesQuery,
   useGetTaskProjectsQuery,
   useGetTasksQuery,
@@ -79,6 +80,7 @@ export default function TasksPage() {
   const [addTask] = useAddTaskMutation();
   const [updateTask] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
+  const [updateTaskOrder] = useUpdateTaskOrderMutation();
   const [addSubTask] = useAddSubTaskMutation();
   const [updateSubTask] = useUpdateSubTaskMutation();
   const [deleteSubTask] = useDeleteSubTaskMutation();
@@ -188,6 +190,22 @@ export default function TasksPage() {
 
   const toggleComplete = (task: Task) =>
     applyStatus(task, task.status === "done" ? "todo" : "done");
+
+  /**
+   * Persist a column's new running order.
+   *
+   * No toast on success: reordering is a direct manipulation, and the cards
+   * moving *is* the confirmation. A toast for every drag would be noise.
+   */
+  const handleReorder = async (taskIds: string[]) => {
+    try {
+      await updateTaskOrder(taskIds).unwrap();
+    } catch (err) {
+      toast.error("Could not save the new order", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
 
   const handleDeleteTask = async (task: Task) => {
     const dependents = depIndex.blocks.get(task.id) ?? [];
@@ -351,6 +369,7 @@ export default function TasksPage() {
               onStartTimer={handleStartTimer}
               onDeleteTask={handleDeleteTask}
               onNewTask={openNew}
+              onReorder={handleReorder}
             />
           ) : view === "timeline" ? (
             <TaskTimelineView

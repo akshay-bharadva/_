@@ -3,7 +3,15 @@
 import React, { useMemo } from "react";
 import { format } from "date-fns";
 import confetti from "canvas-confetti";
-import { Archive, BarChart2, Edit2, Flame, MoreVertical } from "lucide-react";
+import {
+  Archive,
+  ArrowDown,
+  ArrowUp,
+  BarChart2,
+  Edit2,
+  Flame,
+  MoreVertical,
+} from "lucide-react";
 import type { Habit } from "@/types";
 import { habitColor } from "./habit-color";
 import { Button } from "@/components/ui/button";
@@ -31,6 +39,16 @@ interface HabitRowProps {
   onEdit: (habit: Habit) => void;
   onArchive: (habit: Habit) => void;
   onViewStats: (habit: Habit) => void;
+  /**
+   * Move this habit one place up or down the list.
+   *
+   * Buttons rather than dragging: a table row is an awkward drag target, and
+   * drag as the only way to reorder cannot be done from a keyboard at all.
+   */
+  onMove: (habit: Habit, direction: -1 | 1) => void;
+  /** Disables the direction that would run off the end of the list. */
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
 export const HabitRow = React.memo(
@@ -41,6 +59,9 @@ export const HabitRow = React.memo(
     onEdit,
     onArchive,
     onViewStats,
+    onMove,
+    canMoveUp,
+    canMoveDown,
   }: HabitRowProps) => {
     // Computed against the schedule: the old helper counted calendar days, so
     // anything but a daily habit reported a broken streak and a depressed rate.
@@ -136,6 +157,18 @@ export const HabitRow = React.memo(
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(habit)}>
                   <Edit2 className="mr-2 size-3.5" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!canMoveUp}
+                  onClick={() => onMove(habit, -1)}
+                >
+                  <ArrowUp className="mr-2 size-3.5" /> Move up
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!canMoveDown}
+                  onClick={() => onMove(habit, 1)}
+                >
+                  <ArrowDown className="mr-2 size-3.5" /> Move down
                 </DropdownMenuItem>
                 {/* Archive, not delete: deleting destroys every log the
                     habit ever had. Deletion lives in the archived view. */}

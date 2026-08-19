@@ -72,6 +72,9 @@ export interface TaskCardProps {
   onDelete: () => void;
   draggable?: boolean;
   onDragStart?: () => void;
+  /** Set by the board so a drop on a card reorders within its column. */
+  onDragOver?: (event: React.DragEvent<HTMLElement>) => void;
+  onDrop?: (event: React.DragEvent<HTMLElement>) => void;
   className?: string;
 }
 
@@ -92,6 +95,8 @@ export function TaskCard({
   onDelete,
   draggable,
   onDragStart,
+  onDragOver,
+  onDrop,
   className,
 }: TaskCardProps) {
   const priority = (task.priority ?? "medium") as TaskPriority;
@@ -106,6 +111,8 @@ export function TaskCard({
     <article
       draggable={draggable}
       onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {

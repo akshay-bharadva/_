@@ -27,6 +27,7 @@ const renderPage = () =>
 const updateTask = vi.fn<
   (task: Partial<Task>) => { unwrap: () => Promise<unknown> }
 >(() => ({ unwrap: () => Promise.resolve({}) }));
+const updateTaskOrder = vi.fn(() => ({ unwrap: () => Promise.resolve(null) }));
 const deleteTask = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
 const addProject = vi.fn<
   (project: { name: string }) => { unwrap: () => Promise<unknown> }
@@ -47,6 +48,7 @@ vi.mock("@/store/api/adminApi", () => ({
   useAddTaskMutation: () => [addTask],
   useUpdateTaskMutation: () => [updateTask],
   useDeleteTaskMutation: () => [deleteTask],
+  useUpdateTaskOrderMutation: () => [updateTaskOrder],
   useAddTaskProjectMutation: () => [addProject],
   useUpdateTaskProjectMutation: () => [vi.fn(noop)],
   useDeleteTaskProjectMutation: () => [vi.fn(noop)],

@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/admin/shared";
 import { useResponsiveDays } from "@/hooks/use-responsive-days";
 import { cn } from "@/lib/utils";
 import { HabitRow } from "./habit-row";
+import { moveBy } from "@/lib/reorder";
 
 interface HabitGridProps {
   habits: Habit[];
@@ -24,6 +25,8 @@ interface HabitGridProps {
   onEdit: (habit: Habit) => void;
   onArchive: (habit: Habit) => void;
   onViewStats: (habit: Habit) => void;
+  /** The list's full new order after a habit was moved. */
+  onReorder: (habitIds: string[]) => void;
 }
 
 export function HabitGrid({
@@ -32,8 +35,18 @@ export function HabitGrid({
   onEdit,
   onArchive,
   onViewStats,
+  onReorder,
 }: HabitGridProps) {
   const daysToShow = useResponsiveDays();
+
+  const move = (habit: Habit, direction: -1 | 1) => {
+    const next = moveBy(
+      habits.map((entry) => entry.id),
+      habit.id,
+      direction,
+    );
+    if (next) onReorder(next);
+  };
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const dates = useMemo(() => {
@@ -93,7 +106,7 @@ export function HabitGrid({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {habits.map((habit) => (
+              {habits.map((habit, index) => (
                 <HabitRow
                   key={habit.id}
                   habit={habit}
@@ -102,6 +115,9 @@ export function HabitGrid({
                   onEdit={onEdit}
                   onArchive={onArchive}
                   onViewStats={onViewStats}
+                  onMove={move}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < habits.length - 1}
                 />
               ))}
               {habits.length === 0 && (

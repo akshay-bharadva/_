@@ -50,12 +50,6 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   // Dashboard is the last module still on v2 and is being rebuilt; its
   // analytics query is dead until that lands.
   useGetAnalyticsDataQuery: "dashboard still on v2, rebuild pending",
-
-  // sort_order exists on both tables and the endpoints are ready, but neither
-  // module offers a reorder gesture yet. Listed rather than deleted so the
-  // half-built state is visible instead of looking finished.
-  useUpdateTaskOrderMutation: "no reorder gesture in the task board yet",
-  useUpdateHabitOrderMutation: "no reorder gesture in the habit list yet",
 };
 
 const slices = globSync("src/store/api/admin/!(*.test).ts", {

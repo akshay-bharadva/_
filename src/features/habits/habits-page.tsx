@@ -15,6 +15,7 @@ import {
   useDeleteHabitMutation,
   useGetHabitsQuery,
   useSetHabitLogMutation,
+  useUpdateHabitOrderMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -52,6 +53,23 @@ export default function HabitsPage() {
   const [setHabitLog] = useSetHabitLogMutation();
   const [archiveHabit] = useArchiveHabitMutation();
   const [deleteHabit] = useDeleteHabitMutation();
+  const [updateHabitOrder] = useUpdateHabitOrderMutation();
+
+  /**
+   * Persist the list's new order.
+   *
+   * No toast: the row moving is the confirmation, and one per click would be
+   * noise on a list you might reorder several times in a row.
+   */
+  const handleReorder = async (habitIds: string[]) => {
+    try {
+      await updateHabitOrder(habitIds).unwrap();
+    } catch (err) {
+      toast.error("Could not save the new order", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
 
   const active = useMemo(
     () => habits.filter((habit) => !habit.archived_at),
@@ -252,6 +270,7 @@ export default function HabitsPage() {
           onEdit={openEdit}
           onArchive={(habit) => handleArchive(habit, true)}
           onViewStats={setDetailHabit}
+          onReorder={handleReorder}
         />
       )}
 

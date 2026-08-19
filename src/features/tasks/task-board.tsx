@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import type { Task, TaskProject } from "@/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { moveWithin } from "@/lib/reorder";
 import { TASK_STATUSES, TASK_STATUS_META, type TaskStatus } from "./task-meta";
 import { TaskCard } from "./task-card";
 
@@ -17,6 +18,14 @@ export interface TaskBoardProps {
   onStartTimer: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
   onNewTask: (status: TaskStatus) => void;
+  /**
+   * The column's full running order after a card was moved within it.
+   *
+   * The whole column, not just the pair that moved: the RPC numbers the ids it
+   * receives, so anything omitted keeps a stale rank and the order comes apart
+   * on the next read.
+   */
+  onReorder: (taskIds: string[]) => void;
 }
 
 /**
@@ -34,16 +43,47 @@ export function TaskBoard({
   onStartTimer,
   onDeleteTask,
   onNewTask,
+  onReorder,
 }: TaskBoardProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overStatus, setOverStatus] = useState<TaskStatus | null>(null);
+  /** The card the pointer is currently above, so the gap is visible. */
+  const [overTaskId, setOverTaskId] = useState<string | null>(null);
 
+  /**
+   * A drop on the column background: a status change, or nothing.
+   *
+   * Dropping a card back on its own column with no card under the pointer
+   * means "put it last", which is a reorder rather than a no-op.
+   */
   const handleDrop = (status: TaskStatus) => {
     setOverStatus(null);
+    setOverTaskId(null);
     const task = tasks.find((t) => t.id === draggedId);
     setDraggedId(null);
-    if (!task || task.status === status) return;
-    onChangeStatus(task, status);
+    if (!task) return;
+
+    if ((task.status ?? "todo") !== status) {
+      onChangeStatus(task, status);
+      return;
+    }
+
+    reorderWithin(status, task.id, null);
+  };
+
+  /** Reorder within one column, then persist the column's whole new order. */
+  const reorderWithin = (
+    status: TaskStatus,
+    movedId: string,
+    beforeId: string | null,
+  ) => {
+    const column = tasks
+      .filter((t) => (t.status ?? "todo") === status)
+      .map((t) => t.id);
+
+    const next = moveWithin(column, movedId, beforeId);
+    // null means the card was dropped where it already was.
+    if (next) onReorder(next);
   };
 
   const allowDrop = (e: DragEvent, status: TaskStatus) => {
@@ -114,7 +154,40 @@ export function TaskBoard({
                   onDelete={() => onDeleteTask(task)}
                   draggable
                   onDragStart={() => setDraggedId(task.id)}
-                  className={draggedId === task.id ? "opacity-50" : undefined}
+                  onDragOver={(event) => {
+                    // Claimed here so the column's own handler does not treat
+                    // a drop on a card as a drop on the background.
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setOverStatus(status);
+                    if (task.id !== draggedId) setOverTaskId(task.id);
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const moved = tasks.find((t) => t.id === draggedId);
+                    setOverStatus(null);
+                    setOverTaskId(null);
+                    setDraggedId(null);
+                    if (!moved || moved.id === task.id) return;
+
+                    // Across columns this is still a status change; the drop
+                    // position only means something within one column.
+                    if ((moved.status ?? "todo") !== status) {
+                      onChangeStatus(moved, status);
+                      return;
+                    }
+                    reorderWithin(status, moved.id, task.id);
+                  }}
+                  className={cn(
+                    draggedId === task.id && "opacity-50",
+                    // A line where the card would land, rather than moving the
+                    // others out of the way — cheaper, and it does not make the
+                    // column jump under the pointer.
+                    overTaskId === task.id &&
+                      draggedId !== null &&
+                      "border-t-2 border-t-primary",
+                  )}
                 />
               ))
             )}
