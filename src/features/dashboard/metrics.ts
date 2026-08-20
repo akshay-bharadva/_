@@ -1,5 +1,5 @@
 import type { DashboardData, Habit } from "@/types";
-import { isDueOn, todayIso } from "@/features/habits/habit-schedule";
+import { isDueOn } from "@/features/habits/habit-schedule";
 import { indexLogs, isSatisfiedOn } from "@/features/habits/habit-progress";
 import { heatmapDates } from "./chart-geometry";
 
@@ -77,26 +77,6 @@ export function habitHeat(
 
     return { date, intensity: due === 0 ? 0 : done / due };
   });
-}
-
-/** How many of today's habits are done, for the ring. */
-export function habitsToday(
-  habits: Habit[],
-  today = todayIso(),
-): { done: number; due: number; percent: number } {
-  const active = habits.filter((habit) => !habit.archived_at);
-
-  let due = 0;
-  let done = 0;
-  for (const habit of active) {
-    if (!isDueOn(habit, today)) continue;
-    due += 1;
-    if (isSatisfiedOn(habit, indexLogs(habit), today)) done += 1;
-  }
-
-  // A day with nothing due is complete, not zero. Showing 0% on a rest day
-  // would be a red ring for having done exactly what was asked.
-  return { done, due, percent: due === 0 ? 100 : (done / due) * 100 };
 }
 
 /** Money in and out over the same days, for a two-series chart. */

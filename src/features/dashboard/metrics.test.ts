@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { DashboardData, Habit } from "@/types";
-import { cashflow, dailySeries, habitHeat, habitsToday } from "./metrics";
+import { cashflow, dailySeries, habitHeat } from "./metrics";
 
 const TODAY = new Date(2026, 7, 19); // Wednesday
 
@@ -58,42 +58,6 @@ describe("dailySeries", () => {
 
   it("returns one point per day asked for", () => {
     expect(dailySeries([], 7, TODAY)).toHaveLength(7);
-  });
-});
-
-describe("habitsToday", () => {
-  it("counts what is due and what is done", () => {
-    const done = habit({ id: "a", habit_logs: [log("2026-08-19", "a")] });
-    const notDone = habit({ id: "b" });
-    const result = habitsToday([done, notDone], "2026-08-19");
-    expect(result).toEqual({ done: 1, due: 2, percent: 50 });
-  });
-
-  /**
-   * A rest day is complete, not zero. A red ring for having done exactly what
-   * was asked is the kind of detail that makes someone stop trusting a screen.
-   */
-  it("is complete when nothing is due", () => {
-    // 22 August 2026 is a Saturday, so a weekday habit is not due.
-    const result = habitsToday([habit({ schedule: "weekdays" })], "2026-08-22");
-    expect(result.due).toBe(0);
-    expect(result.percent).toBe(100);
-  });
-
-  it("ignores archived habits", () => {
-    const result = habitsToday(
-      [habit({ archived_at: "2026-01-01" })],
-      "2026-08-19",
-    );
-    expect(result.due).toBe(0);
-  });
-
-  it("is a hundred percent when everything is done", () => {
-    const result = habitsToday(
-      [habit({ habit_logs: [log("2026-08-19")] })],
-      "2026-08-19",
-    );
-    expect(result.percent).toBe(100);
   });
 });
 
