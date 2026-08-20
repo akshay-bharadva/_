@@ -33,12 +33,40 @@ DECLARE
   uid            UUID;
   today          DATE := CURRENT_DATE;
 
+  /*
+    Every image in one place, so swapping one is a one-line edit.
+
+    Two kinds, and the difference matters. The avatar and the repo cards come
+    from GitHub and are *guaranteed* to show what they claim — your face, that
+    repository. The Unsplash photos are licensed for free use and were each
+    checked to return a real image, but nobody has looked at them: treat them
+    as placeholders that happen to be good, and replace any that do not suit
+    the item they sit on.
+  */
+  img_avatar     TEXT := 'https://avatars.githubusercontent.com/u/52954931?v=4';
+  img_foliokit   TEXT := 'https://opengraph.githubassets.com/1/akshay-bharadva/foliokit';
+  img_spyglass   TEXT := 'https://opengraph.githubassets.com/1/akshay-bharadva/spyglass';
+  img_signoz     TEXT := 'https://opengraph.githubassets.com/1/SigNoz/signoz.io';
+  img_ai         TEXT := 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&q=80';
+  img_voice      TEXT := 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=1200&q=80';
+  img_data       TEXT := 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80';
+  img_bank       TEXT := 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=1200&q=80';
+  img_code       TEXT := 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&q=80';
+  img_desk       TEXT := 'https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=1200&q=80';
+  img_network    TEXT := 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80';
+  img_circuit    TEXT := 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80';
+  img_write      TEXT := 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1200&q=80';
+  img_travel     TEXT := 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=1200&q=80';
+
   -- Portfolio sections
   sec_about      UUID;
   sec_exp        UUID;
   sec_projects   UUID;
   sec_skills     UUID;
   sec_edu        UUID;
+  sec_showcase   UUID;
+  sec_services   UUID;
+  sec_community  UUID;
 
   -- Finance
   acc_rbc_cheq   UUID;
@@ -82,37 +110,86 @@ BEGIN
   -- 1. IDENTITY
   -- ==========================================================================
 
+  /*
+    The shape here must match SITE_IDENTITY_DEFAULTS exactly.
+
+    An earlier version invented its own keys — `tagline` for `description`,
+    `bio` as a string rather than an array, `social_links` as an object rather
+    than a list — and `normalizeSiteContent` quietly replaced every one of them
+    with an empty default. The page rendered, and rendered nothing.
+
+    Pictures: the avatar is the real GitHub one, and the Unsplash URLs are in
+    IMAGES below so they can be swapped in a single place.
+  */
   INSERT INTO site_identity (id, user_id, profile_data, social_links, footer_data, portfolio_mode)
   VALUES (
     1, uid,
     jsonb_build_object(
       'name', 'Akshay Bharadva',
-      'title', 'AI Engineer',
-      'tagline', 'Building production LLM and RAG systems',
-      'bio', 'AI Implementation Specialist at Amico Group. I build retrieval systems that people actually use every day — most recently "Hey Ami!", a voice-activated enterprise assistant over 300+ internal documents that cut routine task time by 30%. Full-stack background across React, Python and Java; postgraduate work in AI and cybersecurity at Durham College.',
-      'location', 'Richmond Hill, Ontario, Canada',
-      'email', 'akshaybharadva19@gmail.com',
-      'available_for_work', true,
-      'resume_url', ''
+      'title', 'AI Engineer · Production LLM & RAG Systems',
+      'description', 'I build retrieval systems that people use every day. Most recently "Hey Ami!", a voice-activated enterprise assistant over 300+ internal documents that cut routine task time by 30%.',
+      'profile_picture_url', 'https://avatars.githubusercontent.com/u/52954931?v=4',
+      'show_profile_picture', true,
+      'default_theme', 'theme-ink',
+      'logo', jsonb_build_object('main', 'Akshay', 'highlight', 'B.'),
+      'bio', jsonb_build_array(
+        'AI Implementation Specialist at Amico Group, in Richmond Hill, Ontario.',
+        'I work on retrieval: getting a language model to answer from documents an organisation actually has, with citations, fast enough that someone reaches for it instead of asking a colleague.',
+        'Three years of full-stack and backend work came first — MERN, Spring Boot microservices, PL/SQL against high-volume financial data. That background is why the AI work ships rather than demos.',
+        'Moved from Surat to Ontario in 2023 for postgraduate study in AI, then cybersecurity, and stayed.'
+      ),
+      'status_panel', jsonb_build_object(
+        'show', true,
+        'design', 'minimal',
+        'title', 'Currently',
+        'availability', 'Open to opportunities — Toronto, hybrid or remote',
+        'currently_exploring', jsonb_build_object(
+          'title', 'Exploring',
+          'items', jsonb_build_array(
+            'Retrieval evaluation that survives contact with real questions',
+            'Agentic patterns, and when plain retrieval is the better answer',
+            'Vector index tuning — what recall actually costs'
+          )
+        ),
+        'latestProject', jsonb_build_object(
+          'name', 'FolioKit',
+          'linkText', 'See the source',
+          'href', 'https://github.com/akshay-bharadva/foliokit'
+        )
+      ),
+      'github_projects_config', jsonb_build_object(
+        'username', 'akshay-bharadva',
+        'show', true,
+        'sort_by', 'pushed',
+        'exclude_forks', true,
+        'exclude_archived', true,
+        'exclude_profile_repo', true,
+        'min_stars', 0,
+        'projects_per_page', 9
+      ),
+      'contact_page', jsonb_build_object(
+        'show_contact_form', true,
+        'show_availability_badge', true,
+        'show_services', true
+      ),
+      'updates_layout', 'scrapbook',
+      'typography_preset', 'typo-default'
     ),
-    jsonb_build_object(
-      'github', 'https://github.com/akshay-bharadva',
-      'linkedin', 'https://www.linkedin.com/in/akshay-bharadva',
-      'upwork', 'https://www.upwork.com/freelancers/akshaybharadva'
+    jsonb_build_array(
+      jsonb_build_object('id', 'github',   'label', 'GitHub',   'url', 'https://github.com/akshay-bharadva',            'is_visible', true),
+      jsonb_build_object('id', 'linkedin', 'label', 'LinkedIn', 'url', 'https://www.linkedin.com/in/akshay-bharadva',   'is_visible', true),
+      jsonb_build_object('id', 'upwork',   'label', 'Upwork',   'url', 'https://www.upwork.com/freelancers/akshaybharadva', 'is_visible', true),
+      jsonb_build_object('id', 'email',    'label', 'Email',    'url', 'mailto:akshaybharadva19@gmail.com',             'is_visible', true)
     ),
-    jsonb_build_object(
-      'copyright', 'Akshay Bharadva',
-      'note', 'Built with Next.js and Supabase. Source on GitHub.'
-    ),
-    'dynamic'
+    jsonb_build_object('copyright_text', 'Akshay Bharadva'),
+    'multi-page'
   )
   /*
     UPDATE, not DO NOTHING.
 
-    schema.sql already inserts row 1 with "Your Name" / "Your Professional
-    Title" placeholders, so a DO NOTHING here is a silent no-op — the seed
-    reports success and the site still shows the placeholder. That is exactly
-    what happened the first time this ran.
+    schema.sql already inserts row 1 with "Your Name" placeholders, so a
+    DO NOTHING here is a silent no-op — the seed reports success and the site
+    still shows the placeholder. That is exactly what happened the first time.
   */
   ON CONFLICT (id) DO UPDATE SET
     user_id       = EXCLUDED.user_id,
@@ -256,33 +333,33 @@ E'Architected microservices on Spring Boot, Docker and Kubernetes for scalable f
   );
 
   -- ── Projects ────────────────────────────────────────────────────────────
-  INSERT INTO portfolio_items (section_id, user_id, title, subtitle, date_from, description, link_url, tags, display_order)
-  SELECT sec_projects, uid, v.title, v.subtitle, v.dfrom, v.descr, v.link, v.tags, v.ord
+  INSERT INTO portfolio_items (section_id, user_id, title, subtitle, date_from, description, link_url, image_url, tags, display_order)
+  SELECT sec_projects, uid, v.title, v.subtitle, v.dfrom, v.descr, v.link, v.img, v.tags, v.ord
   FROM (VALUES
     ('Hey Ami!', 'Voice-activated enterprise RAG assistant', '2024',
 E'A voice assistant over 300+ internal documents, answering with citations rather than confident guesses.\n\nLangChain for orchestration, PGVector for retrieval, a tuned chunking and reranking strategy for recall. Measured outcome: 30% less time on routine lookups for sales and engineering.',
-     NULL, ARRAY['LangChain','PGVector','RAG','Python','Voice'], 0),
+     NULL, img_voice, ARRAY['LangChain','PGVector','RAG','Python','Voice'], 0),
 
     ('FolioKit', 'Portfolio site and personal OS', '2025',
 E'This site. A Next.js static export that doubles as a private workspace — tasks, habits, finance, learning, calendar, notes, whiteboards — behind Supabase auth with mandatory MFA.\n\nSeventeen modules, a design system of its own, and roughly 1,900 tests. Built as much to have somewhere to think as to have somewhere to publish.',
-     'https://github.com/akshay-bharadva/foliokit', ARRAY['Next.js','TypeScript','Supabase','TailwindCSS'], 1),
+     'https://github.com/akshay-bharadva/foliokit', img_foliokit, ARRAY['Next.js','TypeScript','Supabase','TailwindCSS'], 1),
 
     ('Spyglass', 'Python tooling', '2026',
      'A Python project I am building in the open. Early, and the commits are the honest record of it.',
-     'https://github.com/akshay-bharadva/spyglass', ARRAY['Python'], 2),
+     'https://github.com/akshay-bharadva/spyglass', img_spyglass, ARRAY['Python'], 2),
 
     ('Complexity Matrix', 'AI project scoring for estimators', '2025',
      'An internal tool that scores incoming projects on complexity so estimators prioritise by difficulty rather than arrival order. The unglamorous kind of AI that saves a team real hours.',
-     NULL, ARRAY['Python','Scoring','Internal tooling'], 3),
+     NULL, img_data, ARRAY['Python','Scoring','Internal tooling'], 3),
 
     ('Banking Chatbot', 'Durham College', 'Nov 2023',
      'An intent-matching banking assistant trained on question and answer sets, using NLTK, word tokenisation and fuzzy matching. The project that got me interested in retrieval as a problem in its own right.',
-     NULL, ARRAY['Python','NLTK','NLP'], 4),
+     NULL, img_bank, ARRAY['Python','NLTK','NLP'], 4),
 
     ('Debug Layout', 'One-file layout debugging library', '2022',
      'A friend could not see why a layout was breaking, so I wrote a script tag that outlines every element on a checkbox toggle. Small, and still the thing people have thanked me for most.',
-     'https://endless-debug-layout.netlify.app', ARRAY['JavaScript','CSS','Developer tools'], 5)
-  ) AS v(title, subtitle, dfrom, descr, link, tags, ord)
+     'https://endless-debug-layout.netlify.app', img_code, ARRAY['JavaScript','CSS','Developer tools'], 5)
+  ) AS v(title, subtitle, dfrom, descr, link, img, tags, ord)
   WHERE NOT EXISTS (
     SELECT 1 FROM portfolio_items p
      WHERE p.section_id = sec_projects AND p.title = v.title
@@ -331,37 +408,128 @@ E'This site. A Next.js static export that doubles as a private workspace — tas
      WHERE p.section_id = sec_edu AND p.title = v.title
   );
 
+
+  -- ── Showcase ────────────────────────────────────────────────────────────
+  SELECT id INTO sec_showcase FROM portfolio_sections
+   WHERE user_id = uid AND title = 'Showcase' AND page_path = '/showcase';
+  IF sec_showcase IS NULL THEN
+    INSERT INTO portfolio_sections (user_id, title, type, content, display_order, page_path, layout_style, is_visible)
+    VALUES (uid, 'Showcase', 'gallery', NULL, 0, '/showcase', 'grid', true)
+    RETURNING id INTO sec_showcase;
+  END IF;
+
+  INSERT INTO portfolio_items (section_id, user_id, title, subtitle, description, image_url, link_url, tags, display_order)
+  SELECT sec_showcase, uid, v.title, v.subtitle, v.descr, v.img, v.link, v.tags, v.ord
+  FROM (VALUES
+    ('Hey Ami! — retrieval pipeline', 'Amico Group',
+     'Ingestion, chunking, embedding, retrieval, reranking. The diagram I draw on whiteboards more often than any other.',
+     img_voice, NULL, ARRAY['RAG','Architecture'], 0),
+    ('FolioKit — the workbench', 'Personal',
+     'Home is a spine of hours with everything docked onto it, rather than a grid of module cards.',
+     img_foliokit, 'https://github.com/akshay-bharadva/foliokit', ARRAY['Design','Next.js'], 1),
+    ('Complexity Matrix', 'Amico Group',
+     'Scoring incoming projects so estimators prioritise by difficulty rather than arrival order.',
+     img_data, NULL, ARRAY['Python','Internal tooling'], 2),
+    ('SigNoz — pricing and comparison pages', 'Open source',
+     'Rewritten against Datadog, New Relic, Dynatrace and Grafana, then the landing-page rebrand.',
+     img_signoz, 'https://signoz.io', ARRAY['React','TailwindCSS'], 3),
+    ('Banking chatbot', 'Durham College',
+     'Intent matching with NLTK and fuzzy search. The project that got me interested in retrieval.',
+     img_bank, NULL, ARRAY['Python','NLP'], 4),
+    ('Debug Layout', 'Side project',
+     'One script tag, one checkbox, every element outlined. Small, and still the thing people thank me for.',
+     img_code, 'https://endless-debug-layout.netlify.app', ARRAY['JavaScript'], 5)
+  ) AS v(title, subtitle, descr, img, link, tags, ord)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM portfolio_items p WHERE p.section_id = sec_showcase AND p.title = v.title
+  );
+
+  -- ── Services (contact page) ─────────────────────────────────────────────
+  SELECT id INTO sec_services FROM portfolio_sections
+   WHERE user_id = uid AND title = 'What I can help with' AND page_path = '/contact';
+  IF sec_services IS NULL THEN
+    INSERT INTO portfolio_sections (user_id, title, type, content, display_order, page_path, layout_style, is_visible)
+    VALUES (uid, 'What I can help with', 'list_items', NULL, 0, '/contact', 'cards', true)
+    RETURNING id INTO sec_services;
+  END IF;
+
+  INSERT INTO portfolio_items (section_id, user_id, title, description, tags, display_order)
+  SELECT sec_services, uid, v.title, v.descr, v.tags, v.ord
+  FROM (VALUES
+    ('RAG systems that hold up in production',
+     'Ingestion through retrieval tuning to deployment. Most retrieval demos fail on the documents an organisation actually has — scanned PDFs, inconsistent structure, questions nobody anticipated. That gap is the work.',
+     ARRAY['LangChain','PGVector','Evaluation'], 0),
+    ('Making an existing LLM feature trustworthy',
+     'Citations, refusal paths, and an evaluation set built from real questions. A confident wrong answer costs more trust than ten honest refusals.',
+     ARRAY['Evaluation','Prompt engineering'], 1),
+    ('Full-stack delivery',
+     'React and Next.js on the front, Python or Node behind it, Postgres underneath. Three years of shipping before the AI work, which is why the AI work ships.',
+     ARRAY['Next.js','React','Python','PostgreSQL'], 2),
+    ('A second pair of eyes on data access',
+     'Row-level security, auth boundaries, and the questions a cybersecurity certificate teaches you to ask before something is public.',
+     ARRAY['Security','RLS'], 3)
+  ) AS v(title, descr, tags, ord)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM portfolio_items p WHERE p.section_id = sec_services AND p.title = v.title
+  );
+
+  -- ── Volunteering & community ────────────────────────────────────────────
+  SELECT id INTO sec_community FROM portfolio_sections
+   WHERE user_id = uid AND title = 'Community' AND page_path = '/about';
+  IF sec_community IS NULL THEN
+    INSERT INTO portfolio_sections (user_id, title, type, content, display_order, page_path, layout_style, is_visible)
+    VALUES (uid, 'Community', 'list_items', NULL, 2, '/about', 'default', true)
+    RETURNING id INTO sec_community;
+  END IF;
+
+  INSERT INTO portfolio_items (section_id, user_id, title, subtitle, date_from, date_to, description, link_url, tags, display_order)
+  SELECT sec_community, uid, v.title, v.subtitle, v.dfrom, v.dto, v.descr, v.link, v.tags, v.ord
+  FROM (VALUES
+    ('Open-source contributor', 'SigNoz', 'Apr 2023', 'Oct 2023',
+     'Seven months on the website of an open-source APM tool: pricing and comparison pages, then the landing-page rebrand in Docusaurus, React and Tailwind.',
+     'https://github.com/SigNoz/signoz.io', ARRAY['Open source'], 0),
+    ('Member', 'Google Developer Group Cloud Toronto', '2023', 'Present',
+     'Monthly meetups. The vector-database sessions have been the most directly useful thing I attend.',
+     NULL, ARRAY['Community'], 1),
+    ('Languages', NULL, NULL, NULL,
+     'English (professional), Gujarati (native), Hindi (fluent).',
+     NULL, ARRAY['Languages'], 2)
+  ) AS v(title, subtitle, dfrom, dto, descr, link, tags, ord)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM portfolio_items p WHERE p.section_id = sec_community AND p.title = v.title
+  );
+
   -- ==========================================================================
   -- 3. BLOG
   -- ==========================================================================
 
-  INSERT INTO blog_posts (user_id, title, slug, excerpt, content, published, published_at, show_toc, tags, views)
-  SELECT uid, v.title, v.slug, v.excerpt, v.content, v.published, v.pub_at, true, v.tags, v.views
+  INSERT INTO blog_posts (user_id, title, slug, excerpt, content, cover_image_url, published, published_at, show_toc, tags, views)
+  SELECT uid, v.title, v.slug, v.excerpt, v.content, v.cover, v.published, v.pub_at, true, v.tags, v.views
   FROM (VALUES
     ('What I learned shipping a RAG system people actually use',
      'shipping-a-rag-system-people-use',
      'A demo answers your questions. A production system answers everyone else''s. The gap between them is most of the work.',
 E'## The demo is not the product\n\nA retrieval demo takes an afternoon. You chunk some documents, embed them, and ask a question you already know the answer to. It works, and it tells you almost nothing.\n\nWhat it does not tell you is what happens when someone asks a question phrased in a way you did not anticipate, about a document that is a scanned PDF, in a hurry, on their phone.\n\n## Retrieval is the whole game\n\nMost of the quality in "Hey Ami!" came from retrieval, not from the model. Chunk boundaries that respect document structure. A reranking pass. Knowing when to say *I do not know* rather than assembling a fluent answer from three unrelated paragraphs.\n\nThat last one matters more than anything. A confident wrong answer costs more trust than ten refusals.\n\n## Citations change behaviour\n\nWe show the source for every answer. It was meant as a correctness feature; it turned out to be an adoption feature. People trust a system they can check, and once they trust it they use it for things you never designed for.\n\n## What I would do differently\n\nMeasure earlier. We knew the assistant felt faster long before we could say it cut routine lookups by 30%, and that number is what turned a project into a platform.',
-     true, now() - interval '38 days', ARRAY['AI','RAG','Engineering'], 412),
+     img_ai, true, now() - interval '38 days', ARRAY['AI','RAG','Engineering'], 412),
 
     ('Why I built my own personal OS instead of using Notion',
      'why-i-built-my-own-personal-os',
      'Not because Notion is bad. Because the friction of shaping my life to someone else''s schema turned out to be the expensive part.',
 E'## The honest reason\n\nI could have used Notion. Most people should.\n\nI built FolioKit because every tool I tried made me store the same fact twice — a task in one place, the calendar entry for it in another, the money it cost in a third — and then quietly let those copies drift apart.\n\n## One database, many views\n\nEverything here is one Postgres schema. A task with a due date appears on the calendar because it *is* on the calendar, not because it was synced there. Finance knows what a recurring payment is, so the forecast is derived rather than maintained.\n\n## What it cost\n\nSeventeen modules and about 1,900 tests. That is not a boast — it is the price of the previous paragraph. Derived state is only trustworthy if the derivation is tested, and I have learned that lesson expensively enough to write it down.\n\n## Would I recommend it\n\nOnly if you enjoy the building. The tool is genuinely better for me than what I replaced. It is better because it fits one person exactly, which is also why it would fit you badly.',
-     true, now() - interval '17 days', ARRAY['Engineering','Personal','Next.js'], 289),
+     img_desk, true, now() - interval '17 days', ARRAY['Engineering','Personal','Next.js'], 289),
 
     ('Moving countries as a developer: the parts nobody mentions',
      'moving-countries-as-a-developer',
      'The visa and the job are the parts people prepare for. The rest of it is what actually takes the year.',
 E'## The technical part is the easy part\n\nI moved from Surat to Ontario in 2023. The engineering transferred fine — a Spring Boot service is a Spring Boot service on either side of an ocean.\n\n## What did not transfer\n\nCredit history. Rental references. Knowing which bank is which, what a TFSA is, why everyone asks about your SIN. The small competences that make a person feel capable, all reset to zero at once.\n\n## On distance\n\nMy family is nine and a half hours ahead. That means the good hours to call are early morning or late evening, never the middle of the day when something has actually happened.\n\nI ended up building a timezone column into my own calendar for this. It is a small feature and I use it constantly.\n\n## What I would tell someone about to do it\n\nThe loneliness is a logistics problem more than an emotional one, and logistics problems have solutions. Find the hours that work. Protect them.',
-     true, now() - interval '5 days', ARRAY['Career','Personal'], 156),
+     img_travel, true, now() - interval '5 days', ARRAY['Career','Personal'], 156),
 
     ('Notes on retrieval evaluation',
      'notes-on-retrieval-evaluation',
      'Draft. How to tell whether a change to your chunking actually helped, without shipping it to find out.',
      '## Still writing this one.\n\nThe short version: build the eval set before you need it, from real questions people asked, and accept that fifty examples you trust beats five hundred you generated.',
-     false, NULL, ARRAY['AI','RAG','Evaluation'], 0)
-  ) AS v(title, slug, excerpt, content, published, pub_at, tags, views)
+     img_write, false, NULL, ARRAY['AI','RAG','Evaluation'], 0)
+  ) AS v(title, slug, excerpt, content, cover, published, pub_at, tags, views)
   WHERE NOT EXISTS (SELECT 1 FROM blog_posts b WHERE b.slug = v.slug);
 
   -- ── Public updates ──────────────────────────────────────────────────────
