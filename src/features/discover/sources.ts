@@ -151,14 +151,34 @@ export interface Story {
   host?: string;
 }
 
-export function topicUrl(term: string, source: TopicSource): string {
+export function topicUrl(
+  term: string,
+  source: TopicSource,
+  window?: Window,
+  now = new Date(),
+): string {
   // Encoded, not interpolated: a term with an ampersand would otherwise
   // truncate the query and silently search for something else.
   const query = encodeURIComponent(term.trim());
 
-  return source === "hackernews"
-    ? `https://hn.algolia.com/api/v1/search?query=${query}&tags=story&hitsPerPage=6`
-    : `https://dev.to/api/articles?tag=${query}&per_page=6`;
+  if (source !== "hackernews") {
+    // dev.to has no date filter, so the window cannot be applied. Asking for
+    // its most recent is the honest approximation — a filter that silently
+    // does nothing would be worse than none.
+    return "https://dev.to/api/articles?tag=" + query + "&per_page=6";
+  }
+
+  const filters = window
+    ? "&numericFilters=" +
+      encodeURIComponent("created_at_i>" + cutoffSeconds(window, now))
+    : "";
+
+  return (
+    "https://hn.algolia.com/api/v1/search?query=" +
+    query +
+    "&tags=story&hitsPerPage=6" +
+    filters
+  );
 }
 
 /** The host, for a "where is this from" label. Never throws on a bad URL. */
@@ -210,6 +230,200 @@ export function parseStories(body: unknown, source: TopicSource): Story[] {
       };
     })
     .filter((story): story is Story => story !== null);
+}
+
+// ── What happened, in a window ──────────────────────────────────────────────
+
+/**
+ * The three windows the module asks about.
+ *
+ * Not arbitrary: they are the three questions people actually have. "What did
+ * I miss overnight", "what happened while I was heads-down this week", and
+ * "what changed this month". A free-form date range would be a worse answer to
+ * all three.
+ */
+export type Window = "day" | "week" | "month";
+
+export const WINDOWS: { id: Window; label: string; days: number }[] = [
+  { id: "day", label: "24 hours", days: 1 },
+  { id: "week", label: "This week", days: 7 },
+  { id: "month", label: "This month", days: 30 },
+];
+
+export function windowDays(window: Window): number {
+  return WINDOWS.find((entry) => entry.id === window)?.days ?? 1;
+}
+
+/** Unix seconds at the start of the window. */
+export function cutoffSeconds(window: Window, now = new Date()): number {
+  return Math.floor(now.getTime() / 1000) - windowDays(window) * 86_400;
+}
+
+/** `YYYY-MM-DD` at the start of the window, from local calendar fields. */
+export function cutoffDate(window: Window, now = new Date()): string {
+  const start = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - windowDays(window),
+  );
+  const month = String(start.getMonth() + 1).padStart(2, "0");
+  const day = String(start.getDate()).padStart(2, "0");
+  return start.getFullYear() + "-" + month + "-" + day;
+}
+
+/**
+ * The threshold that makes this a digest rather than a firehose.
+ *
+ * Hacker News takes thousands of submissions a day and most are noise. Asking
+ * for a minimum score is what turns "everything posted" into "what people
+ * actually stopped to read" — and the bar has to rise with the window, or a
+ * month's view is thirty times as long instead of thirty times as selective.
+ */
+export function minimumScore(window: Window): number {
+  return window === "day" ? 50 : window === "week" ? 200 : 500;
+}
+
+export function topStoriesUrl(window: Window, now = new Date()): string {
+  const filters =
+    "created_at_i>" +
+    cutoffSeconds(window, now) +
+    ",points>" +
+    minimumScore(window);
+  return (
+    "https://hn.algolia.com/api/v1/search?tags=story&numericFilters=" +
+    encodeURIComponent(filters) +
+    "&hitsPerPage=8"
+  );
+}
+
+/**
+ * Software that appeared in the window, by how many people starred it.
+ *
+ * `created:` rather than `pushed:` on purpose — a repository that gained
+ * fifteen thousand stars in a week is news; one that received a commit is not.
+ */
+export function newReposUrl(window: Window, now = new Date()): string {
+  const query = encodeURIComponent("created:>" + cutoffDate(window, now));
+  return (
+    "https://api.github.com/search/repositories?q=" +
+    query +
+    "&sort=stars&order=desc&per_page=6"
+  );
+}
+
+export interface Repo {
+  id: string;
+  name: string;
+  description?: string;
+  url: string;
+  stars: number;
+  language?: string;
+}
+
+export function parseRepos(body: unknown): Repo[] {
+  const items = (body as { items?: unknown[] } | null)?.items;
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((row): Repo | null => {
+      if (typeof row !== "object" || row === null) return null;
+      const record = row as Record<string, unknown>;
+
+      const name = record.full_name;
+      const url = record.html_url;
+      if (typeof name !== "string" || typeof url !== "string") return null;
+
+      return {
+        id: String(record.id ?? name),
+        name,
+        description:
+          typeof record.description === "string" && record.description
+            ? record.description
+            : undefined,
+        url,
+        stars:
+          typeof record.stargazers_count === "number"
+            ? record.stargazers_count
+            : 0,
+        language:
+          typeof record.language === "string" ? record.language : undefined,
+      };
+    })
+    .filter((repo): repo is Repo => repo !== null);
+}
+
+/**
+ * What the world looked up.
+ *
+ * The most honest "what happened" signal available without a key: Wikipedia
+ * publishes its most-read articles per day, and a spike in readership is a
+ * remarkably good proxy for something having occurred — a death or a result
+ * shows up here before most feeds carry it.
+ *
+ * Day-scoped by nature, because the feed is published per date. So this panel
+ * answers the 24-hour question only, and the UI says so rather than implying a
+ * month's version exists.
+ */
+export function mostReadUrl(now = new Date()): string {
+  // Yesterday: today's figures are partial until the day closes, and a
+  // half-counted day ranks the early hours above everything after them.
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return (
+    "https://api.wikimedia.org/feed/v1/wikipedia/en/featured/" +
+    date.getFullYear() +
+    "/" +
+    month +
+    "/" +
+    day
+  );
+}
+
+export interface ReadArticle {
+  title: string;
+  views: number;
+  url: string;
+  extract?: string;
+}
+
+export function parseMostRead(body: unknown, limit = 6): ReadArticle[] {
+  const articles = (body as { mostread?: { articles?: unknown[] } } | null)
+    ?.mostread?.articles;
+  if (!Array.isArray(articles)) return [];
+
+  return articles
+    .map((row): ReadArticle | null => {
+      if (typeof row !== "object" || row === null) return null;
+      const record = row as Record<string, unknown>;
+
+      const title = record.normalizedtitle;
+      const views = record.views;
+      if (typeof title !== "string" || typeof views !== "number") return null;
+
+      const urls = record.content_urls as
+        | { desktop?: { page?: string } }
+        | undefined;
+
+      return {
+        title,
+        views,
+        url:
+          urls?.desktop?.page ??
+          "https://en.wikipedia.org/wiki/" + encodeURIComponent(title),
+        extract:
+          typeof record.extract === "string" ? record.extract : undefined,
+      };
+    })
+    .filter((article): article is ReadArticle => article !== null)
+    .slice(0, limit);
+}
+
+/** `1581846` reads as `1.6M`. A seven-digit number is not a readable figure. */
+export function compactNumber(value: number): string {
+  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M";
+  if (value >= 1_000) return Math.round(value / 1_000) + "k";
+  return String(value);
 }
 
 // ── On this day ─────────────────────────────────────────────────────────────

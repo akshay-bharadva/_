@@ -3,8 +3,21 @@ import openMeteo from "./__fixtures__/open-meteo.json";
 import hackernews from "./__fixtures__/hackernews.json";
 import devto from "./__fixtures__/devto.json";
 import wikipedia from "./__fixtures__/wikipedia.json";
+import github from "./__fixtures__/github.json";
+import mostRead from "./__fixtures__/most-read.json";
+import hnWindow from "./__fixtures__/hn-window.json";
 import {
+  compactNumber,
+  cutoffDate,
+  cutoffSeconds,
   describeWeather,
+  minimumScore,
+  mostReadUrl,
+  newReposUrl,
+  parseMostRead,
+  parseRepos,
+  topStoriesUrl,
+  WINDOWS,
   hostOf,
   onThisDayUrl,
   parseForecast,
@@ -252,5 +265,161 @@ describe("onThisDayUrl", () => {
 
   it("pads single digits", () => {
     expect(onThisDayUrl(new Date(2026, 0, 5))).toMatch(/\/01\/05$/);
+  });
+});
+
+describe("windows", () => {
+  const NOW = new Date(2026, 7, 19, 12, 0);
+
+  it("covers the three questions people actually have", () => {
+    expect(WINDOWS.map((w) => w.id)).toEqual(["day", "week", "month"]);
+    expect(WINDOWS.map((w) => w.days)).toEqual([1, 7, 30]);
+  });
+
+  it("puts the cutoff a window back", () => {
+    const day = cutoffSeconds("day", NOW);
+    const week = cutoffSeconds("week", NOW);
+    expect(Math.round((day - week) / 86400)).toBe(6);
+  });
+
+  /** Built from local calendar fields, not an ISO slice. */
+  it("dates the cutoff locally", () => {
+    expect(cutoffDate("day", new Date(2026, 7, 19, 23, 30))).toBe("2026-08-18");
+    expect(cutoffDate("week", new Date(2026, 7, 3, 1, 0))).toBe("2026-07-27");
+  });
+
+  /**
+   * The bar rises with the window, or a month is thirty times as long rather
+   * than thirty times as selective.
+   */
+  it("raises the score threshold for longer windows", () => {
+    expect(minimumScore("day")).toBeLessThan(minimumScore("week"));
+    expect(minimumScore("week")).toBeLessThan(minimumScore("month"));
+  });
+
+  it("asks for both a cutoff and a score", () => {
+    const url = topStoriesUrl("week", NOW);
+    expect(url).toContain("created_at_i");
+    expect(url).toContain("points");
+    expect(decodeURIComponent(url)).toContain("points>200");
+  });
+
+  it("windows a topic search on Hacker News", () => {
+    expect(topicUrl("rust", "hackernews", "week", NOW)).toContain(
+      "created_at_i",
+    );
+  });
+
+  /** dev.to has no date filter; a silent no-op filter would be worse. */
+  it("does not pretend to window dev.to", () => {
+    expect(topicUrl("rust", "devto", "week", NOW)).not.toContain(
+      "created_at_i",
+    );
+  });
+});
+
+describe("parseRepos", () => {
+  it("reads a real GitHub search response", () => {
+    const repos = parseRepos(github);
+    expect(repos.length).toBeGreaterThan(0);
+    for (const repo of repos) {
+      expect(repo.name).toContain("/");
+      expect(repo.url).toMatch(/^https:\/\/github\.com\//);
+      expect(typeof repo.stars).toBe("number");
+    }
+  });
+
+  it("asks GitHub for repos created inside the window", () => {
+    const url = newReposUrl("week", new Date(2026, 7, 19));
+    expect(decodeURIComponent(url)).toContain("created:>2026-08-12");
+    expect(url).toContain("sort=stars");
+  });
+
+  it("comes back ranked by stars", () => {
+    const stars = parseRepos(github).map((r) => r.stars);
+    expect(stars).toEqual([...stars].sort((a, b) => b - a));
+  });
+
+  it.each([
+    ["null", null],
+    ["no items", {}],
+    ["items that are not an array", { items: "no" }],
+  ])("returns an empty list for %s", (_label, body) => {
+    expect(parseRepos(body)).toEqual([]);
+  });
+
+  it("drops a row with no name or url", () => {
+    expect(parseRepos({ items: [{ id: 1, stargazers_count: 5 }] })).toEqual([]);
+  });
+
+  /** A repo with no description is common; it must not become "undefined". */
+  it("leaves an absent description undefined", () => {
+    const [repo] = parseRepos({
+      items: [{ id: 1, full_name: "a/b", html_url: "https://github.com/a/b" }],
+    });
+    expect(repo.description).toBeUndefined();
+    expect(repo.stars).toBe(0);
+  });
+});
+
+describe("parseMostRead", () => {
+  it("reads a real Wikipedia featured response", () => {
+    const articles = parseMostRead(mostRead);
+    expect(articles.length).toBeGreaterThan(0);
+    for (const article of articles) {
+      expect(article.title.length).toBeGreaterThan(0);
+      expect(article.views).toBeGreaterThan(0);
+      expect(article.url).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("honours the limit", () => {
+    expect(parseMostRead(mostRead, 3)).toHaveLength(3);
+  });
+
+  it.each([
+    ["null", null],
+    ["no mostread", {}],
+    ["articles that are not an array", { mostread: { articles: 1 } }],
+  ])("returns an empty list for %s", (_label, body) => {
+    expect(parseMostRead(body)).toEqual([]);
+  });
+
+  it("falls back to a built url when the feed omits one", () => {
+    const [article] = parseMostRead({
+      mostread: { articles: [{ normalizedtitle: "A B", views: 10 }] },
+    });
+    expect(article.url).toBe("https://en.wikipedia.org/wiki/A%20B");
+  });
+
+  /**
+   * Yesterday, not today: today's figures are partial until the day closes,
+   * and a half-counted day ranks the early hours above everything after them.
+   */
+  it("asks for yesterday", () => {
+    expect(mostReadUrl(new Date(2026, 7, 19, 12))).toMatch(/2026\/08\/18$/);
+  });
+
+  it("crosses a month boundary", () => {
+    expect(mostReadUrl(new Date(2026, 8, 1, 12))).toMatch(/2026\/08\/31$/);
+  });
+});
+
+describe("compactNumber", () => {
+  it.each([
+    [42, "42"],
+    [999, "999"],
+    [1500, "2k"],
+    [10392637, "10.4M"],
+  ])("%i reads as %s", (value, expected) => {
+    expect(compactNumber(value)).toBe(expected);
+  });
+});
+
+describe("top stories fixture", () => {
+  it("parses a real windowed Hacker News response", () => {
+    const stories = parseStories(hnWindow, "hackernews");
+    expect(stories.length).toBeGreaterThan(0);
+    for (const story of stories) expect(story.url).toMatch(/^https?:\/\//);
   });
 });

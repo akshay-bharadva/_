@@ -2,14 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import {
-  CloudSun,
-  ExternalLink,
-  History,
-  MapPin,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { ExternalLink, MapPin, Plus, Trash2 } from "lucide-react";
 import type { DiscoverPlace, DiscoverTopic } from "@/types";
 import {
   useDeleteDiscoverPlaceMutation,
@@ -37,16 +30,16 @@ import { cn } from "@/lib/cn";
 import {
   describeWeather,
   fetchJson,
-  onThisDayUrl,
   parseForecast,
-  parseHistoricEvents,
   parseStories,
   topicUrl,
   weatherUrl,
+  WINDOWS,
   type Forecast,
-  type HistoricEvent,
   type Story,
+  type Window,
 } from "./sources";
+import { MostRead, NewRepos, TopStories } from "./digest";
 
 /**
  * Discover — the parts of the day this app does not own.
@@ -56,46 +49,82 @@ import {
  * static export with no server, so a key would be compiled into the bundle and
  * published with it. See `sources.ts`.
  *
- * The weather panel is the reason the module exists. Living away from family
- * means two places matter, and "is it a reasonable hour to call, and what is
- * it like there" is a question this app was already half-answering with the
- * calendar's home timezone.
+ * The question it answers is "what happened while I was not looking", over the
+ * window you pick. The ranking is the answer: most-discussed by score,
+ * most-read by actual readership, most-starred by stars. A chronological feed
+ * would be the same information with the judgement removed.
  *
- * Nothing here is stored. The rows behind it are only *what to ask for*.
+ * Weather sits beside it rather than in it. Two places matter when you live
+ * away from family, and whether it is dark there is what decides if you call —
+ * but it is not news, so it does not compete with the digest for the column
+ * that carries weight.
+ *
+ * Nothing fetched is stored. The rows behind this are only *what to ask for*.
  */
 export default function DiscoverPage() {
   const { data: places = [] } = useGetDiscoverPlacesQuery();
   const { data: topics = [] } = useGetDiscoverTopicsQuery();
+  const [window, setWindow] = useState<Window>("day");
 
   return (
-    <div className="space-y-6 pb-10">
-      <PageHeader
-        title="Discover"
-        description="Weather where you are and where they are, and what is being said about the things you follow."
-      />
+    <div className="space-y-5 pb-10">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader
+          title="What happened"
+          description="The last day, week or month — ranked by what people actually stopped to read."
+        />
 
-      <section className="space-y-3" aria-label="Weather">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {places.map((place) => (
-            <WeatherCard key={place.id} place={place} />
+        <div role="radiogroup" aria-label="Time window" className="flex gap-1">
+          {WINDOWS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              aria-checked={option.id === window}
+              onClick={() => setWindow(option.id)}
+              className={cn(
+                "rounded-control px-3 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+                option.id === window
+                  ? "bg-card text-foreground shadow-e2"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {option.label}
+            </button>
           ))}
-          <AddPlace />
         </div>
-      </section>
+      </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <section className="space-y-3" aria-label="Topics">
-          {topics.length === 0 ? (
-            <p className="rounded-surface bg-card p-5 text-sm text-muted-foreground shadow-e1">
-              Follow a topic and what is being written about it shows up here.
-            </p>
-          ) : (
-            topics.map((topic) => <TopicPanel key={topic.id} topic={topic} />)
-          )}
-          <AddTopic count={topics.length} />
-        </section>
+      {/*
+        Asymmetric, like the workbench: the digest is the page and the things
+        you configure are beside it. A three-column grid of equals would make
+        "what happened" compete with "which cities do I track".
+      */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <div className="space-y-5">
+          <TopStories window={window} />
+          <NewRepos window={window} />
 
-        <OnThisDay />
+          <section className="space-y-3" aria-label="Following">
+            {topics.map((topic) => (
+              <TopicPanel key={topic.id} topic={topic} window={window} />
+            ))}
+            <AddTopic count={topics.length} />
+          </section>
+        </div>
+
+        <div className="space-y-5">
+          <MostRead />
+
+          <section className="space-y-3" aria-label="Weather">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              {places.map((place) => (
+                <WeatherCard key={place.id} place={place} />
+              ))}
+              <AddPlace />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
@@ -323,7 +352,13 @@ const SOURCE_LABEL: Record<DiscoverTopic["source"], string> = {
   devto: "dev.to",
 };
 
-function TopicPanel({ topic }: { topic: DiscoverTopic }) {
+function TopicPanel({
+  topic,
+  window,
+}: {
+  topic: DiscoverTopic;
+  window: Window;
+}) {
   const [stories, setStories] = useState<Story[]>([]);
   const [state, setState] = useState<"loading" | "done" | "failed">("loading");
   const [deleteTopic] = useDeleteDiscoverTopicMutation();
@@ -333,7 +368,7 @@ function TopicPanel({ topic }: { topic: DiscoverTopic }) {
     let cancelled = false;
 
     void (async () => {
-      const body = await fetchJson(topicUrl(topic.term, topic.source));
+      const body = await fetchJson(topicUrl(topic.term, topic.source, window));
       if (cancelled) return;
 
       if (body === null) {
@@ -347,7 +382,7 @@ function TopicPanel({ topic }: { topic: DiscoverTopic }) {
     return () => {
       cancelled = true;
     };
-  }, [topic.term, topic.source]);
+  }, [topic.term, topic.source, window]);
 
   const remove = async () => {
     const ok = await confirm({
@@ -505,53 +540,3 @@ function AddTopic({ count }: { count: number }) {
     </div>
   );
 }
-
-/* ── On this day ─────────────────────────────────────────────────────────── */
-
-function OnThisDay() {
-  const [events, setEvents] = useState<HistoricEvent[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void (async () => {
-      const body = await fetchJson(onThisDayUrl());
-      if (!cancelled) setEvents(parseHistoricEvents(body, 4));
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Silent when it has nothing: this is the smallest thing on the page, and an
-  // error message for it would be louder than the panel itself.
-  if (events.length === 0) return null;
-
-  return (
-    <aside
-      className="h-fit rounded-surface bg-card p-5 shadow-e1"
-      aria-label="On this day"
-    >
-      <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-        <History className="size-3.5 text-muted-foreground" aria-hidden />
-        On this day
-      </h2>
-      <ul className="mt-3 space-y-3">
-        {events.map((event) => (
-          <li key={`${event.year}-${event.text.slice(0, 24)}`}>
-            <p className="text-xs tabular-nums text-muted-foreground">
-              {event.year}
-            </p>
-            <p className={cn("text-sm text-foreground", "break-words")}>
-              {event.text}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </aside>
-  );
-}
-
-/** Kept for the nav icon, so the module and its entry cannot drift. */
-export const DISCOVER_ICON = CloudSun;
