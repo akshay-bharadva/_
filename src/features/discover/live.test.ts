@@ -1,125 +1,278 @@
 import { describe, it, expect } from "vitest";
-import { cleanHeadline, NEWS_TOPICS } from "./live";
-import { watchlistItemSchema } from "@/lib/schemas";
+import trending from "./__fixtures__/trending-links.json";
+import board from "./__fixtures__/jobs-board.json";
+import {
+  filterPostings,
+  parsePostings,
+  parseTrending,
+  postedLabel,
+  skillDemand,
+} from "./live";
 
-describe("cleanHeadline", () => {
-  /**
-   * Google appends " - Publisher" to nearly every title, and the publisher is
-   * already shown beside it — otherwise every line ends in a repeat of the
-   * label next to it.
-   */
-  it("strips the publisher suffix", () => {
-    expect(
-      cleanHeadline(
-        "Bank raises rates - The Globe and Mail",
-        "The Globe and Mail",
-      ),
-    ).toBe("Bank raises rates");
-  });
+/**
+ * Fixtures are real captured responses.
+ *
+ * That matters more here than usual, because the source these replaced looked
+ * correct and was not: Remotive's `search` parameter is silently ignored, so
+ * "react" and "data engineer" returned the identical seventeen jobs. Hand-made
+ * fixtures would never have shown that — only calling the real thing did.
+ */
 
-  it("leaves a title that does not carry it", () => {
-    expect(cleanHeadline("Bank raises rates", "Reuters")).toBe(
-      "Bank raises rates",
-    );
-  });
-
-  it("leaves a title alone when there is no source", () => {
-    expect(cleanHeadline("Bank raises rates - Reuters", null)).toBe(
-      "Bank raises rates - Reuters",
-    );
-  });
-
-  /** Only the suffix: a publisher named mid-headline must survive. */
-  it("does not strip a mid-title match", () => {
-    expect(cleanHeadline("Reuters wins award", "Reuters")).toBe(
-      "Reuters wins award",
-    );
-  });
-});
-
-describe("news topics", () => {
-  it("covers more than technology", () => {
-    const ids = NEWS_TOPICS.map((topic) => topic.id);
-    expect(ids).toContain("business");
-    expect(ids).toContain("world");
-    expect(ids).toContain("sports");
-    expect(ids.length).toBeGreaterThan(5);
-  });
-});
-
-describe("watchlistItemSchema", () => {
-  const valid = { name: "Royal Bank", kind: "stock" as const };
-
-  it("accepts a normal holding", () => {
-    expect(watchlistItemSchema.safeParse(valid).success).toBe(true);
-  });
-
-  /**
-   * The whole reason `symbol` is nullable: a bank mutual fund has a code no
-   * public feed carries, and the position is still worth tracking.
-   */
-  it("accepts an item with no symbol", () => {
-    expect(
-      watchlistItemSchema.safeParse({
-        ...valid,
-        kind: "mutual_fund",
-        symbol: null,
-        institution: "RBC",
-      }).success,
-    ).toBe(true);
-    expect(
-      watchlistItemSchema.safeParse({ ...valid, symbol: "" }).success,
-    ).toBe(true);
-  });
-
-  it("accepts the exchange suffixes Yahoo uses", () => {
-    for (const symbol of ["RY.TO", "CM.TO", "AAPL", "BRK-B", "^GSPC"]) {
-      expect(watchlistItemSchema.safeParse({ ...valid, symbol }).success).toBe(
-        true,
-      );
+describe("parseTrending", () => {
+  it("reads a real Mastodon trends response", () => {
+    const links = parseTrending(trending);
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) {
+      expect(link.title.length).toBeGreaterThan(0);
+      expect(link.url).toMatch(/^https?:\/\//);
     }
   });
 
-  /**
-   * The symbol is interpolated into a request path by the edge function, so a
-   * loose bound here would be this app's problem rather than the database's.
-   */
-  it("rejects a symbol with path characters", () => {
-    for (const symbol of ["../etc", "a/b", "RY TO", "a?b=c"]) {
-      expect(watchlistItemSchema.safeParse({ ...valid, symbol }).success).toBe(
-        false,
-      );
+  it("carries the publisher through", () => {
+    const links = parseTrending(trending);
+    expect(links.some((link) => link.publisher)).toBe(true);
+  });
+
+  /** The ranking is the whole point of a trending list. */
+  it("sorts by shares, most first", () => {
+    const shares = parseTrending(trending).map((link) => link.shares ?? 0);
+    expect(shares).toEqual([...shares].sort((a, b) => b - a));
+  });
+
+  it("totals shares across the reported days", () => {
+    const [link] = parseTrending([
+      {
+        title: "A",
+        url: "https://x.com",
+        history: [{ uses: "3" }, { uses: "4" }],
+      },
+    ]);
+    expect(link.shares).toBe(7);
+  });
+
+  /** No history is unknown, not zero — and the two should not render alike. */
+  it("reports absent history as null rather than zero", () => {
+    const [link] = parseTrending([{ title: "A", url: "https://x.com" }]);
+    expect(link.shares).toBeNull();
+  });
+
+  it("drops a row with no title or url", () => {
+    expect(parseTrending([{ title: "A" }, { url: "https://x.com" }])).toEqual(
+      [],
+    );
+  });
+
+  it.each([
+    ["null", null],
+    ["an object", {}],
+    ["a string", "no"],
+  ])("returns an empty list for %s", (_label, body) => {
+    expect(parseTrending(body)).toEqual([]);
+  });
+});
+
+describe("parsePostings", () => {
+  it("reads a real job board response", () => {
+    const postings = parsePostings(board);
+    expect(postings.length).toBeGreaterThan(10);
+    for (const posting of postings) {
+      expect(posting.title.length).toBeGreaterThan(0);
+      expect(posting.url).toMatch(/^https?:\/\//);
+      expect(Array.isArray(posting.tags)).toBe(true);
     }
   });
 
-  it("rejects an empty name", () => {
-    expect(
-      watchlistItemSchema.safeParse({ ...valid, name: "  " }).success,
-    ).toBe(false);
+  /** This board sends unix seconds, unlike every other date in the app. */
+  it("converts a unix timestamp to an ISO string", () => {
+    const [posting] = parsePostings({
+      data: [
+        {
+          slug: "a",
+          title: "Dev",
+          url: "https://x.com",
+          created_at: 1755000000,
+        },
+      ],
+    });
+    expect(posting.postedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  it("rejects a kind the column would not allow", () => {
-    expect(
-      watchlistItemSchema.safeParse({ ...valid, kind: "crypto" }).success,
-    ).toBe(false);
+  it("names an unknown company rather than rendering undefined", () => {
+    const [posting] = parsePostings({
+      data: [{ slug: "a", title: "Dev", url: "https://x.com" }],
+    });
+    expect(posting.company).toBe("Unknown");
   });
 
-  it("rejects a negative quantity", () => {
-    expect(
-      watchlistItemSchema.safeParse({ ...valid, quantity: -1 }).success,
-    ).toBe(false);
+  it("drops a row with no title or url", () => {
+    expect(parsePostings({ data: [{ slug: "a", title: "Dev" }] })).toEqual([]);
   });
 
-  /** Zero units is a real answer — something you watch but do not own. */
-  it("accepts zero units", () => {
-    expect(
-      watchlistItemSchema.safeParse({ ...valid, quantity: 0 }).success,
-    ).toBe(true);
+  it.each([
+    ["null", null],
+    ["no data key", {}],
+    ["data that is not an array", { data: 5 }],
+  ])("returns an empty list for %s", (_label, body) => {
+    expect(parsePostings(body)).toEqual([]);
+  });
+});
+
+describe("filterPostings", () => {
+  const postings = parsePostings(board);
+
+  it("returns everything for an empty term", () => {
+    expect(filterPostings(postings, "")).toHaveLength(postings.length);
+    expect(filterPostings(postings, "   ")).toHaveLength(postings.length);
   });
 
-  it("rejects a target price of zero or below", () => {
+  /**
+   * The failure this replaced: an upstream search that returned the same
+   * results whatever was asked. A filter must actually narrow.
+   */
+  it("narrows the list", () => {
+    const engineers = filterPostings(postings, "engineer");
+    expect(engineers.length).toBeLessThan(postings.length);
+    for (const posting of engineers) {
+      const haystack = [posting.title, posting.company, ...posting.tags]
+        .join(" ")
+        .toLowerCase();
+      expect(haystack).toContain("engineer");
+    }
+  });
+
+  it("is case-insensitive", () => {
+    expect(filterPostings(postings, "ENGINEER")).toEqual(
+      filterPostings(postings, "engineer"),
+    );
+  });
+
+  /** "senior react" must not match everything that merely says "senior". */
+  it("requires every word to appear", () => {
+    const both = filterPostings(postings, "senior engineer");
+    for (const posting of both) {
+      const haystack = [posting.title, posting.company, ...posting.tags]
+        .join(" ")
+        .toLowerCase();
+      expect(haystack).toContain("senior");
+      expect(haystack).toContain("engineer");
+    }
+  });
+
+  it("matches on tags, not only the title", () => {
+    const tagged = filterPostings(
+      [
+        {
+          id: "1",
+          title: "Builder",
+          company: "X",
+          url: "https://x.com",
+          location: null,
+          remote: false,
+          tags: ["Kubernetes"],
+          postedAt: null,
+        },
+      ],
+      "kubernetes",
+    );
+    expect(tagged).toHaveLength(1);
+  });
+
+  it("returns nothing for a term nobody uses", () => {
+    expect(filterPostings(postings, "zzzznotathing")).toEqual([]);
+  });
+});
+
+describe("skillDemand", () => {
+  const postings = parsePostings(board);
+
+  it("ranks skills across a real board", () => {
+    const { skills, sampled } = skillDemand(postings);
+    expect(sampled).toBe(postings.length);
+    expect(skills.length).toBeGreaterThan(0);
+    // Descending, so the first is the most asked for.
+    const counts = skills.map((skill) => skill.count);
+    expect(counts).toEqual([...counts].sort((a, b) => b - a));
+  });
+
+  /** One advert repeating a tag must not outvote several that mention it once. */
+  it("counts each posting once per skill", () => {
+    const { skills } = skillDemand([
+      {
+        id: "1",
+        title: "A",
+        company: "X",
+        url: "https://x.com",
+        location: null,
+        remote: false,
+        tags: ["react", "React", "REACT"],
+        postedAt: null,
+      },
+    ]);
+    expect(skills[0]).toEqual({ tag: "react", count: 1 });
+  });
+
+  /** A count without its sample is not a fact. */
+  it("reports the sample it was built from", () => {
+    expect(skillDemand([]).sampled).toBe(0);
+    expect(skillDemand([]).skills).toEqual([]);
+  });
+
+  it("is stable across equal counts", () => {
+    const make = (tags: string[]) => ({
+      id: "1",
+      title: "A",
+      company: "X",
+      url: "https://x.com",
+      location: null,
+      remote: false,
+      tags,
+      postedAt: null,
+    });
+    expect(skillDemand([make(["zeta", "alpha"])]).skills).toEqual(
+      skillDemand([make(["alpha", "zeta"])]).skills,
+    );
+  });
+
+  it("ignores empty tags", () => {
+    const { skills } = skillDemand([
+      {
+        id: "1",
+        title: "A",
+        company: "X",
+        url: "https://x.com",
+        location: null,
+        remote: false,
+        tags: ["  ", "go"],
+        postedAt: null,
+      },
+    ]);
+    expect(skills).toEqual([{ tag: "go", count: 1 }]);
+  });
+});
+
+describe("postedLabel", () => {
+  const now = new Date(2026, 7, 19);
+
+  it.each([
+    ["2026-08-19T09:00:00", "today"],
+    ["2026-08-18T09:00:00", "yesterday"],
+    ["2026-08-14T09:00:00", "5 days ago"],
+    ["2026-07-05T09:00:00", "a month ago"],
+  ])("%s reads as %s", (iso, expected) => {
+    expect(postedLabel(iso, now)).toBe(expected);
+  });
+
+  /**
+   * Calendar days, not elapsed hours: a posting from yesterday at 23:00 read
+   * at 01:00 is "yesterday", though only two hours have passed.
+   */
+  it("counts calendar days", () => {
     expect(
-      watchlistItemSchema.safeParse({ ...valid, target_price: 0 }).success,
-    ).toBe(false);
+      postedLabel("2026-08-18T23:00:00", new Date(2026, 7, 19, 1, 0)),
+    ).toBe("yesterday");
+  });
+
+  it("says nothing for an unparseable date", () => {
+    expect(postedLabel("not a date", now)).toBe("");
   });
 });

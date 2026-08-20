@@ -24,6 +24,5 @@
     ]
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "_comment_exclude": "supabase/functions runs on Deno, not Node — it has its own globals and no React, so the app's compiler must not try to type-check it.",
-  "exclude": ["node_modules", "supabase/functions"]
+  "exclude": ["node_modules"]
 }

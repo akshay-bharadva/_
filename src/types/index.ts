@@ -917,25 +917,3 @@ export interface DiscoverTopic {
   sort_order: number;
   created_at?: string;
 }
-
-export type WatchlistKind = "stock" | "etf" | "bond" | "mutual_fund" | "other";
-
-/**
- * Something you are tracking. `symbol` is optional: a bank mutual fund has a
- * code no public quote feed carries, and such an item is still worth keeping.
- */
-export interface WatchlistItem {
-  id: string;
-  user_id?: string;
-  name: string;
-  symbol?: string | null;
-  kind: WatchlistKind;
-  institution?: string | null;
-  currency?: string | null;
-  quantity?: number | null;
-  target_price?: number | null;
-  notes?: string | null;
-  sort_order: number;
-  created_at?: string;
-  updated_at?: string;
-}

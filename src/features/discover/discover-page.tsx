@@ -41,14 +41,9 @@ import {
   type Window,
 } from "./sources";
 import { MostRead, NewRepos, TopStories } from "./digest";
-import {
-  CorridorPanel,
-  CryptoPanel,
-  EconomyPanel,
-  JobsPanel,
-} from "./market-panels";
-import { Watchlist } from "./watchlist";
+import { CorridorPanel, CryptoPanel, EconomyPanel } from "./market-panels";
 import { Headlines } from "./headlines";
+import { CareerPanel } from "./career-panel";
 
 /**
  * Discover — the parts of the day this app does not own.
@@ -128,7 +123,7 @@ export default function DiscoverPage() {
         <MoneyLane base={base} home={home} places={places} />
       )}
 
-      {lane === "career" && <CareerLane topics={topics} />}
+      {lane === "career" && <CareerLane />}
 
       {lane === "world" && (
         <WorldLane topics={topics} window={window} onWindow={setWindow} />
@@ -169,7 +164,15 @@ function MoneyLane({
         <EconomyPanel country="CA" />
       </div>
 
-      <Watchlist />
+      {/*
+        Stated rather than quietly absent. Someone looking for the S&P should
+        find out why it is missing, not conclude the page is half-built.
+      */}
+      <p className="rounded-surface bg-secondary/40 px-4 py-3 text-xs text-muted-foreground">
+        Stock indices are not shown: every keyless source either blocks browser
+        requests or has closed, and reaching one would mean a server hop this
+        app deliberately does without.
+      </p>
 
       <section className="space-y-3" aria-label="Weather">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -185,38 +188,8 @@ function MoneyLane({
 
 /* ── Career lane ─────────────────────────────────────────────────────────── */
 
-function CareerLane({ topics }: { topics: DiscoverTopic[] }) {
-  // The first followed topic doubles as the job search, so what you read about
-  // and what you look for stay the same subject.
-  const [term, setTerm] = useState(topics[0]?.term ?? "");
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 rounded-surface bg-card p-3 shadow-e1">
-        <Input
-          value={term}
-          maxLength={80}
-          placeholder="A role or a skill — react, data engineer, rust…"
-          onChange={(event) => setTerm(event.target.value)}
-          className="h-8 min-w-40 flex-1 text-sm"
-        />
-        {topics.slice(0, 4).map((topic) => (
-          <Button
-            key={topic.id}
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={() => setTerm(topic.term)}
-          >
-            {topic.term}
-          </Button>
-        ))}
-      </div>
-
-      <JobsPanel term={term} />
-    </div>
-  );
+function CareerLane() {
+  return <CareerPanel />;
 }
 
 /* ── World lane ──────────────────────────────────────────────────────────── */

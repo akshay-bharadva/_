@@ -38,7 +38,6 @@ export const adminApi = createApi({
     "System",
     "Inbox",
     "Discover",
-    "Watchlist",
     "Integrations",
     "Visitors",
     "FinanceSetup",

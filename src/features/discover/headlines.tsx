@@ -1,137 +1,60 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/cn";
-import {
-  cleanHeadline,
-  fetchNews,
-  hasLiveData,
-  NEWS_TOPICS,
-  type Article,
-  type NewsTopic,
-} from "./live";
-import { postedLabel } from "./career";
+import { ExternalLink, Flame } from "lucide-react";
+import { fetchTrending, type TrendingLink } from "./live";
 
 /**
- * News by category, or by whatever you type.
+ * What is actually being read and shared right now.
  *
- * Hacker News answers the technology question well and every other one badly,
- * which is why this exists beside it. Google News covers the genres a person
- * actually reads across — world, business, sport, culture — and ranks by
- * editorial prominence rather than by one community's votes.
+ * Mastodon's trending links: the articles being shared most across the network
+ * over the last few days, ranked by share count. That ranking is the reason
+ * this beats a publisher's front page — the order comes from readers rather
+ * than an editor, which is what "trending" is supposed to mean.
  *
- * It needs the market-data edge function, because Google's RSS sends no CORS
- * header. When that is not deployed the panel says so plainly instead of
- * sitting empty, since an empty panel reads as a page that failed.
+ * It replaced a Google News feed that needed a server-side CORS shim to reach
+ * at all. This one sends `access-control-allow-origin: *`, so it works from
+ * the browser with nothing to deploy.
+ *
+ * The limit worth knowing: it is one Mastodon instance, and it skews toward
+ * technology, science and public policy. Said in the panel rather than left
+ * for the reader to infer from a week of watching it.
  */
 export function Headlines() {
-  const [topic, setTopic] = useState<NewsTopic>("top");
-  const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [state, setState] = useState<"loading" | "done" | "failed" | "off">(
-    hasLiveData() ? "loading" : "off",
-  );
+  const [links, setLinks] = useState<TrendingLink[]>([]);
+  const [state, setState] = useState<"loading" | "done" | "failed">("loading");
 
   useEffect(() => {
-    if (!hasLiveData()) {
-      setState("off");
-      return;
-    }
-
     let cancelled = false;
-    setState("loading");
 
     void (async () => {
-      const result = await fetchNews(topic, search, 10);
+      const result = await fetchTrending();
       if (cancelled) return;
 
       if (result === null) {
         setState("failed");
         return;
       }
-      setArticles(result);
+      setLinks(result);
       setState("done");
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [topic, search]);
+  }, []);
 
   return (
     <section className="overflow-hidden rounded-surface bg-card shadow-e1">
-      <header className="space-y-3 px-5 pb-3 pt-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Headlines</h2>
-          <p className="text-[11px] text-muted-foreground">
-            Google News · Canada
-          </p>
-        </div>
-
-        {/* Categories first: picking one is the common case, and typing a
-            search is the exception that overrides it. */}
-        <div
-          role="radiogroup"
-          aria-label="Category"
-          className="flex flex-wrap gap-1"
-        >
-          {NEWS_TOPICS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              role="radio"
-              aria-checked={option.id === topic && !search}
-              onClick={() => {
-                setTopic(option.id);
-                setQuery("");
-                setSearch("");
-              }}
-              className={cn(
-                "rounded-control px-2.5 py-1 text-xs transition-colors",
-                option.id === topic && !search
-                  ? "bg-secondary font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={query}
-            maxLength={100}
-            placeholder="Or search a company, person, anything…"
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              // Applied on Enter rather than per keystroke: each change is an
-              // upstream request, and one per letter is abuse of a free feed.
-              if (event.key === "Enter") setSearch(query.trim());
-              if (event.key === "Escape") {
-                setQuery("");
-                setSearch("");
-              }
-            }}
-            className="h-8 pl-8 text-sm"
-          />
-        </div>
-      </header>
-
-      {state === "off" && (
-        <p className="px-5 pb-4 text-sm text-muted-foreground">
-          Headlines need the <code className="text-xs">market-data</code>{" "}
-          function deployed — Google News sends no CORS header, so a browser
-          cannot read it directly.
+      <header className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-2 pt-4">
+        <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <Flame className="size-3.5 text-chart-3" aria-hidden />
+          Trending
+        </h2>
+        <p className="text-[11px] text-muted-foreground">
+          Most shared · Mastodon
         </p>
-      )}
+      </header>
 
       {state === "loading" && (
         <p className="px-5 pb-4 text-sm text-muted-foreground">Reading…</p>
@@ -139,35 +62,45 @@ export function Headlines() {
 
       {state === "failed" && (
         <p className="px-5 pb-4 text-sm text-muted-foreground">
-          Google News did not answer just now.
+          Mastodon did not answer just now.
         </p>
       )}
 
-      {state === "done" && articles.length === 0 && (
+      {state === "done" && links.length === 0 && (
         <p className="px-5 pb-4 text-sm text-muted-foreground">
-          Nothing found for that. Try a broader search.
+          Nothing trending at the moment.
         </p>
       )}
 
       <ul>
-        {articles.map((article) => (
-          <li key={article.url}>
+        {links.map((link, index) => (
+          <li key={link.url}>
             <a
-              href={article.url}
+              href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-baseline gap-3 border-t border-border/60 px-5 py-2.5 transition-colors hover:bg-secondary/50"
+              className="flex items-baseline gap-3 border-t border-border/60 px-5 py-3 transition-colors hover:bg-secondary/50"
             >
+              {/* The rank is the information: this list is ordered by how many
+                  people shared each piece, not by when it appeared. */}
+              <span
+                aria-hidden
+                className={
+                  index < 3
+                    ? "w-4 shrink-0 text-xs font-semibold tabular-nums text-foreground"
+                    : "w-4 shrink-0 text-xs tabular-nums text-muted-foreground"
+                }
+              >
+                {index + 1}
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate break-words text-sm text-foreground">
-                  {/* Google appends " - Publisher" to most titles, and the
-                      publisher is already shown below. */}
-                  {cleanHeadline(article.title, article.source)}
+                <span className="block break-words text-sm text-foreground">
+                  {link.title}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
                   {[
-                    article.source,
-                    article.publishedAt && postedLabel(article.publishedAt),
+                    link.publisher,
+                    link.shares !== null && `${link.shares} shares`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -181,6 +114,13 @@ export function Headlines() {
           </li>
         ))}
       </ul>
+
+      {state === "done" && links.length > 0 && (
+        <p className="border-t border-border/60 px-5 py-2 text-[11px] text-muted-foreground">
+          One network&apos;s view — it leans towards technology, science and
+          public policy.
+        </p>
+      )}
     </section>
   );
 }

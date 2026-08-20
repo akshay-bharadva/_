@@ -29,4 +29,3 @@ export * from "./admin/analyticsApi";
 export * from "./admin/financeSetupApi";
 export * from "./admin/calendarSetupApi";
 export * from "./admin/discoverApi";
-export * from "./admin/watchlistApi";

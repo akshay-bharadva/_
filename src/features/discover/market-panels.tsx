@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Briefcase,
-  Coins,
-  TrendingUp,
-} from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Coins } from "lucide-react";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import { Sparkline } from "@/features/dashboard/charts";
@@ -27,13 +21,6 @@ import {
   type Indicator,
   type RateSeries,
 } from "./market";
-import {
-  jobsUrl,
-  parseJobs,
-  postedLabel,
-  skillDemand,
-  type Job,
-} from "./career";
 
 /**
  * Money, markets and the job market.
@@ -289,132 +276,5 @@ export function EconomyPanel({ country }: { country: string }) {
         ))}
       </ul>
     </Panel>
-  );
-}
-
-/* ── Jobs and skills ─────────────────────────────────────────────────────── */
-
-export function JobsPanel({ term }: { term: string }) {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [state, setState] = useState<State>("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-    setState("loading");
-
-    void (async () => {
-      // A wider sample than is displayed: skill demand across six postings is
-      // noise, and across forty it is a signal.
-      const body = await fetchJson(jobsUrl(term, 40));
-      if (cancelled) return;
-      if (body === null) {
-        setState("failed");
-        return;
-      }
-      setJobs(parseJobs(body, 40));
-      setState("done");
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [term]);
-
-  const demand = skillDemand(jobs, 8);
-  const top = demand.skills[0]?.count ?? 1;
-
-  return (
-    <section className="overflow-hidden rounded-surface bg-card shadow-e1">
-      <header className="px-5 pb-2 pt-4">
-        <h2 className="text-sm font-semibold text-foreground">
-          Hiring {term ? `for “${term}”` : "right now"}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {/* The honest limit. "Three results" means three on one board, and a
-              career decision deserves to know that. */}
-          Remote roles on Remotive — one board, not the whole market
-        </p>
-      </header>
-
-      {state === "loading" && (
-        <p className="px-5 pb-4 text-sm text-muted-foreground">Reading…</p>
-      )}
-      {state === "failed" && (
-        <p className="px-5 pb-4 text-sm text-muted-foreground">
-          Remotive did not answer just now.
-        </p>
-      )}
-
-      {state === "done" && jobs.length === 0 && (
-        <p className="px-5 pb-4 text-sm text-muted-foreground">
-          Nothing posted for this one. Try a broader term.
-        </p>
-      )}
-
-      {demand.skills.length > 0 && (
-        <div className="border-t border-border/60 px-5 py-3">
-          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-            Most asked for · {demand.sampled} postings
-          </p>
-          <div className="mt-2 space-y-1.5">
-            {demand.skills.map((skill) => (
-              <div key={skill.tag} className="flex items-center gap-2">
-                <span className="w-28 shrink-0 truncate text-xs text-foreground">
-                  {skill.tag}
-                </span>
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    // Relative to the most-demanded skill, so the bars use the
-                    // full width whatever the absolute counts are.
-                    style={{ width: `${(skill.count / top) * 100}%` }}
-                  />
-                </div>
-                <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-                  {skill.count}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <ul>
-        {jobs.slice(0, 6).map((job) => (
-          <li key={job.id}>
-            <a
-              href={job.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-baseline gap-3 border-t border-border/60 px-5 py-2.5 transition-colors hover:bg-secondary/50"
-            >
-              <Briefcase
-                className="size-3.5 shrink-0 self-center text-muted-foreground"
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate break-words text-sm text-foreground">
-                  {job.title}
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {[
-                    job.company,
-                    job.location,
-                    job.salary,
-                    job.postedAt && postedLabel(job.postedAt),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              </span>
-              <TrendingUp
-                className="size-3 shrink-0 self-center text-muted-foreground"
-                aria-hidden
-              />
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
