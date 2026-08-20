@@ -106,7 +106,40 @@ BEGIN
     ),
     'dynamic'
   )
-  ON CONFLICT (id) DO NOTHING;
+  /*
+    UPDATE, not DO NOTHING.
+
+    schema.sql already inserts row 1 with "Your Name" / "Your Professional
+    Title" placeholders, so a DO NOTHING here is a silent no-op — the seed
+    reports success and the site still shows the placeholder. That is exactly
+    what happened the first time this ran.
+  */
+  ON CONFLICT (id) DO UPDATE SET
+    user_id       = EXCLUDED.user_id,
+    profile_data  = EXCLUDED.profile_data,
+    social_links  = EXCLUDED.social_links,
+    footer_data   = EXCLUDED.footer_data,
+    portfolio_mode = EXCLUDED.portfolio_mode,
+    updated_at    = now();
+
+  /*
+    schema.sql seeds seven links *without* a user_id, and in the SQL editor
+    `auth.uid()` is NULL — so those rows are owned by nobody. The public nav
+    query does not filter by owner, so they render regardless.
+
+    Matching on href alone rather than on (user_id, href) is therefore the
+    point: the earlier version matched on both, found nothing, and inserted a
+    second copy of every link.
+  */
+  -- Remove duplicates first. An earlier version of this seed matched on
+  -- (user_id, href) against rows whose user_id was NULL, found nothing, and
+  -- inserted a second copy of every link. Keep the oldest row per href.
+  DELETE FROM navigation_links a
+   USING navigation_links b
+   WHERE a.href = b.href
+     AND a.created_at > b.created_at;
+
+  UPDATE navigation_links SET user_id = uid WHERE user_id IS NULL;
 
   INSERT INTO navigation_links (user_id, label, href, display_order, is_visible)
   SELECT uid, v.label, v.href, v.ord, true
@@ -114,13 +147,28 @@ BEGIN
     ('Home',     '/',          0),
     ('About',    '/about',     1),
     ('Projects', '/projects',  2),
-    ('Blog',     '/blog',      3),
-    ('Updates',  '/updates',   4),
-    ('Contact',  '/contact',   5)
+    ('Showcase', '/showcase',  3),
+    ('Blog',     '/blog',      4),
+    ('Updates',  '/updates',   5),
+    ('Contact',  '/contact',   6)
   ) AS v(label, href, ord)
   WHERE NOT EXISTS (
-    SELECT 1 FROM navigation_links n WHERE n.user_id = uid AND n.href = v.href
+    SELECT 1 FROM navigation_links n WHERE n.href = v.href
   );
+
+  -- Re-label and re-order whatever was already there, so the schema's
+  -- placeholders end up in the intended order rather than beside it.
+  UPDATE navigation_links n SET label = v.label, display_order = v.ord
+  FROM (VALUES
+    ('/',          'Home',     0),
+    ('/about',     'About',    1),
+    ('/projects',  'Projects', 2),
+    ('/showcase',  'Showcase', 3),
+    ('/blog',      'Blog',     4),
+    ('/updates',   'Updates',  5),
+    ('/contact',   'Contact',  6)
+  ) AS v(href, label, ord)
+  WHERE n.href = v.href;
 
   -- ==========================================================================
   -- 2. PORTFOLIO
@@ -665,5 +713,25 @@ E'- Designing Data-Intensive Applications — second pass, chapter 11 onward\n- 
      WHERE t.user_id = uid AND t.term = v.term AND t.source = v.src
   );
 
+  /*
+    Report the counts rather than just "complete".
+
+    The first run of this file reported success and changed nothing visible,
+    because the identity insert hit a row schema.sql had already written. A
+    seed that cannot tell you what it wrote is a seed you have to verify by
+    hand every time.
+  */
   RAISE NOTICE 'Seed complete for user %.', uid;
+  RAISE NOTICE '  identity      : %', (SELECT profile_data->>'name' FROM site_identity WHERE id = 1);
+  RAISE NOTICE '  nav links     : %', (SELECT count(*) FROM navigation_links);
+  RAISE NOTICE '  sections      : %', (SELECT count(*) FROM portfolio_sections WHERE user_id = uid);
+  RAISE NOTICE '  portfolio items: %', (SELECT count(*) FROM portfolio_items WHERE user_id = uid);
+  RAISE NOTICE '  blog posts    : %', (SELECT count(*) FROM blog_posts WHERE user_id = uid);
+  RAISE NOTICE '  tasks         : %', (SELECT count(*) FROM tasks WHERE user_id = uid);
+  RAISE NOTICE '  habits        : % (% logs)',
+    (SELECT count(*) FROM habits WHERE user_id = uid),
+    (SELECT count(*) FROM habit_logs l JOIN habits h ON h.id = l.habit_id WHERE h.user_id = uid);
+  RAISE NOTICE '  learning      : % topics', (SELECT count(*) FROM learning_topics WHERE user_id = uid);
+  RAISE NOTICE '  notes         : %', (SELECT count(*) FROM notes WHERE user_id = uid);
+  RAISE NOTICE '  events        : %', (SELECT count(*) FROM events WHERE user_id = uid);
 END $$;
