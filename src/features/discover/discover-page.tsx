@@ -47,6 +47,8 @@ import {
   EconomyPanel,
   JobsPanel,
 } from "./market-panels";
+import { Watchlist } from "./watchlist";
+import { Headlines } from "./headlines";
 
 /**
  * Discover — the parts of the day this app does not own.
@@ -167,15 +169,7 @@ function MoneyLane({
         <EconomyPanel country="CA" />
       </div>
 
-      {/*
-        Stated rather than quietly absent. Someone looking for the S&P should
-        find out why it is missing, not conclude the page is half-built.
-      */}
-      <p className="rounded-surface bg-secondary/40 px-4 py-3 text-xs text-muted-foreground">
-        Stock indices are not shown: every keyless source either blocks browser
-        requests or has closed. Adding them would mean putting an API key in the
-        published bundle, where anyone could read it.
-      </p>
+      <Watchlist />
 
       <section className="space-y-3" aria-label="Weather">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -260,6 +254,7 @@ function WorldLane({
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="space-y-5">
+          <Headlines />
           <TopStories window={window} />
           <NewRepos window={window} />
 
