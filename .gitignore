@@ -45,3 +45,9 @@ public/worker-*.js
 public/sw.js.map
 public/workbox-*.js.map
 public/worker-*.js.map
+
+# Personal source material and real figures.
+# The remote is public: a committed balance is a published balance, and the
+# scrapes in akshay/ carry account numbers, salary and address data.
+/akshay/
+db/*.local.sql
