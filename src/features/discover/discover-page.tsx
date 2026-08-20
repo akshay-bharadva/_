@@ -11,6 +11,7 @@ import {
   useGetDiscoverTopicsQuery,
   useSaveDiscoverPlaceMutation,
   useSaveDiscoverTopicMutation,
+  useGetFinanceSettingsQuery,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,12 @@ import {
   type Window,
 } from "./sources";
 import { MostRead, NewRepos, TopStories } from "./digest";
+import {
+  CorridorPanel,
+  CryptoPanel,
+  EconomyPanel,
+  JobsPanel,
+} from "./market-panels";
 
 /**
  * Discover — the parts of the day this app does not own.
@@ -61,30 +68,50 @@ import { MostRead, NewRepos, TopStories } from "./digest";
  *
  * Nothing fetched is stored. The rows behind this are only *what to ask for*.
  */
+const LANES = [
+  { id: "money", label: "Money & markets" },
+  { id: "career", label: "Career" },
+  { id: "world", label: "What happened" },
+] as const;
+
+type Lane = (typeof LANES)[number]["id"];
+
 export default function DiscoverPage() {
   const { data: places = [] } = useGetDiscoverPlacesQuery();
   const { data: topics = [] } = useGetDiscoverTopicsQuery();
+  const { data: finance } = useGetFinanceSettingsQuery();
+
+  const [lane, setLane] = useState<Lane>("money");
   const [window, setWindow] = useState<Window>("day");
+
+  /*
+    The corridor comes from Finance, which already knows where money is earned
+    and where it is sent — `home_currency` exists there precisely for this.
+    Asking again here would be a second answer to a settled question, and the
+    two would drift.
+  */
+  const base = finance?.base_currency ?? "CAD";
+  const home = finance?.home_currency ?? null;
 
   return (
     <div className="space-y-5 pb-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <PageHeader
-          title="What happened"
-          description="The last day, week or month — ranked by what people actually stopped to read."
+          title="Discover"
+          description="What moved in the markets, what the job market is asking for, and what happened while you were not looking."
         />
 
-        <div role="radiogroup" aria-label="Time window" className="flex gap-1">
-          {WINDOWS.map((option) => (
+        <div role="tablist" aria-label="Section" className="flex gap-1">
+          {LANES.map((option) => (
             <button
               key={option.id}
               type="button"
-              role="radio"
-              aria-checked={option.id === window}
-              onClick={() => setWindow(option.id)}
+              role="tab"
+              aria-selected={option.id === lane}
+              onClick={() => setLane(option.id)}
               className={cn(
                 "rounded-control px-3 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
-                option.id === window
+                option.id === lane
                   ? "bg-card text-foreground shadow-e2"
                   : "text-muted-foreground hover:text-foreground",
               )}
@@ -95,11 +122,142 @@ export default function DiscoverPage() {
         </div>
       </div>
 
+      {lane === "money" && (
+        <MoneyLane base={base} home={home} places={places} />
+      )}
+
+      {lane === "career" && <CareerLane topics={topics} />}
+
+      {lane === "world" && (
+        <WorldLane topics={topics} window={window} onWindow={setWindow} />
+      )}
+    </div>
+  );
+}
+
+/* ── Money lane ──────────────────────────────────────────────────────────── */
+
+function MoneyLane({
+  base,
+  home,
+  places,
+}: {
+  base: string;
+  home: string | null;
+  places: DiscoverPlace[];
+}) {
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {home ? (
+          <CorridorPanel base={base} quote={home} />
+        ) : (
+          <section className="rounded-surface bg-card p-4 shadow-e1">
+            <h2 className="text-sm font-semibold text-foreground">
+              Currency corridor
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Set a home currency in Finance and the rate you send at shows
+              here, against its own last month.
+            </p>
+          </section>
+        )}
+
+        <CryptoPanel />
+        <EconomyPanel country="CA" />
+      </div>
+
       {/*
-        Asymmetric, like the workbench: the digest is the page and the things
-        you configure are beside it. A three-column grid of equals would make
-        "what happened" compete with "which cities do I track".
+        Stated rather than quietly absent. Someone looking for the S&P should
+        find out why it is missing, not conclude the page is half-built.
       */}
+      <p className="rounded-surface bg-secondary/40 px-4 py-3 text-xs text-muted-foreground">
+        Stock indices are not shown: every keyless source either blocks browser
+        requests or has closed. Adding them would mean putting an API key in the
+        published bundle, where anyone could read it.
+      </p>
+
+      <section className="space-y-3" aria-label="Weather">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {places.map((place) => (
+            <WeatherCard key={place.id} place={place} />
+          ))}
+          <AddPlace />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ── Career lane ─────────────────────────────────────────────────────────── */
+
+function CareerLane({ topics }: { topics: DiscoverTopic[] }) {
+  // The first followed topic doubles as the job search, so what you read about
+  // and what you look for stay the same subject.
+  const [term, setTerm] = useState(topics[0]?.term ?? "");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 rounded-surface bg-card p-3 shadow-e1">
+        <Input
+          value={term}
+          maxLength={80}
+          placeholder="A role or a skill — react, data engineer, rust…"
+          onChange={(event) => setTerm(event.target.value)}
+          className="h-8 min-w-40 flex-1 text-sm"
+        />
+        {topics.slice(0, 4).map((topic) => (
+          <Button
+            key={topic.id}
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() => setTerm(topic.term)}
+          >
+            {topic.term}
+          </Button>
+        ))}
+      </div>
+
+      <JobsPanel term={term} />
+    </div>
+  );
+}
+
+/* ── World lane ──────────────────────────────────────────────────────────── */
+
+function WorldLane({
+  topics,
+  window,
+  onWindow,
+}: {
+  topics: DiscoverTopic[];
+  window: Window;
+  onWindow: (next: Window) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div role="radiogroup" aria-label="Time window" className="flex gap-1">
+        {WINDOWS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="radio"
+            aria-checked={option.id === window}
+            onClick={() => onWindow(option.id)}
+            className={cn(
+              "rounded-control px-3 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+              option.id === window
+                ? "bg-card text-foreground shadow-e2"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="space-y-5">
           <TopStories window={window} />
@@ -113,18 +271,7 @@ export default function DiscoverPage() {
           </section>
         </div>
 
-        <div className="space-y-5">
-          <MostRead />
-
-          <section className="space-y-3" aria-label="Weather">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              {places.map((place) => (
-                <WeatherCard key={place.id} place={place} />
-              ))}
-              <AddPlace />
-            </div>
-          </section>
-        </div>
+        <MostRead />
       </div>
     </div>
   );
