@@ -1,4 +1,5 @@
 import type { PortfolioItem } from "@/types";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   ItemDates,
@@ -60,30 +61,59 @@ export function DefaultListLayout({ items }: LayoutProps) {
   );
 }
 
-/** Vertical timeline — dotted spine, mono dates, cards. */
+/**
+ * Vertical timeline — a solid rail that fades out toward the last entry, one
+ * glowing dot per entry, dates in the accent colour above each title.
+ *
+ * Geometry: the rail is a 2px span at `left-[5px]` (centre x=6). Each dot is
+ * `size-3` pulled back by `-left-7`, exactly the ol's `pl-7` padding, so the
+ * dot's centre also lands on x=6 and tracks the rail at every width.
+ */
 export function TimelineLayout({ items }: LayoutProps) {
   return (
-    <ol className="relative space-y-8 border-l-2 border-dotted border-border pl-6">
-      {items.map((item) => (
-        <li key={item.id} className="relative min-w-0">
+    <ol className="relative space-y-10 pl-7">
+      <span
+        aria-hidden
+        className="absolute left-[5px] top-2 bottom-2 w-0.5 rounded-full bg-gradient-to-b from-primary to-transparent"
+      />
+      {items.map((item, index) => (
+        <motion.li
+          key={item.id}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{
+            duration: 0.5,
+            ease: "easeOut",
+            delay: Math.min(index * 0.06, 0.24),
+          }}
+          className="relative min-w-0"
+        >
           <span
             aria-hidden
-            className="absolute -left-[31px] top-1.5 size-2.5 rounded-full border-2 border-background bg-primary"
+            className="absolute -left-7 top-1 size-3 rounded-full border-2 border-primary bg-background ring-4 ring-primary/15"
           />
-          <ItemDates from={item.date_from} to={item.date_to} />
-          <h3 className="mt-1 font-heading font-semibold [overflow-wrap:anywhere]">
+          <ItemDates
+            from={item.date_from}
+            to={item.date_to}
+            className="text-primary"
+          />
+          <h3 className="mt-1 font-heading text-lg font-semibold [overflow-wrap:anywhere]">
             <TextLink href={item.link_url} className="hover:text-primary">
               {item.title}
             </TextLink>
           </h3>
-          <PlainText className="text-sm text-muted-foreground" clamp={2}>
+          <PlainText
+            className="mt-0.5 text-[0.95rem] font-medium text-muted-foreground"
+            clamp={2}
+          >
             {item.subtitle}
           </PlainText>
           <Markdown className="mt-2 text-muted-foreground">
             {item.description}
           </Markdown>
           <ItemTags tags={item.tags} className="mt-2.5" max={8} />
-        </li>
+        </motion.li>
       ))}
     </ol>
   );
