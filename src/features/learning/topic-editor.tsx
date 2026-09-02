@@ -15,7 +15,11 @@ import {
   Video,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { LearningStatus, LearningTopic } from "@/types";
+import type {
+  LearningStatus,
+  LearningTopic,
+  LearningMaterialKind,
+} from "@/types";
 import { useSaveTopicMutation } from "@/store/api/adminApi";
 import NovelEditor from "@/components/admin/novel-editor";
 import { Button } from "@/components/ui/button";
@@ -33,6 +37,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn, formatDate, getErrorMessage } from "@/lib/utils";
 import { urlOrEmpty } from "@/lib/schemas";
+import { MaterialFields } from "./material-fields";
 import { SessionTracker } from "./session-tracker";
 
 /* ── Status pipeline ── */
@@ -220,6 +225,12 @@ export function TopicEditor({
   const isMobile = useIsMobile();
   const [coreNotes, setCoreNotes] = useState("");
   const [status, setStatus] = useState<LearningStatus>("To Learn");
+  const [material, setMaterial] = useState<{
+    kind: LearningMaterialKind;
+    prompt: string;
+    answer: string;
+    choices: string[];
+  }>({ kind: "recall", prompt: "", answer: "", choices: [] });
   const [resources, setResources] = useState<{ name: string; url: string }[]>(
     [],
   );
@@ -234,6 +245,14 @@ export function TopicEditor({
     if (topic) {
       setCoreNotes(topic.core_notes || "");
       setStatus(topic.status || "To Learn");
+      setMaterial({
+        // The column has a default, so an existing row reads as `recall` and
+        // behaves exactly as it did before this field existed.
+        kind: topic.kind ?? "recall",
+        prompt: topic.prompt ?? "",
+        answer: topic.answer ?? "",
+        choices: topic.choices ?? [],
+      });
       const rawResources = topic.resources || [];
       setResources(
         rawResources.map((res) => ({
@@ -371,6 +390,30 @@ export function TopicEditor({
                 </div>
               </div>
             )}
+
+            <div className="px-4 pt-4">
+              <MaterialFields
+                kind={material.kind}
+                prompt={material.prompt}
+                answer={material.answer}
+                choices={material.choices}
+                onChange={(patch) => {
+                  const next = { ...material, ...patch };
+                  setMaterial(next);
+                  handleSave({
+                    kind: next.kind,
+                    prompt: next.prompt || null,
+                    answer: next.answer || null,
+                    // Blank rows are what an unfinished edit leaves behind;
+                    // storing them would render an empty option in the quiz.
+                    choices: next.choices.filter((choice) => choice.trim())
+                      .length
+                      ? next.choices.filter((choice) => choice.trim())
+                      : null,
+                  });
+                }}
+              />
+            </div>
 
             <div className="flex-1 px-4 pb-12 pt-4">
               <NovelEditor

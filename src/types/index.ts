@@ -515,14 +515,39 @@ export type LearningStatus =
   | "Practicing"
   | "Mastered";
 
+export type LearningMaterialKind = "reference" | "recall" | "quiz";
+
 export interface LearningTopic {
   id: string;
   user_id?: string;
   /** Nullable FK — a topic outlives the module it was filed under. */
   subject_id?: string | null;
   title: string;
+  /**
+   * What kind of material this is.
+   *
+   * `reference` is read and never enters the recall queue; `recall` is the
+   * classic prompt-then-reveal and remains the default so every existing row
+   * behaves exactly as it did; `quiz` carries a right answer to be marked
+   * against. Nullable because the column has a default — consumers fall back
+   * to "recall".
+   */
+  kind?: LearningMaterialKind | null;
   /** Nullable column with a default; consumers fall back to "To Learn". */
   status?: LearningStatus | null;
+  /**
+   * The question you are actually asked, as distinct from `title`, which is
+   * the label you scan in a list. Falls back to the title when absent.
+   */
+  prompt?: string | null;
+  /** The expected answer, for `quiz`. */
+  answer?: string | null;
+  /**
+   * Multiple choice options, when there are any. The correct one is `answer`,
+   * matched by value rather than by index, so reordering the options cannot
+   * silently change which is right.
+   */
+  choices?: string[] | null;
   core_notes?: string | null;
   resources?: { name: string; url: string }[] | null;
   confidence_score?: number | null;

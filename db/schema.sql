@@ -647,6 +647,58 @@ CREATE TABLE IF NOT EXISTS learning_topics (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+-- Not everything you learn is a flashcard: reference material is read,
+-- recall is the classic prompt-then-reveal, and quiz carries a right answer to
+-- be marked against. See db/migrations/015.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'learning_material_kind') THEN
+    CREATE TYPE learning_material_kind AS ENUM ('reference', 'recall', 'quiz');
+  END IF;
+END $$;
+
+ALTER TABLE learning_topics
+  ADD COLUMN IF NOT EXISTS kind learning_material_kind NOT NULL DEFAULT 'recall';
+
+ALTER TABLE learning_topics
+  ADD COLUMN IF NOT EXISTS prompt TEXT;
+
+ALTER TABLE learning_topics
+  ADD COLUMN IF NOT EXISTS answer TEXT;
+
+-- Multiple choice, when there is any. An array of strings; the correct one is
+-- `answer`, matched by value rather than by index, because reordering the
+-- options in the editor must not silently change which one is right.
+ALTER TABLE learning_topics
+  ADD COLUMN IF NOT EXISTS choices JSONB;
+
+DO $$
+BEGIN
+  -- Bounds mirror the Zod schema, so a value the form accepts cannot be one
+  -- Postgres rejects — which surfaces as an opaque save failure.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'learning_topics_prompt_len'
+  ) THEN
+    ALTER TABLE learning_topics
+      ADD CONSTRAINT learning_topics_prompt_len
+      CHECK (prompt IS NULL OR char_length(prompt) <= 2000);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'learning_topics_answer_len'
+  ) THEN
+    ALTER TABLE learning_topics
+      ADD CONSTRAINT learning_topics_answer_len
+      CHECK (answer IS NULL OR char_length(answer) <= 2000);
+  END IF;
+END $$;
+
+-- Reference material never becomes due, so it never appears in the queue and
+-- never counts as overdue. The partial index matches the query that reads it.
+CREATE INDEX IF NOT EXISTS learning_topics_reviewable_idx
+  ON learning_topics(due_date)
+  WHERE kind <> 'reference' AND archived_at IS NULL;
+
 CREATE INDEX IF NOT EXISTS learning_topics_due_date_idx ON learning_topics(due_date);
 CREATE INDEX IF NOT EXISTS learning_topics_archived_at_idx ON learning_topics(archived_at);
 ALTER TABLE learning_topics ENABLE ROW LEVEL SECURITY;

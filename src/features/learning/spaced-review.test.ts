@@ -11,6 +11,9 @@ import {
   retentionRate,
   stateOf,
   todayIso,
+  isMarkable,
+  promptFor,
+  weakAreas,
 } from "./spaced-review";
 
 const TODAY = "2026-06-15";
@@ -260,5 +263,93 @@ describe("retentionRate", () => {
 describe("todayIso", () => {
   it("uses local date parts", () => {
     expect(todayIso(new Date(2026, 5, 15, 23, 45))).toBe(TODAY);
+  });
+});
+
+describe("material kinds", () => {
+  /**
+   * The heart of the complaint: every topic was a flashcard, so the material
+   * you need to *read* either cluttered the recall queue or never got written
+   * down. Reading is a different act from recalling, and only one is
+   * scheduled.
+   */
+  it("keeps reference material out of the queue", () => {
+    const queue = buildQueue(
+      [
+        topic({ id: "read", kind: "reference", due_date: null }),
+        topic({ id: "card", kind: "recall", due_date: null }),
+      ],
+      { today: TODAY },
+    );
+
+    const ids = [...queue.due, ...queue.fresh].map((entry) => entry.id);
+    expect(ids).toEqual(["card"]);
+  });
+
+  /**
+   * Every row that exists today has no `kind` at all, since the column is new.
+   * Those must keep behaving exactly as they did — a migration that silently
+   * emptied somebody's review queue would be worse than the gap it filled.
+   */
+  it("treats a topic with no kind as recall", () => {
+    const queue = buildQueue([topic({ id: "legacy", due_date: null })], {
+      today: TODAY,
+    });
+    expect([...queue.due, ...queue.fresh]).toHaveLength(1);
+  });
+
+  it("marks a quiz topic only when it has an answer to mark against", () => {
+    expect(isMarkable(topic({ kind: "quiz", answer: "TCP" }))).toBe(true);
+    // No answer stored: fall back to self-rating rather than pretend to grade.
+    expect(isMarkable(topic({ kind: "quiz", answer: null }))).toBe(false);
+    expect(isMarkable(topic({ kind: "quiz", answer: "   " }))).toBe(false);
+    expect(isMarkable(topic({ kind: "recall", answer: "TCP" }))).toBe(false);
+  });
+
+  it("asks the prompt, falling back to the title", () => {
+    expect(promptFor(topic({ title: "TCP", prompt: "Name the three?" }))).toBe(
+      "Name the three?",
+    );
+    expect(promptFor(topic({ title: "TCP", prompt: "  " }))).toBe("TCP");
+    expect(promptFor(topic({ title: "TCP" }))).toBe("TCP");
+  });
+});
+
+describe("weakAreas", () => {
+  /**
+   * `lapses` and `ease` were recorded from the first migration and never
+   * shown, so the one question a study tool should answer — "what am I bad
+   * at?" — had no screen at all.
+   */
+  it("surfaces what keeps slipping, worst first", () => {
+    const areas = weakAreas([
+      topic({ id: "solid", lapses: 0 }),
+      topic({ id: "shaky", lapses: 1 }),
+      topic({ id: "awful", lapses: 4 }),
+    ]);
+    expect(areas.map((area) => area.topic.id)).toEqual(["awful", "shaky"]);
+  });
+
+  it("breaks ties on difficulty", () => {
+    const areas = weakAreas([
+      topic({ id: "easier", lapses: 2, ease: 2.4 }),
+      topic({ id: "harder", lapses: 2, ease: 1.6 }),
+    ]);
+    expect(areas[0].topic.id).toBe("harder");
+  });
+
+  it("ignores archived topics", () => {
+    expect(
+      weakAreas([topic({ id: "gone", lapses: 9, archived_at: "2026-01-01" })]),
+    ).toEqual([]);
+  });
+
+  /** A list of everything you are bad at is a list nobody opens twice. */
+  it("caps the list", () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      topic({ id: `t${i}`, lapses: i + 1 }),
+    );
+    expect(weakAreas(many)).toHaveLength(5);
+    expect(weakAreas(many, 3)).toHaveLength(3);
   });
 });

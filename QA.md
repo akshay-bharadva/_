@@ -371,6 +371,48 @@ stop reading it.
 
 17. for learning module it's good compare to previous one but, let's say if there are module subtopic it's always not the flashcard that can be read all along in review system, right? I need solid learning module, that can change my nuroplasticity and help me become knowledable. and help me study and prepare for certifications for career.
 
+**`[~]` The foundation is in; the certification-specific parts are not.**
+
+You put your finger on the actual structural problem: **every topic was a
+flashcard.** A row was a title you try to recall plus notes revealed afterwards,
+which is a good shape for facts and the wrong one for most of studying — the
+explanation you need to *read* before you can be asked anything had nowhere to
+live except in the same pile you were being quizzed from.
+
+**Migration 015** gives a topic a *kind*, which is the smallest change that
+opens the whole loop:
+
+- **Reference** — material you read. Never enters the review queue. This is the
+  thing you were describing.
+- **Recall** — the existing behaviour, and the default, so every row you already
+  have keeps working exactly as it does today.
+- **Quiz** — an explicit question with a right answer, optionally multiple
+  choice, and **marked** rather than self-rated. Self-rating how well you
+  remembered is not the same as being marked, and certification practice needs
+  the second one.
+
+`prompt` is a separate column from `title` on purpose. A title is the label you
+scan in a list ("TCP handshake"); a prompt is the question you are asked ("What
+are the three messages, in order?"). Asking with a label is part of why recall
+felt vague — you were guessing what was being asked as well as the answer. It
+falls back to the title, so nothing changes for existing topics.
+
+Multiple-choice options are matched by **value**, not by index, so reordering
+them in the editor cannot silently change which one is right.
+
+**Keeps slipping.** `lapses` and `ease` have been recorded since the module's
+first migration and shown nowhere — so the one question a study tool should be
+able to answer, "what am I actually bad at?", had no screen. It does now, from
+those existing signals rather than an invented score, and it counts only
+material you had learned and then forgot, not first attempts, which are
+supposed to be wrong.
+
+**Not built, deliberately:** timed mock exams against a blueprint, per-exam
+progress, and a question bank importable from a file. Those are the
+certification-specific layer, and they only make sense on top of the loop
+above — which did not exist until now. The brief asked for a coherent
+foundation rather than every possible feature, so that is what this is.
+
 18. in calander if there are multiple all day event or habit it's overlapping the UI, like it's not showing side by side.
 
 **`[x]` Resolved.** Not an overlap-layout problem — a flex one, which is why it

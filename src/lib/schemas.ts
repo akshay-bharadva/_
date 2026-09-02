@@ -524,9 +524,26 @@ export const learningSubjectSchema = z.object({
 
 export type LearningSubjectFormValues = z.infer<typeof learningSubjectSchema>;
 
+export const LEARNING_MATERIAL_KINDS = ["reference", "recall", "quiz"] as const;
+
 export const learningTopicSchema = z.object({
   subject_id: z.string().min(1, "Subject is required"),
   title: boundedRequiredString(LIMITS.TITLE, "Title"),
+  /**
+   * Defaulted, matching the column default, so every form and every existing
+   * row that never mentions a kind keeps behaving exactly as it did. A
+   * required enum here would have made the field mandatory in a form that has
+   * no control for it — which is a save that fails for a reason the writer
+   * cannot see.
+   */
+  kind: z.enum(LEARNING_MATERIAL_KINDS).default("recall"),
+  /**
+   * 2000 mirrors `learning_topics_prompt_len` / `_answer_len`. A bound the
+   * form accepts and the column rejects surfaces as an opaque write failure.
+   */
+  prompt: boundedOptionalString(2000, "Prompt"),
+  answer: boundedOptionalString(2000, "Answer"),
+  choices: z.array(boundedRequiredString(500, "Choice")).max(8).optional(),
   status: z.enum([
     LEARNING_STATUS.TO_LEARN,
     LEARNING_STATUS.LEARNING,

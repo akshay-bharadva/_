@@ -26,6 +26,7 @@ import { SubjectForm } from "./subject-form";
 import { TopicForm } from "./topic-form";
 import { ReviewSession } from "./review-session";
 import { StudyToday } from "./study-today";
+import { WeakAreas } from "./weak-areas";
 import { buildQueue, todayIso } from "./spaced-review";
 
 type SheetState =
@@ -189,6 +190,13 @@ export default function LearningPage() {
           today={today}
           onStart={() => setIsReviewing(true)}
           onAddTopic={() => setSheetState({ type: "create-topic" })}
+        />
+      )}
+
+      {!isReviewing && (
+        <WeakAreas
+          topics={topics}
+          onOpen={(topic) => setSheetState({ type: "edit-topic", data: topic })}
         />
       )}
 

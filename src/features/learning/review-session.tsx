@@ -12,7 +12,9 @@ import { cn } from "@/lib/cn";
 import {
   REVIEW_RATINGS,
   describeInterval,
+  isMarkable,
   previewIntervals,
+  promptFor,
   type ReviewRating,
 } from "./spaced-review";
 
@@ -41,12 +43,20 @@ export function ReviewSession({
 }: ReviewSessionProps) {
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  /** Which option was chosen, for a multiple-choice topic. */
+  const [picked, setPicked] = useState<string | null>(null);
   const [recordReview, { isLoading }] = useRecordReviewMutation();
 
   const topic = queue[index];
   const preview = useMemo(
     () => (topic ? previewIntervals(topic) : null),
     [topic],
+  );
+
+  const markable = topic ? isMarkable(topic) : false;
+  const choices = useMemo(
+    () => (markable ? (topic?.choices ?? []) : []),
+    [markable, topic],
   );
 
   // Space reveals, 1–4 rates. Studying is repetitive by design; reaching for
@@ -76,6 +86,7 @@ export function ReviewSession({
     try {
       await recordReview({ topic_id: topic.id, rating }).unwrap();
       setRevealed(false);
+      setPicked(null);
       setIndex((i) => i + 1);
     } catch (err) {
       toast.error("Couldn't save that review", {
@@ -126,9 +137,74 @@ export function ReviewSession({
           </p>
         )}
 
-        <h2 className="break-words text-xl font-semibold">{topic.title}</h2>
+        {/*
+          The prompt, which is not the title.
+          
+          A title is a label you scan in a list ("TCP handshake"); a prompt is
+          the question you are actually asked ("What are the three messages, in
+          order?"). Asking with a label is why recall felt vague — you were
+          guessing what was being asked as well as the answer. Falls back to
+          the title, so every existing topic reads exactly as it did.
+        */}
+        <h2 className="break-words text-xl font-semibold">
+          {promptFor(topic)}
+        </h2>
+        {topic.prompt?.trim() && (
+          <p className="mt-1 text-xs text-muted-foreground">{topic.title}</p>
+        )}
 
-        {!revealed ? (
+        {/*
+          Multiple choice, shown before the reveal.
+          
+          Picking an option is a harder act than deciding you "sort of knew
+          it", which is the point: certification practice needs you committed
+          to an answer before you see the right one. Options are stored as
+          values and matched by value, so reordering them in the editor cannot
+          silently change which is correct.
+        */}
+        {!revealed && choices.length > 0 && (
+          <ul className="mt-6 space-y-2">
+            {choices.map((choice) => (
+              <li key={choice}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPicked(choice);
+                    setRevealed(true);
+                  }}
+                  className={cn(
+                    "w-full rounded-control bg-secondary px-4 py-2.5 text-left text-sm transition-colors",
+                    "hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  )}
+                >
+                  {choice}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {revealed && markable && (
+          <p
+            className={cn(
+              "mt-4 inline-flex items-center gap-1.5 rounded-control px-2.5 py-1 text-sm font-medium",
+              picked === null
+                ? "bg-secondary text-muted-foreground"
+                : picked === topic.answer
+                  ? "bg-chart-2/15 text-chart-2"
+                  : "bg-destructive/15 text-destructive",
+            )}
+          >
+            {picked === null
+              ? "Answer"
+              : picked === topic.answer
+                ? "Correct"
+                : "Not quite"}
+            <span className="font-normal">— {topic.answer}</span>
+          </p>
+        )}
+
+        {!revealed && choices.length === 0 ? (
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
               {isFirstTime
