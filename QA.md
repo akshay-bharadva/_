@@ -721,3 +721,30 @@ _and_ searches every module.
 what made the contradiction this pass found possible in the first place, since
 a rail was sitting there regardless. Leaving it stale a second time would be
 the same mistake knowingly.
+
+**Follow-up 2: search, and the shell switch was genuinely broken.**
+
+_Typing a symbol and an exchange was a bad ask, and you were right._ The live
+search for "shopify" returns six listings with **four different tickers** —
+`SHOP` on NASDAQ, `SHOP` on the TSX in Canadian dollars, `SHOPN` on the BMV,
+`0VHA` on the LSE. Nobody reproduces that from memory, and getting it wrong
+means either no quote or a right-looking price in the wrong currency.
+
+You now search by name and pick a result; the ticker, venue and currency come
+with it. **Twelve Data's `symbol_search` answers without a key** — unlike its
+quote endpoint — so searching works before anything is configured, and
+CoinGecko covers coins. Manual entry stays behind a toggle, because a search
+that cannot find something must not be the only way in.
+
+_The shell switch was a real bug._ `useShellLayout()` was called in **two**
+places — the shell and the top bar — so each held its own `useState` over the
+same key. Choosing in the bar updated the bar and the shell never heard about
+it, which is exactly why nothing moved until you refreshed. One owner now, and
+a test that fails if the two are split again.
+
+_"Both are visible" was my mistake, not a bug._ I deliberately left the
+launcher up alongside the rail, reasoning that it is the only surface that
+lists _and_ searches every module. Two navigation controls on screen reads as
+broken, and you read it that way, which settles it — the launcher is hidden
+while the rail is up. Nothing is lost: the rail has its own search button into
+the command palette.

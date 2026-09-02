@@ -17,11 +17,8 @@ import { cn } from "@/lib/cn";
 import { fetchJson } from "./sources";
 import {
   groupByKind,
-  INSTRUMENT_KINDS,
   normalizeSymbol,
   quoteUrl,
-  validateEntry,
-  type InstrumentKind,
   type WatchlistEntry,
 } from "./watchlist";
 import {
@@ -31,6 +28,7 @@ import {
   type Quote,
   type QuoteProvider,
 } from "./quotes";
+import { WatchlistAddForm } from "./watchlist-add";
 
 /**
  * What you follow, and — where it is possible — what it costs.
@@ -154,7 +152,7 @@ export function WatchlistPanel({
       </header>
 
       {adding && (
-        <AddForm
+        <WatchlistAddForm
           entries={entries}
           onCancel={() => setAdding(false)}
           onSave={async (input) => {
@@ -298,112 +296,6 @@ function Row({
         <Trash2 className="size-3.5" aria-hidden />
       </button>
     </li>
-  );
-}
-
-function AddForm({
-  entries,
-  onSave,
-  onCancel,
-}: {
-  entries: WatchlistEntry[];
-  onSave: (input: Partial<WatchlistEntry>) => void;
-  onCancel: () => void;
-}) {
-  const [symbol, setSymbol] = useState("");
-  const [kind, setKind] = useState<InstrumentKind>("stock");
-  const [exchange, setExchange] = useState("");
-  const [note, setNote] = useState("");
-  const [problem, setProblem] = useState<string | null>(null);
-
-  const submit = () => {
-    const found = validateEntry(entries, { symbol, exchange });
-    if (found) {
-      setProblem(found.message);
-      return;
-    }
-    onSave({
-      symbol: normalizeSymbol(symbol),
-      kind,
-      exchange: exchange.trim() || null,
-      note: note.trim() || null,
-    });
-  };
-
-  return (
-    <div className="border-t border-border/60 bg-secondary/30 px-5 py-3">
-      <div className="flex flex-wrap items-start gap-2">
-        <div className="min-w-0">
-          <Input
-            autoFocus
-            value={symbol}
-            onChange={(event) => {
-              setSymbol(event.target.value);
-              setProblem(null);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") submit();
-              if (event.key === "Escape") onCancel();
-            }}
-            placeholder="Symbol"
-            aria-label="Symbol"
-            className="h-8 w-28 tabular-nums"
-          />
-        </div>
-
-        <select
-          value={kind}
-          onChange={(event) => setKind(event.target.value as InstrumentKind)}
-          aria-label="Kind"
-          className="h-8 rounded-control bg-card px-2 text-sm shadow-e1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {INSTRUMENT_KINDS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <Input
-          value={exchange}
-          onChange={(event) => setExchange(event.target.value)}
-          placeholder="Exchange"
-          aria-label="Exchange"
-          className="h-8 w-24"
-        />
-
-        <Input
-          value={note}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Why are you watching it?"
-          aria-label="Note"
-          className="h-8 min-w-0 flex-1"
-        />
-
-        <Button type="button" size="sm" className="h-8" onClick={submit}>
-          Add
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-8"
-          aria-label="Cancel"
-          onClick={onCancel}
-        >
-          <X className="size-4" aria-hidden />
-        </Button>
-      </div>
-
-      {problem && (
-        <p className="mt-1.5 text-[11px] text-destructive">{problem}</p>
-      )}
-
-      <p className="mt-1.5 text-[11px] text-muted-foreground">
-        Exchange matters when a ticker is ambiguous — SHOP is Shopify on both
-        the NYSE and the TSX, at different prices.
-      </p>
-    </div>
   );
 }
 

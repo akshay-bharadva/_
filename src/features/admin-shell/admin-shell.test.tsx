@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/tasks/",
@@ -47,19 +47,49 @@ describe("AdminShell", () => {
   });
 
   /**
-   * The launcher stays available in both arrangements. It is the only surface
-   * that lists every module *and* searches them, and removing it with the rail
-   * on would make the rail the sole way to navigate — which is the thing that
-   * made the rail worth replacing.
+   * One navigation control at a time.
+   *
+   * The launcher was left visible alongside the rail on the reasoning that it
+   * is the only surface which lists *and* searches every module. In use that
+   * reads as a bug — two navigation controls on screen — and the rail has its
+   * own search button into the command palette, so nothing is lost.
    */
-  it("keeps the launcher available alongside the rail", () => {
+  it("hides the launcher while the rail is up", () => {
     localStorage.setItem(SHELL_LAYOUT_KEY, "sidebar");
     render(
       <AdminShell>
         <p>body</p>
       </AdminShell>,
     );
-    expect(screen.getByLabelText("All modules")).toBeInTheDocument();
+    expect(rail()).not.toBeNull();
+    expect(screen.queryByLabelText("All modules")).toBeNull();
+  });
+
+  /**
+   * The reported bug: `useShellLayout` was called in both the shell and the
+   * bar, so each held its own `useState` over the same key. Choosing in the
+   * bar updated the bar and the shell never heard, so the arrangement only
+   * changed on the next reload — and until then both were on screen.
+   */
+  it("switches arrangement without a reload", async () => {
+    render(
+      <AdminShell>
+        <p>body</p>
+      </AdminShell>,
+    );
+
+    expect(rail()).toBeNull();
+
+    // Radix opens on pointerdown, which jsdom does not synthesise from click.
+    const account = screen.getByRole("button", { name: /account/i });
+    fireEvent.pointerDown(
+      account,
+      new PointerEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
+    fireEvent.click(await screen.findByText("Sidebar rail"));
+
+    expect(rail()).not.toBeNull();
+    expect(screen.queryByLabelText("All modules")).toBeNull();
   });
 
   /**

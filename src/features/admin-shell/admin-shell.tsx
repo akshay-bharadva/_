@@ -56,7 +56,7 @@ function ShellLoading() {
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state } = useAdminGuard();
-  const { layout, ready } = useShellLayout();
+  const { layout, choose, ready } = useShellLayout();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   useDocumentTitle();
@@ -132,7 +132,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           railed && (collapsed ? "lg:pl-16" : "lg:pl-60"),
         )}
       >
+        {/*
+          The layout state is owned here and passed down, not read again in the
+          bar.
+          
+          `useShellLayout` was called in both places, which meant two
+          independent `useState`s over the same key: choosing in the bar
+          updated the bar's copy and the shell never heard about it, so the
+          arrangement only changed on the next reload. One owner, one value.
+        */}
         <AdminTopbar
+          layout={layout}
+          onChooseLayout={choose}
+          showLauncher={!railed}
           onOpenSidebar={railed ? () => setMobileOpen(true) : undefined}
         />
         <main className="flex-1 px-4 py-6 sm:px-6">

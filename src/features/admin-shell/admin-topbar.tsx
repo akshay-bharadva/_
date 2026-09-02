@@ -27,7 +27,7 @@ import {
 import { AppLauncher } from "./app-launcher";
 import { cn } from "@/lib/cn";
 import { LearningPill } from "./learning-pill";
-import { SHELL_LAYOUTS, useShellLayout } from "./use-shell-layout";
+import { SHELL_LAYOUTS, type ShellLayout } from "./use-shell-layout";
 import { activeNavItem, NAV_ITEMS } from "./nav-config";
 
 /**
@@ -42,13 +42,27 @@ import { activeNavItem, NAV_ITEMS } from "./nav-config";
  * content.
  */
 export function AdminTopbar({
+  layout,
+  onChooseLayout,
+  /**
+   * The launcher is hidden while the rail is up.
+   *
+   * It was left visible in both arrangements on the reasoning that it is the
+   * only surface which lists *and* searches every module — but two navigation
+   * controls on screen at once reads as a bug rather than as a choice, and the
+   * rail has its own search button into the command palette, so nothing is
+   * actually lost.
+   */
+  showLauncher = true,
   /**
    * Supplied only in the rail arrangement, where a phone needs a way into the
-   * drawer. In the launcher arrangement navigation is the launcher at every
-   * width, so there is no second control to offer.
+   * drawer. With the launcher, navigation is the same control at every width.
    */
   onOpenSidebar,
 }: {
+  layout: ShellLayout;
+  onChooseLayout: (layout: ShellLayout) => void;
+  showLauncher?: boolean;
   onOpenSidebar?: () => void;
 }) {
   const router = useRouter();
@@ -57,7 +71,6 @@ export function AdminTopbar({
   const [signOut] = useSignOutMutation();
 
   const current = activeNavItem(pathname);
-  const { layout, choose } = useShellLayout();
   const Icon = current?.icon;
 
   const handleLogout = async () => {
@@ -93,7 +106,7 @@ export function AdminTopbar({
       <div className="ml-auto flex items-center gap-2">
         <LearningPill />
 
-        <AppLauncher />
+        {showLauncher && <AppLauncher />}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -163,7 +176,7 @@ export function AdminTopbar({
             {SHELL_LAYOUTS.map((option) => (
               <DropdownMenuItem
                 key={option.id}
-                onClick={() => choose(option.id)}
+                onClick={() => onChooseLayout(option.id)}
                 className="gap-2"
               >
                 <Check
