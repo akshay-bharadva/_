@@ -188,6 +188,40 @@ immediately and is built in at the next deploy.
 
 13. in assets section, take a look at google drive functionality, currently the upload section is very small not full screen, also when I drag and drop to the assets the "drop the upload to assets folder" is flickering containuosly, also I should be able to drag and drop move from root to and folder that is visible, similar to Drive - Througly research and brainstrom on it and then implement
 
+**`[~]` Mostly resolved.** Taken as three separate problems.
+
+**The flicker was a state bug, as suspected.** `dragenter` and `dragleave` fire
+per *element*, not per region — crossing from the drop area onto any card
+inside it raises `dragleave` on the area and `dragenter` on the card, in that
+order. A boolean set from those two events therefore switches the overlay off
+and on again for every card the cursor passes. It counts depth now, so the
+*region* is what is tracked, and a drag abandoned outside the window (or
+cancelled with Escape) clears it too, which nothing did before.
+
+Worth flagging: the existing test for this **passed with the bug in place**. It
+drove exactly one enter and one leave, the only sequence the boolean got right.
+
+**The upload area is a workspace now.** The drop region wraps the toolbar and
+the grid, so with a handful of assets it was a few hundred pixels tall and the
+target was a sliver of the page. It has a minimum height, so a folder has a
+shape whether it holds three files or three hundred.
+
+**Drag from root into a visible folder now moves the asset.** Folder cards are
+drop targets, asset cards are draggable, and dragging one of several selected
+assets moves the whole selection while dragging an unselected one moves just
+that one. Both the drag and the existing dialog go through a single move path,
+so a drag gets the same warning about `used_in` references breaking — a second
+implementation would be a second chance to forget it.
+
+The two drags are told apart by `dataTransfer.types`, which is the only thing
+readable during `dragover`. Without that an in-app move raised the "drop to
+upload" overlay over a gesture that was not an upload, and dropping it ran the
+upload handler with nothing to upload.
+
+**Still open:** upload progress per file, keyboard-accessible moving, and
+dragging *up* to a breadcrumb. The first is the one worth doing next; a large
+upload currently shows only a global spinner.
+
 14. for inbox setting the UI should be like Outlook - sort by new first and the UI/UX should be similar
 
 15. for discover, in money and market it;s only showing BTC & ETH no I don't want that and there is on banner with srock indices are not shown, intead is there any way we can watchlist some stock/MF/ETF we can search it and if we find the result we can watchlist and maintain watchlist; in career tab, the only career is list from germany and other but I'm in NA also I want carrer fulltime/parttime/freelance all aspect of things; for What happened tab, it seems goog to me but I know for sure that you can do much better - take full responsiblility of discover module throught research and analyse world web and reconstruct the mosule.

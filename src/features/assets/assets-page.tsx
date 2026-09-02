@@ -189,26 +189,37 @@ export default function AssetsPage() {
     }
   };
 
-  const handleMoveAssets = async () => {
-    if (selectedAssets.length === 0) return;
+  /**
+   * One move path, whichever gesture asked for it.
+   *
+   * The dialog and a drag onto a folder card must warn about the same thing:
+   * a move rewrites `file_path`, and nothing updates the references in
+   * published content that point at the old one. A second implementation for
+   * the drag would be a second chance to forget that.
+   */
+  const moveAssetsTo = async (
+    assets: StorageAsset[],
+    destination: string,
+  ): Promise<boolean> => {
+    if (assets.length === 0) return false;
 
     // A move rewrites `file_path`, and every reference in published content
     // points at the old path. Nothing rewrites those references, so this is a
     // breaking change to live pages whenever the asset is in use.
-    const usage = describeUsage(selectedAssets);
+    const usage = describeUsage(assets);
     if (usage) {
       const ok = await confirm({
-        title: `Move ${pluralAssets(selectedAssets.length)}?`,
+        title: `Move ${pluralAssets(assets.length)}?`,
         description: `${usage} Moving changes their URLs, and the existing references are not updated — those pages will show a broken image until you point them at the new path.`,
         confirmText: "Move anyway",
       });
-      if (!ok) return;
+      if (!ok) return false;
     }
 
     try {
       await Promise.all(
-        selectedAssets.map((asset) => {
-          const newPath = targetPathForMove(asset, targetMoveFolder);
+        assets.map((asset) => {
+          const newPath = targetPathForMove(asset, destination);
           if (newPath === asset.file_path) return Promise.resolve();
           return moveAsset({
             assetId: asset.id,
@@ -217,15 +228,41 @@ export default function AssetsPage() {
           }).unwrap();
         }),
       );
-      toast.success(`Moved ${pluralAssets(selectedAssets.length)}`);
-      clearSelection();
-      setIsMoveDialogOpen(false);
-      setIsBulkSelectMode(false);
+      toast.success(`Moved ${pluralAssets(assets.length)}`);
       await handleRescanUsage(true);
+      return true;
     } catch (err) {
       toast.error("Couldn't move every asset", {
         description: getErrorMessage(err),
       });
+      return false;
+    }
+  };
+
+  const handleMoveAssets = async () => {
+    const moved = await moveAssetsTo(selectedAssets, targetMoveFolder);
+    if (!moved) return;
+    clearSelection();
+    setIsMoveDialogOpen(false);
+    setIsBulkSelectMode(false);
+  };
+
+  /**
+   * Assets dropped onto a folder card.
+   *
+   * The ids come off the drag rather than from the current selection, because
+   * dragging an *unselected* asset should move that one and not quietly take a
+   * selection you had forgotten about along with it.
+   */
+  const handleDropOnFolder = async (folder: string, assetIds: string[]) => {
+    const ids = new Set(assetIds);
+    const dragged = assets.filter((asset) => ids.has(asset.id));
+    const destination = [...currentPath, folder].join("/");
+
+    const moved = await moveAssetsTo(dragged, destination);
+    if (moved) {
+      clearSelection();
+      setIsBulkSelectMode(false);
     }
   };
 
@@ -362,8 +399,17 @@ export default function AssetsPage() {
         className="sr-only"
       />
 
+      {/*
+        A workspace, not a strip.
+        
+        The drop region wraps the toolbar and the grid, so with only a handful
+        of assets it was a few hundred pixels tall and the upload target was a
+        sliver of the page. A minimum height gives the folder a shape whether
+        it holds three files or three hundred, and gives the drop overlay
+        something to fill.
+      */}
       <div
-        className="relative"
+        className="relative min-h-[60vh]"
         onDragEnter={(e) => handleDragEvents(e, true)}
         onDragLeave={(e) => handleDragEvents(e, false)}
         onDragOver={(e) => handleDragEvents(e, true)}
@@ -467,7 +513,11 @@ export default function AssetsPage() {
           />
         ) : (
           <>
-            <FolderGrid folders={subFolders} onOpen={navigateToFolder} />
+            <FolderGrid
+              folders={subFolders}
+              onOpen={navigateToFolder}
+              onDropAssets={handleDropOnFolder}
+            />
 
             {currentFolderAssets.length > 0 && (
               <div>

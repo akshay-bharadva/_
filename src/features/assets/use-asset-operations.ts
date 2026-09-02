@@ -1,4 +1,10 @@
-import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type DragEvent,
+} from "react";
 import { toast } from "sonner";
 import { supabase } from "@/supabase/client";
 import { getErrorMessage, getStorageUrl } from "@/lib/utils";
@@ -7,6 +13,7 @@ import {
   useRescanAssetUsageMutation,
 } from "@/store/api/adminApi";
 import { BUCKET_NAME, type StorageAsset } from "./asset-utils";
+import { isFileDrag } from "./asset-drag";
 
 /**
  * File operations for the asset manager: multi-file upload (with storage
@@ -92,20 +99,77 @@ export function useAssetOperations(currentPath: string[]) {
     if (files && files.length > 0) handleUpload(files);
   };
 
+  /**
+   * Drag depth, not a boolean.
+   *
+   * `dragenter` and `dragleave` fire per *element*, not per region: crossing
+   * from the drop area into any child raises `dragleave` on the parent and
+   * `dragenter` on the child, in that order. Setting a flag from those two
+   * events therefore turns the overlay off and on again for every card the
+   * cursor passes over, which is the continuous flicker that was reported —
+   * a state bug, not something to paper over with a transition.
+   *
+   * Counting instead makes it robust: the region is "entered" while more
+   * enters than leaves have been seen. Held in a ref rather than state, since
+   * it changes several times per frame and only its zero-ness renders.
+   */
+  const dragDepth = useRef(0);
+
+  const setDepth = (next: number) => {
+    dragDepth.current = Math.max(0, next);
+    setIsDragging(dragDepth.current > 0);
+  };
+
   const handleDragEvents = (
     e: DragEvent<HTMLDivElement>,
     isEntering: boolean,
   ) => {
+    // Only a drag carrying files is an upload. Without this an in-app asset
+    // move raises the "drop to upload" overlay over a gesture that is not an
+    // upload, and dropping it there runs this handler with nothing to upload.
+    // `types` is the only thing readable during dragover — the data itself is
+    // withheld until the drop — so the test has to be made from it.
+    if (!isFileDrag(e.dataTransfer?.types)) return;
+
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(isEntering);
+
+    // `dragover` repeats continuously while the pointer is inside and must
+    // not count — it only exists to keep the drop allowed.
+    if (e.type === "dragover") {
+      if (dragDepth.current === 0) setDepth(1);
+      return;
+    }
+
+    setDepth(dragDepth.current + (isEntering ? 1 : -1));
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-    handleDragEvents(e, false);
+    if (!isFileDrag(e.dataTransfer?.types)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // A drop ends the drag outright however deep the counter got — the events
+    // that would have unwound it never arrive.
+    setDepth(0);
     const files = e.dataTransfer.files;
     if (files && files.length > 0) handleUpload(files);
   };
+
+  /**
+   * A drag can also end without a drop — dropped outside the window, or
+   * cancelled with Escape — and neither fires `dragleave` on the region. The
+   * overlay would otherwise stay up until the next drag.
+   */
+  useEffect(() => {
+    const reset = () => setDepth(0);
+    window.addEventListener("dragend", reset);
+    window.addEventListener("drop", reset);
+    return () => {
+      window.removeEventListener("dragend", reset);
+      window.removeEventListener("drop", reset);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const downloadAsset = async (asset: StorageAsset) => {
     try {

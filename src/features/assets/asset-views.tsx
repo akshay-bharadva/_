@@ -1,6 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Download, Folder, Link as LinkIcon, Trash2 } from "lucide-react";
+import {
+  ASSET_MOVE_TYPE,
+  decodeAssetMove,
+  encodeAssetMove,
+  isAssetDrag,
+} from "./asset-drag";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,11 +25,17 @@ import { AssetThumbnail } from "./asset-thumbnail";
 export function FolderGrid({
   folders,
   onOpen,
+  onDropAssets,
 }: {
   folders: string[];
   onOpen: (folder: string) => void;
+  /** Assets dragged onto a folder card. Omit to make folders inert targets. */
+  onDropAssets?: (folder: string, assetIds: string[]) => void;
 }) {
+  const [overFolder, setOverFolder] = useState<string | null>(null);
+
   if (folders.length === 0) return null;
+
   return (
     <div className="mb-6">
       <h3 className="t-micro mb-3">Folders</h3>
@@ -31,9 +44,47 @@ export function FolderGrid({
           <div
             key={folder}
             onClick={() => onOpen(folder)}
-            className="group flex cursor-pointer flex-col items-center gap-2 rounded-surface border bg-card p-4 transition-all hover:border-primary/30 hover:bg-secondary/50"
+            /*
+              Dropping assets onto a folder moves them there — the gesture the
+              owner expected from a file manager and the one the move dialog
+              was standing in for. The target is claimed only for an asset
+              drag, so a desktop file drag still falls through to the upload
+              handler on the container.
+            */
+            onDragOver={(event) => {
+              if (!onDropAssets || !isAssetDrag(event.dataTransfer.types))
+                return;
+              event.preventDefault();
+              event.stopPropagation();
+              event.dataTransfer.dropEffect = "move";
+              setOverFolder(folder);
+            }}
+            onDragLeave={() =>
+              setOverFolder((current) => (current === folder ? null : current))
+            }
+            onDrop={(event) => {
+              if (!onDropAssets || !isAssetDrag(event.dataTransfer.types))
+                return;
+              event.preventDefault();
+              event.stopPropagation();
+              setOverFolder(null);
+              const move = decodeAssetMove(
+                event.dataTransfer.getData(ASSET_MOVE_TYPE),
+              );
+              if (move) onDropAssets(folder, move.assetIds);
+            }}
+            className={cn(
+              "group flex cursor-pointer flex-col items-center gap-2 rounded-surface border bg-card p-4 transition-all hover:border-primary/30 hover:bg-secondary/50",
+              overFolder === folder &&
+                "border-primary bg-primary/10 ring-2 ring-primary/40",
+            )}
           >
-            <Folder className="size-10 fill-chart-1/20 text-chart-1 transition-transform group-hover:scale-110" />
+            <Folder
+              className={cn(
+                "size-10 fill-chart-1/20 text-chart-1 transition-transform group-hover:scale-110",
+                overFolder === folder && "scale-110",
+              )}
+            />
             <span className="w-full truncate text-center text-xs font-medium">
               {folder}
             </span>
@@ -65,11 +116,32 @@ export function AssetGrid({
   onDownload,
   onDelete,
 }: AssetViewProps) {
+  /**
+   * What a drag from this card carries.
+   *
+   * Dragging one of several selected assets moves the whole selection, which
+   * is what every file manager does and what makes the gesture worth having.
+   * Dragging an unselected asset moves only that one, rather than silently
+   * taking a selection you had forgotten about with it.
+   */
+  const payloadFor = (assetId: string) =>
+    isBulkSelectMode && bulkSelectedIds.has(assetId)
+      ? Array.from(bulkSelectedIds)
+      : [assetId];
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {assets.map((asset) => (
         <div
           key={asset.id}
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.setData(
+              ASSET_MOVE_TYPE,
+              encodeAssetMove({ assetIds: payloadFor(asset.id) }),
+            );
+            event.dataTransfer.effectAllowed = "move";
+          }}
           className={cn(
             "group relative aspect-square cursor-pointer overflow-hidden rounded-md border bg-card transition-all hover:ring-2 hover:ring-primary/50",
             isBulkSelectMode &&

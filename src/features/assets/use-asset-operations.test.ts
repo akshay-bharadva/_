@@ -244,11 +244,19 @@ describe("useAssetOperations", () => {
   });
 
   describe("drag and drop", () => {
-    const dragEvent = (files: File[] = []) =>
+    const dragEvent = (
+      files: File[] = [],
+      type = "dragenter",
+      // A real desktop file drag announces itself through `types`, and the
+      // handler now checks that — an in-app asset move must not raise the
+      // upload overlay.
+      types: string[] = ["Files"],
+    ) =>
       ({
+        type,
         preventDefault: vi.fn(),
         stopPropagation: vi.fn(),
-        dataTransfer: { files: fileList(...files) },
+        dataTransfer: { files: fileList(...files), types },
       }) as unknown as React.DragEvent<HTMLDivElement> & {
         preventDefault: ReturnType<typeof vi.fn>;
         stopPropagation: ReturnType<typeof vi.fn>;
@@ -264,7 +272,109 @@ describe("useAssetOperations", () => {
       expect(enter.preventDefault).toHaveBeenCalled();
       expect(enter.stopPropagation).toHaveBeenCalled();
 
-      act(() => result.current.handleDragEvents(dragEvent(), false));
+      act(() =>
+        result.current.handleDragEvents(dragEvent([], "dragleave"), false),
+      );
+      expect(result.current.isDragging).toBe(false);
+    });
+
+    /**
+     * The reported flicker, and the reason the test above was not enough: it
+     * drove one enter and one leave, which is the only sequence the old
+     * boolean got right. **It passed with the bug in place.**
+     *
+     * `dragenter` and `dragleave` fire per *element*, not per region. Moving
+     * from the drop area onto a card inside it raises `dragleave` on the area
+     * and `dragenter` on the card, in that order — so a boolean set from those
+     * events switches the overlay off and on again for every card the cursor
+     * crosses. Counting depth is what makes the region, rather than the
+     * element, the thing being tracked.
+     */
+    /**
+     * Two different drags land on this page: files from the desktop, which
+     * upload, and assets already in the library, which move. Without this
+     * guard an in-app move raised the "drop to upload" overlay over a gesture
+     * that is not an upload, and dropping it ran the upload handler with
+     * nothing to upload.
+     */
+    it("ignores a drag that is not carrying files", () => {
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      act(() =>
+        result.current.handleDragEvents(
+          dragEvent([], "dragenter", ["application/x-asset-move"]),
+          true,
+        ),
+      );
+
+      expect(result.current.isDragging).toBe(false);
+    });
+
+    it("keeps the overlay up while crossing children", () => {
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      // Enter the region, then enter a child inside it.
+      act(() => result.current.handleDragEvents(dragEvent(), true));
+      act(() => result.current.handleDragEvents(dragEvent(), true));
+      // Leaving the region *for* that child is the event that used to hide it.
+      act(() =>
+        result.current.handleDragEvents(dragEvent([], "dragleave"), false),
+      );
+
+      expect(result.current.isDragging).toBe(true);
+    });
+
+    it("hides the overlay only when the last leave arrives", () => {
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      act(() => result.current.handleDragEvents(dragEvent(), true));
+      act(() => result.current.handleDragEvents(dragEvent(), true));
+      act(() =>
+        result.current.handleDragEvents(dragEvent([], "dragleave"), false),
+      );
+      act(() =>
+        result.current.handleDragEvents(dragEvent([], "dragleave"), false),
+      );
+
+      expect(result.current.isDragging).toBe(false);
+    });
+
+    /**
+     * `dragover` repeats continuously while the pointer is inside the region.
+     * Counting it would run the depth up unboundedly, and the matching leaves
+     * would never arrive to unwind it — the overlay would then stay up for the
+     * rest of the session.
+     */
+    it("does not let dragover run the depth up", () => {
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      act(() => result.current.handleDragEvents(dragEvent(), true));
+      for (let i = 0; i < 20; i++) {
+        act(() =>
+          result.current.handleDragEvents(dragEvent([], "dragover"), true),
+        );
+      }
+      act(() =>
+        result.current.handleDragEvents(dragEvent([], "dragleave"), false),
+      );
+
+      expect(result.current.isDragging).toBe(false);
+    });
+
+    /**
+     * A drag can end without a drop — released outside the window, or
+     * cancelled with Escape — and neither fires `dragleave` on the region.
+     */
+    it("clears the overlay when a drag is abandoned", () => {
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      act(() => result.current.handleDragEvents(dragEvent(), true));
+      expect(result.current.isDragging).toBe(true);
+
+      act(() => {
+        window.dispatchEvent(new Event("dragend"));
+      });
+
       expect(result.current.isDragging).toBe(false);
     });
 
