@@ -558,4 +558,28 @@ into an accounting system, so I have left it.
 
 22. for Settings, for preview I want same exact preview as the actual website, not few components.
 
+**`[x]` Resolved.** The preview rendered three page bodies and nothing around
+them, so the two things a visitor sees first and last — the header and the
+footer — were exactly the two you could not check. Both are the components that
+actually ship now, not lookalikes:
+
+- The **footer** is split into a view, the same way Hero, About and Contact
+  already were, so it renders against your *unsaved* values. Editing the footer
+  group and not seeing the footer change was the sharpest version of the
+  problem.
+- The **header** takes an identity override, so the logo you are typing is the
+  logo you see. It is not split into a view/container pair because it also
+  depends on the current path, the session and its own menu state, none of
+  which the preview wants to reproduce.
+- The home preview gains the real closing **call to action**, and the CMS
+  sections are drawn as an outline — they come from a separate query and are
+  not what these switches change.
+
+The frame is inert. A click inside it would navigate the admin away and take
+every unsaved change with it, and a preview is for looking at.
+
+The route's first-load JS is unchanged at 349 kB: the preview is still behind
+its `next/dynamic` boundary, so none of this reaches the page until you open
+it.
+
 23. after all of these changes I want you to make a admin side bar layout instead of sidebar to google options, like google have 9 dots on top right beside the profile button from where we have access to all google applications.

@@ -15,6 +15,9 @@ import { cn } from "@/lib/cn";
 import { HeroView } from "@/features/home/hero";
 import { AboutView } from "@/features/about/about-page";
 import { ContactView } from "@/features/contact/contact-page";
+import { ContactCta } from "@/features/home/contact-cta";
+import SiteHeader from "@/components/layout/site-header";
+import { FooterView } from "@/components/layout/public-footer";
 import type { PreviewPage } from "./settings-groups";
 
 /**
@@ -69,7 +72,24 @@ function PreviewPageBody({
   page: PreviewPage;
   identity: SiteContent;
 }) {
-  if (page === "home") return <HeroView identity={identity} />;
+  if (page === "home") {
+    return (
+      <>
+        <HeroView identity={identity} />
+        {/*
+          The rest of the home page is CMS sections, which the preview cannot
+          render — they are a separate query and are not what these switches
+          change. The closing call to action *is* real, and it is what the
+          bottom of the page actually looks like.
+        */}
+        <InertBlock
+          label="Your sections"
+          note="Managed as CMS pages; live on the public home page."
+        />
+        <ContactCta />
+      </>
+    );
+  }
 
   if (page === "about") {
     return (
@@ -80,25 +100,27 @@ function PreviewPageBody({
   }
 
   return (
-    <ContactView
-      identity={identity}
-      // The real form posts to the database and the services block runs the
-      // CMS sections query. Neither belongs inside a preview, but whether they
-      // are *shown* is exactly what this group's switches decide — so the
-      // outline appears and disappears with the switch.
-      form={
-        <InertBlock
-          label="Contact form"
-          note="Live on the public page; inert here."
-        />
-      }
-      services={
-        <InertBlock
-          label="Services"
-          note="Managed as CMS sections for /contact."
-        />
-      }
-    />
+    <div className="px-6 py-12 sm:px-10">
+      <ContactView
+        identity={identity}
+        // The real form posts to the database and the services block runs the
+        // CMS sections query. Neither belongs inside a preview, but whether they
+        // are *shown* is exactly what this group's switches decide — so the
+        // outline appears and disappears with the switch.
+        form={
+          <InertBlock
+            label="Contact form"
+            note="Live on the public page; inert here."
+          />
+        }
+        services={
+          <InertBlock
+            label="Services"
+            note="Managed as CMS sections for /contact."
+          />
+        }
+      />
+    </div>
   );
 }
 
@@ -194,7 +216,30 @@ export function SettingsPreview({
         typographyClass={typography}
         paletteStyle={paletteStyle}
       >
-        <PreviewPageBody page={page} identity={identity} />
+        {/*
+          The real chrome, not just the page body.
+          
+          The preview showed three page components and nothing around them, so
+          the two things a visitor sees first and last — the header and the
+          footer — were the two you could not check. Both are the components
+          that actually ship: the footer is split into a view for this, the
+          same way Hero, About and Contact already were, and the header takes
+          an identity override so the logo you are typing is the logo you see.
+          
+          The whole frame is inert. A click inside it would navigate the admin
+          away and take unsaved changes with it, and a preview is for looking
+          at rather than for using.
+        */}
+        <div
+          data-testid="preview-frame"
+          className="pointer-events-none flex min-h-full flex-col bg-background"
+        >
+          <SiteHeader identity={identity} />
+          <main className="flex-1">
+            <PreviewPageBody page={page} identity={identity} />
+          </main>
+          <FooterView identity={identity} />
+        </div>
       </PreviewFrame>
     </div>
   );

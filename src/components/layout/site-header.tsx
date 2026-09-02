@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, ShieldCheck, X } from "lucide-react";
+import type { SiteContent } from "@/types";
 import {
   useGetNavLinksQuery,
   useGetSiteIdentityQuery,
@@ -36,15 +37,30 @@ function isActivePath(pathname: string, href: string): boolean {
  * Retired from v2: the uppercase monospace nav voice and the bordered
  * bottom rule.
  */
-export default function SiteHeader() {
+/**
+ * `identity` overrides the fetched row.
+ *
+ * Only the settings preview passes it, and it exists so the preview can render
+ * the *real* header against unsaved form values rather than a lookalike. The
+ * header is not split into a view/container pair like Hero, About, Contact and
+ * the footer, because it also depends on the current path, the session and its
+ * own menu state — none of which the preview wants to reproduce, and all of
+ * which would have to be threaded through as props to no benefit.
+ */
+export default function SiteHeader({
+  identity: identityOverride,
+}: {
+  identity?: SiteContent;
+} = {}) {
   const pathname = usePathname() ?? "/";
-  const { data: identity, isLoading: isIdentityLoading } =
+  const { data: fetched, isLoading: isIdentityLoading } =
     useGetSiteIdentityQuery();
+  const identity = identityOverride ?? fetched;
   const { data: navLinks, isLoading: isNavLoading } = useGetNavLinksQuery();
   const { session } = useSupabaseSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const isLoading = isIdentityLoading || isNavLoading;
+  const isLoading = (!identityOverride && isIdentityLoading) || isNavLoading;
   const logo = identity?.profile_data.logo;
 
   // Close the mobile menu whenever navigation lands somewhere.

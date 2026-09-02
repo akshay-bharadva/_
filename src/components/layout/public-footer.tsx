@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Markdown } from "@/components/ui/markdown";
 import { Skeleton } from "@/components/ui/skeleton";
 import { socialIcon } from "@/lib/social-icons";
+import type { SiteContent } from "@/types";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { Band } from "@/components/layout/band";
 import { safeLinkUrl } from "@/lib/safe-url";
@@ -22,7 +23,6 @@ import { safeLinkUrl } from "@/lib/safe-url";
 export default function PublicFooter() {
   const router = useRouter();
   const { data: identity, isLoading } = useGetSiteIdentityQuery();
-  const currentYear = new Date().getFullYear();
   const [clickCount, setClickCount] = useState(0);
 
   useEffect(() => {
@@ -50,6 +50,36 @@ export default function PublicFooter() {
     );
   }
 
+  return (
+    <FooterView
+      identity={identity}
+      onSecretTap={() => setClickCount((count) => count + 1)}
+    />
+  );
+}
+
+/**
+ * The footer over identity passed in rather than fetched.
+ *
+ * The same view/container split as `HeroView`, `AboutView` and `ContactView`,
+ * and for the same reason: the settings preview has to render the *real*
+ * footer against unsaved form values, or the footer you are editing is not the
+ * one you are looking at. A lookalike would be a second copy of the design to
+ * keep in step, and the copy you judged your changes against would be the one
+ * that never shipped.
+ *
+ * The five-tap admin shortcut is a prop, so the preview can render the footer
+ * without wiring a gesture that would navigate out of the settings screen and
+ * lose whatever was unsaved.
+ */
+export function FooterView({
+  identity,
+  onSecretTap,
+}: {
+  identity: SiteContent;
+  onSecretTap?: () => void;
+}) {
+  const currentYear = new Date().getFullYear();
   const { profile_data, social_links, footer_data } = identity;
 
   return (
@@ -57,10 +87,7 @@ export default function PublicFooter() {
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1 text-sm text-muted-foreground">
           <p>
-            <span
-              onClick={() => setClickCount((count) => count + 1)}
-              className="cursor-default select-none"
-            >
+            <span onClick={onSecretTap} className="cursor-default select-none">
               &copy; {currentYear}
             </span>{" "}
             <span className="font-medium text-foreground">

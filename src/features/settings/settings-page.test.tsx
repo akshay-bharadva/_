@@ -19,6 +19,21 @@ vi.mock("@/store/api/adminApi", () => ({
   useUpdateSiteSettingsMutation: () => [mocks.update, { isLoading: false }],
 }));
 
+/**
+ * The preview renders the *real* site header and footer now, and those read
+ * the public API — which needs a store this test does not stand up. Mocking
+ * the endpoints rather than wrapping in a Provider keeps the test about the
+ * settings form, and keeps it from depending on what the public queries do.
+ */
+vi.mock("@/store/api/publicApi", () => ({
+  useGetSiteIdentityQuery: () => ({ data: undefined, isLoading: false }),
+  useGetNavLinksQuery: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock("@/hooks/use-auth-guard", () => ({
+  useSupabaseSession: () => ({ session: null, isLoading: false }),
+}));
+
 vi.mock("sonner", () => ({
   toast: { success: mocks.toastSuccess, error: mocks.toastError },
 }));
@@ -473,5 +488,35 @@ describe("SettingsPage save bar visibility", () => {
     expect(
       screen.queryByRole("button", { name: /Save brand & logo/i }),
     ).toBeNull();
+  });
+});
+
+describe("preview fidelity", () => {
+  /**
+   * "The same preview as the actual website, not a few components."
+   *
+   * The preview rendered three page bodies and nothing around them, so the two
+   * things a visitor sees first and last — the header and the footer — were
+   * the two you could not check. Both are now the components that actually
+   * ship rather than lookalikes, which is the whole point: a copy you judge
+   * your changes against is a copy that never renders for anyone else.
+   */
+  it("frames the page in the real header and footer", async () => {
+    render(<SettingsPage />);
+
+    const frame = await screen.findByTestId("preview-frame");
+    expect(frame.querySelector("header")).not.toBeNull();
+    expect(frame.querySelector("footer")).not.toBeNull();
+  });
+
+  /**
+   * A click inside the preview would navigate the admin away and take every
+   * unsaved change with it. A preview is for looking at.
+   */
+  it("is inert", async () => {
+    render(<SettingsPage />);
+
+    const frame = await screen.findByTestId("preview-frame");
+    expect(frame.className).toContain("pointer-events-none");
   });
 });
