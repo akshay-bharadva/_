@@ -147,6 +147,25 @@ future `/admin/blog-drafts` cannot light up Blog.
 
 9. on admin/content, Pages section, the div with Items and add item button have different bg coloring which is off and clearly visible - check that out
 
+**`[x]` Resolved.** Incorrect surface token, not incorrect nesting. The section
+detail pane is `rounded-surface bg-card shadow-e1`, and the sticky Items header
+inside it was painted `bg-background/95` — a different token, and a visibly
+different colour on nearly every preset, so the header read as a foreign strip
+laid across the panel.
+
+A sticky bar does need a fill (its job is to occlude what scrolls under it);
+the fill just has to be its *container's*. The same mistake was sitting
+unreported in the habits grid, whose frozen first and last columns were
+`bg-background/95` inside a `bg-card` table — four places in total.
+
+Guarded now, and that guard is worth a note: the first version used `` word
+boundaries, and the backslash did not survive the tooling that wrote the file —
+it became a literal backspace character, so every pattern matched nothing and
+the rule reported the codebase clean **with the bug still in it**. It compares
+tokens instead. Two files that legitimately paint `bg-background` (a bar inside
+a Sheet, and the blog editor's page-level toolbar) are allowed by name with
+their reason, checked in both directions so an allowance cannot outlive it.
+
 10. same UI issue in blog post edit view, take a reference of medium, dev.to and substacks bloging flow system and restructure the Blog components - also when the blog is long the tool bar is not sticking up it scrolls with the editing box
 
 11. in updates, it seems like the table/list view is old and other components are new sync the list/table with current new UI/UX

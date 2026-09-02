@@ -6,6 +6,7 @@ import {
   classFragments,
   classLists,
   hasDeadHoverBorder,
+  tokenize,
   usesDashedDivider,
   usesRawRadius,
 } from "./class-rules";
@@ -315,5 +316,68 @@ describe("monospace budget", () => {
     // A pattern that matches nothing reports every rule clean. This project
     // has shipped that bug once already.
     expect(usingMono.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * A sticky overlay must be painted in its container's fill.
+ *
+ * A sticky bar needs a background, because its whole job is to occlude the
+ * content scrolling under it. The mistake is reaching for `bg-background` by
+ * reflex when the thing it sits on is a `bg-card` panel — on nearly every
+ * preset those are different colours, so the bar reads as a foreign strip laid
+ * across the surface. That was reported on the CMS "Items" header, and the
+ * habits grid's frozen columns had it too.
+ *
+ * The check is narrow on purpose: only files that *also* build a `bg-card`
+ * surface are considered, so a sticky bar on a sheet or on the page ground —
+ * where `bg-background` is the correct answer — is left alone.
+ *
+ * Written with `tokenize` rather than a regex deliberately. The first version
+ * used word boundaries, and the `\b` did not survive the tooling that wrote
+ * the file: it became a literal backspace character, so every pattern matched
+ * nothing and the rule reported the codebase clean **with the reported bug
+ * still in it**. That is the fourth time this project has been bitten by a
+ * `\b`, and comparing tokens has no escaping to get wrong.
+ */
+/**
+ * Files where a sticky bar legitimately paints `bg-background`, with the
+ * reason. Checked in both directions: an entry that stops qualifying has to
+ * be removed, so the list cannot quietly outlive its reason.
+ */
+const STICKY_BACKGROUND_ALLOWED: Record<string, string> = {
+  // The bar sits directly inside <SheetContent>, whose fill *is* bg-background.
+  "features/assets/asset-details-sheet.tsx": "inside a Sheet",
+  // The editor replaces the page body rather than sitting in a card, so its
+  // toolbar is on the admin ground. Revisit with the QA-10 editor rework.
+  "features/blog-admin/blog-editor.tsx": "page-level toolbar, not in a card",
+};
+
+describe("sticky overlays", () => {
+  const suspects = FILES.filter(({ path, source }) => {
+    if (path.includes("novel-editor")) return false;
+    if (!source.includes("bg-card")) return false;
+
+    return classFragments(source).some((list) => {
+      const tokens = tokenize(list);
+      return (
+        tokens.some((token) => token.base === "sticky") &&
+        tokens.some((token) => token.base.startsWith("bg-background"))
+      );
+    });
+  }).map(({ path }) => path);
+
+  it("do not paint the page fill inside a card surface", () => {
+    const offenders = suspects.filter(
+      (path) => !(path in STICKY_BACKGROUND_ALLOWED),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("has no stale allowances", () => {
+    const stale = Object.keys(STICKY_BACKGROUND_ALLOWED).filter(
+      (path) => !suspects.includes(path),
+    );
+    expect(stale).toEqual([]);
   });
 });

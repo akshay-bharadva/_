@@ -90,7 +90,7 @@ export const HabitRow = React.memo(
       <TableRow className="hover:bg-muted/20">
         {/* Sticky habit-name column */}
         <TableCell
-          className="sticky left-0 z-10 w-[120px] min-w-[120px] border-r bg-background/95 p-3 backdrop-blur sm:w-[160px] sm:min-w-[160px]"
+          className="sticky left-0 z-10 w-[120px] min-w-[120px] border-r bg-card/95 p-3 backdrop-blur sm:w-[160px] sm:min-w-[160px]"
           onClick={() => onViewStats(habit)}
         >
           <div className="flex h-full cursor-pointer flex-col justify-center gap-0.5">
@@ -126,7 +126,7 @@ export const HabitRow = React.memo(
         })}
 
         {/* Sticky stats column */}
-        <TableCell className="sticky right-0 z-10 w-[60px] min-w-[60px] border-l bg-background/95 px-1 backdrop-blur">
+        <TableCell className="sticky right-0 z-10 w-[60px] min-w-[60px] border-l bg-card/95 px-1 backdrop-blur">
           <div className="flex items-center justify-center gap-1">
             <div
               className={cn(

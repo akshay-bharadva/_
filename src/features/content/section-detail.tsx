@@ -454,10 +454,17 @@ export function SectionDetail({
                 </div>
               )}
 
-              <div className="sticky top-0 z-10 -mx-1 flex items-center justify-between gap-3 bg-background/95 px-1 py-2 backdrop-blur-sm">
+              {/*
+                A sticky bar has to occlude the content scrolling under it, so
+                it needs a fill — and the fill must be its *container's*. This
+                was `bg-background/95` inside a `bg-card` panel, which is a
+                different token on nearly every preset, so the Items header
+                read as a foreign strip laid across the panel.
+              */}
+              <div className="sticky top-0 z-10 -mx-1 flex items-center justify-between gap-3 bg-card/95 px-1 py-2 backdrop-blur-sm">
                 <h3 className="flex items-center gap-2 text-lg font-semibold">
                   Items
-                  <span className="rounded-full bg-secondary px-2 py-0.5 font-mono text-xs font-normal text-muted-foreground">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-normal tabular-nums text-muted-foreground">
                     {items.length}
                   </span>
                 </h3>

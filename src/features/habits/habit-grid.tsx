@@ -66,7 +66,7 @@ export function HabitGrid({
   }, [habits, daysToShow]);
 
   return (
-    <div className="overflow-hidden rounded-surface bg-card shadow-e1 shadow-e1">
+    <div className="overflow-hidden rounded-surface bg-card shadow-e1">
       <ScrollArea className="w-full whitespace-nowrap">
         <div
           className="inline-block min-w-full align-middle"
@@ -75,7 +75,7 @@ export function HabitGrid({
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="border-b hover:bg-transparent">
-                <TableHead className="sticky left-0 z-20 h-12 w-[120px] min-w-[120px] border-r bg-background/95 pl-4 backdrop-blur sm:w-[160px] sm:min-w-[160px]">
+                <TableHead className="sticky left-0 z-20 h-12 w-[120px] min-w-[120px] border-r bg-card/95 pl-4 backdrop-blur sm:w-[160px] sm:min-w-[160px]">
                   Habit
                 </TableHead>
                 {dates.map((date) => (
@@ -100,7 +100,7 @@ export function HabitGrid({
                     </div>
                   </TableHead>
                 ))}
-                <TableHead className="sticky right-0 z-20 w-[60px] min-w-[60px] border-l bg-background/95 text-center backdrop-blur">
+                <TableHead className="sticky right-0 z-20 w-[60px] min-w-[60px] border-l bg-card/95 text-center backdrop-blur">
                   Stats
                 </TableHead>
               </TableRow>
