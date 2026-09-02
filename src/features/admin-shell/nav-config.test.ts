@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { NAV_GROUPS, NAV_ITEMS, activeNavItem } from "./nav-config";
+import {
+  NAV_GROUPS,
+  NAV_ITEMS,
+  activeNavItem,
+  isActiveNavHref,
+} from "./nav-config";
 
 describe("NAV_ITEMS", () => {
   it("flattens every group in order", () => {
@@ -45,5 +50,58 @@ describe("activeNavItem", () => {
     const before = [...NAV_ITEMS];
     activeNavItem("/admin/notes");
     expect(NAV_ITEMS).toEqual(before);
+  });
+});
+
+describe("isActiveNavHref", () => {
+  /**
+   * `next.config.js` sets `trailingSlash: true`, so `usePathname()` returns
+   * `/admin/` rather than `/admin`. The previous implementation compared the
+   * two with `===` and excluded `/admin` from its prefix fallback, which meant
+   * the Dashboard link was the one entry that could never be active.
+   */
+  it("matches the admin root with and without a trailing slash", () => {
+    expect(isActiveNavHref("/admin", "/admin")).toBe(true);
+    expect(isActiveNavHref("/admin/", "/admin")).toBe(true);
+  });
+
+  it("matches a module route with and without a trailing slash", () => {
+    expect(isActiveNavHref("/admin/tasks", "/admin/tasks")).toBe(true);
+    expect(isActiveNavHref("/admin/tasks/", "/admin/tasks")).toBe(true);
+  });
+
+  it("matches a descendant route", () => {
+    expect(isActiveNavHref("/admin/tasks/123", "/admin/tasks")).toBe(true);
+    expect(isActiveNavHref("/admin/tasks/123/", "/admin/tasks")).toBe(true);
+  });
+
+  /**
+   * A plain `startsWith` makes every sibling whose name begins with another's
+   * light up together. There is no `/admin/blog-drafts` route today, which is
+   * exactly why the rule needs a test rather than an observation.
+   */
+  it("does not match a sibling sharing a name prefix", () => {
+    expect(isActiveNavHref("/admin/blog-drafts", "/admin/blog")).toBe(false);
+    expect(isActiveNavHref("/admin/blog-drafts/", "/admin/blog")).toBe(false);
+  });
+
+  it("does not let the admin root claim every module", () => {
+    expect(isActiveNavHref("/admin/finance/", "/admin")).toBe(false);
+  });
+
+  it("ignores a query string or hash", () => {
+    expect(isActiveNavHref("/admin/?tab=today", "/admin")).toBe(true);
+    expect(isActiveNavHref("/admin/notes/#pinned", "/admin/notes")).toBe(true);
+  });
+});
+
+describe("activeNavItem with trailing slashes", () => {
+  it("resolves the dashboard from the exported path", () => {
+    expect(activeNavItem("/admin/")?.name).toBe("Dashboard");
+  });
+
+  it("resolves a module from the exported path", () => {
+    expect(activeNavItem("/admin/tasks/")?.name).toBe("Tasks");
+    expect(activeNavItem("/admin/blog/edit/")?.name).toBe("Blog");
   });
 });

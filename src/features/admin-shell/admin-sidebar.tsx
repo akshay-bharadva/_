@@ -10,11 +10,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/cn";
-import { NAV_GROUPS, type NavItem } from "./nav-config";
-
-function isActive(pathname: string, href: string): boolean {
-  return pathname === href || (href !== "/admin" && pathname.startsWith(href));
-}
+import { isActiveNavHref, NAV_GROUPS, type NavItem } from "./nav-config";
 
 function openCommandPalette() {
   document.dispatchEvent(new CustomEvent("open-command-palette"));
@@ -30,7 +26,7 @@ function SidebarLink({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname() ?? "";
-  const active = isActive(pathname, item.href);
+  const active = isActiveNavHref(pathname, item.href);
 
   const link = (
     <Link
