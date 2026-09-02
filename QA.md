@@ -47,6 +47,37 @@ but the URL is empty.
 
 4. for section renderer section, I didn't like the timeline UI/UX the design is off and it's not aligned properly I want something like github commit/branch timeline structure - I should be able to clearly see the timeline, if some process overlaped (like similar to parallel branching and merging) - brainstrom and make something like that
 
+**`[~]` Resolved, with one deliberate limit stated up front.** The timeline was
+a flat `<ol>` with `border-l-2 border-dotted` — a dotted rule as a separator,
+which is retired v2 grammar — and a shape with no way to say that two things
+happened at once. It is now a lane graph: chronology newest-first, a lane
+opening when two items genuinely overlapped in time, that lane rejoining the
+trunk when the overlap ends, and an open tip for work with no end date.
+
+**What it cannot do, and why I did not fake it.** `portfolio_items` has no
+parent, branch or lane column of any kind. Concurrency is derivable from
+overlapping dates and is honest. A *merge* in the git sense — "X was merged
+into Y" — is not: it needs an explicit parent pointer, and inferring one from
+"this ended around when that began" would draw a relationship you never stated.
+So a lane rejoins the trunk when it ends, which is true, and nothing claims
+causation. Adding `depends_on` to `portfolio_items` is the right change if you
+want real merges; say the word and it is a small migration, but I have not made
+it on speculation.
+
+**A second constraint worth knowing.** `date_from` and `date_to` are free-text
+`TEXT` columns, so a value can be `2023`, `Jan 2023`, `2023-04-17` or `Summer
+2022`. The parser reads the first three and returns *nothing* for the fourth
+rather than guessing — ordering "Summer 2022" as the epoch would silently sink
+it to the bottom of every timeline. Undated items keep their given order on the
+trunk and claim nothing, and a section where no date parses degrades to an
+ordered trunk rather than to a broken graph.
+
+Drawn in CSS rather than SVG, because row heights vary with description length
+and an SVG overlay would have to measure every row and re-measure on resize and
+font load. Below `sm` the lanes collapse to one rail — parallel lanes at 375px
+are four-pixel columns — and concurrency is stated in words instead, so a phone
+does not lose the information.
+
 5. for blog page, public, the table of content is off with the blog content, I can scroll down to the page but some title in TOC is not highlighed even when I click on TOC title the blog scrolls to that but it's not higlighted.
 
 **`[x]` Resolved.** The active heading came from an `IntersectionObserver` with

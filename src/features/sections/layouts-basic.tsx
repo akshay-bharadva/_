@@ -1,4 +1,5 @@
 import type { PortfolioItem } from "@/types";
+import { TimelineGraph } from "./timeline-graph";
 import { cn } from "@/lib/utils";
 import {
   ItemDates,
@@ -62,31 +63,7 @@ export function DefaultListLayout({ items }: LayoutProps) {
 
 /** Vertical timeline — dotted spine, mono dates, cards. */
 export function TimelineLayout({ items }: LayoutProps) {
-  return (
-    <ol className="relative space-y-8 border-l-2 border-border pl-6">
-      {items.map((item) => (
-        <li key={item.id} className="relative min-w-0">
-          <span
-            aria-hidden
-            className="absolute -left-[31px] top-1.5 size-2.5 rounded-full border-2 border-background bg-primary"
-          />
-          <ItemDates from={item.date_from} to={item.date_to} />
-          <h3 className="mt-1 font-heading font-semibold [overflow-wrap:anywhere]">
-            <TextLink href={item.link_url} className="hover:text-primary">
-              {item.title}
-            </TextLink>
-          </h3>
-          <PlainText className="text-sm text-muted-foreground" clamp={2}>
-            {item.subtitle}
-          </PlainText>
-          <Markdown className="mt-2 text-muted-foreground">
-            {item.description}
-          </Markdown>
-          <ItemTags tags={item.tags} className="mt-2.5" max={8} />
-        </li>
-      ))}
-    </ol>
-  );
+  return <TimelineGraph items={items} />;
 }
 
 function GridCard({ item }: { item: PortfolioItem }) {
