@@ -262,7 +262,6 @@ const MONO_BUDGET = [
   "features/analytics/analytics-page.tsx",
   "features/assets/asset-details-sheet.tsx",
   "features/assets/asset-views.tsx",
-  "features/blog-admin/blog-editor.tsx",
   "features/blog-admin/post-list.tsx",
   "features/blog-admin/post-settings-sheet.tsx",
   "features/blog/blog-list-page.tsx",
@@ -347,9 +346,6 @@ describe("monospace budget", () => {
 const STICKY_BACKGROUND_ALLOWED: Record<string, string> = {
   // The bar sits directly inside <SheetContent>, whose fill *is* bg-background.
   "features/assets/asset-details-sheet.tsx": "inside a Sheet",
-  // The editor replaces the page body rather than sitting in a card, so its
-  // toolbar is on the admin ground. Revisit with the QA-10 editor rework.
-  "features/blog-admin/blog-editor.tsx": "page-level toolbar, not in a card",
 };
 
 describe("sticky overlays", () => {

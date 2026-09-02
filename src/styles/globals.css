@@ -313,19 +313,40 @@
 
   /* --- Novel Editor (Tiptap) Styles --- */
 
+  /*
+   * The writing surface, sized for writing.
+   *
+   * This was `prose-sm`. Long-form drafting at 0.875rem is uncomfortable in a
+   * way that only shows up after a few hundred words, and every editor built
+   * for essays — Medium, Substack, Ghost — writes at 18–21px for exactly that
+   * reason. `prose` at the base size with a bounded measure is the closest
+   * this component gets to that without inventing its own scale.
+   *
+   * The measure matters as much as the size: prose set across the full admin
+   * width runs to 120+ characters a line, which is past the point where the
+   * eye reliably finds the start of the next one.
+   */
   .novel-editor .ProseMirror {
-    @apply prose prose-sm dark:prose-invert max-w-none;
-    @apply min-h-[200px] p-6;
+    @apply prose dark:prose-invert;
+    @apply mx-auto min-h-[200px] max-w-[46rem] px-6 py-8;
     @apply focus:outline-none;
   }
 
+  /*
+   * Headings in the editor use the heading face, not monospace.
+   *
+   * They were `font-mono`, which is the retired decorative voice — and worse
+   * than a style slip here, because the public post renders them in
+   * `font-heading`. The writer was drafting in one typeface and publishing in
+   * another, which is the one thing a WYSIWYG editor exists to avoid.
+   */
   .novel-editor .ProseMirror h1,
   .novel-editor .ProseMirror h2,
   .novel-editor .ProseMirror h3,
   .novel-editor .ProseMirror h4,
   .novel-editor .ProseMirror h5,
   .novel-editor .ProseMirror h6 {
-    @apply font-mono font-semibold tracking-tight;
+    @apply font-heading font-semibold tracking-tight;
   }
 
   .novel-editor .ProseMirror h1 {

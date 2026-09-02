@@ -45,6 +45,15 @@ interface NovelEditorProps {
   onImageUpload?: (file: File) => Promise<string>;
   placeholder?: string;
   minHeight?: string;
+  /**
+   * Where the formatting toolbar pins, as a CSS length.
+   *
+   * The page this editor sits on usually has sticky chrome of its own, and a
+   * toolbar pinned to `0` slides underneath it. The caller is the only thing
+   * that knows how tall that chrome is, so it passes the offset rather than
+   * this component guessing.
+   */
+  toolbarOffset?: string;
   editable?: boolean;
   isRounded?: boolean;
   className?: string;
@@ -132,6 +141,7 @@ export default function NovelEditor({
   onImageUpload,
   placeholder = "Press '/' for commands, or start writing...",
   minHeight = "500px",
+  toolbarOffset = "0px",
   editable = true,
   isRounded = true,
   className,
@@ -422,7 +432,23 @@ export default function NovelEditor({
     <div
       ref={editorRef}
       className={cn(
-        "novel-editor relative flex flex-col overflow-hidden bg-card",
+        /*
+          `overflow-hidden` was the reason the toolbar scrolled away on a long
+          post.
+
+          `position: sticky` resolves against the nearest scrolling ancestor,
+          and an `overflow-hidden` box counts as one. So the toolbar was
+          sticking to the top of *this* element — which never scrolls, because
+          the editor grows with the document and the page is what scrolls. The
+          toolbar therefore travelled up and off the screen with the box it was
+          pinned inside, which is exactly the reported symptom.
+
+          Not clipping here lets the toolbar pin against the page instead.
+          Fullscreen keeps `overflow-hidden`, because there the editor really
+          is the scroll container and sticking to it is correct.
+        */
+        "novel-editor relative flex flex-col bg-card",
+        !isFullScreen && "overflow-visible",
         isRounded && "rounded-lg border",
         // Ordered after `isRounded` so tailwind-merge lets the fullscreen
         // variant win — otherwise the rounded border stays on in fullscreen.
@@ -440,7 +466,19 @@ export default function NovelEditor({
       style={{ minHeight: isFullScreen ? undefined : minHeight }}
     >
       {/* Toolbar */}
-      <div className="shrink-0 sticky top-0 z-10 flex flex-wrap items-center gap-1 border-b bg-muted/30 px-2 py-1.5">
+      {/*
+        One row that scrolls sideways, not a wrapping block.
+
+        `flex-wrap` meant the toolbar grew to three or four rows on a phone —
+        and a sticky element that tall takes most of the screen away from the
+        thing being written. Every editor that keeps a persistent toolbar
+        (Substack, DEV) keeps it to one row for this reason; Medium avoids the
+        question by having no persistent toolbar at all.
+      */}
+      <div
+        className="no-scrollbar sticky z-20 flex shrink-0 items-center gap-1 overflow-x-auto border-b bg-muted/30 px-2 py-1.5 sm:flex-wrap sm:overflow-x-visible"
+        style={{ top: isFullScreen ? 0 : toolbarOffset }}
+      >
         {/* Undo/Redo */}
         <div className="flex items-center">
           <Button

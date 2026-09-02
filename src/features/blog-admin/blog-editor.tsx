@@ -199,7 +199,17 @@ export default function BlogEditor({
         whenever the shell header changed height and trapped the body in a
         nested scroll region.
       */}
-      <div className="sticky top-14 z-20 -mx-4 flex flex-wrap items-center gap-3 border-b bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+      {/*
+        The chrome stack, and the reason the offsets below are what they are.
+
+        The admin topbar is `sticky top-0 h-14 bg-card`. This bar pins directly
+        beneath it at `top-14`, and takes the same fill so the two read as one
+        continuous band rather than as a strip of a second colour laid under
+        the first. It is a fixed `h-14` for the same reason: the editor's own
+        formatting toolbar has to pin below *both*, and that offset has to be a
+        number somebody can work out — `top-14` + `h-14` = `7rem`.
+      */}
+      <div className="sticky top-14 z-20 -mx-4 flex h-14 items-center gap-3 overflow-x-auto border-b bg-card px-4 backdrop-blur sm:-mx-6 sm:px-6">
         <Button variant="ghost" size="sm" onClick={onCancel} className="-ml-2">
           <ArrowLeft className="mr-2 size-4" aria-hidden /> Posts
         </Button>
@@ -287,13 +297,20 @@ export default function BlogEditor({
           )}
           {/* The public site derives read time from word_count, so the writer
               should see the same number while drafting. */}
-          <p className="mt-2 font-mono text-xs text-muted-foreground">
+          {/* Mono is for code; a word count is not code. */}
+          <p className="mt-2 text-xs text-muted-foreground">
             /{formData.slug || "…"} · {wordCount.toLocaleString()} words ·{" "}
             {Math.max(1, Math.ceil(wordCount / 225))} min read
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-surface bg-card shadow-e1">
+        {/*
+          No `overflow-hidden`. This is the same trap as the editor root: an
+          `overflow-hidden` ancestor becomes the containing block for a sticky
+          descendant, so clipping here would pin the formatting toolbar to a
+          box that never scrolls — undoing the fix one level down.
+        */}
+        <div className="relative rounded-surface bg-card shadow-e1">
           {isUploading && (
             <div className="absolute right-2 top-2 z-20 flex items-center rounded-full bg-background/80 px-3 py-1 text-xs font-medium shadow-e1 backdrop-blur">
               <Loader2 className="mr-2 size-3 animate-spin" aria-hidden />
@@ -305,6 +322,8 @@ export default function BlogEditor({
             value={formData.content}
             onChange={(newContent) => patchForm({ content: newContent })}
             onImageUpload={handleContentImageUpload}
+            // Below the admin topbar (h-14) and this page's own bar (h-14).
+            toolbarOffset="7rem"
             minHeight="60vh"
             className="border-none"
             isRounded={false}

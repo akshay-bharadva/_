@@ -168,6 +168,46 @@ their reason, checked in both directions so an allowance cannot outlive it.
 
 10. same UI issue in blog post edit view, take a reference of medium, dev.to and substacks bloging flow system and restructure the Blog components - also when the blog is long the tool bar is not sticking up it scrolls with the editing box
 
+**`[~]` The toolbar is fixed and the writing surface is reworked; the
+publishing flow is unchanged.**
+
+**Why the toolbar scrolled away.** `position: sticky` resolves against the
+nearest scrolling ancestor, and an `overflow-hidden` box counts as one. The
+editor root carried `overflow-hidden`, so the toolbar was pinned to the top of
+a box that *never scrolls* — the editor grows with the document and the page is
+what scrolls — and it travelled off the screen with it. The blog editor's own
+wrapper around the editor had the same `overflow-hidden`, so both had to go.
+
+The toolbar now pins below the chrome above it. The admin topbar is `h-14`,
+this page's bar is `h-14` beneath it, so the formatting toolbar sits at `7rem`
+— passed in by the caller, because only the page knows how tall its own chrome
+is. And it is one row that scrolls sideways on a phone rather than `flex-wrap`,
+which grew it to three or four rows and took most of a small screen away from
+the thing being written. That is the mobile problem the brief warned about.
+
+**Two things found in the editor's own CSS while in there:**
+
+- **Every heading in the editor was monospace.** Worse than a style slip: the
+  published post renders headings in `font-heading`, so you were drafting in
+  one typeface and publishing in another — the one thing a WYSIWYG editor
+  exists to avoid.
+- **The writing surface was `prose-sm`.** Drafting long-form at 0.875rem is
+  uncomfortable in a way that only shows after a few hundred words, and it ran
+  the full admin width — 120+ characters a line. Now base prose at a bounded
+  46rem measure, which is close to what Medium, Substack and Ghost all settle
+  on. **This is a shared component**, so Notes, Learning and CMS sections get
+  the same larger, narrower writing surface.
+
+**Research.** Medium keeps no persistent toolbar at all — a bubble on selection
+and a `+` in the margin — while Substack and DEV keep a slim one pinned to the
+viewport. All three separate metadata from writing, which this editor already
+does via the settings sheet. The persistent-toolbar model is kept here because
+the slash menu and bubble menu already exist alongside it and removing it would
+be a change to how you write, not a fix to what you reported.
+
+**Not done:** a distraction-free mode, and moving the title/slug/word-count
+block into the document flow rather than above it.
+
 11. in updates, it seems like the table/list view is old and other components are new sync the list/table with current new UI/UX
 
 **`[x]` Resolved.** "Old generation" was specific once you look at it — the row
