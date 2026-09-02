@@ -28,7 +28,7 @@ export function PinBadge() {
   return (
     <span
       title="Pinned"
-      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[0.6875rem] text-primary"
+      className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[0.6875rem] font-medium text-primary"
     >
       <Pin className="size-3" aria-hidden />
       pinned

@@ -49,7 +49,44 @@ but the URL is empty.
 
 5. for blog page, public, the table of content is off with the blog content, I can scroll down to the page but some title in TOC is not highlighed even when I click on TOC title the blog scrolls to that but it's not higlighted.
 
+**`[x]` Resolved.** The active heading came from an `IntersectionObserver` with
+`rootMargin: "-20% 0px -70% 0px"`, setting the id only while a heading sat
+inside a band 20–30% down the viewport. Three failures came out of that, two of
+which you hit:
+
+- **Clicking could never highlight.** The click parks the heading 96px from the
+  top; on a 900px window the band starts at 180px. The heading landed *above*
+  the band, never intersected, and the highlight stayed where it was — the page
+  scrolled correctly and the wrong entry stayed lit.
+- **The last heading was often unreachable.** At the end of a document there is
+  no scroll left to lift a short final section into the band, so its entry
+  never lit at all.
+- (Unreported) several entries arriving in one callback resolved by array
+  order, so a fast scroll could leave a lower heading active than the one on
+  screen.
+
+It now asks "which heading did I last pass", against the *same* constant the
+click scrolls to — that shared constant is the whole fix for the first failure
+— with an explicit rule for the bottom of the document. Exactly one entry is
+active at every scroll position.
+
 6. in updates after all notes I need "--that's all for now--" in script/design font centered align - also the font for date and #tags I want script and intead of dotted line I want solid line in card - do brainstrom for design
+
+**`[x]` Resolved.** `— that's all for now —` closes the feed, centred, in the
+handwriting face, and it shows for a filtered view too: "that's all" is as true
+of a filtered feed, and hiding it there would leave you wondering whether the
+filter cut the list short or failed. Date and `#tags` are in the same face.
+
+Two notes on the script font. `font-normal` is load-bearing — `typography.css`
+is unlayered and puts `--heading-weight` (700–800) on bare headings, and a
+handwriting face at that weight smears. And the sizes went *up*: Tahu at the
+0.6875rem that row used to be is unreadable, because a script face carries far
+less ink per pixel than the UI face.
+
+The dotted divider is solid. It was not an oversight — it was unguarded: the
+design gate banned a custom `rule-dotted` class and said nothing about
+Tailwind's `border-dashed`. That is now a rule, so the same thing cannot come
+back here or anywhere else.
 
 7. on contact page, if I don't have any social link then the direct link title is still available with no social link also if the avalability and social is not there the form should be full legth, also check the layout for all three permutation and combinations, brainstrom the contact page for orders of the section what to visible locially and actually with what parts and all
 

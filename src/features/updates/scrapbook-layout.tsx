@@ -55,7 +55,7 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
       )}
 
       <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           <span aria-hidden>{option.emoji}</span> {option.label}
         </span>
         {update.is_pinned && <PinBadge />}
@@ -79,10 +79,26 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
         </Markdown>
       )}
 
+      {/*
+        The card's footer rule is solid. A dashed rule as a *separator* is the
+        retired v2 grammar, and it was still here — `design-system.test.ts`
+        banned the custom `rule-dotted` class and said nothing about Tailwind's
+        own `border-dashed`, which is how it survived.
+      */}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
+        {/*
+          Date and tags in the handwriting face, to match the title.
+
+          Two things are load-bearing. `font-normal`, for the reason given on
+          the title above — typography.css is unlayered and puts 700–800 on
+          bare headings, and a handwriting face at that weight smears. And the
+          size: Tahu at the 0.6875rem this row used to be is genuinely
+          unreadable, since a script face carries far less ink per pixel than
+          the UI face. Script here means *bigger*, not smaller.
+        */}
         <time
           dateTime={update.created_at}
-          className="font-mono text-[0.6875rem] text-muted-foreground"
+          className="font-tahu text-base font-normal leading-none text-muted-foreground"
         >
           {relativeDate(update.created_at)}
         </time>
@@ -90,9 +106,12 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
           // `list-none` explicitly: this is a tag row, not prose. It was
           // picking up disc bullets and a 6-unit indent from a global
           // `article ul` rule meant for markdown bodies.
-          <ul className="flex list-none flex-wrap gap-1.5">
+          <ul className="flex list-none flex-wrap items-center gap-2">
             {update.tags.slice(0, 3).map((tag) => (
-              <li key={tag} className="text-[0.6875rem] text-muted-foreground">
+              <li
+                key={tag}
+                className="font-tahu text-base font-normal leading-none text-muted-foreground"
+              >
                 #{tag}
               </li>
             ))}

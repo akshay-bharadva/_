@@ -292,9 +292,7 @@ const MONO_BUDGET = [
   "features/settings/hero-section.tsx",
   "features/settings/social-links-section.tsx",
   "features/settings/theme-section.tsx",
-  "features/updates/scrapbook-layout.tsx",
   "features/updates/timeline-layout.tsx",
-  "features/updates/update-meta.tsx",
   "styles/globals.css",
 ];
 

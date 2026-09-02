@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FeedEnd } from "./feed-end";
 import { ScrapbookLayout } from "./scrapbook-layout";
 import { TimelineLayout } from "./timeline-layout";
 
@@ -149,10 +150,21 @@ export function UpdatesPage() {
             </button>
           )}
         </div>
-      ) : layout === "timeline" ? (
-        <TimelineLayout updates={filtered} />
       ) : (
-        <ScrapbookLayout updates={filtered} />
+        <>
+          {layout === "timeline" ? (
+            <TimelineLayout updates={filtered} />
+          ) : (
+            <ScrapbookLayout updates={filtered} />
+          )}
+          {/*
+            Shown for a filtered view too. "That's all" is as true of a
+            filtered feed as of the whole one, and hiding it there would leave
+            the reader wondering whether the filter had cut the list short or
+            failed.
+          */}
+          <FeedEnd />
+        </>
       )}
     </Band>
   );
