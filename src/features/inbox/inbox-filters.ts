@@ -114,17 +114,31 @@ export function inboxCounts(messages: ContactSubmission[]): InboxCounts {
   };
 }
 
+export type InboxSort = "newest" | "oldest";
+
+export const INBOX_SORTS: { id: InboxSort; label: string }[] = [
+  { id: "newest", label: "Newest first" },
+  { id: "oldest", label: "Oldest first" },
+];
+
 /**
  * Filter, search, and order for display.
  *
- * Newest first, with one exception: in the attention view an unanswered message
- * from three weeks ago is more urgent than one from this morning, so that view
- * puts the oldest first. Age is the whole signal an inbox has about neglect.
+ * **Order is the reader's choice, not the view's.** The attention view used to
+ * force oldest-first on the reasoning that age is the only signal an inbox has
+ * about neglect — which is a good argument, and still the reason the option
+ * exists. It was the wrong thing to *impose*: it is also the default view, so
+ * opening the inbox showed the oldest message at the top, which is not how any
+ * mail client behaves and reads as a bug rather than as a policy.
+ *
+ * Newest first everywhere by default; oldest is one click away and is worth
+ * reaching for when working through a backlog.
  */
 export function visibleMessages(
   messages: ContactSubmission[],
   filter: InboxFilter,
   search: string,
+  sort: InboxSort = "newest",
 ): ContactSubmission[] {
   const matched = messages.filter(
     (message) =>
@@ -134,7 +148,49 @@ export function visibleMessages(
   return matched.sort((a, b) => {
     const left = new Date(a.created_at).getTime();
     const right = new Date(b.created_at).getTime();
-    return filter === "attention" ? left - right : right - left;
+    return sort === "oldest" ? left - right : right - left;
+  });
+}
+
+/**
+ * How a mail client writes a timestamp: the time if it arrived today, the
+ * weekday within the last week, a short date beyond that.
+ *
+ * "3 days ago" has to be decoded before it can be compared with the row above
+ * it, and a column of relative phrases at different lengths does not scan.
+ * An absolute value in a fixed shape does.
+ */
+export function inboxTimestamp(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (sameDay) {
+    return date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  // Calendar days apart, not elapsed milliseconds: a message from 11pm
+  // yesterday is "yesterday" at 1am, not "today".
+  const startOf = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  const days = Math.round((startOf(now) - startOf(date)) / 86_400_000);
+
+  if (days > 0 && days < 7) {
+    return date.toLocaleDateString(undefined, { weekday: "short" });
+  }
+
+  const sameYear = date.getFullYear() === now.getFullYear();
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
   });
 }
 

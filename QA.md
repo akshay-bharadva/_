@@ -224,6 +224,29 @@ upload currently shows only a global spinner.
 
 14. for inbox setting the UI should be like Outlook - sort by new first and the UI/UX should be similar
 
+**`[x]` Resolved.** The "sort by new first" part turned out to be a real
+finding. The **Needs attention** view is the default *and* it forced
+oldest-first, so opening the inbox put the oldest message at the top. That was
+deliberate — age is the only signal an inbox has about neglect — but it was the
+wrong thing to impose on the view you land on, and it reads as a bug rather
+than as a policy. Newest first everywhere now, with oldest one click away in an
+explicit Sort control, because it *is* the right order for working through a
+backlog.
+
+Three changes toward the mail-client feel:
+
+- **A list, not a stack of cards.** Every row was its own elevated surface with
+  a gap between — a good shape for eight things and a poor one for two hundred,
+  since the eye has to re-acquire the left edge on each row. One surface with
+  flush rows and hairline dividers is what every mail client converges on.
+- **Unread carries a rail as well as weight.** Bold alone is weak once several
+  rows are bold.
+- **Absolute timestamps in a fixed shape** — the time if it arrived today, the
+  weekday within a week, a short date beyond. "3 days ago" has to be decoded
+  before it can be compared with the row above it. Counted in calendar days,
+  not elapsed hours, so a message from 11pm yesterday still reads as yesterday
+  when you look at 1am.
+
 15. for discover, in money and market it;s only showing BTC & ETH no I don't want that and there is on banner with srock indices are not shown, intead is there any way we can watchlist some stock/MF/ETF we can search it and if we find the result we can watchlist and maintain watchlist; in career tab, the only career is list from germany and other but I'm in NA also I want carrer fulltime/parttime/freelance all aspect of things; for What happened tab, it seems goog to me but I know for sure that you can do much better - take full responsiblility of discover module throught research and analyse world web and reconstruct the mosule.
 Recently I'm more interested in reading aartficle which is most popular. Like I have mostly read substack articlers with more than 30K likes and most reshared. Can we do something like that 
 

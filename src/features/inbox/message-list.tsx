@@ -1,10 +1,9 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
 import { Archive, CornerUpLeft, Mail, MailOpen } from "lucide-react";
 import type { ContactSubmission } from "@/types";
 import { cn } from "@/lib/cn";
-import { messageState, type InboxState } from "./inbox-filters";
+import { inboxTimestamp, messageState, type InboxState } from "./inbox-filters";
 
 /**
  * Icons, not colour alone, carry the state.
@@ -50,8 +49,18 @@ export function MessageList({
     );
   }
 
+  /*
+    A message list, not a stack of cards.
+    
+    Each row was its own elevated surface with a gap between, which is a good
+    shape for eight things and a poor one for two hundred: the eye has to
+    re-acquire the left edge on every row, and the shadows add visual weight to
+    a list whose whole job is to be scanned. One surface holding flush rows
+    divided by a hairline is what every mail client converges on, and it is
+    also fewer pixels of chrome per message.
+  */
   return (
-    <ul className="space-y-2">
+    <ul className="divide-y divide-border overflow-hidden rounded-surface bg-card shadow-e1">
       {messages.map((message) => (
         <li key={message.id}>
           <MessageRow
@@ -85,12 +94,22 @@ function MessageRow({
       onClick={onSelect}
       aria-current={selected ? "true" : undefined}
       className={cn(
-        "w-full rounded-surface bg-card p-3.5 text-left transition-shadow duration-200 ease-enter",
-        selected
-          ? "shadow-e3 ring-2 ring-primary"
-          : "shadow-e1 hover:shadow-e2",
+        "relative w-full py-3 pl-4 pr-3.5 text-left transition-colors",
+        selected ? "bg-primary/10" : "hover:bg-secondary/60",
       )}
     >
+      {/*
+        Unread carries a rail as well as weight. Bold alone is a weak signal
+        once a few rows are bold, and it disappears entirely for a reader who
+        has the font rendering turned down.
+      */}
+      {unread && (
+        <span
+          aria-hidden
+          className="absolute inset-y-2 left-0 w-1 rounded-full bg-primary"
+        />
+      )}
+
       <div className="flex items-start gap-3">
         <Icon
           className={cn("mt-0.5 size-4 shrink-0", meta.className)}
@@ -108,13 +127,22 @@ function MessageRow({
             >
               {message.name || message.email}
             </p>
+            {/*
+              An absolute stamp in a fixed shape, the way mail clients write
+              it. "3 days ago" has to be decoded before it can be compared
+              with the row above, and a column of relative phrases at varying
+              lengths does not scan.
+            */}
             <time
               dateTime={message.created_at}
-              className="shrink-0 text-xs tabular-nums text-muted-foreground"
+              className={cn(
+                "shrink-0 text-xs tabular-nums",
+                unread
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground",
+              )}
             >
-              {formatDistanceToNow(new Date(message.created_at), {
-                addSuffix: true,
-              })}
+              {inboxTimestamp(message.created_at)}
             </time>
           </div>
 

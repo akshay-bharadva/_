@@ -189,3 +189,54 @@ describe("InboxPage", () => {
     expect(screen.getAllByText("Analytical engine").length).toBeGreaterThan(0);
   });
 });
+
+describe("ordering", () => {
+  /**
+   * The attention view is the default *and* it forced oldest-first, so opening
+   * the inbox put the oldest message at the top. That is not how any mail
+   * client behaves, and it reads as a bug rather than as the deliberate
+   * neglect-signal it was meant to be.
+   */
+  it("opens newest first", async () => {
+    mocks.messages = [
+      message({
+        id: "old",
+        name: "Older",
+        created_at: new Date(2026, 0, 1).toISOString(),
+      }),
+      message({
+        id: "new",
+        name: "Newer",
+        created_at: new Date(2026, 5, 1).toISOString(),
+      }),
+    ];
+    render(<InboxPage />);
+
+    const rows = await screen.findAllByRole("button", { name: /Older|Newer/ });
+    expect(rows[0].textContent).toContain("Newer");
+  });
+
+  /** The old order stays available; it is genuinely useful for a backlog. */
+  it("can be switched to oldest first", async () => {
+    mocks.messages = [
+      message({
+        id: "old",
+        name: "Older",
+        created_at: new Date(2026, 0, 1).toISOString(),
+      }),
+      message({
+        id: "new",
+        name: "Newer",
+        created_at: new Date(2026, 5, 1).toISOString(),
+      }),
+    ];
+    render(<InboxPage />);
+
+    fireEvent.change(await screen.findByLabelText("Sort messages"), {
+      target: { value: "oldest" },
+    });
+
+    const rows = await screen.findAllByRole("button", { name: /Older|Newer/ });
+    expect(rows[0].textContent).toContain("Older");
+  });
+});

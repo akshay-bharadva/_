@@ -8,6 +8,7 @@ import {
   needsAttention,
   replyMailto,
   visibleMessages,
+  inboxTimestamp,
 } from "./inbox-filters";
 import { isDiscordWebhook } from "@/features/integrations/discord-webhook";
 
@@ -123,17 +124,33 @@ describe("visibleMessages", () => {
   const newer = message({ id: "new", created_at: "2026-08-01T09:00:00.000Z" });
 
   /**
-   * Age is the only signal an inbox has about neglect, so the view for things
-   * you owe someone a reply to leads with the one that has waited longest.
+   * Age is the only signal an inbox has about neglect, so leading with the
+   * message that has waited longest is a genuinely useful order — which is why
+   * it is still offered. It was the wrong thing to *impose* on the default
+   * view: opening the inbox showed the oldest message at the top, which is not
+   * how any mail client behaves and reads as a bug rather than a policy.
    */
-  it("puts the oldest first in the attention view", () => {
-    const result = visibleMessages([newer, older], "attention", "");
+  it("puts the oldest first when asked to", () => {
+    const result = visibleMessages([newer, older], "attention", "", "oldest");
     expect(result.map((entry) => entry.id)).toEqual(["old", "new"]);
   });
 
-  it("puts the newest first everywhere else", () => {
-    const result = visibleMessages([older, newer], "all", "");
-    expect(result.map((entry) => entry.id)).toEqual(["new", "old"]);
+  it("defaults to newest first, in every view", () => {
+    for (const filter of ["attention", "all", "replied", "archived"] as const) {
+      const times = visibleMessages([older, newer], filter, "").map((entry) =>
+        new Date(entry.created_at).getTime(),
+      );
+      // Only messages matching the filter survive, so assert that whatever
+      // came back is in descending order rather than naming a fixed pair.
+      expect(times).toEqual([...times].sort((a, b) => b - a));
+    }
+
+    expect(
+      visibleMessages([older, newer], "all", "").map((entry) => entry.id),
+    ).toEqual(["new", "old"]);
+    expect(
+      visibleMessages([older, newer], "attention", "").map((entry) => entry.id),
+    ).toEqual(["new", "old"]);
   });
 
   it("applies the filter and the search together", () => {
@@ -228,5 +245,59 @@ describe("isDiscordWebhook", () => {
     ]) {
       expect(isDiscordWebhook(value)).toBe(false);
     }
+  });
+});
+
+describe("inboxTimestamp", () => {
+  const now = new Date(2026, 8, 10, 14, 30);
+
+  /**
+   * "3 days ago" has to be decoded before it can be compared with the row
+   * above it, and a column of relative phrases at different lengths does not
+   * scan. Mail clients all write an absolute value in a fixed shape.
+   */
+  it("shows a time for today", () => {
+    const result = inboxTimestamp(
+      new Date(2026, 8, 10, 9, 5).toISOString(),
+      now,
+    );
+    expect(result).toMatch(/9[:.]05/);
+  });
+
+  it("shows a weekday within the last week", () => {
+    const result = inboxTimestamp(
+      new Date(2026, 8, 7, 9, 5).toISOString(),
+      now,
+    );
+    expect(result).toMatch(/^[A-Za-z]{3}/);
+  });
+
+  it("shows a date beyond a week", () => {
+    const result = inboxTimestamp(new Date(2026, 7, 2).toISOString(), now);
+    expect(result).toMatch(/2/);
+    expect(result).toMatch(/Aug/i);
+  });
+
+  it("includes the year for a different one", () => {
+    expect(inboxTimestamp(new Date(2024, 7, 2).toISOString(), now)).toMatch(
+      /2024/,
+    );
+  });
+
+  /**
+   * Calendar days apart, not elapsed milliseconds. A message from 11pm
+   * yesterday is "yesterday" at 1am, not "today" — an elapsed-time check gets
+   * that wrong for the two hours it matters most.
+   */
+  it("counts calendar days, not elapsed hours", () => {
+    const lateLastNight = new Date(2026, 8, 9, 23, 30);
+    const earlyToday = new Date(2026, 8, 10, 1, 0);
+    expect(inboxTimestamp(lateLastNight.toISOString(), earlyToday)).not.toMatch(
+      /:/,
+    );
+  });
+
+  it("returns nothing for an unreadable date", () => {
+    expect(inboxTimestamp("not a date", now)).toBe("");
   });
 });

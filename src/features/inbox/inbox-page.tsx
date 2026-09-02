@@ -31,7 +31,9 @@ import {
   INBOX_FILTERS,
   inboxCounts,
   visibleMessages,
+  INBOX_SORTS,
   type InboxFilter,
+  type InboxSort,
 } from "./inbox-filters";
 import { MessageList } from "./message-list";
 import { MessageDetail } from "./message-detail";
@@ -54,14 +56,21 @@ export default function InboxPage() {
   const [deleteMessage] = useDeleteContactSubmissionMutation();
 
   const [filter, setFilter] = useState<InboxFilter>("attention");
+  /**
+   * Newest first, like any mail client. The attention view used to force
+   * oldest-first — a good order for working through a backlog, and a
+   * surprising one to meet on opening the page, since it is also the default
+   * view. It is a choice now rather than a policy.
+   */
+  const [sort, setSort] = useState<InboxSort>("newest");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const narrow = useBelowBreakpoint("lg");
 
   const counts = useMemo(() => inboxCounts(messages), [messages]);
   const visible = useMemo(
-    () => visibleMessages(messages, filter, search),
-    [messages, filter, search],
+    () => visibleMessages(messages, filter, search, sort),
+    [messages, filter, search, sort],
   );
 
   const selected = useMemo(
@@ -215,6 +224,22 @@ export default function InboxPage() {
                 </button>
               );
             })}
+
+            <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="sr-only sm:not-sr-only">Sort</span>
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as InboxSort)}
+                aria-label="Sort messages"
+                className="rounded-control bg-card px-2 py-1.5 text-xs font-medium text-foreground shadow-e1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {INBOX_SORTS.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         }
       />
