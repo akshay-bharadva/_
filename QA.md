@@ -205,6 +205,32 @@ Recently I'm more interested in reading aartficle which is most popular. Like I 
 
 20. in whiteboard, should I be able to rename whiteboard from listed whiteboard view or it just should be from boardview page, also if I just opened the existing page and I have not made any change and click on close it shouln't be asking to discard, it doen't make any sense.
 
+**`[x]` Resolved — and there were two bugs, in opposite directions.**
+
+*The one you saw.* Excalidraw fires `onChange` for pointer moves, selection
+**and its own initial load**, and the editor treated every one of them as an
+edit. So opening a board marked it dirty and Close asked to discard changes
+that did not exist. Dirty is a comparison now, not an event: the reader must
+have touched the canvas *and* the drawing must differ from what was opened.
+Both conditions are needed — the interaction test survives the library
+renumbering elements while loading, and the fingerprint stops a mere selection
+or a pan from costing a prompt.
+
+*The one you did not.* Nothing marked the board dirty when you **renamed** it.
+Autosave only runs while dirty and Close only asks while dirty, so renaming a
+board and closing it discarded the new name in silence. That is worse than a
+spurious prompt, and it is fixed by the same change.
+
+**Renaming: both places.** The editor keeps its title field for while you are
+working, and the gallery card now renames in place — Enter commits, Escape
+cancels, an emptied name cancels rather than wiping the title. Renaming was the
+one edit that never needed a canvas open, and requiring the heaviest screen in
+the app to fix a typo was the friction worth removing.
+
+One note on the tests: the canvas stub did not fire the load-time `onChange`
+that causes the bug, so the first guard passed with the bug reintroduced. The
+stub now fires it, which also turned two older tests into real ones.
+
 21. in finance, there should be reveal/unreveal button, right? for numbers. Also in recurring form there is category text box which should be category dropdown similar to txn form; in activity tab: there are two add button which is redundant. In category creating category make sense but I didn't understand the need,income,etc.. in category how it'll help and how can I benfit from it. Also in goals, if I'm adding money it should ask me from which account you want to add to goal, from goal it should not only add some time in emergency we have to remove/take from it. also on budgeting I didn't understand the calculation on pace of $XXXX, ahead of pace. For forecast, I didn;t got the commitment only thing also when I did something on whatif scenario it showed  this is a consequence of the what ifs belows, not your current plan banner why it came in that only scenario, rest of the scnario is okay. Also What can be done to see forecast for further far future let's say 5 year, 7 year. I want to see that as I'm taking mortgage in india of about 50 lakh ruppes.
 
 22. for Settings, for preview I want same exact preview as the actual website, not few components.

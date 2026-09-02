@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Pin, Presentation, Trash2 } from "lucide-react";
+import { Check, Pencil, Pin, Presentation, Trash2 } from "lucide-react";
 import type { Whiteboard } from "@/types";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
 
 interface BoardCardProps {
@@ -11,6 +13,8 @@ interface BoardCardProps {
   onOpen: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
+  /** Commits a new title. Not called when the name is unchanged or empty. */
+  onRename: (title: string) => void;
 }
 
 /**
@@ -40,9 +44,44 @@ export function BoardCard({
   onOpen,
   onDelete,
   onTogglePin,
+  onRename,
 }: BoardCardProps) {
   const name = board.title || "Untitled whiteboard";
   const tags = board.tags ?? [];
+
+  /**
+   * Rename in place, from the gallery.
+   *
+   * It was only possible inside the board before, which meant loading an
+   * Excalidraw canvas — the heaviest screen in the app — to fix a typo. Both
+   * places can do it now: the editor keeps its title field for while you are
+   * working, and this is the one gesture that never needed the canvas open.
+   */
+  const [renaming, setRenaming] = useState(false);
+  const [draft, setDraft] = useState(board.title ?? "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (renaming) inputRef.current?.select();
+  }, [renaming]);
+
+  const commit = () => {
+    const next = draft.trim();
+    setRenaming(false);
+    // An empty title is legal in the column and renders as "Untitled
+    // whiteboard", but clearing a name is far more likely to be a slip than an
+    // intent, so it is treated as a cancel.
+    if (!next || next === (board.title ?? "")) {
+      setDraft(board.title ?? "");
+      return;
+    }
+    onRename(next);
+  };
+
+  const cancel = () => {
+    setDraft(board.title ?? "");
+    setRenaming(false);
+  };
 
   return (
     <article className="group relative overflow-hidden rounded-surface bg-card shadow-e1 transition-shadow duration-200 ease-enter hover:shadow-e2 focus-within:shadow-e2">
@@ -72,7 +111,7 @@ export function BoardCard({
 
         <span className="flex items-baseline gap-2 px-3 pb-2 pt-2.5">
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            {name}
+            {renaming ? " " : name}
           </span>
           {/* Not monospace: mono is for code, not a decorative metadata voice. */}
           <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">
@@ -126,6 +165,18 @@ export function BoardCard({
         <Button
           variant="ghost"
           size="icon"
+          aria-label={`Rename ${name}`}
+          className="size-7 rounded-full bg-background/85 backdrop-blur-sm"
+          onClick={() => {
+            setDraft(board.title ?? "");
+            setRenaming(true);
+          }}
+        >
+          <Pencil className="size-3.5" aria-hidden />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label={`Delete ${name}`}
           className="size-7 rounded-full bg-background/85 backdrop-blur-sm hover:bg-destructive/15 hover:text-destructive"
           onClick={onDelete}
@@ -133,6 +184,44 @@ export function BoardCard({
           <Trash2 className="size-3.5" aria-hidden />
         </Button>
       </div>
+
+      {/*
+        The field is laid over the title row rather than replacing it inside
+        the button: the whole card face is an <button> that opens the board,
+        and an input nested in it would submit-on-Enter into the wrong handler
+        and steal every click meant for the text cursor.
+      */}
+      {renaming && (
+        <div className="absolute inset-x-2 bottom-2 flex items-center gap-1">
+          <Input
+            ref={inputRef}
+            value={draft}
+            aria-label={`Rename ${name}`}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") commit();
+              if (event.key === "Escape") cancel();
+            }}
+            onBlur={commit}
+            className="h-8 text-sm"
+          />
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Save name"
+            className="size-8 shrink-0"
+            // `mousedown` rather than click: the input's blur fires first
+            // otherwise, which closes the field before the button is reached.
+            onMouseDown={(event) => {
+              event.preventDefault();
+              commit();
+            }}
+          >
+            <Check className="size-4" aria-hidden />
+          </Button>
+        </div>
+      )}
     </article>
   );
 }

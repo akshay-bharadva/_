@@ -69,6 +69,16 @@ export default function WhiteboardPage() {
     }
   };
 
+  const handleRename = async (board: Whiteboard, title: string) => {
+    try {
+      await saveWhiteboard({ id: board.id, title }).unwrap();
+    } catch (err: unknown) {
+      toast.error("Failed to rename whiteboard", {
+        description: getErrorMessage(err),
+      });
+    }
+  };
+
   const handleTogglePin = async (board: Whiteboard) => {
     try {
       await saveWhiteboard({
@@ -126,6 +136,7 @@ export default function WhiteboardPage() {
               onOpen={() => handleOpen(board)}
               onDelete={() => handleDelete(board)}
               onTogglePin={() => handleTogglePin(board)}
+              onRename={(title) => handleRename(board, title)}
             />
           ))}
         </div>

@@ -82,3 +82,47 @@ export const PREVIEW_MAX_CHARS = 200_000;
 export function withinPreviewBudget(svg: string | null): boolean {
   return !!svg && svg.length <= PREVIEW_MAX_CHARS;
 }
+
+/**
+ * A cheap identity for the drawn content of a scene.
+ *
+ * Excalidraw fires `onChange` for pointer moves, selection changes and its own
+ * initial load, so the event says "something happened", never "the drawing
+ * changed". Treating it as the latter is what made *opening* a board mark it
+ * dirty, so closing an untouched board asked whether to discard edits that
+ * did not exist.
+ *
+ * Every element carries a `version` that the library increments whenever the
+ * element actually changes, so the count of live elements plus the sum of
+ * their versions moves if and only if the drawing does. That is the library's
+ * own documented cheap dirty check, and it costs one pass over the array —
+ * which matters, because the alternative is re-serialising the whole scene on
+ * every pointer move during a stroke.
+ *
+ * Deleted elements are excluded: Excalidraw keeps them in the array with
+ * `isDeleted`, and counting them would make an undo look like a change.
+ *
+ * It does not cover appState — changing the canvas background alone is not
+ * detected. That is a deliberate trade for not serialising per frame, and it
+ * fails safe: the miss is a change that does not prompt, never a prompt for a
+ * change that did not happen.
+ */
+export function sceneFingerprint(elements: unknown): string {
+  // `elements` is a JSONB column on the way in and the library's live array on
+  // the way out, so it is genuinely `unknown` at this boundary. A row holding
+  // an object rather than an array is data the database can return, and it
+  // must not throw on the way to deciding whether a Close should prompt.
+  if (!Array.isArray(elements)) return "0:0";
+
+  let count = 0;
+  let versions = 0;
+
+  for (const element of elements) {
+    const el = element as { version?: number; isDeleted?: boolean };
+    if (el?.isDeleted) continue;
+    count += 1;
+    versions += typeof el?.version === "number" ? el.version : 0;
+  }
+
+  return `${count}:${versions}`;
+}

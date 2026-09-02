@@ -51,8 +51,11 @@ vi.mock("@excalidraw/excalidraw", () => ({
  * board dirty. `createElement` is used directly so the factory does not touch
  * the JSX runtime before it is initialized.
  */
+/** Bumped by the "draw" stub so each click is a distinct scene. */
+let drawCount = 0;
+
 vi.mock("./excalidraw-canvas-lazy", async () => {
-  const { createElement } = await import("react");
+  const { createElement, useEffect } = await import("react");
   return {
     default: ({
       initialData,
@@ -63,7 +66,7 @@ vi.mock("./excalidraw-canvas-lazy", async () => {
     }: {
       initialData: { elements: unknown[] };
       onApiReady: (api: unknown) => void;
-      onChange: () => void;
+      onChange: (elements: readonly unknown[]) => void;
       // The editor's chrome now renders through Excalidraw's own slots rather
       // than as a bar above the canvas, so the stub has to place them.
       topRight?: React.ReactNode;
@@ -74,13 +77,52 @@ vi.mock("./excalidraw-canvas-lazy", async () => {
         getAppState: () => mocks.appState,
         getFiles: () => mocks.files,
       });
+
+      /**
+       * Excalidraw fires `onChange` while it restores the scene, before the
+       * reader has touched anything. Without this the stub cannot reproduce
+       * the bug the editor was reported for — a board that asks to discard
+       * changes the moment it is opened — and the guard against it would pass
+       * with that bug reintroduced.
+       */
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      useEffect(() => {
+        onChange(initialData.elements);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
       return createElement(
         "div",
         {
           "data-testid": "canvas",
           "data-elements": initialData.elements.length,
         },
-        createElement("button", { type: "button", onClick: onChange }, "draw"),
+        /**
+         * "draw" has to model a real edit, not merely an `onChange` firing.
+         *
+         * The editor no longer treats the event as an edit — Excalidraw fires
+         * it for pointer moves, selection and its own initial load, which is
+         * what made opening a board mark it dirty. Dirty is now "the reader
+         * touched the canvas AND the drawing differs", so the stub bumps an
+         * element version and dispatches a real pointerdown, which is exactly
+         * what a stroke does.
+         */
+        createElement(
+          "button",
+          {
+            type: "button",
+            onClick: (event: { target: EventTarget | null }) => {
+              drawCount += 1;
+              // Deliberately not `mocks.elements`: that stands for what the
+              // imperative API returns at save time, and the tests assert on
+              // it. This is the live scene the change event carries.
+              (event.target as HTMLElement).dispatchEvent(
+                new PointerEvent("pointerdown", { bubbles: true }),
+              );
+              onChange([{ id: "el-1", version: drawCount }]);
+            },
+          },
+          "draw",
+        ),
         topRight,
         footer,
       );
@@ -89,6 +131,7 @@ vi.mock("./excalidraw-canvas-lazy", async () => {
 });
 
 beforeEach(() => {
+  drawCount = 0;
   mocks.board = null;
   mocks.isLoading = false;
   mocks.elements = [{ id: "el-1" }];
@@ -450,5 +493,72 @@ describe("BoardEditor — autosave and pen input", () => {
     expect(
       screen.queryByRole("button", { name: "Draw with pen only" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("dirty state", () => {
+  /**
+   * The reported bug. Excalidraw fires `onChange` while it restores a scene —
+   * and for pointer moves and selection after that — and the editor treated
+   * every one of them as an edit. Opening a board and pressing Close then
+   * asked whether to discard changes nobody had made.
+   *
+   * The stub's initial change is fired here without the pointerdown a real
+   * stroke carries, which is exactly the shape of the library's load-time
+   * event.
+   */
+  it("does not prompt when an untouched board is closed", async () => {
+    mocks.board = existing;
+    const onClose = vi.fn();
+    render(<BoardEditor boardId="board-1" open onClose={onClose} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close whiteboard" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The other half, and the more expensive one: the title is state the canvas
+   * knows nothing about, and nothing marked it dirty. Autosave only runs while
+   * dirty and Close only asks while dirty, so renaming a board and closing it
+   * discarded the new name in silence.
+   */
+  it("treats a rename as a change", async () => {
+    mocks.board = existing;
+    mocks.confirm.mockResolvedValue(true);
+    render(<BoardEditor boardId="board-1" open onClose={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Whiteboard title"), {
+      target: { value: "Ledger design" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Close whiteboard" }));
+
+    await waitFor(() => expect(mocks.confirm).toHaveBeenCalled());
+  });
+
+  it("stops treating it as a change once the name is typed back", async () => {
+    mocks.board = existing;
+    const onClose = vi.fn();
+    render(<BoardEditor boardId="board-1" open onClose={onClose} />);
+    const input = screen.getByLabelText("Whiteboard title");
+
+    fireEvent.change(input, { target: { value: "Ledger design" } });
+    fireEvent.change(input, { target: { value: existing.title } });
+    fireEvent.click(screen.getByRole("button", { name: "Close whiteboard" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it("still prompts once the board has actually been drawn on", async () => {
+    mocks.board = existing;
+    mocks.confirm.mockResolvedValue(true);
+    render(<BoardEditor boardId="board-1" open onClose={vi.fn()} />);
+
+    draw();
+    fireEvent.click(screen.getByRole("button", { name: "Close whiteboard" }));
+
+    await waitFor(() => expect(mocks.confirm).toHaveBeenCalled());
   });
 });

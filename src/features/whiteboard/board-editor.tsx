@@ -22,6 +22,7 @@ import { describeSaveState, shouldAutosave } from "./pen-input";
 import { useExcalidrawTheme } from "./use-excalidraw-theme";
 import {
   isEmptyScene,
+  sceneFingerprint,
   sceneFromJson,
   toInitialData,
   withinPreviewBudget,
@@ -127,6 +128,13 @@ function BoardSurface({
   // A board created by autosave has an id the prop does not know about yet.
   const savedIdRef = useRef<string | null>(board?.id ?? null);
   const lastChangeAt = useRef(0);
+  // What the board looked like when it was opened. Compared against, never
+  // rendered from.
+  const baselineScene = useRef(sceneFingerprint(board?.elements ?? null));
+  const baselineTitle = useRef(board?.title ?? "");
+  // Set on the first real gesture over the canvas. Excalidraw's own load-time
+  // onChange arrives before any of these.
+  const hasInteracted = useRef(false);
   // Read by the autosave interval, which must not re-arm on every keystroke.
   const stateRef = useRef({ isDirty: false, isSaving: false });
   stateRef.current = { isDirty, isSaving };
@@ -135,11 +143,45 @@ function BoardSurface({
     apiRef.current = api;
   }, []);
 
-  // Excalidraw fires onChange for pointer moves and selection too, so this
-  // only ever flips the flag on — never off.
-  const handleChange = useCallback(() => {
+  /**
+   * Dirty is a comparison, not an event.
+   *
+   * Excalidraw fires `onChange` for pointer moves, selection and its own
+   * initial load, and the previous handler treated every one of them as an
+   * edit. So simply *opening* a board marked it dirty and Close asked whether
+   * to discard changes that did not exist — the reported bug.
+   *
+   * Two conditions now, and both are needed:
+   *
+   *  - **The reader has touched the canvas.** This alone fixes the report,
+   *    and it holds even if the library renumbers element versions while
+   *    loading, which no fingerprint could tell apart from an edit.
+   *  - **The drawing actually differs from what was opened.** This catches the
+   *    other half: selecting a shape, panning or zooming is interaction that
+   *    changes nothing, and should not cost a prompt on the way out.
+   *
+   * The failure mode is deliberately one-sided. A missed change never prompts
+   * where it should; it does not lose work, because autosave runs on the same
+   * flag and Save is always available.
+   */
+  const handleChange = useCallback((elements: readonly unknown[]) => {
     lastChangeAt.current = Date.now();
-    setIsDirty(true);
+    const fingerprint = sceneFingerprint(elements);
+    setIsDirty(hasInteracted.current && fingerprint !== baselineScene.current);
+  }, []);
+
+  /**
+   * The title is state the canvas knows nothing about, so its own change has
+   * to say so.
+   *
+   * This was missing entirely, and the consequence was worse than a spurious
+   * prompt: renaming a board and pressing Close discarded the rename in
+   * silence. Autosave only runs while dirty, and Close only asks while dirty,
+   * so a rename on its own was written nowhere and warned about never.
+   */
+  const handleTitleChange = useCallback((next: string) => {
+    setTitle(next);
+    setIsDirty(next !== baselineTitle.current);
   }, []);
 
   const persist = useCallback(
@@ -189,6 +231,11 @@ function BoardSurface({
         // this every later save would insert another row.
         if (!savedIdRef.current && saved?.id) savedIdRef.current = saved.id;
 
+        // The saved state is the new baseline. Without this the next
+        // pointer move would compare against what was *opened* and mark the
+        // board dirty again the instant after it was written.
+        baselineScene.current = sceneFingerprint(api.getSceneElements());
+        baselineTitle.current = title;
         setIsDirty(false);
         setSavedAt(Date.now());
         if (!options.silent) toast.success("Whiteboard saved.");
@@ -321,7 +368,7 @@ function BoardSurface({
     <div className="flex min-w-0 items-center gap-2">
       <Input
         value={title}
-        onChange={(event) => setTitle(event.target.value)}
+        onChange={(event) => handleTitleChange(event.target.value)}
         placeholder="Untitled whiteboard"
         aria-label="Whiteboard title"
         className="h-8 w-40 border-0 bg-transparent px-2 text-sm font-medium shadow-none focus-visible:bg-secondary focus-visible:ring-0 sm:w-56"
@@ -339,7 +386,23 @@ function BoardSurface({
 
   return (
     <>
-      <div className="min-h-0 flex-1" ref={pen.ref}>
+      {/*
+        Interaction is captured here rather than through Excalidraw, which
+        owns pointer events on its own surface and offers no "the user did
+        something" signal. Capture phase, so it is seen before the canvas
+        stops propagation; `once` semantics by way of the ref, since the flag
+        only ever turns on.
+      */}
+      <div
+        className="min-h-0 flex-1"
+        ref={pen.ref}
+        onPointerDownCapture={() => {
+          hasInteracted.current = true;
+        }}
+        onKeyDownCapture={() => {
+          hasInteracted.current = true;
+        }}
+      >
         <ExcalidrawCanvasLazy
           initialData={toInitialData(board)}
           theme={theme}

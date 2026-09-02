@@ -15,6 +15,7 @@ const renderCard = (overrides: Partial<Whiteboard> = {}) => {
     onOpen: vi.fn(),
     onDelete: vi.fn(),
     onTogglePin: vi.fn(),
+    onRename: vi.fn(),
   };
   const { container } = render(
     <BoardCard board={board(overrides)} {...handlers} />,
@@ -80,5 +81,68 @@ describe("BoardCard", () => {
     expect(
       screen.getByRole("button", { name: "Unpin Architecture" }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("renaming from the gallery", () => {
+  /**
+   * Renaming used to require opening the board — loading an Excalidraw canvas,
+   * the heaviest screen in the app, to fix a typo. It is the one edit that
+   * never needed the canvas.
+   */
+  it("commits a new name on Enter", () => {
+    const { onRename } = renderCard({ title: "Sketch" });
+
+    fireEvent.click(screen.getByLabelText("Rename Sketch"));
+    const input = screen.getByRole("textbox", { name: "Rename Sketch" });
+    fireEvent.change(input, { target: { value: "Ledger design" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onRename).toHaveBeenCalledWith("Ledger design");
+  });
+
+  it("abandons the edit on Escape", () => {
+    const { onRename } = renderCard({ title: "Sketch" });
+
+    fireEvent.click(screen.getByLabelText("Rename Sketch"));
+    const input = screen.getByRole("textbox", { name: "Rename Sketch" });
+    fireEvent.change(input, { target: { value: "Something else" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it("does not write when the name is unchanged", () => {
+    const { onRename } = renderCard({ title: "Sketch" });
+
+    fireEvent.click(screen.getByLabelText("Rename Sketch"));
+    fireEvent.blur(screen.getByRole("textbox", { name: "Rename Sketch" }));
+
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  /**
+   * An empty title is legal in the column and renders as "Untitled
+   * whiteboard", but clearing a name is far likelier to be a slip than an
+   * intent — so it cancels rather than silently wiping the name.
+   */
+  it("treats an emptied name as a cancel", () => {
+    const { onRename } = renderCard({ title: "Sketch" });
+
+    fireEvent.click(screen.getByLabelText("Rename Sketch"));
+    const input = screen.getByRole("textbox", { name: "Rename Sketch" });
+    fireEvent.change(input, { target: { value: "   " } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it("does not open the board while renaming", () => {
+    const { onOpen } = renderCard({ title: "Sketch" });
+
+    fireEvent.click(screen.getByLabelText("Rename Sketch"));
+    fireEvent.click(screen.getByRole("textbox", { name: "Rename Sketch" }));
+
+    expect(onOpen).not.toHaveBeenCalled();
   });
 });

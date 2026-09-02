@@ -11,7 +11,15 @@ interface ExcalidrawCanvasProps {
   theme: ExcalidrawTheme;
   /** Handed the imperative API once mounted, for reading the scene on save. */
   onApiReady: (api: ExcalidrawImperativeAPI) => void;
-  onChange: () => void;
+  /**
+   * Handed the live element array, not just "something happened".
+   *
+   * The library fires this for pointer moves, selection and its own initial
+   * load, so the callback cannot tell whether the drawing changed without
+   * seeing it — which is why the previous `() => void` signature turned every
+   * board open into an unsaved-changes prompt.
+   */
+  onChange: (elements: readonly unknown[]) => void;
   /**
    * Board actions, rendered into Excalidraw's own top-right slot.
    *
@@ -51,7 +59,7 @@ export function ExcalidrawCanvas({
         initialData={initialData as never}
         theme={theme}
         excalidrawAPI={onApiReady}
-        onChange={onChange}
+        onChange={(elements) => onChange(elements)}
         UIOptions={{
           canvasActions: {
             // Loading a file would swap the scene out from under the row this
