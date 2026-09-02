@@ -1286,9 +1286,40 @@ licence notice rather than a job, and its locations arrive as "York, " and
 | `015-learning-material-kinds.sql`    | `kind` / `prompt` / `answer` / `choices` on learning topics                         |
 | `016-discover-watchlist.sql`         | `discover_watchlist`, and a market-data key on `integration_settings`               |
 
+## Follow-up
+
+**The watchlist was built**, in two tiers. Crypto is priced live with no key
+(CoinGecko is keyless and CORS-open); stocks, ETFs and indices are priced once
+the owner supplies their own free Finnhub or Twelve Data key, both of which were
+verified CORS-open; funds and bonds link out, because neither free tier covers
+them, and a row showing nothing beside neighbours showing prices reads as a bug
+rather than as a limit.
+
+The key lives on `integration_settings` — RLS, no public read policy — and
+Discover is an admin route, so the owner's browser reads it and it never enters
+the bundle. Same argument as migration 007. The field sits in the panel beside
+the rows it unlocks rather than on a settings screen, because that is where the
+gap is felt.
+
+**Finnhub reports an unknown symbol as a zero price, not an error.** Treated as
+no quote. A confident wrong number is the failure worth guarding on a money
+screen.
+
+**The shell arrangement became a preference.** This project went round the same
+loop three times — rail, floating pill bar with navigation behind a keystroke,
+rail again, launcher — defending each as correct. That is the signature of a
+question with no single answer: a rail is worth its 15rem on a wide monitor and
+costs a sixth of a laptop screen. It is now chosen per device in
+`localStorage`, not synced, because the right answer differs between the two
+machines the same person uses. Both arrangements read `NAV_GROUPS` and
+`isActiveNavHref`, so neither can disagree with the other about what exists.
+
+`CLAUDE.md` was updated to match. It previously said "there is no sidebar rail"
+while a rail sat in the code, which is how this pass's contradiction arose;
+leaving it stale a second time would be that mistake made knowingly.
+
 ## Still open
 
-- The Discover watchlist has its schema, model and tests but not its screen.
 - Learning's certification layer — timed mock exams, per-exam progress, an
   importable question bank — sits on top of the loop this pass built and is not
   built.

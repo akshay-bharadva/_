@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { FocusTimer } from "@/features/focus/focus-timer";
+import { cn } from "@/lib/cn";
 import { useAdminGuard } from "./use-admin-guard";
+import { AdminSidebar } from "./admin-sidebar";
 import { AdminTopbar } from "./admin-topbar";
 import { activeNavItem } from "./nav-config";
+import { useShellLayout } from "./use-shell-layout";
+
+const COLLAPSE_KEY = "admin_sidebar_collapsed";
 
 function useDocumentTitle() {
   const pathname = usePathname() ?? "/admin";
@@ -32,39 +38,107 @@ function ShellLoading() {
 }
 
 /**
- * The guarded Personal OS shell.
+ * The guarded Personal OS shell, in whichever arrangement the owner chose.
  *
- * **A top bar over a full-width main, with no rail.** The history here is worth
- * recording, because it went round twice. The rail was removed once in favour
- * of a floating pill bar with navigation hidden behind a keystroke — which was
- * a marketing-site pattern applied to an admin tool, and hid the product's
- * whole surface area. It was then reinstated as a fixed 15rem list, which is
- * the other failure: eighteen destinations you use one at a time, always the
- * same eighteen, occupying a sixth of every screen until you stop reading
- * them.
+ * **This project argued itself round the same loop three times** — rail, then a
+ * floating pill bar with navigation behind a keystroke, then the rail again,
+ * then the launcher — and defended each answer as the correct one. That is
+ * usually the sign that there is no single correct one. A rail is worth its
+ * 15rem on a wide monitor where the space is free and costs a sixth of the
+ * screen on a laptop, so it is a preference now, stored per device.
  *
- * The launcher is the third answer and the one `CLAUDE.md` has described all
- * along: the modules are treated as separate applications you switch between,
- * reachable from a grid that is one click away and shows every one of them at
- * once, with search inside it. Nothing is hidden behind a keystroke, and
- * nothing is permanently on screen.
+ * Both arrangements share `NAV_GROUPS` and `isActiveNavHref`, so they cannot
+ * disagree about what exists or about which module you are in — which is the
+ * failure that would make having two of them expensive.
  *
- * One navigation surface, not two: the launcher carries its own search, and
- * `GlobalCommandPalette` remains the keyboard route to the same `NAV_GROUPS`.
+ * The launcher is the default, because it works at every width; the rail
+ * assumes there is room for it. See `use-shell-layout.ts`.
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state } = useAdminGuard();
+  const { layout, ready } = useShellLayout();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   useDocumentTitle();
+
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "true");
+    } catch {
+      // Blocked site data; uncollapsed is the safe default.
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((previous) => {
+      const next = !previous;
+      try {
+        localStorage.setItem(COLLAPSE_KEY, String(next));
+      } catch {
+        // As above — the choice still applies for this session.
+      }
+      return next;
+    });
+  };
 
   if (state !== "authorized") return <ShellLoading />;
 
+  /**
+   * The rail waits for the stored preference.
+   *
+   * `localStorage` cannot be read during render — it does not exist on the
+   * server, and this app's HTML is written at build time — so rendering the
+   * rail before the preference is known would flash it in and out on every
+   * page load for anyone who chose the launcher.
+   */
+  const railed = ready && layout === "sidebar";
+
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-secondary/30">
+    <div
+      className={cn(
+        "min-h-[100dvh] bg-secondary/30",
+        !railed && "flex flex-col",
+      )}
+    >
       <FocusTimer />
-      <AdminTopbar />
-      <main className="flex-1 px-4 py-6 sm:px-6">
-        <div className="mx-auto w-full max-w-wide">{children}</div>
-      </main>
+
+      {railed && (
+        <>
+          <aside
+            className={cn(
+              "fixed inset-y-0 left-0 z-40 hidden border-r lg:block",
+              collapsed ? "w-16" : "w-60",
+            )}
+          >
+            <AdminSidebar
+              collapsed={collapsed}
+              onToggleCollapse={toggleCollapsed}
+            />
+          </aside>
+
+          {/* The same component in the drawer, so navigation is identical. */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetContent side="left" className="w-64 p-0">
+              <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+              <AdminSidebar onNavigate={() => setMobileOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
+
+      <div
+        className={cn(
+          "flex min-h-[100dvh] flex-col",
+          railed && (collapsed ? "lg:pl-16" : "lg:pl-60"),
+        )}
+      >
+        <AdminTopbar
+          onOpenSidebar={railed ? () => setMobileOpen(true) : undefined}
+        />
+        <main className="flex-1 px-4 py-6 sm:px-6">
+          <div className="mx-auto w-full max-w-wide">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

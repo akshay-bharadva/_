@@ -1,4 +1,5 @@
 import type { DiscoverPlace, DiscoverTopic } from "@/types";
+import type { WatchlistEntry } from "@/features/discover/watchlist";
 import { adminApi } from "./baseApi";
 import { getAllQueryFn, saveQueryFn, deleteQueryFn } from "./query-helpers";
 
@@ -51,6 +52,32 @@ export const discoverApi = adminApi.injectEndpoints({
       queryFn: deleteQueryFn("discover_topics"),
       invalidatesTags: ["Discover"],
     }),
+
+    /**
+     * The watchlist — again, only what to ask for. No quote is ever stored:
+     * caching a price means deciding when it goes stale, and a stale price
+     * shown as current is the one thing a money screen must not do.
+     */
+    getWatchlist: builder.query<WatchlistEntry[], void>({
+      queryFn: getAllQueryFn<WatchlistEntry>("discover_watchlist", [
+        { column: "display_order", ascending: true },
+        { column: "symbol", ascending: true },
+      ]),
+      providesTags: ["Discover"],
+    }),
+
+    saveWatchlistEntry: builder.mutation<
+      WatchlistEntry,
+      Partial<WatchlistEntry> & { id?: string }
+    >({
+      queryFn: saveQueryFn<WatchlistEntry>("discover_watchlist"),
+      invalidatesTags: ["Discover"],
+    }),
+
+    deleteWatchlistEntry: builder.mutation<{ id: string }, string>({
+      queryFn: deleteQueryFn("discover_watchlist"),
+      invalidatesTags: ["Discover"],
+    }),
   }),
 });
 
@@ -61,4 +88,7 @@ export const {
   useGetDiscoverTopicsQuery,
   useSaveDiscoverTopicMutation,
   useDeleteDiscoverTopicMutation,
+  useGetWatchlistQuery,
+  useSaveWatchlistEntryMutation,
+  useDeleteWatchlistEntryMutation,
 } = discoverApi;

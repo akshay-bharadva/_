@@ -761,6 +761,16 @@ export interface ContactSubmission {
  * webhook URL there would be visible to every visitor.
  */
 export interface IntegrationSettings {
+  /**
+   * A market-data key the owner supplies.
+   *
+   * Lives here rather than in an env var because this table has RLS and no
+   * public read policy at all, and Discover is an admin route — so the owner's
+   * browser can read it and it never enters the bundle. A `NEXT_PUBLIC_*` key
+   * in a static export is a published key.
+   */
+  market_data_key?: string | null;
+  market_data_provider?: "finnhub" | "twelvedata" | null;
   id: number;
   contact_webhook_url: string | null;
   notify_on_contact: boolean;

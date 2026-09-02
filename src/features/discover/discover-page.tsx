@@ -3,12 +3,17 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink, MapPin, Plus, Trash2 } from "lucide-react";
-import type { DiscoverPlace, DiscoverTopic } from "@/types";
+import type {
+  DiscoverPlace,
+  DiscoverTopic,
+  IntegrationSettings,
+} from "@/types";
 import {
   useDeleteDiscoverPlaceMutation,
   useDeleteDiscoverTopicMutation,
   useGetDiscoverPlacesQuery,
   useGetDiscoverTopicsQuery,
+  useGetIntegrationSettingsQuery,
   useSaveDiscoverPlaceMutation,
   useSaveDiscoverTopicMutation,
   useGetFinanceSettingsQuery,
@@ -45,6 +50,7 @@ import { CorridorPanel, CryptoPanel, EconomyPanel } from "./market-panels";
 import { Headlines } from "./headlines";
 import { CareerPanel } from "./career-panel";
 import { ReadingPanel } from "./reading-panel";
+import { WatchlistPanel } from "./watchlist-panel";
 
 /**
  * Discover — the parts of the day this app does not own.
@@ -79,6 +85,7 @@ export default function DiscoverPage() {
   const { data: places = [] } = useGetDiscoverPlacesQuery();
   const { data: topics = [] } = useGetDiscoverTopicsQuery();
   const { data: finance } = useGetFinanceSettingsQuery();
+  const { data: integrations } = useGetIntegrationSettingsQuery();
 
   const [lane, setLane] = useState<Lane>("money");
   const [window, setWindow] = useState<Window>("day");
@@ -122,7 +129,12 @@ export default function DiscoverPage() {
       </div>
 
       {lane === "money" && (
-        <MoneyLane base={base} home={home} places={places} />
+        <MoneyLane
+          base={base}
+          home={home}
+          places={places}
+          integrations={integrations}
+        />
       )}
 
       {lane === "career" && <CareerLane />}
@@ -150,10 +162,12 @@ function MoneyLane({
   base,
   home,
   places,
+  integrations,
 }: {
   base: string;
   home: string | null;
   places: DiscoverPlace[];
+  integrations?: IntegrationSettings;
 }) {
   return (
     <div className="space-y-5">
@@ -177,14 +191,16 @@ function MoneyLane({
       </div>
 
       {/*
-        Stated rather than quietly absent. Someone looking for the S&P should
-        find out why it is missing, not conclude the page is half-built.
+        The watchlist replaces the standing apology about indices. The
+        constraint is the same and still true, but it is now stated *inside*
+        the feature it limits — where the reader can act on it — rather than as
+        a paragraph explaining why there is no feature.
       */}
-      <p className="rounded-surface bg-secondary/40 px-4 py-3 text-xs text-muted-foreground">
-        Stock indices are not shown: every keyless source either blocks browser
-        requests or has closed, and reaching one would mean a server hop this
-        app deliberately does without.
-      </p>
+      <WatchlistPanel
+        baseCurrency={base}
+        provider={integrations?.market_data_provider ?? null}
+        apiKey={integrations?.market_data_key ?? null}
+      />
 
       <section className="space-y-3" aria-label="Weather">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

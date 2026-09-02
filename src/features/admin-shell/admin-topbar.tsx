@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   BookText,
+  Check,
+  Menu,
   ExternalLink,
   ListTodo,
   LogOut,
@@ -23,7 +25,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppLauncher } from "./app-launcher";
+import { cn } from "@/lib/cn";
 import { LearningPill } from "./learning-pill";
+import { SHELL_LAYOUTS, useShellLayout } from "./use-shell-layout";
 import { activeNavItem, NAV_ITEMS } from "./nav-config";
 
 /**
@@ -37,13 +41,23 @@ import { activeNavItem, NAV_ITEMS } from "./nav-config";
  * chrome should read as part of the frame, not as an object hovering over the
  * content.
  */
-export function AdminTopbar() {
+export function AdminTopbar({
+  /**
+   * Supplied only in the rail arrangement, where a phone needs a way into the
+   * drawer. In the launcher arrangement navigation is the launcher at every
+   * width, so there is no second control to offer.
+   */
+  onOpenSidebar,
+}: {
+  onOpenSidebar?: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname() ?? "/admin";
   const { session } = useSupabaseSession();
   const [signOut] = useSignOutMutation();
 
   const current = activeNavItem(pathname);
+  const { layout, choose } = useShellLayout();
   const Icon = current?.icon;
 
   const handleLogout = async () => {
@@ -57,12 +71,18 @@ export function AdminTopbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-4 sm:px-6">
-      {/*
-        The current page, as a heading. Navigation is the launcher on the
-        right, so this is context rather than a control — and it is the same
-        at every width, rather than a drawer button on a phone and a heading on
-        a laptop.
-      */}
+      {onOpenSidebar && (
+        <button
+          type="button"
+          onClick={onOpenSidebar}
+          aria-label="Open navigation"
+          className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+        >
+          <Menu className="size-5" aria-hidden />
+        </button>
+      )}
+
+      {/* The current page, as a heading rather than a control. */}
       <div className="flex min-w-0 items-center gap-2">
         {Icon && <Icon className="size-4 shrink-0 text-primary" aria-hidden />}
         <h1 className="truncate text-sm font-semibold">
@@ -125,6 +145,43 @@ export function AdminTopbar() {
             <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">
               {session?.user.email}
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            {/*
+              Navigation arrangement, as a per-device preference.
+              
+              It lives here rather than on the Settings screen because that
+              screen is bound to the `site_identity` row and its per-group save
+              machinery — this is neither site content nor synced, and putting
+              it there would imply both. The right answer genuinely differs
+              between a wide monitor and a laptop, which is the whole reason it
+              is a choice.
+            */}
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Navigation
+            </DropdownMenuLabel>
+            {SHELL_LAYOUTS.map((option) => (
+              <DropdownMenuItem
+                key={option.id}
+                onClick={() => choose(option.id)}
+                className="gap-2"
+              >
+                <Check
+                  className={cn(
+                    "size-4 shrink-0",
+                    option.id === layout ? "opacity-100" : "opacity-0",
+                  )}
+                  aria-hidden
+                />
+                <span className="min-w-0">
+                  <span className="block">{option.label}</span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {option.hint}
+                  </span>
+                </span>
+              </DropdownMenuItem>
+            ))}
+
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/">

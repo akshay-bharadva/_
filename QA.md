@@ -360,9 +360,31 @@ On Substack specifically: it publishes no public API for likes or shares, so
 "articles with more than 30k likes" cannot be answered from it honestly. The
 panel says so rather than quietly substituting something else.
 
-**Remaining:** the watchlist's admin screen and its RTK Query endpoints, and
-the key field in settings. The schema, the model and the tests are in; the UI
-is the next piece.
+**The watchlist is now built**, and it works in two tiers rather than one:
+
+- **Crypto is priced live with nothing configured** — CoinGecko is keyless and
+  CORS-open, so a BTC or ETH row shows price and 24-hour change straight away.
+  This is what "only showing BTC & ETH" becomes: any coin you add, not two
+  hard-coded ones.
+- **Stocks, ETFs and indices are live once you paste your own free key.**
+  Finnhub (60 calls a minute) and Twelve Data (800 a day) are both CORS-open
+  and both free — I tested them. The key is stored on `integration_settings`,
+  which has RLS and no public read policy, and Discover is an admin route, so
+  your browser reads it and it never enters the published bundle. The field is
+  in the panel itself, where the "no key" rows are, rather than buried in a
+  settings screen.
+- **Funds and bonds link out**, because neither free tier covers them. The row
+  says "not priced" rather than showing an empty space that reads as a bug.
+
+Exchange is part of an entry because SHOP is Shopify on both the NYSE and the
+TSX at different prices, so the same ticker on two venues is two instruments.
+Finnhub answers an unknown symbol with a **zero price rather than an error**,
+which is treated as no quote — a confident wrong number is the failure worth
+guarding against here.
+
+The standing paragraph apologising for missing indices is gone: the constraint
+is the same and still true, but it is now stated inside the feature it limits,
+where you can act on it.
 
 15. for tasks, every thing is good - expect when i click on task it directly opens the editing ppanel intead I want a view first then edit if user wants to, also in projects the listed projects is always editable
 
@@ -675,3 +697,27 @@ view-before-edit work, because rendering a task description as markdown pulls
 in remark. Nothing else in Tasks treats a description as markdown (the form is
 a plain textarea), so it is plain text now and the route is back to 324 kB
 against 320 before.
+
+**Follow-up: the shell is now a choice.** After this landed you asked for the
+sidebar back as an option, which is fair — this project has argued itself round
+the same loop three times (rail → floating pill bar → rail → launcher), each
+answer defended as the correct one, and that is usually the sign there is no
+single correct one. A rail is worth its 15rem on a wide monitor and costs a
+sixth of a laptop screen.
+
+**App launcher** or **Sidebar rail**, chosen from the account menu, stored per
+device in `localStorage`. Per device deliberately: the right answer genuinely
+differs between a 27-inch monitor and a 13-inch laptop, so syncing it would
+make choosing on one the wrong choice on the other. It is also not site content
+— `site_identity` is publicly readable, and how you arrange your own chrome is
+nobody else's business.
+
+Both arrangements read the same `NAV_GROUPS` and `isActiveNavHref`, so they
+cannot disagree about what exists or which module you are in. The launcher
+stays available alongside the rail, because it is the only surface that lists
+_and_ searches every module.
+
+**`CLAUDE.md` has been updated.** It said "there is no sidebar rail" — which is
+what made the contradiction this pass found possible in the first place, since
+a rail was sitting there regardless. Leaving it stale a second time would be
+the same mistake knowingly.
