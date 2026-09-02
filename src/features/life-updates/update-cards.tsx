@@ -22,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { firstMeaningfulLine } from "@/lib/text-preview";
 import { cn } from "@/lib/utils";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
 
@@ -245,15 +246,18 @@ export function BoardCard({
               </div>
             </div>
 
-            {update.title ? (
-              <h3 className="mb-0.5 truncate font-heading text-sm font-semibold leading-tight tracking-tight text-foreground">
-                {update.title}
-              </h3>
-            ) : (
-              <span className="text-xs italic text-muted-foreground">
-                Untitled
-              </span>
-            )}
+            <h3
+              className={cn(
+                "mb-0.5 truncate font-heading text-sm leading-tight tracking-tight",
+                update.title
+                  ? "font-semibold text-foreground"
+                  : "font-normal text-muted-foreground",
+              )}
+            >
+              {update.title ||
+                firstMeaningfulLine(update.content ?? "") ||
+                "Empty update"}
+            </h3>
 
             {update.content && (
               <p className="mb-2 line-clamp-3 text-xs text-muted-foreground">
@@ -266,7 +270,7 @@ export function BoardCard({
                 {update.tags.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
-                    className="font-mono text-[10px] font-medium text-muted-foreground/60"
+                    className="text-[10px] font-medium text-muted-foreground"
                   >
                     #{tag}
                   </span>
@@ -274,11 +278,11 @@ export function BoardCard({
               </div>
             )}
 
-            <div className="flex items-center justify-between border-t border-border/30 pt-1.5">
+            <div className="flex items-center justify-between border-t border-border pt-1.5">
               <div className="flex items-center gap-1.5">
                 <StatusBadges update={update} />
               </div>
-              <span className="font-mono text-[9px] text-muted-foreground/70">
+              <span className="text-[10px] tabular-nums text-muted-foreground">
                 {update.updated_at
                   ? formatDistanceToNow(new Date(update.updated_at), {
                       addSuffix: true,
@@ -310,14 +314,22 @@ export function ListRow({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       transition={{ duration: 0.2 }}
+      /*
+        The hover was a *border* appearing on a transparent one — hierarchy
+        drawn with a line, which is the v2 grammar. In v3 a row responds by
+        changing its fill; the surface it sits on carries the elevation.
+
+        `opacity-55` for an unpublished update is also gone. Dimming the whole
+        row makes the title harder to read to communicate something the Draft
+        badge beside it already says outright, and it dims the actions too.
+      */
       className={cn(
-        "group flex cursor-pointer items-center gap-3 rounded-surface border border-transparent px-3 py-2.5 transition-colors hover:border-border/40 hover:bg-secondary/40",
-        !update.is_published && "opacity-55",
+        "group flex cursor-pointer items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-secondary/60",
       )}
       onClick={onEdit}
     >
       {update.image_url ? (
-        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-secondary/50">
+        <div className="size-10 shrink-0 overflow-hidden rounded-control bg-secondary/50">
           <img
             src={update.image_url}
             alt=""
@@ -326,7 +338,7 @@ export function ListRow({
           />
         </div>
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border bg-secondary/30 text-lg">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-control bg-secondary/40 text-lg">
           {cat.emoji}
         </div>
       )}
@@ -339,12 +351,22 @@ export function ListRow({
               fill="currentColor"
             />
           )}
-          <span className="truncate text-sm font-medium">
-            {update.title || (
-              <span className="font-normal italic text-muted-foreground">
-                Untitled
-              </span>
+          {/*
+            Named by its own first line when it has no title, the same rule
+            Notes follows — a list reading "Untitled / Untitled / Untitled"
+            says nothing about what is in it.
+          */}
+          <span
+            className={cn(
+              "truncate text-sm",
+              update.title
+                ? "font-medium"
+                : "font-normal text-muted-foreground",
             )}
+          >
+            {update.title ||
+              firstMeaningfulLine(update.content ?? "") ||
+              "Empty update"}
           </span>
         </div>
         {update.content && (
@@ -358,7 +380,8 @@ export function ListRow({
         <StatusBadges update={update} />
       </div>
 
-      <span className="hidden w-20 shrink-0 text-right font-mono text-[10px] text-muted-foreground/60 md:block">
+      {/* Mono is for code, not a decorative metadata voice. */}
+      <span className="hidden w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground md:block">
         {update.updated_at
           ? formatDistanceToNow(new Date(update.updated_at), {
               addSuffix: true,

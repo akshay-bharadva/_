@@ -170,6 +170,27 @@ their reason, checked in both directions so an allowance cannot outlive it.
 
 11. in updates, it seems like the table/list view is old and other components are new sync the list/table with current new UI/UX
 
+**`[x]` Resolved.** "Old generation" was specific once you look at it — the row
+was still built the v2 way:
+
+- **It hovered by growing a border** on a transparent one. Hierarchy drawn with
+  a line is exactly the grammar v3 replaced; a row in a list responds by
+  changing its fill.
+- **`opacity-55` on an unpublished update.** That makes the title harder to
+  read in order to say something the Draft badge beside it already says
+  outright — and it dimmed the actions along with it.
+- **Monospace on the timestamp**, plus `text-muted-foreground/60` stacking an
+  arbitrary alpha on a token that is already muted.
+- **`rounded-md`** thumbnails rather than the control radius.
+- **"Untitled"** again, so the same rule as Notes applies: named by the
+  update's own first line, with "Empty update" kept for one with nothing in it
+  at all.
+
+Functionality is unchanged, as asked. The shared `firstMeaningfulLine` moved to
+`src/lib/text-preview.ts` on the way, since Notes and Life updates both need it
+and a feature reaching into another feature's internals is what the
+architecture forbids.
+
 12. on Navigation, when I created new link say /ABCD it show correctly in navigation that this will be CMS page, it also shows on public nav bar but when I vist that it says 404.
 
 **`[x]` Resolved.** Not a bug in the resolver — `generateStaticParams` runs at

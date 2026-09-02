@@ -281,7 +281,6 @@ const MONO_BUDGET = [
   "features/inventory/inventory-table.tsx",
   "features/learning/session-tracker.tsx",
   "features/learning/topic-editor.tsx",
-  "features/life-updates/update-cards.tsx",
   "features/navigation/nav-link-form.tsx",
   "features/navigation/navigation-page.tsx",
   "features/sections/dynamic-page-content.tsx",
