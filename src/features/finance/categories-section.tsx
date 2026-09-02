@@ -110,13 +110,39 @@ export function CategoriesSection({
           <Tag className="size-4 text-muted-foreground" aria-hidden />
           Categories
         </h2>
+        {/*
+          What these two fields *buy* you, rather than what they are called.
+          
+          The previous copy named the outputs — "the 50/30/20 check", "your
+          runway" — which only helps a reader who already knows what those are
+          and where they appear. Sorting your own categories is tedious, so the
+          screen has to be able to answer "and then what?" before you will do
+          it.
+        */}
         <p className="mt-0.5 max-w-prose text-xs leading-relaxed text-muted-foreground">
-          <strong className="font-medium text-foreground">Bucket</strong> drives
-          the 50/30/20 check.{" "}
-          <strong className="font-medium text-foreground">Essential</strong>{" "}
-          drives your runway — tick it for anything you would still be paying if
-          income stopped tomorrow. They are different questions, which is why
-          they are different switches.
+          Two switches, and they are what make two of the figures on{" "}
+          <strong className="font-medium text-foreground">Overview</strong>{" "}
+          possible at all.
+        </p>
+        <ul className="mt-1.5 max-w-prose list-none space-y-1 text-xs leading-relaxed text-muted-foreground">
+          <li>
+            <strong className="font-medium text-foreground">Bucket</strong>{" "}
+            sorts spending into needs, wants and saving. That grouping is what
+            the 50/30/20 line compares against — with everything unsorted, it
+            has nothing to compare.
+          </li>
+          <li>
+            <strong className="font-medium text-foreground">Essential</strong>{" "}
+            marks what you would still be paying if income stopped tomorrow. It
+            is the only input to <em>runway</em> — how many months your money
+            would last — so an unmarked list makes that figure meaningless
+            rather than merely approximate.
+          </li>
+        </ul>
+        <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-muted-foreground">
+          A gym membership can be a <em>need</em> in your budgeting shape and
+          still be the first thing cancelled if income stopped. They are
+          different questions, which is why they are different switches.
         </p>
       </div>
 

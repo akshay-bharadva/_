@@ -9,6 +9,8 @@ import {
   Repeat,
   Settings2,
   Target,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
@@ -48,6 +50,7 @@ import { rateFrom } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import { DEFAULT_SECTION, FINANCE_SECTIONS, findSection } from "./finance-nav";
 import { useFxSync } from "./use-fx-sync";
+import { usePrivateFigures } from "./use-private-figures";
 import { OverviewSection } from "./overview-section";
 import { LedgerSection } from "./ledger-section";
 import { TransactionForm } from "./transaction-form";
@@ -136,6 +139,7 @@ export default function FinancePage() {
   const [transferring, setTransferring] = useState(false);
   const [configuring, setConfiguring] = useState(false);
   const [addingRule, setAddingRule] = useState(false);
+  const { hidden, toggle } = usePrivateFigures();
   const [addingGoal, setAddingGoal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
   const [editingRule, setEditingRule] = useState<RecurringTransaction | null>(
@@ -228,7 +232,7 @@ export default function FinancePage() {
   );
 
   return (
-    <ManagerWrapper className="pb-4">
+    <ManagerWrapper className={cn("pb-4", hidden && "figures-hidden")}>
       <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
         <aside className="hidden lg:block">{nav}</aside>
 
@@ -272,6 +276,32 @@ export default function FinancePage() {
                 <Settings2 className="mr-1.5 size-3.5" />
                 <span className="hidden sm:inline">Currency</span>
               </Button>
+              {/*
+                A defence against the person standing behind you, and nothing
+                more — the figures are one click away. Saying so is the point:
+                the Security screen was rewritten because a control that
+                overstates what it protects is worse than one that does less.
+              */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={toggle}
+                aria-pressed={hidden}
+                title={
+                  hidden
+                    ? "Show the amounts again"
+                    : "Blur every amount on screen — for this browser session only"
+                }
+              >
+                {hidden ? (
+                  <Eye className="mr-1.5 size-3.5" aria-hidden />
+                ) : (
+                  <EyeOff className="mr-1.5 size-3.5" aria-hidden />
+                )}
+                {hidden ? "Show" : "Hide"} amounts
+              </Button>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" size="sm">
@@ -350,6 +380,7 @@ export default function FinancePage() {
               categories={categories}
               transactions={transactions}
               goals={goals}
+              accounts={accounts}
               settings={settings}
               onEditGoal={setEditingGoal}
             />
@@ -435,6 +466,7 @@ export default function FinancePage() {
       >
         <RecurringTransactionForm
           recurringTransaction={editingRule}
+          categories={categories}
           onSuccess={() => {
             setAddingRule(false);
             setEditingRule(null);

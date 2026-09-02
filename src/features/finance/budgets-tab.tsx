@@ -229,16 +229,31 @@ export function BudgetsTab({
                   className={cn("font-medium", STATE_COPY[line.state].tone)}
                 >
                   {STATE_COPY[line.state].label}
-                  {line.state !== "on-track" && (
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · on pace for{" "}
-                      {formatMoney(
-                        { amount: line.projected, currency },
-                        { whole: true },
-                      )}
-                    </span>
-                  )}
+                  {/*
+                    The comparison, said out loud.
+                    
+                    "Ahead of pace" is a conclusion, and the owner reasonably
+                    asked where it came from. It is two percentages: how much
+                    of the budget is gone against how much of the month is. The
+                    marker on the bar above shows the second one; naming both
+                    here means the reader never has to infer the rule from the
+                    label.
+                  */}
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {Math.round(line.usedFraction * 100)}% spent,{" "}
+                    {Math.round(line.elapsedFraction * 100)}% through the month
+                    {line.state !== "on-track" && (
+                      <>
+                        {" "}
+                        · on pace for{" "}
+                        {formatMoney(
+                          { amount: line.projected, currency },
+                          { whole: true },
+                        )}
+                      </>
+                    )}
+                  </span>
                 </span>
                 <button
                   type="button"

@@ -288,3 +288,39 @@ describe("readForecast", () => {
     expect(readForecast([])).toBeNull();
   });
 });
+
+describe("long horizons", () => {
+  /**
+   * Seven years is 2,556 days. Emitting a point per day draws several per
+   * pixel — slower to render and no more informative than one a month — so the
+   * *series* coarsens past eighteen months while the arithmetic does not.
+   *
+   * That distinction is the point of the test. Stepping the maths monthly
+   * would only ever be able to name the month a balance ran out; the module's
+   * whole argument for the forecast is that "this runs out on 14 March" is the
+   * sentence that changes behaviour.
+   */
+  it("reports monthly beyond eighteen months", () => {
+    const daily = forecast({ horizonDays: 365 });
+    const long = forecast({ horizonDays: 365 * 7 });
+
+    expect(daily.length).toBe(366);
+    // Roughly one a month, plus today and the final day.
+    expect(long.length).toBeLessThan(120);
+    expect(long.length).toBeGreaterThan(80);
+  });
+
+  it("still starts today and ends on the horizon", () => {
+    const long = forecast({ horizonDays: 365 * 5 });
+    expect(long.length).toBeGreaterThan(2);
+    // Today, and the horizon itself — a series that stopped at the last month
+    // boundary would end short of the window the reader asked for.
+    expect(long[0].date).toBe("2026-08-20");
+    expect(long[long.length - 1].date).not.toBe(long[long.length - 2].date);
+  });
+
+  it("keeps daily resolution inside eighteen months", () => {
+    const short = forecast({ horizonDays: 540 });
+    expect(short.length).toBe(541);
+  });
+});

@@ -61,6 +61,17 @@ const HORIZONS = [
   { days: 90, label: "3 months" },
   { days: 180, label: "6 months" },
   { days: 365, label: "12 months" },
+  /*
+    Long horizons, for the questions a mortgage raises.
+
+    Labelled in years and set apart from the months, because they are a
+    different kind of answer: at 12 months the line is close to arithmetic,
+    while at 7 years it is arithmetic on top of assumptions that will not hold.
+    The chart says so beneath it rather than presenting the two identically.
+  */
+  { days: 365 * 3, label: "3 years" },
+  { days: 365 * 5, label: "5 years" },
+  { days: 365 * 7, label: "7 years" },
 ] as const;
 
 export function ForecastTab({
@@ -210,6 +221,30 @@ export function ForecastTab({
       )}
 
       {/*
+        A long horizon is a different kind of answer, and has to say so.
+        
+        At twelve months the line is close to arithmetic over commitments you
+        have actually made. At seven years it is that same arithmetic on top of
+        assumptions — that the salary holds, that the spending rate holds, that
+        nothing else happens — none of which will be true. Rendering the two
+        identically would present a guess with the same confidence as a
+        balance, which is the specific failure the module's null-rather-than-
+        zero rule exists to avoid.
+      */}
+      {horizon > 550 && (
+        <p className="rounded-surface bg-secondary/60 p-3 text-xs leading-relaxed text-muted-foreground">
+          <strong className="font-medium text-foreground">
+            A projection, not a forecast.
+          </strong>{" "}
+          Beyond about a year this compounds today&apos;s commitments and
+          today&apos;s spending rate and assumes both hold. Useful for the shape
+          of a decision — whether a mortgage payment leaves room — and not for
+          any particular number on it. Longer horizons are plotted monthly; the
+          arithmetic underneath stays daily, so a shortfall date is still exact.
+        </p>
+      )}
+
+      {/*
         A chart makes a trend visible; a date makes it actionable. "Your account
         goes negative on 14 March" is the sentence that changes behaviour.
       */}
@@ -226,7 +261,7 @@ export function ForecastTab({
             </strong>{" "}
             <span className="text-muted-foreground">
               {changed && baselineVerdict?.shortfallDate === null
-                ? "That is a consequence of the what-ifs below, not of your current plan."
+                ? "That comes from the what-if sliders below, which are currently changed — your plan as it stands does not run out. Reset them to see the real line."
                 : "Try the sliders below to see what would move it."}
             </span>
           </span>

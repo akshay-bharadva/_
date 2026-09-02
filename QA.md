@@ -421,6 +421,69 @@ stub now fires it, which also turned two older tests into real ones.
 
 21. in finance, there should be reveal/unreveal button, right? for numbers. Also in recurring form there is category text box which should be category dropdown similar to txn form; in activity tab: there are two add button which is redundant. In category creating category make sense but I didn't understand the need,income,etc.. in category how it'll help and how can I benfit from it. Also in goals, if I'm adding money it should ask me from which account you want to add to goal, from goal it should not only add some time in emergency we have to remove/take from it. also on budgeting I didn't understand the calculation on pace of $XXXX, ahead of pace. For forecast, I didn;t got the commitment only thing also when I did something on whatif scenario it showed  this is a consequence of the what ifs belows, not your current plan banner why it came in that only scenario, rest of the scnario is okay. Also What can be done to see forecast for further far future let's say 5 year, 7 year. I want to see that as I'm taking mortgage in india of about 50 lakh ruppes.
 
+**`[~]` Seven of the eight are done; the eighth was a question rather than a
+bug.**
+
+**Reveal/hide — done.** A "Hide amounts" toggle blurs every figure, per browser
+session. Done as a *container* rule rather than by wrapping each value: there
+are around a hundred money figures across a dozen components here, and a
+`<Money>` wrapper would only hide the ones somebody remembered to migrate — the
+balance left visible would be the one that mattered. Blurred rather than
+replaced, so nothing reflows, and made unselectable, because text under a blur
+still copies out in the clear. It is a defence against the person behind you
+and says so; the figures are one click away.
+
+**Recurring category — done.** It was a free-text box while the transaction
+form had a proper picker. Beyond the inconsistency, it meant a rule could carry
+a category name matching no category, so it never set `category_id` and every
+figure that groups by category silently omitted it. Same control, same rows,
+same income/expense filtering.
+
+**Two Add buttons — done.** The page header carries an Add menu covering all
+four things this module creates, on every section; the ledger toolbar repeated
+two of those four. One control, in one place. The empty state keeps its own
+call to action — it only appears when there is nothing to look at.
+
+**Categories — done.** The copy named the outputs ("the 50/30/20 check", "your
+runway") which only helps if you already know what those are. It now says what
+each switch *buys*: bucket is the grouping the 50/30/20 line compares against,
+and essential is the only input to runway, so an unmarked list makes that
+figure meaningless rather than merely approximate.
+
+**Goals — done, and it needed a migration (014).** "Add to goal" bumped a
+counter and wrote a ledger row attributed to **no account**, so no balance ever
+moved — and the two writes were independent, with the second one only
+`console.warn`ed on failure, so the goal could climb with nothing recording it.
+The read-modify-write also loses an amount when two contributions race. It is
+one `SECURITY DEFINER` RPC now (re-checking AAL2 itself, per migration 011's
+lesson), it asks which account, and **Take out** is a first-class action —
+an emergency fund you cannot draw on is not a fund. The database refuses to
+take out more than the goal holds.
+
+**Budget pace — done.** "Ahead of pace" was a conclusion with its workings
+hidden. Each line now reads "62% spent, 55% through the month · on pace for
+£X", which is the whole rule, next to the marker on the bar that shows the
+second number.
+
+**Long-horizon forecast — done.** 3, 5 and 7 years added. Past eighteen months
+the *series* is monthly while the **arithmetic stays daily**, so a shortfall
+date is still exact to the day — stepping the maths monthly would only ever be
+able to name the month, and "this runs out on 14 March" is the sentence the
+whole forecast exists for. Long horizons carry a banner saying plainly that
+they compound today's commitments and today's spending rate and assume both
+hold: useful for the shape of a mortgage decision, not for any number on it.
+
+**The what-if banner — not a bug.** Its condition is already correct: it
+appears only when your plan as it stands does *not* run out and the sliders
+create the shortfall, which is why it showed on one scenario and not the
+others. The message did not explain that, so it now says the sliders are
+changed and that resetting them shows the real line.
+
+**Not done:** a mortgage as a first-class long-dated commitment with a rate and
+a term. It is representable today as a recurring rule with an end date, which
+is enough for the forecast; making it an amortising instrument turns Finance
+into an accounting system, so I have left it.
+
 22. for Settings, for preview I want same exact preview as the actual website, not few components.
 
 23. after all of these changes I want you to make a admin side bar layout instead of sidebar to google options, like google have 9 dots on top right beside the profile button from where we have access to all google applications.

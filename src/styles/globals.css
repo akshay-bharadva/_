@@ -311,6 +311,35 @@
     @apply mt-1;
   }
 
+  /* --- Finance: hide the figures --- */
+
+  /*
+   * Applied to the finance container rather than to each amount.
+   *
+   * There are around a hundred money values across a dozen components here,
+   * and a wrapper component would only hide the ones somebody remembered to
+   * migrate — the balance left visible would be the one that mattered. Selecting
+   * on `tabular-nums`, which every figure in this module already carries
+   * because they are all set to align in columns, catches them all including
+   * any added later.
+   *
+   * `select-none` matters as much as the blur: text under a blur filter is
+   * still selectable, and still copies out in the clear.
+   */
+  .figures-hidden :is(.tabular-nums, [data-figure]) {
+    filter: blur(0.35rem);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  /* Reduced motion covers vestibular triggers, not blur — but a reader who has
+     asked for less movement should not get a transition on every toggle. */
+  @media (prefers-reduced-motion: no-preference) {
+    .figures-hidden :is(.tabular-nums, [data-figure]) {
+      transition: filter 150ms var(--m-enter);
+    }
+  }
+
   /* --- Novel Editor (Tiptap) Styles --- */
 
   /*

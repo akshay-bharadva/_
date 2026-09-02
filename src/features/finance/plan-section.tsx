@@ -2,23 +2,31 @@
 
 import { useMemo, useState } from "react";
 import { differenceInCalendarMonths, format } from "date-fns";
-import { Pencil, Plus, Target, Trash2 } from "lucide-react";
+import { Pencil, Plus, Target, Trash2, Minus } from "lucide-react";
 import { toast } from "sonner";
 import type {
   FinanceCategory,
   FinanceSettings,
   FinancialGoal,
   Transaction,
+  FinanceAccount,
 } from "@/types";
 import { formatMoney } from "@/lib/money";
 import { parseLocalDate } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import {
-  useAddFundsToGoalMutation,
+  useRecordGoalContributionMutation,
   useDeleteGoalMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { getErrorMessage } from "@/lib/utils";
 import { BudgetsTab } from "./budgets-tab";
@@ -32,32 +40,56 @@ import { CategoriesSection } from "./categories-section";
  * the leftover is for. Reading them on one screen is the only way "am I saving
  * enough to get there" is answerable without arithmetic.
  */
+/** A select needs a value for absence; Radix reserves the empty string. */
+const NO_ACCOUNT = "none";
+
 export function PlanSection({
   categories,
   transactions,
   goals,
+  accounts,
   settings,
   onEditGoal,
 }: {
   categories: FinanceCategory[];
   transactions: Transaction[];
   goals: FinancialGoal[];
+  accounts: FinanceAccount[];
   settings: FinanceSettings;
   onEditGoal: (goal: FinancialGoal) => void;
 }) {
-  const [addFunds] = useAddFundsToGoalMutation();
+  const [addFunds] = useRecordGoalContributionMutation();
   const [deleteGoal] = useDeleteGoalMutation();
   const confirm = useConfirm();
 
   const active = goals.filter((goal) => !goal.archived_at);
 
-  const contribute = async (goal: FinancialGoal, amount: number) => {
+  /**
+   * Move money into or out of a goal.
+   *
+   * The account is asked for rather than assumed: putting money aside is a
+   * spend from a particular account, and the previous version wrote a ledger
+   * row attributed to none — so the money left from nowhere and no balance
+   * moved.
+   *
+   * A negative amount takes money back out, which is the whole point of an
+   * emergency fund. The database refuses to take out more than the goal holds,
+   * so the error the reader sees is the real reason rather than a goal quietly
+   * going negative.
+   */
+  const contribute = async (
+    goal: FinancialGoal,
+    amount: number,
+    accountId: string | null,
+  ) => {
     if (!Number.isFinite(amount) || amount === 0) return;
     try {
-      await addFunds({ goal, amount }).unwrap();
-      toast.success(`Added to ${goal.name}`);
+      await addFunds({ goalId: goal.id, amount, accountId }).unwrap();
+      toast.success(
+        amount > 0 ? `Added to ${goal.name}` : `Taken from ${goal.name}`,
+      );
     } catch (error) {
-      toast.error("Could not add funds", {
+      toast.error("Could not move the money", {
         description: getErrorMessage(error),
       });
     }
@@ -110,7 +142,10 @@ export function PlanSection({
                 <GoalRow
                   goal={goal}
                   settings={settings}
-                  onContribute={(amount) => void contribute(goal, amount)}
+                  accounts={accounts}
+                  onContribute={(amount, accountId) =>
+                    void contribute(goal, amount, accountId)
+                  }
                   onEdit={() => onEditGoal(goal)}
                   onDelete={() => void remove(goal)}
                 />
@@ -135,16 +170,25 @@ function GoalRow({
   goal,
   settings,
   onContribute,
+  accounts,
   onEdit,
   onDelete,
 }: {
   goal: FinancialGoal;
   settings: FinanceSettings;
-  onContribute: (amount: number) => void;
+  accounts: FinanceAccount[];
+  onContribute: (amount: number, accountId: string | null) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [contribution, setContribution] = useState("");
+  const [accountId, setAccountId] = useState<string | null>(null);
+
+  const amountValue = Math.abs(Number(contribution)) || 0;
+
+  // Archived accounts are history; offering one as a source would book a
+  // transaction against something the owner has already closed.
+  const usableAccounts = accounts.filter((account) => !account.archived_at);
   const currency = goal.currency ?? settings.base_currency;
   const target = Number(goal.target_amount);
   const current = Number(goal.current_amount);
@@ -200,29 +244,83 @@ function GoalRow({
         />
       </div>
 
+      {/*
+        Money has to come from somewhere, and go back somewhere.
+
+        The amount alone used to be the whole control: it bumped the goal and
+        wrote a ledger row against no account, so no balance ever moved. Now
+        the account is part of the gesture, and Take out is a first-class
+        action rather than something you could only reach by typing a minus.
+        An emergency fund you cannot draw on is not a fund.
+      */}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Input
           type="number"
           inputMode="decimal"
+          min="0"
           value={contribution}
           onChange={(event) => setContribution(event.target.value)}
-          placeholder="Add"
-          aria-label={`Amount to add to ${goal.name}`}
+          placeholder="Amount"
+          aria-label={`Amount to move for ${goal.name}`}
           className="h-8 w-24 tabular-nums"
         />
+
+        {usableAccounts.length > 0 && (
+          <Select
+            value={accountId ?? NO_ACCOUNT}
+            onValueChange={(value) =>
+              setAccountId(value === NO_ACCOUNT ? null : value)
+            }
+          >
+            <SelectTrigger
+              className="h-8 w-36"
+              aria-label={`Account for ${goal.name}`}
+            >
+              <SelectValue placeholder="From account" />
+            </SelectTrigger>
+            <SelectContent>
+              {/*
+                "No account" is a real answer — money set aside outside any
+                account this app knows about — so it needs a value of its own.
+                Radix reserves the empty string for "nothing selected".
+              */}
+              <SelectItem value={NO_ACCOUNT}>No account</SelectItem>
+              {usableAccounts.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  {account.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Button
           type="button"
           variant="outline"
           size="sm"
           className="h-8"
-          disabled={!contribution}
+          disabled={!amountValue}
           onClick={() => {
-            onContribute(Number(contribution));
+            onContribute(amountValue, accountId);
             setContribution("");
           }}
         >
           <Plus className="mr-1 size-3" />
-          Add
+          Put in
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8"
+          disabled={!amountValue || current <= 0}
+          onClick={() => {
+            onContribute(-amountValue, accountId);
+            setContribution("");
+          }}
+        >
+          <Minus className="mr-1 size-3" />
+          Take out
         </Button>
         <Button
           type="button"

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { format, isSameDay } from "date-fns";
-import { ArrowRightLeft, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
+import { ArrowRightLeft, Pencil, Receipt, Trash2 } from "lucide-react";
 import type {
   FinanceAccount,
   FinanceCategory,
@@ -132,14 +132,20 @@ export function LedgerSection({
             placeholder="Search description, category or account…"
           />
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={onTransfer}>
-          <ArrowRightLeft className="mr-1.5 size-3.5" />
-          Transfer
-        </Button>
-        <Button type="button" size="sm" onClick={onAdd}>
-          <Plus className="mr-1.5 size-3.5" />
-          Add
-        </Button>
+        {/*
+          No Add or Transfer here.
+
+          The page header carries an Add menu covering all four things this
+          module can create, and it is present on every section. Repeating two
+          of its four entries in this toolbar put two buttons labelled "Add" on
+          screen at once, doing the same thing — which is what the owner
+          noticed. One control, in one place, on every section beats a
+          contextual duplicate of half of it.
+
+          The empty state below keeps its own call to action: it only appears
+          when there is nothing to look at, where prompting is the entire
+          point, and it competes with nothing.
+        */}
       </div>
 
       <div

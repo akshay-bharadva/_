@@ -2,7 +2,6 @@ import { supabase } from "@/supabase/client";
 import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR, saveQueryFn, deleteQueryFn } from "./query-helpers";
-import { toLocalISODate } from "@/lib/date-utils";
 
 export const financeApi = adminApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -63,39 +62,42 @@ export const financeApi = adminApi.injectEndpoints({
       queryFn: saveQueryFn<FinancialGoal>("financial_goals"),
       invalidatesTags: ["Goals"],
     }),
-    addFundsToGoal: builder.mutation<
+    /**
+     * Move money into or out of a goal.
+     *
+     * One RPC rather than three client-side writes. The previous version
+     * updated `current_amount` by reading it and adding to it — which loses an
+     * amount whenever two contributions race — then inserted a ledger row
+     * attributed to *no account*, and only `console.warn`ed when that insert
+     * failed. So the goal could climb with nothing in the ledger recording it,
+     * and no balance ever moved. See db/migrations/014.
+     *
+     * A negative amount is a withdrawal.
+     */
+    recordGoalContribution: builder.mutation<
       FinancialGoal,
-      { goal: FinancialGoal; amount: number }
+      {
+        goalId: string;
+        amount: number;
+        accountId?: string | null;
+        occurredOn?: string | null;
+        note?: string | null;
+      }
     >({
-      queryFn: async ({ goal, amount }) => {
+      queryFn: async ({ goalId, amount, accountId, occurredOn, note }) => {
         if (!supabase) return { error: NO_DB_ERROR };
-        const newCurrentAmount = goal.current_amount + amount;
-        const { data, error } = await supabase
-          .from("financial_goals")
-          .update({ current_amount: newCurrentAmount })
-          .eq("id", goal.id)
-          .select()
-          .single();
+
+        const { data, error } = await supabase.rpc("record_goal_contribution", {
+          p_goal_id: goalId,
+          p_amount: amount,
+          p_account_id: accountId ?? null,
+          p_occurred_on: occurredOn ?? null,
+          p_note: note ?? null,
+        });
         if (error) return { error };
-
-        const { error: transError } = await supabase
-          .from("transactions")
-          .insert({
-            date: toLocalISODate(),
-            description: `Contribution to goal: ${goal.name}`,
-            amount: amount,
-            type: "expense",
-            category: "Savings & Goals",
-          });
-        if (transError)
-          console.warn(
-            "Goal updated, but failed to create a matching transaction.",
-            transError,
-          );
-
-        return { data };
+        return { data: data as FinancialGoal };
       },
-      invalidatesTags: ["Goals", "Transactions"],
+      invalidatesTags: ["Goals", "Transactions", "FinanceSetup"],
     }),
     deleteGoal: builder.mutation<{ id: string }, string>({
       queryFn: deleteQueryFn("financial_goals"),
@@ -111,6 +113,6 @@ export const {
   useSaveRecurringMutation,
   useDeleteRecurringMutation,
   useSaveGoalMutation,
-  useAddFundsToGoalMutation,
+  useRecordGoalContributionMutation,
   useDeleteGoalMutation,
 } = financeApi;

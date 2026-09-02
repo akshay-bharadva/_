@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { RecurringTransaction } from "@/types";
+import type { FinanceCategory, RecurringTransaction } from "@/types";
 import { useSaveRecurringMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,11 +44,16 @@ import { toLocalISODate } from "@/lib/date-utils";
 
 interface RecurringTransactionFormProps {
   recurringTransaction: Partial<RecurringTransaction> | null;
+  categories: FinanceCategory[];
   onSuccess: () => void;
 }
 
+/** A select needs a value for "no category"; Radix reserves the empty string. */
+const NO_CATEGORY = "none";
+
 export function RecurringTransactionForm({
   recurringTransaction,
+  categories,
   onSuccess,
 }: RecurringTransactionFormProps) {
   const [saveRecurring, { isLoading }] = useSaveRecurringMutation();
@@ -74,6 +79,22 @@ export function RecurringTransactionForm({
   });
 
   const frequency = form.watch("frequency");
+  const type = form.watch("type");
+
+  /**
+   * Income categories for income, spending categories for spending — the same
+   * rule the transaction form applies, and the reason it is worth sharing the
+   * control rather than the markup: offering "Salary" on an expense rule is
+   * how a ledger ends up with figures nobody can explain.
+   */
+  const relevantCategories = categories.filter(
+    (category) =>
+      !category.archived_at &&
+      category.bucket !== "transfer" &&
+      (type === "earning"
+        ? category.bucket === "income"
+        : category.bucket !== "income"),
+  );
 
   useEffect(() => {
     if (frequency === "daily" || frequency === "yearly") {
@@ -175,15 +196,50 @@ export function RecurringTransactionForm({
               </FormItem>
             )}
           />
+          {/*
+            The same picker the transaction form uses, over the same rows,
+            filtered the same way.
+
+            It was a free-text `<Input>`. Two consequences: the same field was
+            two different controls depending on which form you happened to
+            open, and a rule could carry a category name that matched no
+            category — so it never set `category_id`, and every derived figure
+            that groups by category silently omitted it.
+          */}
           <FormField
             control={form.control}
-            name="category"
+            name="category_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value ?? ""} />
-                </FormControl>
+                <Select
+                  value={field.value ?? NO_CATEGORY}
+                  onValueChange={(value) => {
+                    const id = value === NO_CATEGORY ? null : value;
+                    field.onChange(id);
+                    // `category` is the denormalised name the ledger displays;
+                    // keeping the two in step here is what stops a rule
+                    // showing one category and counting toward another.
+                    form.setValue(
+                      "category",
+                      categories.find((entry) => entry.id === id)?.name ?? "",
+                    );
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Uncategorised" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value={NO_CATEGORY}>Uncategorised</SelectItem>
+                    {relevantCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

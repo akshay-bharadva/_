@@ -215,6 +215,21 @@ export function buildForecast({
   let committed = startingBalance;
   let expected = startingBalance;
 
+  /**
+   * Long horizons are stepped daily and *reported* monthly.
+   *
+   * Seven years is 2,556 days. Computing daily is what keeps "this runs out on
+   * 14 March" exact — a monthly walk would only ever be able to name the month
+   * — but emitting 2,556 points draws a chart with several per pixel, which is
+   * slower to render and no more informative than one point a month.
+   *
+   * So the arithmetic never coarsens; only the series does. Anything under
+   * eighteen months stays daily, because at that length the day-to-day shape
+   * is the interesting part.
+   */
+  const monthlySeries = horizonDays > 550;
+  let carriedEvents: string[] = [];
+
   for (let offset = 0; offset <= horizonDays; offset += 1) {
     const date = addDays(start, offset);
     const key = isoDate(date);
@@ -228,12 +243,24 @@ export function buildForecast({
     // first point disagree with the balance shown everywhere else.
     if (offset > 0) expected -= dailyBurn;
 
+    const labels = todaysFlows.map((flow) => flow.label);
+
+    if (monthlySeries) {
+      carriedEvents = carriedEvents.concat(labels);
+      // The first of the month, the last day, and day zero. Skipping the last
+      // day would end the chart short of the horizon the reader asked for.
+      const emit =
+        offset === 0 || offset === horizonDays || date.getDate() === 1;
+      if (!emit) continue;
+    }
+
     points.push({
       date: key,
       committed: roundMoney(committed, currency),
       expected: roundMoney(expected, currency),
-      events: todaysFlows.map((flow) => flow.label),
+      events: monthlySeries ? carriedEvents : labels,
     });
+    carriedEvents = [];
   }
 
   return points;
