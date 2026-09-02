@@ -21,6 +21,7 @@ import {
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { distributeColumns, useColumnCount } from "@/hooks/use-column-count";
 import { getErrorMessage } from "@/lib/utils";
+import { noteLabel } from "./note-title";
 import { NoteCard } from "./note-card";
 import { NoteDetail } from "./note-detail";
 import {
@@ -98,7 +99,9 @@ export default function NotesPage() {
       // Pinned always leads, whatever the sort.
       if (!!a.is_pinned !== !!b.is_pinned) return a.is_pinned ? -1 : 1;
       if (sortBy === "title") {
-        return (a.title || "Untitled").localeCompare(b.title || "Untitled");
+        // Sorted by what the card actually shows, so A–Z matches the order
+        // your eye reads down the board.
+        return noteLabel(a).text.localeCompare(noteLabel(b).text);
       }
       const key = sortBy === "created" ? "created_at" : "updated_at";
       return (b[key] ?? "").localeCompare(a[key] ?? "");

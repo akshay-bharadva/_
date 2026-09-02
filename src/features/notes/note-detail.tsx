@@ -14,6 +14,7 @@ import type { Note } from "@/types";
 import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/cn";
+import { noteLabel } from "./note-title";
 import { buildLinkGraph, linkifyContent } from "./note-links";
 import { NoteForm } from "./note-form";
 import { NoteBody } from "./note-body";
@@ -67,7 +68,7 @@ function RelatedList({
               />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">
-                  {note.title || "Untitled"}
+                  {noteLabel(note).text}
                 </span>
                 {note.content && (
                   <span className="mt-0.5 block truncate text-xs text-muted-foreground">
@@ -211,7 +212,7 @@ export function NoteDetail({
         >
           {!isEditing && (
             <h1 className="break-words text-2xl font-semibold">
-              {note.title || "Untitled"}
+              {noteLabel(note).text}
             </h1>
           )}
 

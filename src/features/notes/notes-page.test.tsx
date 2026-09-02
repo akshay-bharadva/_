@@ -450,3 +450,33 @@ describe("NoteCard colour", () => {
     expect(filled?.style.background).not.toContain("color-mix");
   });
 });
+
+describe("untitled notes", () => {
+  /**
+   * "Untitled" was written over a note whose first line already said what it
+   * was, so a board of quick captures read "Untitled / Untitled / Untitled".
+   * The title column is genuinely optional here — a heading is often the last
+   * thing you add, if ever.
+   */
+  it("names an untitled note by its first line", async () => {
+    notes = [
+      note({ id: "n1", title: "", content: "Call the letting agent\nMonday" }),
+    ];
+    render(<NotesPage />);
+
+    expect(
+      await screen.findByText("Call the letting agent"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Untitled")).toBeNull();
+  });
+
+  it("falls back only when a note is genuinely empty", async () => {
+    notes = [note({ id: "n1", title: "", content: "" })];
+    render(<NotesPage />);
+
+    // Scoped to the heading: the page's own "New note" button shares the text.
+    expect(
+      await screen.findByRole("heading", { name: "New note" }),
+    ).toBeInTheDocument();
+  });
+});

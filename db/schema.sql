@@ -342,8 +342,30 @@ CREATE INDEX IF NOT EXISTS notes_updated_at_idx ON notes(updated_at DESC);
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Admin manage notes" ON notes;
 CREATE POLICY "Admin manage notes" ON notes FOR ALL USING (auth.uid() = user_id AND public.is_aal2()) WITH CHECK (auth.uid() = user_id AND public.is_aal2());
+-- `updated_at` on a note means "the content changed", so filing a note —
+-- pinning it, reordering it — deliberately leaves the timestamp alone. See
+-- db/migrations/013 for why. Written as a JSONB difference rather than a list
+-- of comparisons so a column added later counts as content by default.
+CREATE OR REPLACE FUNCTION public.touch_notes_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  organisational TEXT[] := ARRAY['is_pinned', 'display_order', 'updated_at'];
+BEGIN
+  IF (to_jsonb(NEW) - organisational)
+     IS NOT DISTINCT FROM (to_jsonb(OLD) - organisational) THEN
+    NEW.updated_at = OLD.updated_at;
+  ELSE
+    NEW.updated_at = now();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
 DROP TRIGGER IF EXISTS update_notes_updated_at ON notes;
-CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION public.touch_notes_updated_at();
 
 -- Excalidraw whiteboards. `elements`, `app_state`, and `files` are the scene
 -- exactly as the library serializes it, so a board always round-trips.

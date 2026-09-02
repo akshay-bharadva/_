@@ -227,6 +227,32 @@ says so.)
 
 19. for notes, if there is not title then don't show untitled. LOL. Also, I just pinned and it just says last modified min ago. is that will be the case?
 
+**`[x]` Resolved — and the second half was a real bug, not just a display
+choice.**
+
+*"Untitled". LOL* — agreed. A note's title is genuinely optional; a heading is
+often the last thing you add, if ever, so a board of quick captures read
+"Untitled / Untitled / Untitled" while each note's own first line said exactly
+what it was. An untitled note is now named by that first line, with the
+markdown syntax stripped so `## Groceries` reads "Groceries" rather than
+falling through. It is set muted, so a borrowed line does not look like a title
+you wrote. "New note" is kept for the one case where there is genuinely nothing
+to show — an empty note. Sorting by name follows the same labels, so A–Z now
+matches the order your eye reads down the board.
+
+*The pin timestamp.* You were right to doubt it. `update_updated_at_column()`
+fires `BEFORE UPDATE FOR EACH ROW`, so it rewrote `updated_at` on **any** write
+— including a pin toggle. The timestamp was true about the row and false about
+the note, and because `notes_updated_at_idx` is DESC and the list sorts by it,
+pinning also silently jumped the note to the top of "recently modified".
+
+**Migration 013** makes `updated_at` mean what it is read for: the trigger
+leaves it alone when the only difference is organisational (`is_pinned`,
+`display_order`). Written as a JSONB difference rather than a list of column
+comparisons, so a column added to `notes` later counts as content by default
+rather than silently opting out. The card says "Edited …" now, which is a claim
+it can actually support.
+
 20. in whiteboard, should I be able to rename whiteboard from listed whiteboard view or it just should be from boardview page, also if I just opened the existing page and I have not made any change and click on close it shouln't be asking to discard, it doen't make any sense.
 
 **`[x]` Resolved — and there were two bugs, in opposite directions.**

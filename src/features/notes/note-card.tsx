@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
+import { noteLabel } from "./note-title";
 import { Archive, Edit, Link2, Pin, PinOff, Trash2 } from "lucide-react";
 import type { Note } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,7 @@ export function NoteCard({
   const preview = stripWikiLinkSyntax(note.content);
   const linkCount = extractLinks(note.content).length;
   const tags = note.tags ?? [];
+  const label = noteLabel(note);
 
   return (
     <motion.article
@@ -109,18 +111,24 @@ export function NoteCard({
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`Open ${note.title || "Untitled"}`}
+        aria-label={`Open ${label.text}`}
         className="flex flex-1 flex-col gap-1 px-4 pb-2 pt-3.5 text-left focus-visible:outline-none"
       >
-        {note.title ? (
-          <h3 className="break-words pr-5 text-sm font-medium leading-snug">
-            {note.title}
-          </h3>
-        ) : (
-          <h3 className="pr-5 text-sm italic text-muted-foreground">
-            Untitled
-          </h3>
-        )}
+        {/*
+          An untitled note is named by its own first line rather than labelled
+          "Untitled". A board reading "Untitled / Untitled / Untitled" says
+          nothing, and the note's opening line almost always says exactly what
+          it is. A borrowed line is set muted so it does not read as a title
+          the author actually wrote.
+        */}
+        <h3
+          className={cn(
+            "break-words pr-5 text-sm leading-snug",
+            label.derived ? "font-normal text-muted-foreground" : "font-medium",
+          )}
+        >
+          {label.text}
+        </h3>
 
         {preview && (
           /*
@@ -168,10 +176,20 @@ export function NoteCard({
             so the row never has to hold both at once. */}
         <div className="relative flex min-h-7 items-center">
           <span className="flex items-center gap-2 text-[11px] text-muted-foreground transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
-            {note.updated_at &&
-              formatDistanceToNow(new Date(note.updated_at), {
-                addSuffix: true,
-              })}
+            {/*
+              "Edited" rather than a bare relative time, and it is now honest:
+              migration 013 stopped the trigger from touching `updated_at` when
+              the only change was organisational, so pinning a note no longer
+              makes it claim to have been modified a minute ago.
+            */}
+            {note.updated_at && (
+              <span>
+                Edited{" "}
+                {formatDistanceToNow(new Date(note.updated_at), {
+                  addSuffix: true,
+                })}
+              </span>
+            )}
             {linkCount > 0 && (
               <span className="inline-flex items-center gap-1">
                 <Link2 aria-hidden className="size-3" />
