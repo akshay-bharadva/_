@@ -158,3 +158,48 @@ export function classFragments(source: string): string[] {
 
   return out;
 }
+
+/**
+ * A dashed or dotted style applied to a single edge — the retired v2 rule.
+ *
+ * The distinction this rule exists to draw:
+ *
+ * - **A dashed box** is a universal convention meaning "nothing here yet" or
+ *   "drop here". Empty states, upload targets and "add another" placeholders
+ *   all use it, in every design system, and none of them are v2. Allowed.
+ * - **A dashed edge** — `border-t border-dashed`, `border-l-2 border-dotted` —
+ *   is a *separator*, and separators drawn as dotted rules are exactly the
+ *   "Precision Instrument" grammar v3 replaced. In v3 a division comes from
+ *   space and elevation, or from a solid hairline where a line is genuinely
+ *   needed.
+ *
+ * `design-system.test.ts` bans only four named custom classes, so this motif
+ * survived the v2 removal in eight places — including the public timeline, the
+ * blog table of contents and the Updates card, all three of which came back as
+ * QA feedback that the old aesthetic was still visible.
+ */
+export function usesDashedDivider(list: string): boolean {
+  const tokens = tokenize(list);
+
+  const dashed = tokens.some(({ base }) =>
+    /^(border|divide)-(dashed|dotted)$/.test(base),
+  );
+  if (!dashed) return false;
+
+  // `divide-*` is only ever a separator, so the style alone is enough.
+  if (tokens.some(({ base }) => /^divide-(dashed|dotted)$/.test(base))) {
+    return true;
+  }
+
+  // A width on one named edge, with no width for the box as a whole. The
+  // second half matters: `border border-b-2 border-dashed` is a dashed box
+  // with a heavier bottom, not a rule.
+  const singleEdge = tokens.some(({ base }) =>
+    /^border-[trbl](-\d+)?$/.test(base),
+  );
+  const wholeBox = tokens.some(({ base }) =>
+    /^border(-\d+|-\[[^\]]+\])?$/.test(base),
+  );
+
+  return singleEdge && !wholeBox;
+}

@@ -48,7 +48,7 @@ export function CaseStudyLayout({ items }: LayoutProps) {
             <Markdown className="mt-4 text-muted-foreground">
               {item.description}
             </Markdown>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-dashed pt-4">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
               <ItemTags tags={item.tags} max={10} />
               {/*
                 FIX: this used a raw <a href={item.link_url}>. `link_url` is
@@ -107,7 +107,7 @@ export function ServicesLayout({ items }: LayoutProps) {
             ) as string[];
             if (!features.length) return null;
             return (
-              <ul className="mt-4 space-y-1.5 border-t border-dashed pt-3">
+              <ul className="mt-4 space-y-1.5 border-t pt-3">
                 {features.map((tag) => (
                   <li key={tag} className="flex items-start gap-2 text-sm">
                     <span aria-hidden className="mt-0.5 shrink-0 text-primary">
@@ -222,7 +222,7 @@ export function TestimonialsLayout({ items }: LayoutProps) {
                 quote
               )}
             </blockquote>
-            <figcaption className="mt-4 flex items-center gap-3 border-t border-dashed pt-4">
+            <figcaption className="mt-4 flex items-center gap-3 border-t pt-4">
               {item.image_url && (
                 <ItemImage
                   src={item.image_url}

@@ -6,6 +6,7 @@ import {
   hasDeadHoverBorder,
   hasElevation,
   tokenize,
+  usesDashedDivider,
 } from "./class-rules";
 
 /**
@@ -182,5 +183,47 @@ describe("classLists", () => {
 
   it("returns nothing for a file with no classes", () => {
     expect(classLists("const x = 1;")).toEqual([]);
+  });
+});
+
+describe("usesDashedDivider", () => {
+  it("flags a dashed rule on a single edge", () => {
+    expect(usesDashedDivider("mt-12 border-t border-dashed pt-6")).toBe(true);
+    expect(usesDashedDivider("border-l-2 border-dotted border-border")).toBe(
+      true,
+    );
+  });
+
+  it("flags a dashed divide utility", () => {
+    expect(usesDashedDivider("divide-y divide-dashed")).toBe(true);
+  });
+
+  /**
+   * The case the rule exists to permit. A dashed *box* is the universal
+   * "nothing here yet / drop here" convention, used by every empty state and
+   * upload target in the app, and has nothing to do with the retired motif.
+   */
+  it("allows a dashed box", () => {
+    expect(usesDashedDivider("rounded-surface border border-dashed p-6")).toBe(
+      false,
+    );
+    expect(
+      usesDashedDivider("border-[1.5px] border-dashed bg-transparent"),
+    ).toBe(false);
+  });
+
+  it("allows a dashed box with one heavier edge", () => {
+    expect(usesDashedDivider("border border-b-2 border-dashed")).toBe(false);
+  });
+
+  it("ignores a fragment carrying the style but no width", () => {
+    // `entry-block.tsx` marks a tentative event this way; the width is applied
+    // in a sibling `cn()` argument, and judging the fragment alone would
+    // report a dashed box as a rule.
+    expect(usesDashedDivider("border-dashed opacity-80")).toBe(false);
+  });
+
+  it("ignores a solid edge", () => {
+    expect(usesDashedDivider("border-t border-border pt-4")).toBe(false);
   });
 });

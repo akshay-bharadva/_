@@ -6,6 +6,7 @@ import {
   classFragments,
   classLists,
   hasDeadHoverBorder,
+  usesDashedDivider,
   usesRawRadius,
 } from "./class-rules";
 
@@ -150,6 +151,31 @@ describe("v3 design system", () => {
    * codebase using it drifts into a different corner on every screen. Two
    * tokens make it one decision instead of a per-element guess.
    */
+  /**
+   * Dotted and dashed rules are the retired v2 separator, and this rule is why
+   * they came back as QA feedback rather than as a build failure: the motif
+   * list above bans the custom class `rule-dotted` and says nothing about
+   * Tailwind's own `border-dashed`, so eight of them survived the v2 removal —
+   * on the public timeline, the blog table of contents and the Updates card.
+   *
+   * A dashed *box* stays allowed; see `usesDashedDivider` for the distinction.
+   */
+  it("draws separators solid rather than dotted or dashed", () => {
+    const offenders: string[] = [];
+
+    for (const { path, source } of FILES) {
+      if (path.includes("novel-editor")) continue;
+
+      for (const list of classFragments(source)) {
+        if (usesDashedDivider(list)) {
+          offenders.push(`${path} → ${list.slice(0, 70)}`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it("uses the radius tokens rather than Tailwind's scale", () => {
     const offenders: string[] = [];
 
@@ -201,5 +227,97 @@ describe("v3 design system", () => {
     );
     expect(base).not.toMatch(/#[0-9a-fA-F]{6}\b/);
     expect(base).not.toMatch(/\brgb\(/);
+  });
+});
+
+/**
+ * Files still using `font-mono`, as a ratchet.
+ *
+ * Monospace as a *decorative metadata voice* is retired v2 — a date, a tag or
+ * a label set in mono to look technical. It stays legitimate for three things:
+ * code, identifiers read character by character (a serial number, where a
+ * proportional face makes `1`, `l` and `I` the same shape), and the terminal
+ * status-panel variant whose entire purpose is to look like a terminal.
+ *
+ * Telling those apart mechanically is not possible, and a rule that guesses
+ * would be switched off the first time it was wrong. So this is a budget
+ * rather than a judgement: a file not on the list may not introduce mono, and
+ * a file that stops using it **must be removed from the list**. That second
+ * half is what makes it a ratchet instead of a list nobody maintains — the
+ * same both-directions check `endpoint-reachability.test.ts` uses, which
+ * caught six stale entries the day it was written.
+ *
+ * The list shrinks as each module is swept. It must never grow.
+ */
+const MONO_BUDGET = [
+  "app/not-found.tsx",
+  "components/admin/shared/SearchInput.tsx",
+  "components/admin/shared/StatCard.tsx",
+  "components/ui/chart.tsx",
+  "features/admin-auth/auth-card.tsx",
+  "features/admin-auth/mfa-challenge.tsx",
+  "features/admin-auth/mfa-setup.tsx",
+  "features/admin-auth/signup-form.tsx",
+  "features/admin-shell/learning-pill.tsx",
+  "features/analytics/analytics-page.tsx",
+  "features/assets/asset-details-sheet.tsx",
+  "features/assets/asset-views.tsx",
+  "features/blog-admin/blog-editor.tsx",
+  "features/blog-admin/post-list.tsx",
+  "features/blog-admin/post-settings-sheet.tsx",
+  "features/blog/blog-list-page.tsx",
+  "features/blog/post-page.tsx",
+  "features/blog/table-of-contents.tsx",
+  "features/contact/contact-page.tsx",
+  "features/content/item-editor-sheet.tsx",
+  "features/content/layout-registry.tsx",
+  "features/content/section-detail.tsx",
+  "features/content/section-editor-sheet.tsx",
+  "features/focus/focus-timer.tsx",
+  "features/github/repo-grid.tsx",
+  "features/habits/habit-grid.tsx",
+  "features/habits/habit-row.tsx",
+  "features/home/status-panel.tsx",
+  "features/integrations/webhook-settings.tsx",
+  "features/inventory/inventory-table.tsx",
+  "features/learning/session-tracker.tsx",
+  "features/learning/topic-editor.tsx",
+  "features/life-updates/update-cards.tsx",
+  "features/navigation/nav-link-form.tsx",
+  "features/navigation/navigation-page.tsx",
+  "features/sections/dynamic-page-content.tsx",
+  "features/sections/layouts-basic.tsx",
+  "features/sections/layouts-creative.tsx",
+  "features/sections/layouts-showcase.tsx",
+  "features/sections/section-renderer.tsx",
+  "features/sections/shared.tsx",
+  "features/settings/hero-section.tsx",
+  "features/settings/social-links-section.tsx",
+  "features/settings/theme-section.tsx",
+  "features/updates/scrapbook-layout.tsx",
+  "features/updates/timeline-layout.tsx",
+  "features/updates/update-meta.tsx",
+  "styles/globals.css",
+];
+
+describe("monospace budget", () => {
+  const usingMono = FILES.filter(({ source }) =>
+    /\bfont-mono\b/.test(source),
+  ).map(({ path }) => path);
+
+  it("introduces no new decorative monospace", () => {
+    const added = usingMono.filter((path) => !MONO_BUDGET.includes(path));
+    expect(added).toEqual([]);
+  });
+
+  it("has no stale entries — a swept file must leave the list", () => {
+    const stale = MONO_BUDGET.filter((path) => !usingMono.includes(path));
+    expect(stale).toEqual([]);
+  });
+
+  it("is watching a non-empty set", () => {
+    // A pattern that matches nothing reports every rule clean. This project
+    // has shipped that bug once already.
+    expect(usingMono.length).toBeGreaterThan(0);
   });
 });

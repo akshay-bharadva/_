@@ -194,7 +194,7 @@ function TocList({
   }, [activeId, scrollRef]);
 
   return (
-    <ul className="space-y-0.5 border-l-2 border-dotted border-border">
+    <ul className="space-y-0.5 border-l-2 border-border">
       {headings.map((heading) => (
         <li key={heading.id}>
           <button

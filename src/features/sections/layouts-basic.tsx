@@ -63,7 +63,7 @@ export function DefaultListLayout({ items }: LayoutProps) {
 /** Vertical timeline — dotted spine, mono dates, cards. */
 export function TimelineLayout({ items }: LayoutProps) {
   return (
-    <ol className="relative space-y-8 border-l-2 border-dotted border-border pl-6">
+    <ol className="relative space-y-8 border-l-2 border-border pl-6">
       {items.map((item) => (
         <li key={item.id} className="relative min-w-0">
           <span

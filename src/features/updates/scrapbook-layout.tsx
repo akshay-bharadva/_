@@ -79,7 +79,7 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
         </Markdown>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-dashed pt-2.5">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2.5">
         <time
           dateTime={update.created_at}
           className="font-mono text-[0.6875rem] text-muted-foreground"

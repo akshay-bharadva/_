@@ -203,7 +203,7 @@ export function PostPage() {
 
             <PostContent content={post.content ?? ""} />
 
-            <footer className="mt-12 border-t border-dashed pt-6">
+            <footer className="mt-12 border-t pt-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 {post.tags && post.tags.length > 0 && (
                   <ul className="flex flex-wrap gap-2">
