@@ -72,7 +72,7 @@ export function resolveNavTarget(href: string): NavTarget {
     kind: "cms",
     label: "CMS page",
     detail:
-      "This page exists only because this link does. Hiding or deleting the link removes the page from the next build.",
+      "This page exists only because this link does. It works as soon as you add it, and is built into the site at the next deploy. Hiding or deleting the link removes it again.",
   };
 }
 

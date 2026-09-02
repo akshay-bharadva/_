@@ -250,7 +250,6 @@ describe("v3 design system", () => {
  * The list shrinks as each module is swept. It must never grow.
  */
 const MONO_BUDGET = [
-  "app/not-found.tsx",
   "components/admin/shared/SearchInput.tsx",
   "components/admin/shared/StatCard.tsx",
   "components/ui/chart.tsx",

@@ -1,5 +1,11 @@
 I would like to mention few issues,
 
+> **Status legend** — `[x]` resolved, `[~]` partially resolved, `[ ]` pending.
+> The original feedback below is kept verbatim; status and implementation notes
+> are appended to each item. The analysis behind every item, and the phase order
+> the work runs in, is in `docs/redesign/v3-qa-plan.md`.
+
+
 1. on main home page, I didnt like the Hero section so when the status panel is not shown the right section looks empty, previously it used to center the hero section centered align - I want you to redesign that section with design brainstroming
 
 2. on Home, page I didn't like the Contact CTA - like the banner is good but I should have better design and visibility with few theme the UI/coloring system is off
@@ -16,6 +22,15 @@ I would like to mention few issues,
 
 8. admin, when I'm on main admin dashboard page the dashboard link is not with active coloring
 
+**`[x]` Resolved.** `trailingSlash: true` makes `usePathname()` report
+`/admin/`, so the `pathname === href` comparison failed — and `/admin` is
+deliberately excluded from the prefix fallback, since every module path begins
+with it. Dashboard was therefore the one entry that could never be active, and
+`activeNavItem("/admin/")` returned undefined, which also left the document
+title wrong on that screen. The rule existed twice with the same two bugs; there
+is now one `isActiveNavHref`, which also fixes segment-boundary matching so a
+future `/admin/blog-drafts` cannot light up Blog.
+
 9. on admin/content, Pages section, the div with Items and add item button have different bg coloring which is off and clearly visible - check that out
 
 10. same UI issue in blog post edit view, take a reference of medium, dev.to and substacks bloging flow system and restructure the Blog components - also when the blog is long the tool bar is not sticking up it scrolls with the editing box
@@ -23,6 +38,20 @@ I would like to mention few issues,
 11. in updates, it seems like the table/list view is old and other components are new sync the list/table with current new UI/UX
 
 12. on Navigation, when I created new link say /ABCD it show correctly in navigation that this will be CMS page, it also shows on public nav bar but when I vist that it says 404.
+
+**`[x]` Resolved.** Not a bug in the resolver — `generateStaticParams` runs at
+build time with `dynamicParams = false`, while the navigation is fetched at
+runtime. A page created after the last deploy is therefore in the site's own
+menu of a build that has no HTML for it. That is what `output: "export"` means,
+and generating more routes cannot fix it.
+
+GitHub Pages serves `404.html` for any unmatched path, which makes it the one
+place a static export can still decide about a URL. The 404 page now asks the
+navigation whether a visible link claims the path and renders the same
+`CmsPage` if so. Verified in a real build: `404.html` prerenders the loading
+skeleton and contains no "404" text at all, so there is no error flash before
+the resolver runs. The admin's Navigation row now also says a CMS page works
+immediately and is built in at the next deploy.
 
 13. in assets section, take a look at google drive functionality, currently the upload section is very small not full screen, also when I drag and drop to the assets the "drop the upload to assets folder" is flickering containuosly, also I should be able to drag and drop move from root to and folder that is visible, similar to Drive - Througly research and brainstrom on it and then implement
 
