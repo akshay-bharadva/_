@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   BookText,
-  Menu,
   ExternalLink,
   ListTodo,
   LogOut,
@@ -23,19 +22,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AppLauncher } from "./app-launcher";
 import { LearningPill } from "./learning-pill";
 import { activeNavItem, NAV_ITEMS } from "./nav-config";
 
 /**
  * The admin top bar.
  *
- * Navigation lives in the rail beside it, so this bar carries context and
- * actions only: which page you are on, the active learning session, quick add,
- * and the account menu. It is solid and border-anchored rather than a floating
- * pill — an admin panel's chrome should read as part of the frame, not as an
- * object hovering over the content.
+ * This is now the only chrome: the fixed rail is gone, and module navigation
+ * is the launcher beside the account menu. The bar carries which page you are
+ * on, the active learning session, quick add, the launcher, and the account.
+ *
+ * Solid and border-anchored rather than a floating pill — an admin panel's
+ * chrome should read as part of the frame, not as an object hovering over the
+ * content.
  */
-export function AdminTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
+export function AdminTopbar() {
   const router = useRouter();
   const pathname = usePathname() ?? "/admin";
   const { session } = useSupabaseSession();
@@ -55,17 +57,12 @@ export function AdminTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-4 sm:px-6">
-      <button
-        type="button"
-        onClick={onOpenSidebar}
-        aria-label="Open navigation"
-        className="-ml-1 flex size-9 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
-      >
-        <Menu className="size-5" aria-hidden />
-      </button>
-
-      {/* The current page, as a heading. Navigation lives in the rail, so this
-          is context rather than a control. */}
+      {/*
+        The current page, as a heading. Navigation is the launcher on the
+        right, so this is context rather than a control — and it is the same
+        at every width, rather than a drawer button on a phone and a heading on
+        a laptop.
+      */}
       <div className="flex min-w-0 items-center gap-2">
         {Icon && <Icon className="size-4 shrink-0 text-primary" aria-hidden />}
         <h1 className="truncate text-sm font-semibold">
@@ -75,6 +72,8 @@ export function AdminTopbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
 
       <div className="ml-auto flex items-center gap-2">
         <LearningPill />
+
+        <AppLauncher />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

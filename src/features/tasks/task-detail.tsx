@@ -4,7 +4,6 @@ import { CalendarDays, Clock, Folder, Pencil, Repeat } from "lucide-react";
 import type { SubTask, Task, TaskProject } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Markdown } from "@/components/ui/markdown";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/date-utils";
 import { TASK_PRIORITY_META, TASK_STATUS_META } from "./task-meta";
@@ -74,9 +73,20 @@ export function TaskDetail({
       </div>
 
       {task.description && (
-        <Markdown className="text-sm text-muted-foreground">
+        /*
+          Plain text, deliberately.
+
+          Rendering this as markdown cost 47 kB of first-load JS on this route
+          — remark and its plugins are not free — and nothing else in Tasks
+          treats a description as markdown: the form is a plain textarea, so
+          the view would have formatted what the editor showed literally.
+          `whitespace-pre-wrap` keeps the line breaks people actually use, and
+          `break-words` handles the pasted URL that a description always
+          eventually contains.
+        */
+        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
           {task.description}
-        </Markdown>
+        </p>
       )}
 
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">

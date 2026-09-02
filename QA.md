@@ -583,3 +583,42 @@ its `next/dynamic` boundary, so none of this reaches the page until you open
 it.
 
 23. after all of these changes I want you to make a admin side bar layout instead of sidebar to google options, like google have 9 dots on top right beside the profile button from where we have access to all google applications.
+
+**`[x]` Resolved.** The fixed rail is gone; every module is a grid one click
+from the top bar, beside the account menu.
+
+**Why this is the right answer and not just a different one.** The rail spent
+15rem of every screen on eighteen destinations you use one at a time — and it
+is always the same eighteen, so after a week it is furniture you have stopped
+reading. A launcher treats the modules as what they are: separate applications
+you switch between.
+
+Worth recording that this went round twice before. The rail was removed once in
+favour of a floating pill bar with navigation hidden behind a keystroke, which
+was a marketing-site pattern applied to an admin tool and hid the product's
+whole surface area. It was then reinstated as the fixed list. The launcher is
+the third answer, and the one **`CLAUDE.md` has described all along** — the
+contract says "there is no sidebar rail", and a rail had been sitting there
+regardless, because the design gate only checks class names.
+
+Details that matter:
+
+- **One navigation surface, not two.** The architecture forbids a second
+  overlay, so the search is *inside* the launcher rather than a separate
+  palette to learn. The existing command palette stays as the keyboard route to
+  the same `NAV_GROUPS`, so the two cannot drift.
+- **The same at every width.** No drawer button on a phone and a rail on a
+  laptop — one control that reflows, which is the "one control at every width"
+  rule the rebuild applied to six other modules.
+- **Active module is marked**, through the same `isActiveNavHref` that fixed
+  QA-8 — so the dashboard highlights correctly here too, which was the original
+  bug.
+- **Keyboard:** the field takes focus on open, typing filters, and Enter goes
+  straight there when one module matches.
+
+A note on scope: the QA said to do this last, and it was. It also caught a
+bundle regression in passing — `/admin/tasks` had grown 47 kB from the
+view-before-edit work, because rendering a task description as markdown pulls
+in remark. Nothing else in Tasks treats a description as markdown (the form is
+a plain textarea), so it is plain text now and the route is back to 324 kB
+against 320 before.

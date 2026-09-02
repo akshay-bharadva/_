@@ -98,8 +98,9 @@ function normalizeNavPath(path: string): string {
 /**
  * Whether a nav href owns the current path.
  *
- * The single implementation. This existed twice before — here and in
- * `admin-sidebar.tsx` — with the same two bugs in both:
+ * The single implementation. It existed twice before — here and in the admin
+ * rail, which the launcher has since replaced — with the same two bugs in
+ * both:
  *
  *  1. **The exported path carries a trailing slash**, so the equality never
  *     held for the dashboard. Every module still highlighted, because they

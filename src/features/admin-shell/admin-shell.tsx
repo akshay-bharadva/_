@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { FocusTimer } from "@/features/focus/focus-timer";
-import { cn } from "@/lib/cn";
 import { useAdminGuard } from "./use-admin-guard";
-import { AdminSidebar } from "./admin-sidebar";
 import { AdminTopbar } from "./admin-topbar";
 import { activeNavItem } from "./nav-config";
-
-const COLLAPSE_KEY = "admin_sidebar_collapsed";
 
 function useDocumentTitle() {
   const pathname = usePathname() ?? "/admin";
@@ -37,71 +32,39 @@ function ShellLoading() {
 }
 
 /**
- * The guarded Personal OS shell — a conventional admin panel.
+ * The guarded Personal OS shell.
  *
- * An earlier pass replaced the rail with a floating pill bar and moved module
- * navigation into the command palette. That was a marketing-site pattern
- * applied to an admin tool: it hid the product's surface area behind a
- * keystroke and left the chrome detached from the page it belonged to. The
- * rail is back, anchored and always visible, with a solid top bar carrying the
- * current page's context and actions.
+ * **A top bar over a full-width main, with no rail.** The history here is worth
+ * recording, because it went round twice. The rail was removed once in favour
+ * of a floating pill bar with navigation hidden behind a keystroke — which was
+ * a marketing-site pattern applied to an admin tool, and hid the product's
+ * whole surface area. It was then reinstated as a fixed 15rem list, which is
+ * the other failure: eighteen destinations you use one at a time, always the
+ * same eighteen, occupying a sixth of every screen until you stop reading
+ * them.
+ *
+ * The launcher is the third answer and the one `CLAUDE.md` has described all
+ * along: the modules are treated as separate applications you switch between,
+ * reachable from a grid that is one click away and shows every one of them at
+ * once, with search inside it. Nothing is hidden behind a keystroke, and
+ * nothing is permanently on screen.
+ *
+ * One navigation surface, not two: the launcher carries its own search, and
+ * `GlobalCommandPalette` remains the keyboard route to the same `NAV_GROUPS`.
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { state } = useAdminGuard();
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   useDocumentTitle();
-
-  useEffect(() => {
-    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "true");
-  }, []);
-
-  const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem(COLLAPSE_KEY, String(next));
-      return next;
-    });
-  };
 
   if (state !== "authorized") return <ShellLoading />;
 
   return (
-    <div className="min-h-[100dvh] bg-secondary/30">
+    <div className="flex min-h-[100dvh] flex-col bg-secondary/30">
       <FocusTimer />
-
-      {/* Desktop rail — fixed, always visible. */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 hidden border-r lg:block",
-          collapsed ? "w-16" : "w-60",
-        )}
-      >
-        <AdminSidebar
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapsed}
-        />
-      </aside>
-
-      {/* Mobile drawer — the same component, so navigation is identical. */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-64 p-0">
-          <SheetTitle className="sr-only">Admin navigation</SheetTitle>
-          <AdminSidebar onNavigate={() => setMobileOpen(false)} />
-        </SheetContent>
-      </Sheet>
-
-      <div
-        className={cn(
-          "flex min-h-[100dvh] flex-col",
-          collapsed ? "lg:pl-16" : "lg:pl-60",
-        )}
-      >
-        <AdminTopbar onOpenSidebar={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 py-6 sm:px-6">
-          <div className="mx-auto w-full max-w-wide">{children}</div>
-        </main>
-      </div>
+      <AdminTopbar />
+      <main className="flex-1 px-4 py-6 sm:px-6">
+        <div className="mx-auto w-full max-w-wide">{children}</div>
+      </main>
     </div>
   );
 }
