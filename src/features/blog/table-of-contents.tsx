@@ -17,7 +17,66 @@ export interface Heading {
   level: 2 | 3;
 }
 
+/**
+ * The line the reader's attention sits on, in pixels from the top of the
+ * viewport.
+ *
+ * One constant for two jobs, and that is the entire fix for the reported bug.
+ * Clicking an entry scrolls the heading to this line; the active entry is the
+ * last heading to have crossed it. When those two numbers were different, a
+ * click could not possibly highlight what it navigated to — see below.
+ */
 const SCROLL_OFFSET = 96;
+
+/** Treat "within a pixel of the bottom" as the bottom; scroll heights are fractional. */
+const BOTTOM_EPSILON = 2;
+
+/**
+ * The active entry, given where each heading currently sits in the viewport.
+ *
+ * **What this replaces.** The active heading came from an
+ * `IntersectionObserver` with `rootMargin: "-20% 0px -70% 0px"` that set the
+ * active id only `if (entry.isIntersecting)` — that is, only while a heading
+ * was inside a band 20%–30% of the way down the viewport. Three failures came
+ * out of that, and the owner reported two of them:
+ *
+ *  1. **Clicking an entry could never highlight it.** The click parks the
+ *     heading 96px from the top. On a 900px window the band starts at 180px.
+ *     The heading lands *above* the band, never intersects, and the highlight
+ *     stays wherever it was. This is why the page scrolled to the right place
+ *     and the wrong entry stayed lit.
+ *  2. **The last heading was often unreachable.** At the end of the document
+ *     there may be no scroll left to bring a short final section up into the
+ *     band, so its entry never lit at all.
+ *  3. **Several entries in one callback resolved by array order.** The last
+ *     one in the array won regardless of which was actually on screen, so a
+ *     fast scroll could leave a lower heading active than the one being read.
+ *
+ * Asking "which heading did I last pass" instead has none of those states: it
+ * is defined for every scroll position, it uses the same line the click does,
+ * and exactly one entry is always active.
+ *
+ * `tops` are viewport-relative (`getBoundingClientRect().top`).
+ */
+export function activeHeadingFromTops(
+  tops: { id: string; top: number }[],
+  offset: number,
+  atBottom: boolean,
+): string {
+  if (tops.length === 0) return "";
+
+  // At the bottom of the document the final sections may all sit below the
+  // line, and no amount of further scrolling will change that. The last
+  // heading is what the reader is on.
+  if (atBottom) return tops[tops.length - 1].id;
+
+  let active = tops[0].id;
+  for (const heading of tops) {
+    if (heading.top - offset <= 1) active = heading.id;
+    else break;
+  }
+  return active;
+}
 
 /**
  * Extracts h2/h3 from the rendered article and tracks the active heading.
@@ -40,14 +99,55 @@ export function useHeadings(containerId: string) {
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
-    let intersection: IntersectionObserver | null = null;
     let contentWatcher: MutationObserver | null = null;
     let arrivalWatcher: MutationObserver | null = null;
+    let tracked: HTMLElement[] = [];
+    let frame = 0;
+
+    /**
+     * Recomputed on scroll rather than pushed by an observer.
+     *
+     * One `getBoundingClientRect` per heading, once per animation frame, is a
+     * single batched layout read — and it is the only way to get an answer
+     * that is correct at *every* scroll position rather than only while a
+     * heading happens to be inside an observer's band.
+     */
+    const update = () => {
+      frame = 0;
+      if (tracked.length === 0) return;
+
+      const scrollBottom = window.scrollY + window.innerHeight;
+      const atBottom =
+        scrollBottom >= document.documentElement.scrollHeight - BOTTOM_EPSILON;
+
+      setActiveId(
+        activeHeadingFromTops(
+          tracked.map((el) => ({
+            id: el.id,
+            top: el.getBoundingClientRect().top,
+          })),
+          SCROLL_OFFSET,
+          atBottom,
+        ),
+      );
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
 
     const scan = (container: HTMLElement) => {
       const elements = Array.from(
         container.querySelectorAll<HTMLElement>("h2[id], h3[id]"),
       );
+      tracked = elements;
+      // Late-arriving content moves every heading below it, so the answer has
+      // to be recomputed when the article fills in — not only when the reader
+      // scrolls. Called directly rather than through the frame throttle: this
+      // is the first answer, and waiting a frame for it means the rail renders
+      // once with nothing highlighted.
+      update();
 
       setHeadings((previous) => {
         // Bail when nothing changed: a fresh array on every mutation would
@@ -64,17 +164,6 @@ export function useHeadings(containerId: string) {
               level: el.tagName === "H2" ? 2 : 3,
             }));
       });
-
-      intersection?.disconnect();
-      intersection = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) setActiveId(entry.target.id);
-          }
-        },
-        { rootMargin: "-20% 0px -70% 0px" },
-      );
-      elements.forEach((el) => intersection!.observe(el));
     };
 
     const attach = (container: HTMLElement) => {
@@ -111,10 +200,15 @@ export function useHeadings(containerId: string) {
       });
     }
 
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+
     return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
       arrivalWatcher?.disconnect();
       contentWatcher?.disconnect();
-      intersection?.disconnect();
     };
   }, [containerId]);
 

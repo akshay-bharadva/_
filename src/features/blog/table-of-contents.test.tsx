@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import { scrollTopForEntry, useHeadings } from "./table-of-contents";
+import {
+  activeHeadingFromTops,
+  scrollTopForEntry,
+  useHeadings,
+} from "./table-of-contents";
 
 const ARTICLE_ID = "post-article";
 
@@ -158,5 +162,77 @@ describe("scrollTopForEntry", () => {
     expect(
       scrollTopForEntry({ ...view, clientHeight: 0, entryTop: 400 }),
     ).toBeNull();
+  });
+});
+
+describe("activeHeadingFromTops", () => {
+  const OFFSET = 96;
+  const tops = (...ns: number[]) =>
+    ns.map((top, i) => ({ id: `h${i + 1}`, top }));
+
+  it("returns nothing when there are no headings", () => {
+    expect(activeHeadingFromTops([], OFFSET, false)).toBe("");
+  });
+
+  /**
+   * The reported bug, as a unit.
+   *
+   * Clicking an entry scrolls that heading to exactly `SCROLL_OFFSET`. The old
+   * observer only ever marked a heading active while it sat inside a band
+   * 20%–30% down the viewport — 180px to 270px on a 900px window — so a
+   * heading parked at 96px was *above* the band, never intersected, and the
+   * highlight stayed on whatever was lit before. The page went to the right
+   * place and the wrong entry stayed marked.
+   */
+  it("marks the heading a click parks on the offset line", () => {
+    // Headings deliberately close together, so the answer changes if the
+    // detection line is anything other than the line the click scrolls to.
+    // A fixture with widely spaced headings gives the same answer for a range
+    // of offsets and would pass with the bug in place.
+    expect(activeHeadingFromTops(tops(96, 200, 400), OFFSET, false)).toBe("h1");
+    expect(activeHeadingFromTops(tops(-100, 96, 190), OFFSET, false)).toBe(
+      "h2",
+    );
+  });
+
+  it("marks the last heading scrolled past", () => {
+    expect(activeHeadingFromTops(tops(-400, -120, 500), OFFSET, false)).toBe(
+      "h2",
+    );
+  });
+
+  it("marks the first heading while still above all of them", () => {
+    // Never "nothing highlighted" — an unlit rail was half the complaint.
+    expect(activeHeadingFromTops(tops(300, 900, 1500), OFFSET, false)).toBe(
+      "h1",
+    );
+  });
+
+  /**
+   * At the end of a document the remaining sections can all sit below the
+   * line with no scroll left to bring them up, so their entries could never
+   * light. Every long post ended with an unreachable entry.
+   */
+  it("marks the last heading at the bottom of the document", () => {
+    expect(activeHeadingFromTops(tops(-900, 400, 620), OFFSET, true)).toBe(
+      "h3",
+    );
+  });
+
+  it("is stable exactly on the line", () => {
+    expect(activeHeadingFromTops(tops(96), OFFSET, false)).toBe("h1");
+    expect(activeHeadingFromTops(tops(97), OFFSET, false)).toBe("h1");
+  });
+
+  /**
+   * Order comes from the document, and the loop stops at the first heading
+   * below the line. Reading every entry and keeping the last match would let
+   * an out-of-order entry win — which is the third defect the observer had,
+   * where several entries in one callback resolved by array position.
+   */
+  it("stops at the first heading below the line", () => {
+    expect(
+      activeHeadingFromTops(tops(-500, -100, 400, 900), OFFSET, false),
+    ).toBe("h2");
   });
 });
