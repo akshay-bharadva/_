@@ -55,6 +55,7 @@ import { TaskProjectsSheet } from "./task-projects-sheet";
 import { TaskProjectRail } from "./task-project-rail";
 import { TaskToolbar, type ViewMode } from "./task-toolbar";
 import { TaskTimelineView } from "./task-timeline-view";
+import { TaskDetail } from "./task-detail";
 import { TaskForm } from "./task-form";
 
 export default function TasksPage() {
@@ -69,6 +70,15 @@ export default function TasksPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isProjectsOpen, setIsProjectsOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  /**
+   * Whether the sheet is reading or editing.
+   *
+   * Clicking a task opened the edit form directly, so every glance at
+   * something put its every field one stray keystroke from a change. Opening
+   * reads; Edit is a deliberate second action. Creating goes straight to
+   * "edit" — there is nothing to read yet.
+   */
+  const [sheetMode, setSheetMode] = useState<"view" | "edit">("edit");
   const [draftDefaults, setDraftDefaults] = useState<Partial<Task> | null>(
     null,
   );
@@ -123,6 +133,13 @@ export default function TasksPage() {
     [editingTaskId, byId, draftDefaults],
   );
 
+  /**
+   * The saved row, for the read view. `editingTask` widens to `Partial<Task>`
+   * because it also carries the defaults for a *new* task, and a view of a
+   * task that does not exist yet is not a thing.
+   */
+  const viewingTask = editingTaskId ? (byId.get(editingTaskId) ?? null) : null;
+
   const tags = useMemo(() => collectTags(tasks), [tasks]);
 
   const taskCounts = useMemo(() => {
@@ -135,6 +152,7 @@ export default function TasksPage() {
   }, [tasks]);
 
   const openNew = (status: TaskStatus = "todo") => {
+    setSheetMode("edit");
     setEditingTaskId(null);
     setDraftDefaults({
       status,
@@ -147,6 +165,7 @@ export default function TasksPage() {
   };
 
   const openTask = (task: Task) => {
+    setSheetMode("view");
     setEditingTaskId(task.id);
     setDraftDefaults(null);
     setIsSheetOpen(true);
@@ -399,52 +418,80 @@ export default function TasksPage() {
       <FormSheet
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
-        title={editingTaskId ? "Edit task" : "New task"}
-        description="Details, schedule, subtasks and what blocks it."
+        title={
+          !editingTaskId
+            ? "New task"
+            : sheetMode === "view"
+              ? "Task"
+              : "Edit task"
+        }
+        description={
+          sheetMode === "view" && editingTaskId
+            ? "Everything on this task. Edit to change it."
+            : "Details, schedule, subtasks and what blocks it."
+        }
       >
-        <TaskForm
-          key={editingTaskId ?? "new"}
-          task={editingTask}
-          projects={projects}
-          blockers={
-            editingTaskId
-              ? (depIndex.blockedBy.get(editingTaskId) ?? [])
-                  .map((id) => byId.get(id))
-                  .filter((t): t is Task => !!t)
-              : []
-          }
-          eligibleBlockers={
-            editingTaskId
-              ? computeEligibleBlockers(editingTaskId, tasks, depIndex)
-              : []
-          }
-          onSave={handleSave}
-          onAddSubtask={async (title) => {
-            if (!editingTaskId) return;
-            await addSubTask({
-              task_id: editingTaskId,
-              title,
-              is_completed: false,
-            }).unwrap();
-          }}
-          onToggleSubtask={handleToggleSubtask}
-          onDeleteSubtask={async (id) => {
-            const ok = await confirm({
-              title: "Delete subtask?",
-              description: "This cannot be undone.",
-              variant: "destructive",
-            });
-            if (ok) deleteSubTask(id);
-          }}
-          onAddBlocker={handleAddBlocker}
-          onRemoveBlocker={handleRemoveBlocker}
-          onDelete={
-            editingTask && editingTaskId
-              ? () => handleDeleteTask(editingTask as Task)
-              : undefined
-          }
-          onCancel={() => setIsSheetOpen(false)}
-        />
+        {sheetMode === "view" && viewingTask ? (
+          <TaskDetail
+            task={viewingTask}
+            project={projects.find(
+              (project) => project.id === viewingTask.project_id,
+            )}
+            blockers={(depIndex.blockedBy.get(viewingTask.id) ?? [])
+              .map((id) => byId.get(id))
+              .filter((candidate): candidate is Task => !!candidate)}
+            onEdit={() => setSheetMode("edit")}
+            onToggleSubtask={handleToggleSubtask}
+          />
+        ) : (
+          <TaskForm
+            key={editingTaskId ?? "new"}
+            task={editingTask}
+            projects={projects}
+            blockers={
+              editingTaskId
+                ? (depIndex.blockedBy.get(editingTaskId) ?? [])
+                    .map((id) => byId.get(id))
+                    .filter((t): t is Task => !!t)
+                : []
+            }
+            eligibleBlockers={
+              editingTaskId
+                ? computeEligibleBlockers(editingTaskId, tasks, depIndex)
+                : []
+            }
+            onSave={handleSave}
+            onAddSubtask={async (title) => {
+              if (!editingTaskId) return;
+              await addSubTask({
+                task_id: editingTaskId,
+                title,
+                is_completed: false,
+              }).unwrap();
+            }}
+            onToggleSubtask={handleToggleSubtask}
+            onDeleteSubtask={async (id) => {
+              const ok = await confirm({
+                title: "Delete subtask?",
+                description: "This cannot be undone.",
+                variant: "destructive",
+              });
+              if (ok) deleteSubTask(id);
+            }}
+            onAddBlocker={handleAddBlocker}
+            onRemoveBlocker={handleRemoveBlocker}
+            onDelete={
+              editingTask && editingTaskId
+                ? () => handleDeleteTask(editingTask as Task)
+                : undefined
+            }
+            onCancel={() =>
+              // Cancelling an edit that started from a view returns to the view
+              // rather than closing outright: you opened it to read something.
+              editingTaskId ? setSheetMode("view") : setIsSheetOpen(false)
+            }
+          />
+        )}
       </FormSheet>
 
       <TaskProjectsSheet

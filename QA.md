@@ -195,6 +195,30 @@ Recently I'm more interested in reading aartficle which is most popular. Like I 
 
 15. for tasks, every thing is good - expect when i click on task it directly opens the editing ppanel intead I want a view first then edit if user wants to, also in projects the listed projects is always editable
 
+**`[x]` Resolved.** Clicking a task opened the edit form directly, so every
+glance at something put its every field one stray keystroke from being changed.
+The sheet reads first now — status, priority, project, dates, estimate and
+tracked time, tags, subtasks, what blocks it — and Edit is a deliberate second
+action. Cancelling an edit that began from a view returns to the view rather
+than closing outright, because you opened it to read something. Creating goes
+straight to the form: there is nothing to read yet.
+
+Two things stay live in the read view, because both are decisions rather than
+edits to the record: ticking a subtask, and seeing what blocks the task. A view
+that made you enter edit mode to tick something off would trade one friction
+for a worse one.
+
+Projects had the same problem in a stronger form: **every row was a live
+`<Input>` with eight colour swatches permanently under it**, so the project
+list was a page of forms and there was no way to simply look at your projects.
+Rename and recolour are behind an explicit Edit now. Delete stays one click
+away — it is guarded by a confirm that names what it affects, and burying an
+ordinary list action is the opposite mistake.
+
+(While in there: a comment claimed the swatches were read from the active
+theme's chart tokens. They are literal hexes and always were; the comment now
+says so.)
+
 16. for habit, I don't look it personalized, it's not that lured section that can attract me to come to habit section, all the functionality and everything is awesome but it's not able lured me to it.
 
 17. for learning module it's good compare to previous one but, let's say if there are module subtopic it's always not the flashcard that can be read all along in review system, right? I need solid learning module, that can change my nuroplasticity and help me become knowledable. and help me study and prepare for certifications for career.

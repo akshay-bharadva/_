@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2, Plus, Trash2 } from "lucide-react";
+import { Check, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TaskProject } from "@/types";
 import {
@@ -19,12 +19,14 @@ import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 
 /**
- * Preset swatches rather than a colour picker.
+ * Preset swatches rather than a free colour picker.
  *
- * The column stores a hex string, but the values offered here are read off the
- * active theme's chart tokens, so a project's colour keeps working across all
- * 52 presets instead of being a fixed hue chosen against whichever theme
- * happened to be active when the project was made.
+ * The column stores a hex string, so these are fixed values — a small set that
+ * stays distinguishable from one another beats a picker that lets a project be
+ * given a colour nobody can tell from the next one.
+ *
+ * (An earlier comment here claimed these were read off the active theme's
+ * chart tokens. They are not, and never were; the list below is literal.)
  */
 const SWATCHES = [
   "#3b82f6",
@@ -45,6 +47,20 @@ interface ProjectRowProps {
   onDelete: () => void;
 }
 
+/**
+ * A project, read first.
+ *
+ * Every row used to be a live `<Input>` with eight colour swatches under it
+ * permanently on show, so the list of projects was a page of forms — a name
+ * was one stray keystroke from being changed, and it was impossible to simply
+ * *look* at the projects. Renaming and recolouring are behind an explicit
+ * Edit now; the row itself just states the colour, the name and how many
+ * tasks are in it.
+ *
+ * Delete stays visible. It is guarded by a confirm that names what it affects,
+ * and burying an ordinary list action two clicks deep is the opposite kind of
+ * mistake.
+ */
 function ProjectRow({
   project,
   taskCount,
@@ -52,10 +68,12 @@ function ProjectRow({
   onRecolour,
   onDelete,
 }: ProjectRowProps) {
+  const [editing, setEditing] = useState(false);
   const [name, setName] = useState(project.name);
 
   const commit = () => {
     const trimmed = name.trim();
+    setEditing(false);
     if (!trimmed || trimmed === project.name) {
       setName(project.name);
       return;
@@ -63,25 +81,69 @@ function ProjectRow({
     onRename(trimmed);
   };
 
+  const cancel = () => {
+    setName(project.name);
+    setEditing(false);
+  };
+
   return (
     <li className="rounded-surface bg-card p-3 shadow-e1">
       <div className="flex items-center gap-2">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-          aria-label={`Rename ${project.name}`}
-          className="h-8 flex-1"
-        />
+        {editing ? (
+          <Input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commit();
+              }
+              if (e.key === "Escape") cancel();
+            }}
+            aria-label={`Rename ${project.name}`}
+            className="h-8 flex-1"
+          />
+        ) : (
+          <>
+            <span
+              aria-hidden
+              className="size-3 shrink-0 rounded-full"
+              style={{ backgroundColor: project.color ?? "#64748b" }}
+            />
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">
+              {project.name}
+            </span>
+          </>
+        )}
+
         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
           {taskCount}
         </span>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0"
+          aria-label={
+            editing ? `Done editing ${project.name}` : `Edit ${project.name}`
+          }
+          // `mousedown`: the input's own blur commits first otherwise, and the
+          // button would be gone before the click landed.
+          onMouseDown={(event) => {
+            event.preventDefault();
+            if (editing) commit();
+            else setEditing(true);
+          }}
+        >
+          {editing ? (
+            <Check className="size-4" aria-hidden />
+          ) : (
+            <Pencil className="size-4" aria-hidden />
+          )}
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
@@ -93,26 +155,29 @@ function ProjectRow({
         </Button>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {SWATCHES.map((swatch) => (
-          <button
-            key={swatch}
-            type="button"
-            aria-label={`Set ${project.name} colour to ${swatch}`}
-            aria-pressed={project.color === swatch}
-            onClick={() => onRecolour(swatch)}
-            style={{ backgroundColor: swatch }}
-            className={cn(
-              "flex size-5 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              project.color === swatch && "ring-2 ring-ring ring-offset-1",
-            )}
-          >
-            {project.color === swatch && (
-              <Check className="size-3 text-white" aria-hidden />
-            )}
-          </button>
-        ))}
-      </div>
+      {editing && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {SWATCHES.map((swatch) => (
+            <button
+              key={swatch}
+              type="button"
+              aria-label={`Set ${project.name} colour to ${swatch}`}
+              aria-pressed={project.color === swatch}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onRecolour(swatch)}
+              style={{ backgroundColor: swatch }}
+              className={cn(
+                "flex size-5 items-center justify-center rounded-full transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                project.color === swatch && "ring-2 ring-ring ring-offset-1",
+              )}
+            >
+              {project.color === swatch && (
+                <Check className="size-3 text-white" aria-hidden />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </li>
   );
 }

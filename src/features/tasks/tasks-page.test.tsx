@@ -332,6 +332,8 @@ describe("TasksPage", () => {
     tasks = [task({ id: "a", title: "Walk dog" })];
     renderPage();
     fireEvent.click(screen.getByLabelText("Walk dog"));
+    // The sheet opens read-only now; editing is a deliberate second action.
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     fireEvent.click(await screen.findByRole("button", { name: /Delete/ }));
     await waitFor(() => expect(deleteTask).toHaveBeenCalledWith("a"));
   });
@@ -344,10 +346,52 @@ describe("TasksPage", () => {
     dependencies = [{ id: "d1", task_id: "b", depends_on_id: "a" }];
     renderPage();
     fireEvent.click(screen.getByLabelText("Buy paint"));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     fireEvent.click(await screen.findByRole("button", { name: /Delete/ }));
     await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
     expect(confirmSpy.mock.calls[0]?.[0]?.description).toMatch(
       /will no longer be blocked/,
     );
+  });
+});
+
+describe("view before edit", () => {
+  /**
+   * Clicking a task opened the edit form directly, so every glance at
+   * something put its every field one stray keystroke from a change. The
+   * sheet reads first; Edit is a deliberate second action.
+   */
+  it("opens a task read-only", async () => {
+    tasks = [task({ id: "a", title: "Walk dog" })];
+    renderPage();
+
+    fireEvent.click(screen.getByLabelText("Walk dog"));
+
+    expect(
+      await screen.findByRole("button", { name: "Edit" }),
+    ).toBeInTheDocument();
+    // The title field is the form's, and it must not be there yet.
+    expect(screen.queryByLabelText(/^Title/i)).toBeNull();
+  });
+
+  it("shows the form once Edit is pressed", async () => {
+    tasks = [task({ id: "a", title: "Walk dog" })];
+    renderPage();
+
+    fireEvent.click(screen.getByLabelText("Walk dog"));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+
+    expect(await screen.findByLabelText(/^Title/i)).toBeInTheDocument();
+  });
+
+  /** Creating has nothing to read, so it goes straight to the form. */
+  it("opens a new task straight into the form", async () => {
+    tasks = [];
+    renderPage();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /New task/i })[0]);
+
+    expect(await screen.findByLabelText(/^Title/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
   });
 });
