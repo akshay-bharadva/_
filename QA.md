@@ -8,9 +8,42 @@ I would like to mention few issues,
 
 1. on main home page, I didnt like the Hero section so when the status panel is not shown the right section looks empty, previously it used to center the hero section centered align - I want you to redesign that section with design brainstroming
 
+**`[x]` Resolved.** The grid was unconditional — `lg:grid-cols-[1.35fr_1fr]`
+rendered whether or not the status panel did, so switching the panel off left
+the text at 57% width beside a column that was still there and simply empty.
+Two deliberate compositions now: the asymmetric band with the panel, and one
+column across the full measure without it. Centring was the other candidate and
+is rejected on the v3 rule that a full-width block of text is not centred — at
+display size a centred name over a left-aligned paragraph pulls the eye along
+two axes.
+
 2. on Home, page I didn't like the Contact CTA - like the banner is good but I should have better design and visibility with few theme the UI/coloring system is off
 
+**`[x]` Resolved — and the "colouring is off" was measurable.** `band-accent`
+is `hsl(var(--accent) / 0.35)` over the page background, and every piece of
+text on it was `--foreground`/`--muted-foreground`. No test covers that pair:
+`theme-contrast.test.ts` gates `accent` against `accent-foreground`, a
+different colour. Composited and measured over the 52 presets, the real pair
+**fails WCAG AA on 31 of them** — `muted-foreground` down to 2.10:1 on
+cyberpunk, and `foreground` itself failing on solarized-light, onedark-pro and
+monokai.
+
+Re-tinting would trade a failure on pale presets for one on dark presets, so
+the content moved onto a `Surface` instead: its ground is `--card` and its text
+`--card-foreground`, which *is* gated everywhere. The band keeps its accent
+weight so it still reads as the end of the page, and visibility now comes from
+elevation, which is a fixed shadow and therefore identical on all 52 presets.
+Hierarchy tightened too — the email link was a second elevated card competing
+with the primary action, and is now a quiet inline link.
+
 3. on about page, I asume there is grid section for profile pic and about info, so when the profile is not shown the about description is in profiles's grid container in single long column brainstrom on the design and see how can you make it better UI/UX and over all functionality
+
+**`[x]` Resolved.** Same root cause as item 1. `sm:grid-cols-[8rem_1fr]` was
+unconditional while the picture was optional, so with no picture the bio still
+rendered into the *second* column and the first stayed an empty 8rem gutter —
+the text began a third of the way across for no visible reason. The column now
+exists only when there is a picture, including the case where the switch is on
+but the URL is empty.
 
 4. for section renderer section, I didn't like the timeline UI/UX the design is off and it's not aligned properly I want something like github commit/branch timeline structure - I should be able to clearly see the timeline, if some process overlaped (like similar to parallel branching and merging) - brainstrom and make something like that
 
@@ -19,6 +52,19 @@ I would like to mention few issues,
 6. in updates after all notes I need "--that's all for now--" in script/design font centered align - also the font for date and #tags I want script and intead of dotted line I want solid line in card - do brainstrom for design
 
 7. on contact page, if I don't have any social link then the direct link title is still available with no social link also if the avalability and social is not there the form should be full legth, also check the layout for all three permutation and combinations, brainstrom the contact page for orders of the section what to visible locially and actually with what parts and all
+
+**`[x]` Resolved, with an IA change rather than only a fix.** Three things were
+wrong: the "Direct lines" heading rendered over an empty list; a link whose URL
+`safeLinkUrl` rejected still counted as a link and rendered as an invisible row
+under that heading; and `lg:grid-cols-[3fr_2fr]` was unconditional, so with no
+links and no badge the form sat at 60% of the band beside nothing.
+
+On the order: availability moved out of the aside to directly under the page
+heading. It is context for the whole page — whether writing is worth it at all
+— and in the old source order a phone reader met the entire form before
+reaching it. The grid is then chosen from what exists: form plus links is two
+columns, either one alone takes the band, and with the form off the links
+become a two-up grid rather than very wide single rows.
 
 8. admin, when I'm on main admin dashboard page the dashboard link is not with active coloring
 

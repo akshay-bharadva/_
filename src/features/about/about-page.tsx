@@ -1,6 +1,7 @@
 "use client";
 
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
+import { cn } from "@/lib/cn";
 import { Markdown } from "@/components/ui/markdown";
 import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
@@ -42,18 +43,32 @@ export function AboutPage() {
  * page: it has its own query and nothing in settings changes it.
  */
 export function AboutView({ identity }: { identity: SiteContent }) {
+  /**
+   * The picture column exists only when there is a picture.
+   *
+   * The grid was unconditional, so with the picture switched off the bio still
+   * rendered into the *second* column and the 8rem first column stayed as an
+   * empty gutter — the text started a third of the way across the page for no
+   * reason a reader could see. With no picture the prose simply takes the
+   * band at its own reading measure, which is the layout an about page wants
+   * anyway.
+   */
+  const showPicture = Boolean(
+    identity.profile_data.show_profile_picture &&
+      identity.profile_data.profile_picture_url,
+  );
+
   return (
-    <div className="grid gap-8 sm:grid-cols-[8rem_1fr]">
-      {identity.profile_data.show_profile_picture &&
-        identity.profile_data.profile_picture_url && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={identity.profile_data.profile_picture_url}
-            alt={identity.profile_data.name}
-            className="size-32 rounded-surface border object-cover"
-          />
-        )}
-      <div className="space-y-4 leading-relaxed [&_strong]:text-foreground">
+    <div className={cn("grid gap-8", showPicture && "sm:grid-cols-[8rem_1fr]")}>
+      {showPicture && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={identity.profile_data.profile_picture_url as string}
+          alt={identity.profile_data.name}
+          className="size-32 rounded-surface border object-cover"
+        />
+      )}
+      <div className="max-w-prose space-y-4 leading-relaxed [&_strong]:text-foreground">
         {identity.profile_data.bio.map((paragraph, index) => (
           <Markdown key={index} className="max-w-none text-muted-foreground">
             {paragraph}

@@ -267,7 +267,6 @@ const MONO_BUDGET = [
   "features/blog/blog-list-page.tsx",
   "features/blog/post-page.tsx",
   "features/blog/table-of-contents.tsx",
-  "features/contact/contact-page.tsx",
   "features/content/item-editor-sheet.tsx",
   "features/content/layout-registry.tsx",
   "features/content/section-detail.tsx",

@@ -170,9 +170,37 @@ export function HeroView({ identity }: { identity: SiteContent }) {
         transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] as const },
       };
 
+  /**
+   * The band composes from what exists rather than reserving a column for it.
+   *
+   * The grid was unconditional, so switching the status panel off left the
+   * text at 57% width beside a void — the panel's column was still there, just
+   * empty. Two deliberate compositions instead of one composition with a hole:
+   *
+   *  - **With the panel** — the asymmetric two-column band. The panel is the
+   *    only elevated object on it, which is what makes it read as an aside
+   *    rather than as a second heading.
+   *  - **Without it** — one column across the band's full measure. The name
+   *    runs at display size over the whole width, the description keeps its
+   *    reading measure, and what is left on the right is margin rather than a
+   *    missing column.
+   *
+   * Centring the block was the other candidate and is what this page used to
+   * do. It is rejected on the v3 rule that a full-width block of text is not
+   * centred: at `--t-display` a centred name and a left-aligned paragraph pull
+   * the eye along two different axes, and the band loses the single descending
+   * path the composition is built on.
+   */
+  const showPanel = Boolean(panel.show);
+
   return (
     <Band weight="feature" aria-labelledby="hero-name">
-      <div className="grid gap-16 lg:grid-cols-[1.35fr_1fr] lg:items-center">
+      <div
+        className={cn(
+          "grid gap-16",
+          showPanel && "lg:grid-cols-[1.35fr_1fr] lg:items-center",
+        )}
+      >
         <motion.div {...rise} className="flex flex-col items-start gap-6">
           {panel.availability && (
             <AvailabilityPill label={panel.availability} />
@@ -198,7 +226,7 @@ export function HeroView({ identity }: { identity: SiteContent }) {
           <SocialRow links={social_links ?? []} />
         </motion.div>
 
-        {panel.show && (
+        {showPanel && (
           <motion.div
             {...rise}
             transition={
