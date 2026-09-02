@@ -4,7 +4,10 @@ The product plan derived from `QA.md`. `QA.md` keeps the original feedback and
 carries the status markers; this file is the reasoning behind each one and the
 order the work is done in.
 
-**Status: analysis complete, implementation not started.** Everything marked
+**Status: complete.** All five phases were worked through; `QA.md` carries the
+per-item outcome and `v3-implementation-log.md` Part seven records what the
+pass taught. Three items are marked partial there, with the remaining work
+named. Everything marked
 _confirmed_ was reproduced by reading the code that causes it, with the file and
 line named so the claim can be checked rather than trusted. Everything marked
 _unverified_ needs the running app first, and is called out rather than guessed

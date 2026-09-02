@@ -12,7 +12,7 @@ here should say why in a comment at the point of departure.
 
 The module's primary action lives in the page header and **nowhere else**.
 
-> Content had a "New Section" button in the page header *and* a second
+> Content had a "New Section" button in the page header _and_ a second
 > full-width one inside the list column, about 200px apart. Two buttons for one
 > action is the clearest signal that a screen was assembled rather than
 > designed.
@@ -25,8 +25,8 @@ overflow), never duplicated at page level.
 The primary object of a module is the thing the owner would name if asked what
 they were doing. Not the thing the database happens to key on.
 
-> Content is authored as *pages*: "what's on my About page?". The module made
-> *sections* primary and reduced pages to an accordion grouping, so there was no
+> Content is authored as _pages_: "what's on my About page?". The module made
+> _sections_ primary and reduced pages to an accordion grouping, so there was no
 > way to see or manage a page as a thing, and creating a section meant choosing
 > its page from a combobox as an afterthought.
 
@@ -61,7 +61,7 @@ one bullet point.
 
 Reorder controls are always visible on the row, never revealed on hover — hover
 does not exist on touch, and hover-only controls are invisible to keyboard
-users. The UI must state what the ordering is *within* (a page, a section).
+users. The UI must state what the ordering is _within_ (a page, a section).
 
 ## 8. Status is stated once
 

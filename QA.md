@@ -5,7 +5,6 @@ I would like to mention few issues,
 > are appended to each item. The analysis behind every item, and the phase order
 > the work runs in, is in `docs/redesign/v3-qa-plan.md`.
 
-
 1. on main home page, I didnt like the Hero section so when the status panel is not shown the right section looks empty, previously it used to center the hero section centered align - I want you to redesign that section with design brainstroming
 
 **`[x]` Resolved.** The grid was unconditional — `lg:grid-cols-[1.35fr_1fr]`
@@ -30,7 +29,7 @@ monokai.
 
 Re-tinting would trade a failure on pale presets for one on dark presets, so
 the content moved onto a `Surface` instead: its ground is `--card` and its text
-`--card-foreground`, which *is* gated everywhere. The band keeps its accent
+`--card-foreground`, which _is_ gated everywhere. The band keeps its accent
 weight so it still reads as the end of the page, and visibility now comes from
 elevation, which is a fixed shadow and therefore identical on all 52 presets.
 Hierarchy tightened too — the email link was a second elevated card competing
@@ -40,7 +39,7 @@ with the primary action, and is now a quiet inline link.
 
 **`[x]` Resolved.** Same root cause as item 1. `sm:grid-cols-[8rem_1fr]` was
 unconditional while the picture was optional, so with no picture the bio still
-rendered into the *second* column and the first stayed an empty 8rem gutter —
+rendered into the _second_ column and the first stayed an empty 8rem gutter —
 the text began a third of the way across for no visible reason. The column now
 exists only when there is a picture, including the case where the switch is on
 but the URL is empty.
@@ -56,7 +55,7 @@ trunk when the overlap ends, and an open tip for work with no end date.
 
 **What it cannot do, and why I did not fake it.** `portfolio_items` has no
 parent, branch or lane column of any kind. Concurrency is derivable from
-overlapping dates and is honest. A *merge* in the git sense — "X was merged
+overlapping dates and is honest. A _merge_ in the git sense — "X was merged
 into Y" — is not: it needs an explicit parent pointer, and inferring one from
 "this ended around when that began" would draw a relationship you never stated.
 So a lane rejoins the trunk when it ends, which is true, and nothing claims
@@ -66,7 +65,7 @@ it on speculation.
 
 **A second constraint worth knowing.** `date_from` and `date_to` are free-text
 `TEXT` columns, so a value can be `2023`, `Jan 2023`, `2023-04-17` or `Summer
-2022`. The parser reads the first three and returns *nothing* for the fourth
+2022`. The parser reads the first three and returns _nothing_ for the fourth
 rather than guessing — ordering "Summer 2022" as the epoch would silently sink
 it to the bottom of every timeline. Undated items keep their given order on the
 trunk and claim nothing, and a section where no date parses degrades to an
@@ -86,7 +85,7 @@ inside a band 20–30% down the viewport. Three failures came out of that, two o
 which you hit:
 
 - **Clicking could never highlight.** The click parks the heading 96px from the
-  top; on a 900px window the band starts at 180px. The heading landed *above*
+  top; on a 900px window the band starts at 180px. The heading landed _above_
   the band, never intersected, and the highlight stayed where it was — the page
   scrolled correctly and the wrong entry stayed lit.
 - **The last heading was often unreachable.** At the end of a document there is
@@ -96,7 +95,7 @@ which you hit:
   order, so a fast scroll could leave a lower heading active than the one on
   screen.
 
-It now asks "which heading did I last pass", against the *same* constant the
+It now asks "which heading did I last pass", against the _same_ constant the
 click scrolls to — that shared constant is the whole fix for the first failure
 — with an explicit rule for the bottom of the document. Exactly one entry is
 active at every scroll position.
@@ -110,7 +109,7 @@ filter cut the list short or failed. Date and `#tags` are in the same face.
 
 Two notes on the script font. `font-normal` is load-bearing — `typography.css`
 is unlayered and puts `--heading-weight` (700–800) on bare headings, and a
-handwriting face at that weight smears. And the sizes went *up*: Tahu at the
+handwriting face at that weight smears. And the sizes went _up_: Tahu at the
 0.6875rem that row used to be is unreadable, because a script face carries far
 less ink per pixel than the UI face.
 
@@ -154,7 +153,7 @@ different colour on nearly every preset, so the header read as a foreign strip
 laid across the panel.
 
 A sticky bar does need a fill (its job is to occlude what scrolls under it);
-the fill just has to be its *container's*. The same mistake was sitting
+the fill just has to be its _container's_. The same mistake was sitting
 unreported in the habits grid, whose frozen first and last columns were
 `bg-background/95` inside a `bg-card` table — four places in total.
 
@@ -174,7 +173,7 @@ publishing flow is unchanged.**
 **Why the toolbar scrolled away.** `position: sticky` resolves against the
 nearest scrolling ancestor, and an `overflow-hidden` box counts as one. The
 editor root carried `overflow-hidden`, so the toolbar was pinned to the top of
-a box that *never scrolls* — the editor grows with the document and the page is
+a box that _never scrolls_ — the editor grows with the document and the page is
 what scrolls — and it travelled off the screen with it. The blog editor's own
 wrapper around the editor had the same `overflow-hidden`, so both had to go.
 
@@ -252,11 +251,11 @@ immediately and is built in at the next deploy.
 **`[~]` Mostly resolved.** Taken as three separate problems.
 
 **The flicker was a state bug, as suspected.** `dragenter` and `dragleave` fire
-per *element*, not per region — crossing from the drop area onto any card
+per _element_, not per region — crossing from the drop area onto any card
 inside it raises `dragleave` on the area and `dragenter` on the card, in that
 order. A boolean set from those two events therefore switches the overlay off
 and on again for every card the cursor passes. It counts depth now, so the
-*region* is what is tracked, and a drag abandoned outside the window (or
+_region_ is what is tracked, and a drag abandoned outside the window (or
 cancelled with Escape) clears it too, which nothing did before.
 
 Worth flagging: the existing test for this **passed with the bug in place**. It
@@ -280,18 +279,18 @@ upload" overlay over a gesture that was not an upload, and dropping it ran the
 upload handler with nothing to upload.
 
 **Still open:** upload progress per file, keyboard-accessible moving, and
-dragging *up* to a breadcrumb. The first is the one worth doing next; a large
+dragging _up_ to a breadcrumb. The first is the one worth doing next; a large
 upload currently shows only a global spinner.
 
 14. for inbox setting the UI should be like Outlook - sort by new first and the UI/UX should be similar
 
 **`[x]` Resolved.** The "sort by new first" part turned out to be a real
-finding. The **Needs attention** view is the default *and* it forced
+finding. The **Needs attention** view is the default _and_ it forced
 oldest-first, so opening the inbox put the oldest message at the top. That was
 deliberate — age is the only signal an inbox has about neglect — but it was the
 wrong thing to impose on the view you land on, and it reads as a bug rather
 than as a policy. Newest first everywhere now, with oldest one click away in an
-explicit Sort control, because it *is* the right order for working through a
+explicit Sort control, because it _is_ the right order for working through a
 backlog.
 
 Three changes toward the mail-client feel:
@@ -309,7 +308,7 @@ Three changes toward the mail-client feel:
   when you look at 1am.
 
 15. for discover, in money and market it;s only showing BTC & ETH no I don't want that and there is on banner with srock indices are not shown, intead is there any way we can watchlist some stock/MF/ETF we can search it and if we find the result we can watchlist and maintain watchlist; in career tab, the only career is list from germany and other but I'm in NA also I want carrer fulltime/parttime/freelance all aspect of things; for What happened tab, it seems goog to me but I know for sure that you can do much better - take full responsiblility of discover module throught research and analyse world web and reconstruct the mosule.
-Recently I'm more interested in reading aartficle which is most popular. Like I have mostly read substack articlers with more than 30K likes and most reshared. Can we do something like that 
+    Recently I'm more interested in reading aartficle which is most popular. Like I have mostly read substack articlers with more than 30K likes and most reshared. Can we do something like that
 
 **`[~]` Career and "worth reading" are done and live; the watchlist has its
 schema, model and tests but not yet its screen.**
@@ -318,14 +317,14 @@ schema, model and tests but not yet its screen.**
 other source here is keyless and CORS-open, because a static export has no
 server and any key would compile into the bundle. Quotes are the exception:
 
-| Source                                            | Result                                                        |
-| ------------------------------------------------- | ------------------------------------------------------------- |
-| Yahoo Finance                                     | 429 on the first request, and an unofficial endpoint          |
-| Stooq CSV                                         | 404 on its documented shapes, and no CORS headers             |
+| Source                                            | Result                                                                                   |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Yahoo Finance                                     | 429 on the first request, and an unofficial endpoint                                     |
+| Stooq CSV                                         | 404 on its documented shapes, and no CORS headers                                        |
 | marketdata.app                                    | answers for the single demo symbol `AAPL`; "No credentials provided" for everything else |
-| Alpha Vantage, Finnhub, Twelve Data, Polygon, FMP | key required up front                                         |
+| Alpha Vantage, Finnhub, Twelve Data, Polygon, FMP | key required up front                                                                    |
 
-CoinGecko and Frankfurter *are* open, which is why crypto and FX work today and
+CoinGecko and Frankfurter _are_ open, which is why crypto and FX work today and
 equities do not.
 
 **But there is an honest way to have it.** Discover is an admin route, and
@@ -349,7 +348,7 @@ Remote OK's array **begins with a licence notice, not a job** — a parser that
 maps straight over it produces a phantom posting — and its locations arrive
 half-written, as "York, " and "Goa, ". The fixture keeps both.
 
-Remote OK's terms require a named, *followed* link back, so the attribution is
+Remote OK's terms require a named, _followed_ link back, so the attribution is
 rendered with the results and is not optional.
 
 **"Worth reading" is its own lane.** Ranked on real engagement — Hacker News
@@ -395,7 +394,7 @@ says so.)
 
 **`[x]` Resolved — and you were describing a real design failure, not a
 preference.** The header was four stat cards of equal weight: done today,
-longest streak, 30-day average, and *active habits*. Equal weight makes the
+longest streak, 30-day average, and _active habits_. Equal weight makes the
 reader do the triage the screen exists to do — the same fault the dashboard
 rebuild diagnosed — and "active habits: 5" is a number that has never once
 required a decision.
@@ -411,7 +410,7 @@ rewarded breadth over persistence):
 - **"On the line today"** names the streaks that today would break. Loss
   aversion is the strongest thing a habit tracker has, and the module was
   already computing streaks and then burying the motivating one behind a trivia
-  stat about the longest ever. It only names streaks that are *real* and only
+  stat about the longest ever. It only names streaks that are _real_ and only
   on days the habit is actually due — telling you a Mon/Wed/Fri habit is at
   risk on a Tuesday is manufacturing urgency, and you would stop believing it.
 - **A fortnight's chain on every row**, where you tick things off rather than
@@ -430,10 +429,10 @@ stop reading it.
 You put your finger on the actual structural problem: **every topic was a
 flashcard.** A row was a title you try to recall plus notes revealed afterwards,
 which is a good shape for facts and the wrong one for most of studying — the
-explanation you need to *read* before you can be asked anything had nowhere to
+explanation you need to _read_ before you can be asked anything had nowhere to
 live except in the same pile you were being quizzed from.
 
-**Migration 015** gives a topic a *kind*, which is the smallest change that
+**Migration 015** gives a topic a _kind_, which is the smallest change that
 opens the whole loop:
 
 - **Reference** — material you read. Never enters the review queue. This is the
@@ -472,7 +471,7 @@ foundation rather than every possible feature, so that is what this is.
 **`[x]` Resolved.** Not an overlap-layout problem — a flex one, which is why it
 only appeared once there were several items.
 
-The all-day row sits in a flex *column* that is `min-h-0 flex-1
+The all-day row sits in a flex _column_ that is `min-h-0 flex-1
 overflow-hidden`. With the default `flex-shrink: 1` the browser is free to
 compress that row below the height of its own contents, and the chips — which
 keep their intrinsic height — then paint straight over the hour grid beneath.
@@ -494,7 +493,7 @@ an item could fall out of its own column. Now `addDays`.
 **`[x]` Resolved — and the second half was a real bug, not just a display
 choice.**
 
-*"Untitled". LOL* — agreed. A note's title is genuinely optional; a heading is
+_"Untitled". LOL_ — agreed. A note's title is genuinely optional; a heading is
 often the last thing you add, if ever, so a board of quick captures read
 "Untitled / Untitled / Untitled" while each note's own first line said exactly
 what it was. An untitled note is now named by that first line, with the
@@ -504,7 +503,7 @@ you wrote. "New note" is kept for the one case where there is genuinely nothing
 to show — an empty note. Sorting by name follows the same labels, so A–Z now
 matches the order your eye reads down the board.
 
-*The pin timestamp.* You were right to doubt it. `update_updated_at_column()`
+_The pin timestamp._ You were right to doubt it. `update_updated_at_column()`
 fires `BEFORE UPDATE FOR EACH ROW`, so it rewrote `updated_at` on **any** write
 — including a pin toggle. The timestamp was true about the row and false about
 the note, and because `notes_updated_at_idx` is DESC and the list sorts by it,
@@ -521,16 +520,16 @@ it can actually support.
 
 **`[x]` Resolved — and there were two bugs, in opposite directions.**
 
-*The one you saw.* Excalidraw fires `onChange` for pointer moves, selection
+_The one you saw._ Excalidraw fires `onChange` for pointer moves, selection
 **and its own initial load**, and the editor treated every one of them as an
 edit. So opening a board marked it dirty and Close asked to discard changes
 that did not exist. Dirty is a comparison now, not an event: the reader must
-have touched the canvas *and* the drawing must differ from what was opened.
+have touched the canvas _and_ the drawing must differ from what was opened.
 Both conditions are needed — the interaction test survives the library
 renumbering elements while loading, and the fingerprint stops a mere selection
 or a pan from costing a prompt.
 
-*The one you did not.* Nothing marked the board dirty when you **renamed** it.
+_The one you did not._ Nothing marked the board dirty when you **renamed** it.
 Autosave only runs while dirty and Close only asks while dirty, so renaming a
 board and closing it discarded the new name in silence. That is worse than a
 spurious prompt, and it is fixed by the same change.
@@ -545,13 +544,13 @@ One note on the tests: the canvas stub did not fire the load-time `onChange`
 that causes the bug, so the first guard passed with the bug reintroduced. The
 stub now fires it, which also turned two older tests into real ones.
 
-21. in finance, there should be reveal/unreveal button, right? for numbers. Also in recurring form there is category text box which should be category dropdown similar to txn form; in activity tab: there are two add button which is redundant. In category creating category make sense but I didn't understand the need,income,etc.. in category how it'll help and how can I benfit from it. Also in goals, if I'm adding money it should ask me from which account you want to add to goal, from goal it should not only add some time in emergency we have to remove/take from it. also on budgeting I didn't understand the calculation on pace of $XXXX, ahead of pace. For forecast, I didn;t got the commitment only thing also when I did something on whatif scenario it showed  this is a consequence of the what ifs belows, not your current plan banner why it came in that only scenario, rest of the scnario is okay. Also What can be done to see forecast for further far future let's say 5 year, 7 year. I want to see that as I'm taking mortgage in india of about 50 lakh ruppes.
+21. in finance, there should be reveal/unreveal button, right? for numbers. Also in recurring form there is category text box which should be category dropdown similar to txn form; in activity tab: there are two add button which is redundant. In category creating category make sense but I didn't understand the need,income,etc.. in category how it'll help and how can I benfit from it. Also in goals, if I'm adding money it should ask me from which account you want to add to goal, from goal it should not only add some time in emergency we have to remove/take from it. also on budgeting I didn't understand the calculation on pace of $XXXX, ahead of pace. For forecast, I didn;t got the commitment only thing also when I did something on whatif scenario it showed this is a consequence of the what ifs belows, not your current plan banner why it came in that only scenario, rest of the scnario is okay. Also What can be done to see forecast for further far future let's say 5 year, 7 year. I want to see that as I'm taking mortgage in india of about 50 lakh ruppes.
 
 **`[~]` Seven of the eight are done; the eighth was a question rather than a
 bug.**
 
 **Reveal/hide — done.** A "Hide amounts" toggle blurs every figure, per browser
-session. Done as a *container* rule rather than by wrapping each value: there
+session. Done as a _container_ rule rather than by wrapping each value: there
 are around a hundred money figures across a dozen components here, and a
 `<Money>` wrapper would only hide the ones somebody remembered to migrate — the
 balance left visible would be the one that mattered. Blurred rather than
@@ -572,7 +571,7 @@ call to action — it only appears when there is nothing to look at.
 
 **Categories — done.** The copy named the outputs ("the 50/30/20 check", "your
 runway") which only helps if you already know what those are. It now says what
-each switch *buys*: bucket is the grouping the 50/30/20 line compares against,
+each switch _buys_: bucket is the grouping the 50/30/20 line compares against,
 and essential is the only input to runway, so an unmarked list makes that
 figure meaningless rather than merely approximate.
 
@@ -592,7 +591,7 @@ hidden. Each line now reads "62% spent, 55% through the month · on pace for
 second number.
 
 **Long-horizon forecast — done.** 3, 5 and 7 years added. Past eighteen months
-the *series* is monthly while the **arithmetic stays daily**, so a shortfall
+the _series_ is monthly while the **arithmetic stays daily**, so a shortfall
 date is still exact to the day — stepping the maths monthly would only ever be
 able to name the month, and "this runs out on 14 March" is the sentence the
 whole forecast exists for. Long horizons carry a banner saying plainly that
@@ -600,7 +599,7 @@ they compound today's commitments and today's spending rate and assume both
 hold: useful for the shape of a mortgage decision, not for any number on it.
 
 **The what-if banner — not a bug.** Its condition is already correct: it
-appears only when your plan as it stands does *not* run out and the sliders
+appears only when your plan as it stands does _not_ run out and the sliders
 create the shortfall, which is why it showed on one scenario and not the
 others. The message did not explain that, so it now says the sliders are
 changed and that resetting them shows the real line.
@@ -618,7 +617,7 @@ footer — were exactly the two you could not check. Both are the components tha
 actually ship now, not lookalikes:
 
 - The **footer** is split into a view, the same way Hero, About and Contact
-  already were, so it renders against your *unsaved* values. Editing the footer
+  already were, so it renders against your _unsaved_ values. Editing the footer
   group and not seeing the footer change was the sharpest version of the
   problem.
 - The **header** takes an identity override, so the logo you are typing is the
@@ -658,7 +657,7 @@ regardless, because the design gate only checks class names.
 Details that matter:
 
 - **One navigation surface, not two.** The architecture forbids a second
-  overlay, so the search is *inside* the launcher rather than a separate
+  overlay, so the search is _inside_ the launcher rather than a separate
   palette to learn. The existing command palette stays as the keyboard route to
   the same `NAV_GROUPS`, so the two cannot drift.
 - **The same at every width.** No drawer button on a phone and a rail on a

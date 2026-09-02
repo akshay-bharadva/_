@@ -1171,3 +1171,127 @@ found and fixed, each now held by a test that was watched failing first.
 - **Nothing here has been exercised against real data by a person.** Every
   check in Part six is static or unit-level. That is the remaining gap between
   "the gates are green" and "this is safe to use".
+
+---
+
+# Part seven — The QA pass
+
+Twenty-three items of owner feedback, analysed in `docs/redesign/v3-qa-plan.md`
+and worked through in five phases. The analysis is worth reading before the
+code: several items that arrived as three separate complaints turned out to be
+one cause, and two arrived as bug reports and were not bugs.
+
+## What the pass says about the gates
+
+**Three items were one mistake.** Hero, About and Contact each declared a
+multi-column grid while the content filling one column was optional, so turning
+the option off left the column there and empty. The owner reported them as
+three unrelated problems on three pages.
+
+**Three more were one unguarded rule.** The timeline, the blog table of
+contents and the Updates card all still used a dotted rule as a separator —
+retired v2 grammar — because `design-system.test.ts` banned the custom class
+`rule-dotted` and said nothing about Tailwind's own `border-dashed`. The owner
+was reporting the old aesthetic three times.
+
+**And one was a rule the code had quietly stopped following.** `CLAUDE.md`
+states the admin shell has no sidebar rail and lists a left icon rail among the
+retired motifs. A fixed 15rem rail had been sitting there regardless, with a
+comment explaining why it was brought back. Nothing caught it because the
+design gate only checks class names.
+
+The lesson is consistent: **a rule that is written down but only mechanically
+enforced for its easiest case is not enforced.**
+
+## Traps added to the list
+
+**`position: sticky` resolves against the nearest scrolling ancestor, and
+`overflow-hidden` makes one.** The blog editor's toolbar was pinned to a box
+that never scrolls — the editor grows with the document and the _page_ scrolls
+— so it travelled off screen. Two ancestors had to lose `overflow-hidden`, and
+neither was obvious from the symptom. Guarded by a source test, because jsdom
+does no layout and this is invisible to every other gate.
+
+**A flex child with no `shrink-0` is compressed below its own content.** The
+calendar's all-day row sat in a `min-h-0 flex-1 overflow-hidden` column, so
+with several items the browser squeezed it and the chips painted over the hour
+grid. One or two items were short enough that it never bit, which is why it
+read as "overlapping with multiple items".
+
+**`dragenter` / `dragleave` fire per element, not per region.** Crossing from a
+drop area onto a card inside it raises leave-then-enter, so a boolean flag
+flickers once per card. Count depth instead. The existing test drove exactly
+one enter and one leave — the only sequence the boolean got right — and passed
+with the bug in place.
+
+**Two drags can land on the same page.** Files from the desktop and items being
+moved within the app are told apart by `dataTransfer.types`, which is the only
+thing readable during `dragover`. Without that check an in-app move raises the
+upload overlay and drops into the upload handler.
+
+**`\b` was eaten again.** A guard written with word boundaries had them turned
+into literal backspace characters by the tooling that wrote the file, so every
+pattern matched nothing and the rule reported the codebase clean _with the bug
+it was written for still in it_. Caught only by seeding the bug and expecting
+red. Compare tokens rather than writing regexes with escapes — `tokenize` from
+`class-rules.ts` exists for this.
+
+**A trigger that fires on every update makes `updated_at` a lie.** Pinning a
+note rewrote its modified time, so a note claimed to have been edited when only
+its filing changed — and, since the list sorts on that column, pinning silently
+reordered it. Migration 013 compares the row as JSONB minus the organisational
+fields, so a column added later counts as content by default.
+
+**Bundle regressions arrive through innocuous imports.** Rendering a task
+description through the markdown pipeline cost 47 kB of first-load JS on
+`/admin/tasks` — and was also inconsistent, since the form is a plain textarea.
+Check the per-route figure after adding any renderer.
+
+## Decisions worth reusing
+
+**Content availability decides the layout.** A grid template naming two columns
+is a promise that both exist.
+
+**A sticky bar is painted in its container's fill.** `bg-background` inside a
+`bg-card` panel is a different colour on nearly every preset.
+
+**Ratchets, not sweeps, for debt you cannot fix in one pass.** Monospace could
+not be judged mechanically — code and serial numbers are legitimate — so it is
+a budget of the files using it, checked in _both_ directions. The list went 48
+→ 44 during this pass and cannot grow. The same shape covers the two files that
+legitimately paint `bg-background` under a sticky bar.
+
+**Read before you edit.** Tasks, Projects, Notes and Whiteboard all opened
+straight into an editor, so every glance put a record one keystroke from a
+change. The read view is not a lesser version of the form: it is what you
+wanted nine times out of ten.
+
+**Verify a source before designing on it.** Discover's watchlist is shaped the
+way it is because keyless CORS-open equity quotes were _tested for and not
+found_ — Yahoo 429s, Stooq 404s and sends no CORS headers, marketdata.app
+answers only for `AAPL`. The design that follows from that is honest; the one
+that would have followed from assuming otherwise would have shipped empty
+panels.
+
+**Capture fixtures from the live service.** Remote OK's array begins with a
+licence notice rather than a job, and its locations arrive as "York, " and
+"Goa, ". No hand-written fixture contains either.
+
+## Migrations added
+
+| File                                 | Adds                                                                                |
+| ------------------------------------ | ----------------------------------------------------------------------------------- |
+| `013-notes-organisational-touch.sql` | `updated_at` on notes means the content changed                                     |
+| `014-goal-contributions.sql`         | `finance_goal_contributions`, and `record_goal_contribution` — atomic, AAL2-checked |
+| `015-learning-material-kinds.sql`    | `kind` / `prompt` / `answer` / `choices` on learning topics                         |
+| `016-discover-watchlist.sql`         | `discover_watchlist`, and a market-data key on `integration_settings`               |
+
+## Still open
+
+- The Discover watchlist has its schema, model and tests but not its screen.
+- Learning's certification layer — timed mock exams, per-exam progress, an
+  importable question bank — sits on top of the loop this pass built and is not
+  built.
+- Assets: per-file upload progress, keyboard-accessible moving, dragging onto a
+  breadcrumb.
+- **Migrations 012 through 016 are unapplied.**
