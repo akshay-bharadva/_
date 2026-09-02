@@ -339,6 +339,36 @@ says so.)
 
 16. for habit, I don't look it personalized, it's not that lured section that can attract me to come to habit section, all the functionality and everything is awesome but it's not able lured me to it.
 
+**`[x]` Resolved — and you were describing a real design failure, not a
+preference.** The header was four stat cards of equal weight: done today,
+longest streak, 30-day average, and *active habits*. Equal weight makes the
+reader do the triage the screen exists to do — the same fault the dashboard
+rebuild diagnosed — and "active habits: 5" is a number that has never once
+required a decision.
+
+Three changes, all built from facts the module already had and none of them
+gamification (the XP card was removed from here once already, because its score
+rewarded breadth over persistence):
+
+- **The lead is a sentence, not a scoreboard.** "Read is on a 12-day run."
+  A number invites you to optimise it; a sentence tells you where you are, and
+  that matters most on the bad weeks — which are the weeks somebody stops
+  opening the app. The count is still there, small, for when you want it.
+- **"On the line today"** names the streaks that today would break. Loss
+  aversion is the strongest thing a habit tracker has, and the module was
+  already computing streaks and then burying the motivating one behind a trivia
+  stat about the longest ever. It only names streaks that are *real* and only
+  on days the habit is actually due — telling you a Mon/Wed/Fri habit is at
+  risk on a Tuesday is manufacturing urgency, and you would stop believing it.
+- **A fortnight's chain on every row**, where you tick things off rather than
+  on a separate screen. A day the habit was never due is drawn as nothing
+  rather than as a miss, or a perfectly kept weekends-only habit would render
+  as a wall of failures.
+
+Also: a day with nothing scheduled is no longer a "perfect day". Congratulating
+someone for a day that asked nothing of them is how a tracker teaches you to
+stop reading it.
+
 17. for learning module it's good compare to previous one but, let's say if there are module subtopic it's always not the flashcard that can be read all along in review system, right? I need solid learning module, that can change my nuroplasticity and help me become knowledable. and help me study and prepare for certifications for career.
 
 18. in calander if there are multiple all day event or habit it's overlapping the UI, like it's not showing side by side.

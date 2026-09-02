@@ -32,9 +32,9 @@ import { HabitGrid } from "./habit-grid";
 import { HabitForm } from "./habit-form";
 import { HabitToday } from "./habit-today";
 import { HabitHeatmapModal } from "./habit-heatmap-modal";
-import { HabitSummary } from "./habit-summary";
+import { HabitStanding } from "./habit-standing";
 import { todayIso } from "./habit-schedule";
-import { dueToday, isPerfectDay } from "./habit-progress";
+import { dueToday } from "./habit-progress";
 
 type HabitView = "today" | "week" | "archived";
 
@@ -81,7 +81,6 @@ export default function HabitsPage() {
   );
 
   const todaysHabits = useMemo(() => dueToday(active, today), [active, today]);
-  const perfect = useMemo(() => isPerfectDay(active, today), [active, today]);
 
   const handleSetValue = async (habit: Habit, value: number) => {
     try {
@@ -175,7 +174,7 @@ export default function HabitsPage() {
       />
 
       {!isLoading && active.length > 0 && (
-        <HabitSummary habits={active} today={today} perfect={perfect} />
+        <HabitStanding habits={active} today={today} />
       )}
 
       <div className="mb-4 flex items-center justify-end">

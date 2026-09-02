@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { HABIT_TIME_OF_DAY_OPTIONS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { habitColor } from "./habit-color";
+import { HabitTrail } from "./habit-standing";
 import { describeSchedule } from "./habit-schedule";
 import {
   currentStreak,
@@ -147,6 +148,15 @@ function HabitTodayRow({
               {streak}
             </span>
           )}
+        </span>
+
+        {/*
+          The chain, where you tick things off rather than on a separate
+          screen. Seeing the last fortnight is the thing that makes a gap feel
+          like a gap, and it needs no score attached to work.
+        */}
+        <span className="mt-1.5 block">
+          <HabitTrail habit={habit} today={today} />
         </span>
       </button>
 
