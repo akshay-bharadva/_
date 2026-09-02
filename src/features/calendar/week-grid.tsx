@@ -80,8 +80,13 @@ export function WeekGrid({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-surface bg-card shadow-e1">
-      {/* Day headers, outside the scroll area so they stay put. */}
-      <div className="flex border-b border-border">
+      {/*
+        Day headers, outside the scroll area so they stay put. `shrink-0` for
+        the same reason as the all-day row below: this is a flex column with
+        `overflow-hidden`, so without it the browser may compress the header
+        below its own content height and the dates paint over the grid.
+      */}
+      <div className="flex shrink-0 border-b border-border">
         <GutterSpacer homeTimezone={homeTimezone} />
         {days.map((day) => (
           <div

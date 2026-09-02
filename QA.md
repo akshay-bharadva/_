@@ -225,6 +225,26 @@ says so.)
 
 18. in calander if there are multiple all day event or habit it's overlapping the UI, like it's not showing side by side.
 
+**`[x]` Resolved.** Not an overlap-layout problem — a flex one, which is why it
+only appeared once there were several items.
+
+The all-day row sits in a flex *column* that is `min-h-0 flex-1
+overflow-hidden`. With the default `flex-shrink: 1` the browser is free to
+compress that row below the height of its own contents, and the chips — which
+keep their intrinsic height — then paint straight over the hour grid beneath.
+One or two items were short enough that shrinking never bit. `shrink-0` is the
+entire fix, and the day-header row above it had the same latent bug.
+
+Two things came with it. The row now caps its height and scrolls within itself,
+because fixing the shrink alone means a day with a dozen all-day items eats the
+whole viewport before the hour grid gets a single row. And in **day** view the
+items now sit side by side in a grid — one column has the full width to spend,
+whereas across a week each column is too narrow for anything but stacking.
+
+Also fixed while in there: the row computed its day window as `startOfDay +
+86_400_000`. A day is 23 or 25 hours across a clock change, so on those two days
+an item could fall out of its own column. Now `addDays`.
+
 19. for notes, if there is not title then don't show untitled. LOL. Also, I just pinned and it just says last modified min ago. is that will be the case?
 
 **`[x]` Resolved — and the second half was a real bug, not just a display

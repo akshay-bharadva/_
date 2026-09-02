@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { startOfDay } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 import type { CalendarEntry } from "@/types";
 import { cn } from "@/lib/cn";
 import { entryClasses } from "./entry-block";
@@ -43,11 +43,28 @@ export function AllDayRow({
   if (entries.length === 0) return null;
 
   return (
-    <div className="flex border-b border-border">
+    /*
+      `shrink-0` is the fix for the reported overlap, and it is the whole fix.
+      This row sits in a flex *column* that is `min-h-0 flex-1
+      overflow-hidden`, so with the default `flex-shrink: 1` the browser is
+      free to compress it below the height of its own contents once there are
+      several items — and the chips, which keep their intrinsic height, then
+      paint straight over the hour grid beneath. One or two items were short
+      enough that shrinking never bit, which is why it only showed up with a
+      few of them.
+
+      The height cap is the other half. Fixing the shrink alone means a day
+      with a dozen all-day items eats the entire viewport before the hour grid
+      gets a row, so the region scrolls within itself instead.
+    */
+    <div className="flex max-h-32 shrink-0 overflow-y-auto border-b border-border">
       {gutter}
       {days.map((day) => {
         const dayStart = startOfDay(day).getTime();
-        const dayEnd = dayStart + 86_400_000;
+        // Not `dayStart + 86_400_000`. A day is 23 or 25 hours across a clock
+        // change, so on those two days the window was wrong and an item could
+        // be dropped from its own column or duplicated into the next.
+        const dayEnd = addDays(startOfDay(day), 1).getTime();
         // A multi-day item appears on every day it covers, rather than only on
         // the one it began.
         const forDay = entries.filter(
@@ -59,7 +76,14 @@ export function AllDayRow({
           <div
             key={day.toISOString()}
             className={cn(
-              "min-w-0 flex-1 space-y-1 border-l border-border p-1.5 transition-colors",
+              "min-w-0 flex-1 border-l border-border p-1.5 transition-colors",
+              // A single day column has the whole width to spend, so all-day
+              // items sit side by side rather than as one narrow item per
+              // line. Across a week each column is already narrow enough that
+              // stacking is the only readable option.
+              days.length === 1
+                ? "grid grid-cols-2 gap-1 lg:grid-cols-3"
+                : "space-y-1",
               overKey === dayStart && "bg-primary/10",
             )}
             onDragOver={(event) => {
