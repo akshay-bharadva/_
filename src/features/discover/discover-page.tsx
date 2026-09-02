@@ -44,6 +44,7 @@ import { MostRead, NewRepos, TopStories } from "./digest";
 import { CorridorPanel, CryptoPanel, EconomyPanel } from "./market-panels";
 import { Headlines } from "./headlines";
 import { CareerPanel } from "./career-panel";
+import { ReadingPanel } from "./reading-panel";
 
 /**
  * Discover — the parts of the day this app does not own.
@@ -68,6 +69,7 @@ import { CareerPanel } from "./career-panel";
 const LANES = [
   { id: "money", label: "Money & markets" },
   { id: "career", label: "Career" },
+  { id: "reading", label: "Worth reading" },
   { id: "world", label: "What happened" },
 ] as const;
 
@@ -124,6 +126,16 @@ export default function DiscoverPage() {
       )}
 
       {lane === "career" && <CareerLane />}
+
+      {/*
+        A lane of its own rather than a panel inside "What happened".
+        
+        Those two answer different questions: one is "what occurred", the other
+        is "what is worth an hour of my attention". Ranking by engagement is
+        the second question, and burying it under the first is how it stops
+        being asked.
+      */}
+      {lane === "reading" && <ReadingPanel />}
 
       {lane === "world" && (
         <WorldLane topics={topics} window={window} onWindow={setWindow} />

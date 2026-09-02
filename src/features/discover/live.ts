@@ -91,6 +91,8 @@ function text(value: unknown): string | null {
 
 /* ── Jobs ────────────────────────────────────────────────────────────────── */
 
+import { mergePostings, parseRemoteOk, REMOTE_OK_API } from "./jobs";
+
 const JOB_BOARD = "https://www.arbeitnow.com/api/job-board-api";
 
 export interface Posting {
@@ -104,10 +106,29 @@ export interface Posting {
   postedAt: string | null;
 }
 
+/**
+ * Both boards, merged.
+ *
+ * Arbeitnow alone meant "career" was roles in Germany, which is not much use
+ * from Ontario. Remote OK is worldwide and remote-first, so between them the
+ * list covers North America as well as Europe.
+ *
+ * `Promise.allSettled`, not `all`: one board being down is a smaller list, not
+ * an empty page. Null is returned only when *both* fail, so the panel can tell
+ * "nothing to show" from "could not ask".
+ */
 export async function fetchPostings(): Promise<Posting[] | null> {
-  const body = await fetchJson(JOB_BOARD);
-  if (body === null) return null;
-  return parsePostings(body);
+  const [arbeitnow, remoteOk] = await Promise.all([
+    fetchJson(JOB_BOARD),
+    fetchJson(REMOTE_OK_API),
+  ]);
+
+  if (arbeitnow === null && remoteOk === null) return null;
+
+  return mergePostings(
+    arbeitnow === null ? [] : parsePostings(arbeitnow),
+    remoteOk === null ? [] : parseRemoteOk(remoteOk),
+  );
 }
 
 export function parsePostings(body: unknown): Posting[] {

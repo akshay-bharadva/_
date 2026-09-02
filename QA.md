@@ -311,6 +311,60 @@ Three changes toward the mail-client feel:
 15. for discover, in money and market it;s only showing BTC & ETH no I don't want that and there is on banner with srock indices are not shown, intead is there any way we can watchlist some stock/MF/ETF we can search it and if we find the result we can watchlist and maintain watchlist; in career tab, the only career is list from germany and other but I'm in NA also I want carrer fulltime/parttime/freelance all aspect of things; for What happened tab, it seems goog to me but I know for sure that you can do much better - take full responsiblility of discover module throught research and analyse world web and reconstruct the mosule.
 Recently I'm more interested in reading aartficle which is most popular. Like I have mostly read substack articlers with more than 30K likes and most reshared. Can we do something like that 
 
+**`[~]` Career and "worth reading" are done and live; the watchlist has its
+schema, model and tests but not yet its screen.**
+
+**Live market data: I tested rather than assumed, and the answer is no.** Every
+other source here is keyless and CORS-open, because a static export has no
+server and any key would compile into the bundle. Quotes are the exception:
+
+| Source                                            | Result                                                        |
+| ------------------------------------------------- | ------------------------------------------------------------- |
+| Yahoo Finance                                     | 429 on the first request, and an unofficial endpoint          |
+| Stooq CSV                                         | 404 on its documented shapes, and no CORS headers             |
+| marketdata.app                                    | answers for the single demo symbol `AAPL`; "No credentials provided" for everything else |
+| Alpha Vantage, Finnhub, Twelve Data, Polygon, FMP | key required up front                                         |
+
+CoinGecko and Frankfurter *are* open, which is why crypto and FX work today and
+equities do not.
+
+**But there is an honest way to have it.** Discover is an admin route, and
+`integration_settings` has RLS with **no public read policy at all** — it is
+where the Discord webhook lives for exactly this reason. **Migration 016** adds
+a `market_data_key` there and a `discover_watchlist` table. With no key the
+watchlist is a list you maintain — symbol, kind, venue, why you are watching it
+— with one click to a real quote. With a key, quotes appear. Nothing is ever
+invented to fill the gap, which is what you asked for.
+
+**Career is no longer one German board.** Remote OK is merged in alongside
+Arbeitnow (verified CORS-open), and the results now filter by **terms**
+(full-time / part-time / contract / freelance) and **region** (North America /
+remote / Europe). Both are inferred from free text, since neither board has a
+structured field, so a posting that matches nothing stays visible rather than
+being guessed into a bucket. One board being down is a shorter list, not an
+empty page.
+
+Two things the real data taught, which a hand-written fixture would not have:
+Remote OK's array **begins with a licence notice, not a job** — a parser that
+maps straight over it produces a phantom posting — and its locations arrive
+half-written, as "York, " and "Goa, ". The fixture keeps both.
+
+Remote OK's terms require a named, *followed* link back, so the attribution is
+rendered with the results and is not optional.
+
+**"Worth reading" is its own lane.** Ranked on real engagement — Hacker News
+points and comments, dev.to reactions and comments — weighted down by age, so
+this morning's post can outrank last week's rather than the list being a hall
+of fame. Today / this week / this month.
+
+On Substack specifically: it publishes no public API for likes or shares, so
+"articles with more than 30k likes" cannot be answered from it honestly. The
+panel says so rather than quietly substituting something else.
+
+**Remaining:** the watchlist's admin screen and its RTK Query endpoints, and
+the key field in settings. The schema, the model and the tests are in; the UI
+is the next piece.
+
 15. for tasks, every thing is good - expect when i click on task it directly opens the editing ppanel intead I want a view first then edit if user wants to, also in projects the listed projects is always editable
 
 **`[x]` Resolved.** Clicking a task opened the edit form directly, so every

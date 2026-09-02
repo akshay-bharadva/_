@@ -11,6 +11,51 @@ import {
   skillDemand,
   type Posting,
 } from "./live";
+import {
+  filterJobs,
+  JOB_SOURCES,
+  type EmploymentType,
+  type Region,
+} from "./jobs";
+
+const EMPLOYMENT_FILTERS: { id: EmploymentType; label: string }[] = [
+  { id: "full-time", label: "Full-time" },
+  { id: "part-time", label: "Part-time" },
+  { id: "contract", label: "Contract" },
+  { id: "freelance", label: "Freelance" },
+];
+
+const REGION_FILTERS: { id: Region; label: string }[] = [
+  { id: "north-america", label: "North America" },
+  { id: "remote", label: "Remote" },
+  { id: "europe", label: "Europe" },
+];
+
+function FilterToggle({
+  label,
+  active,
+  onToggle,
+}: {
+  label: string;
+  active: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onToggle}
+      className={cn(
+        "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-secondary text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
 
 /**
  * What the market is hiring for, and what it is asking you to know.
@@ -37,6 +82,13 @@ export function CareerPanel() {
   const [postings, setPostings] = useState<Posting[]>([]);
   const [state, setState] = useState<"loading" | "done" | "failed">("loading");
   const [query, setQuery] = useState("");
+  /**
+   * The two axes that decide whether a posting is worth reading. Empty means
+   * "no opinion", not "nothing" — the other reading empties the page the
+   * moment you clear a filter, which looks like a broken fetch.
+   */
+  const [types, setTypes] = useState<EmploymentType[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,8 +113,8 @@ export function CareerPanel() {
   // Filtering is cheap and local, so it runs as you type — unlike the upstream
   // search it replaced, which cost a request and returned the same thing.
   const matches = useMemo(
-    () => filterPostings(postings, query),
-    [postings, query],
+    () => filterJobs(filterPostings(postings, query), { types, regions }),
+    [postings, query, types, regions],
   );
 
   const market = useMemo(() => skillDemand(postings, 12), [postings]);
@@ -79,7 +131,7 @@ export function CareerPanel() {
             <p className="text-[11px] text-muted-foreground">
               {state === "done"
                 ? `${matches.length} of ${postings.length} postings`
-                : "Arbeitnow"}
+                : "Two boards"}
             </p>
           </div>
 
@@ -95,6 +147,45 @@ export function CareerPanel() {
               onChange={(event) => setQuery(event.target.value)}
               className="h-8 pl-8 text-sm"
             />
+          </div>
+
+          {/*
+            Terms and region, because "career" was one German board and those
+            are the two things that decide whether a posting is even readable
+            from Ontario. Both are inferred from free text — neither board has
+            a structured field — so a posting that matches nothing stays
+            visible rather than being guessed into a bucket.
+          */}
+          <div className="flex flex-wrap gap-1">
+            {EMPLOYMENT_FILTERS.map((option) => (
+              <FilterToggle
+                key={option.id}
+                label={option.label}
+                active={types.includes(option.id)}
+                onToggle={() =>
+                  setTypes((current) =>
+                    current.includes(option.id)
+                      ? current.filter((entry) => entry !== option.id)
+                      : [...current, option.id],
+                  )
+                }
+              />
+            ))}
+            <span aria-hidden className="mx-1 w-px bg-border" />
+            {REGION_FILTERS.map((option) => (
+              <FilterToggle
+                key={option.id}
+                label={option.label}
+                active={regions.includes(option.id)}
+                onToggle={() =>
+                  setRegions((current) =>
+                    current.includes(option.id)
+                      ? current.filter((entry) => entry !== option.id)
+                      : [...current, option.id],
+                  )
+                }
+              />
+            ))}
           </div>
         </header>
 
@@ -164,6 +255,34 @@ export function CareerPanel() {
             Showing 12 of {matches.length}. Narrow the filter to see the rest.
           </p>
         )}
+
+        {/*
+          Attribution is a requirement here, not a courtesy. Remote OK's API
+          terms ask for a named, *followed* link back and say access is
+          suspended without it — hence no `nofollow` on that one, which is the
+          opposite of the usual instinct for an outbound link.
+        */}
+        <p className="border-t border-border/60 px-5 py-2 text-[11px] text-muted-foreground">
+          Postings from{" "}
+          <a
+            href={JOB_SOURCES.remoteok.credit.href}
+            target="_blank"
+            rel="noopener"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            {JOB_SOURCES.remoteok.credit.text}
+          </a>{" "}
+          and{" "}
+          <a
+            href={JOB_SOURCES.arbeitnow.credit.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline underline-offset-2 hover:text-foreground"
+          >
+            {JOB_SOURCES.arbeitnow.credit.text}
+          </a>
+          .
+        </p>
       </section>
 
       <aside className="h-fit rounded-surface bg-card p-5 shadow-e1">
