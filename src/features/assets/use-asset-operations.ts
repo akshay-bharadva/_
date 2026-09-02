@@ -14,6 +14,7 @@ import {
 } from "@/store/api/adminApi";
 import { BUCKET_NAME, type StorageAsset } from "./asset-utils";
 import { isFileDrag } from "./asset-drag";
+import { uploadFile, type UploadTask } from "./upload-progress";
 
 /**
  * File operations for the asset manager: multi-file upload (with storage
@@ -23,6 +24,14 @@ import { isFileDrag } from "./asset-drag";
  */
 export function useAssetOperations(currentPath: string[]) {
   const [isUploading, setIsUploading] = useState(false);
+  /**
+   * One row per file, live.
+   *
+   * A single global spinner said "something is happening" and nothing else —
+   * which file, how far through, or which of five failed. Kept in state rather
+   * than a ref because it is the thing being rendered.
+   */
+  const [uploads, setUploads] = useState<UploadTask[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,25 +56,55 @@ export function useAssetOperations(currentPath: string[]) {
       return;
     }
 
+    const queue: UploadTask[] = Array.from(files).map((file, index) => ({
+      id: `${Date.now()}-${index}-${file.name}`,
+      name: file.name,
+      size: file.size,
+      stage: "queued",
+      loaded: 0,
+    }));
+
     setIsUploading(true);
+    setUploads(queue);
+
     const pathPrefix =
       currentPath.length > 0 ? currentPath.join("/") + "/" : "";
 
-    const uploadPromises = Array.from(files).map(async (file) => {
+    const patch = (id: string, changes: Partial<UploadTask>) =>
+      setUploads((current) =>
+        current.map((task) =>
+          task.id === id ? { ...task, ...changes } : task,
+        ),
+      );
+
+    const uploadPromises = Array.from(files).map(async (file, index) => {
+      const task = queue[index];
       const sanitizedName = file.name
         .replace(/[^a-zA-Z0-9._-]/g, "_")
         .replace(/__+/g, "_");
 
       const filePath = `${pathPrefix}${Date.now()}_${sanitizedName}`;
 
-      const { error: uploadError } = await supabase!.storage
-        .from(BUCKET_NAME)
-        .upload(filePath, file);
+      patch(task.id, { stage: "uploading" });
 
-      if (uploadError)
-        throw new Error(
-          `Upload failed for ${file.name}: ${uploadError.message}`,
+      try {
+        await uploadFile(filePath, file, ({ loaded }) =>
+          patch(task.id, { loaded }),
         );
+      } catch (uploadError) {
+        patch(task.id, {
+          stage: "failed",
+          error: getErrorMessage(uploadError),
+        });
+        throw new Error(
+          `Upload failed for ${file.name}: ${getErrorMessage(uploadError)}`,
+        );
+      }
+
+      // The row is written after the object lands, so a failed insert can roll
+      // the object back — an asset in storage with no row is invisible to the
+      // app and impossible to find again.
+      patch(task.id, { stage: "saving", loaded: file.size });
 
       try {
         await addAsset({
@@ -74,25 +113,46 @@ export function useAssetOperations(currentPath: string[]) {
           mime_type: file.type,
           size_kb: file.size / 1024,
         }).unwrap();
+        patch(task.id, { stage: "done" });
       } catch (dbInsertError) {
         await supabase!.storage.from(BUCKET_NAME).remove([filePath]);
+        patch(task.id, {
+          stage: "failed",
+          error: getErrorMessage(dbInsertError),
+        });
         throw new Error(
-          `DB insert failed for ${file.name}: ${dbInsertError instanceof Error ? dbInsertError.message : "Unknown error"}`,
+          `DB insert failed for ${file.name}: ${getErrorMessage(dbInsertError)}`,
         );
       }
     });
 
-    try {
-      await Promise.all(uploadPromises);
-      toast.success(`${files.length} asset(s) uploaded!`);
-      await handleRescanUsage(true);
-    } catch (error) {
-      toast.error("An upload failed", { description: getErrorMessage(error) });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    // `allSettled`, not `all`: one bad file must not abandon the rest, and the
+    // per-file rows already say which failed and why.
+    const results = await Promise.allSettled(uploadPromises);
+    const failed = results.filter((result) => result.status === "rejected");
+
+    if (failed.length === 0) {
+      toast.success(
+        `${results.length} asset${results.length === 1 ? "" : "s"} uploaded.`,
+      );
+    } else if (failed.length < results.length) {
+      toast.warning(
+        `${results.length - failed.length} uploaded, ${failed.length} failed.`,
+      );
+    } else {
+      toast.error("Nothing uploaded.");
     }
+
+    await handleRescanUsage(true);
+    setIsUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    // Successful rows clear; failures stay until dismissed, because a toast
+    // that has already gone is not an answer to "which one broke?".
+    setUploads((current) => current.filter((task) => task.stage === "failed"));
   };
+
+  const dismissUploads = () => setUploads([]);
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -194,6 +254,8 @@ export function useAssetOperations(currentPath: string[]) {
 
   return {
     isUploading,
+    uploads,
+    dismissUploads,
     isDragging,
     fileInputRef,
     handleRescanUsage,

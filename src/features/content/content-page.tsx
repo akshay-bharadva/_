@@ -351,6 +351,7 @@ export default function ContentPage() {
             : (sheetState.item.section_id ?? "")
         }
         layoutStyle={openSection?.layout_style ?? "default"}
+        siblings={openSection?.portfolio_items ?? []}
         onSave={handleSaveItem}
         onClose={() => setSheetState(null)}
       />

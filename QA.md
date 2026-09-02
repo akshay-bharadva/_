@@ -46,7 +46,7 @@ but the URL is empty.
 
 4. for section renderer section, I didn't like the timeline UI/UX the design is off and it's not aligned properly I want something like github commit/branch timeline structure - I should be able to clearly see the timeline, if some process overlaped (like similar to parallel branching and merging) - brainstrom and make something like that
 
-**`[~]` Resolved, with one deliberate limit stated up front.** The timeline was
+**`[x]` Resolved.** The timeline was
 a flat `<ol>` with `border-l-2 border-dotted` — a dotted rule as a separator,
 which is retired v2 grammar — and a shape with no way to say that two things
 happened at once. It is now a lane graph: chronology newest-first, a lane
@@ -167,8 +167,8 @@ their reason, checked in both directions so an allowance cannot outlive it.
 
 10. same UI issue in blog post edit view, take a reference of medium, dev.to and substacks bloging flow system and restructure the Blog components - also when the blog is long the tool bar is not sticking up it scrolls with the editing box
 
-**`[~]` The toolbar is fixed and the writing surface is reworked; the
-publishing flow is unchanged.**
+**`[x]` Resolved.** Toolbar fixed, writing surface reworked, focus mode added,
+title in the document flow. The publishing flow itself is unchanged.
 
 **Why the toolbar scrolled away.** `position: sticky` resolves against the
 nearest scrolling ancestor, and an `overflow-hidden` box counts as one. The
@@ -204,8 +204,13 @@ does via the settings sheet. The persistent-toolbar model is kept here because
 the slash menu and bubble menu already exist alongside it and removing it would
 be a change to how you write, not a fix to what you reported.
 
-**Not done:** a distraction-free mode, and moving the title/slug/word-count
-block into the document flow rather than above it.
+**Both now done.** **Focus mode** hides the admin bar, this page's bar and the
+page ground, leaving the document and one control to get out — Escape works
+too, but a mode with no visible exit is a trap, and the button that entered it
+is the first thing it hides. The **title, slug and word count sit on the same
+surface as the body** rather than floating above it in a separate block; they
+read as the document's first line now, which is what Medium, Substack and Ghost
+all do, because that is what a document is.
 
 11. in updates, it seems like the table/list view is old and other components are new sync the list/table with current new UI/UX
 
@@ -248,7 +253,7 @@ immediately and is built in at the next deploy.
 
 13. in assets section, take a look at google drive functionality, currently the upload section is very small not full screen, also when I drag and drop to the assets the "drop the upload to assets folder" is flickering containuosly, also I should be able to drag and drop move from root to and folder that is visible, similar to Drive - Througly research and brainstrom on it and then implement
 
-**`[~]` Mostly resolved.** Taken as three separate problems.
+**`[x]` Resolved.** Taken as three separate problems.
 
 **The flicker was a state bug, as suspected.** `dragenter` and `dragleave` fire
 per _element_, not per region — crossing from the drop area onto any card

@@ -74,6 +74,15 @@ export interface PortfolioItem {
   link_url?: string | null;
   tags?: string[] | null;
   internal_notes?: string | null;
+  /**
+   * The item this one fed into, if any.
+   *
+   * Concurrency on the timeline is *derived* from overlapping dates, which is
+   * honest. A merge is not derivable — "these ended near each other" is a
+   * different claim from "one became the other" — so it is stated. See
+   * db/migrations/017.
+   */
+  merged_into_id?: string | null;
   display_order?: number;
   created_at?: string;
   updated_at?: string;

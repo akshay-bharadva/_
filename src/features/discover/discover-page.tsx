@@ -101,31 +101,53 @@ export default function DiscoverPage() {
 
   return (
     <div className="space-y-5 pb-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <PageHeader
-          title="Discover"
-          description="What moved in the markets, what the job market is asking for, and what happened while you were not looking."
-        />
+      {/*
+        The header and the lane switch are stacked, not sat side by side.
 
-        <div role="tablist" aria-label="Section" className="flex gap-1">
-          {LANES.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              role="tab"
-              aria-selected={option.id === lane}
-              onClick={() => setLane(option.id)}
-              className={cn(
-                "rounded-control px-3 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
-                option.id === lane
-                  ? "bg-card text-foreground shadow-e2"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        They were siblings in a `flex flex-wrap` row, and `PageHeader` is a
+        plain `div` with no `min-w-0` — so inside a flex parent its default
+        `min-width: auto` let a long description claim the whole basis and
+        squeeze the switch beside it. With two lanes that was survivable; at
+        four it breaks, which is what was reported.
+
+        Stacking also gives the switch the full width it needs. Four labels is
+        more than fits beside a heading on a laptop, let alone a phone.
+      */}
+      <PageHeader
+        title="Discover"
+        description="Markets, the job market, and what happened while you were not looking."
+      />
+
+      {/*
+        A segmented control that scrolls sideways rather than wrapping.
+
+        A wrapped row of tabs changes the header's height as the selection
+        moves, which shifts the whole page under the pointer. Scrolling keeps
+        the control one row at every width — the same reason the editor toolbar
+        stopped wrapping.
+      */}
+      <div
+        role="tablist"
+        aria-label="Section"
+        className="no-scrollbar -mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1"
+      >
+        {LANES.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="tab"
+            aria-selected={option.id === lane}
+            onClick={() => setLane(option.id)}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-control px-3 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+              option.id === lane
+                ? "bg-card text-foreground shadow-e2"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {lane === "money" && (

@@ -48,6 +48,7 @@ import { AssetBreadcrumbs } from "./asset-breadcrumbs";
 import { AssetGrid, AssetTable, FolderGrid } from "./asset-views";
 import { CreateFolderDialog, MoveAssetsDialog } from "./folder-dialogs";
 import { AssetDetailsSheet } from "./asset-details-sheet";
+import { UploadQueue } from "./upload-queue";
 
 /** "3 assets" / "1 asset" — the count appears in several confirm bodies. */
 function pluralAssets(count: number): string {
@@ -98,6 +99,8 @@ export default function AssetsPage() {
 
   const {
     isUploading,
+    uploads,
+    dismissUploads,
     isDragging,
     fileInputRef,
     handleRescanUsage,
@@ -423,6 +426,13 @@ export default function AssetsPage() {
             </p>
           </div>
         )}
+
+        {/*
+          Per-file progress, above the grid rather than as a toast: a toast is
+          gone by the time "which one failed?" is asked, and an upload that
+          takes minutes needs somewhere to live while it does.
+        */}
+        <UploadQueue tasks={uploads} onDismiss={dismissUploads} />
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">

@@ -87,7 +87,7 @@ describe("useAssetOperations", () => {
         mime_type: "image/png",
         size_kb: 6 / 1024,
       });
-      expect(mocks.toast.success).toHaveBeenCalledWith("1 asset(s) uploaded!");
+      expect(mocks.toast.success).toHaveBeenCalledWith("1 asset uploaded.");
     });
 
     it("uploads to the bucket root when no folder is open", async () => {
@@ -126,7 +126,7 @@ describe("useAssetOperations", () => {
       );
 
       expect(mocks.upload).toHaveBeenCalledTimes(2);
-      expect(mocks.toast.success).toHaveBeenCalledWith("2 asset(s) uploaded!");
+      expect(mocks.toast.success).toHaveBeenCalledWith("2 assets uploaded.");
     });
 
     it("rolls the file back out of storage when the DB insert fails", async () => {
@@ -139,13 +139,14 @@ describe("useAssetOperations", () => {
 
       // Without this the bucket keeps an orphan the asset table never knows about.
       expect(mocks.remove).toHaveBeenCalledWith([`${NOW}_photo.png`]);
-      expect(mocks.toast.error).toHaveBeenCalledWith(
-        "An upload failed",
-        expect.objectContaining({
-          description: expect.stringContaining("rls denied"),
-        }),
-      );
+      expect(mocks.toast.error).toHaveBeenCalledWith("Nothing uploaded.");
       expect(mocks.toast.success).not.toHaveBeenCalled();
+      // The reason survives on the row rather than in a toast that has gone by
+      // the time the question "which one broke?" is asked.
+      expect(result.current.uploads[0]).toMatchObject({
+        stage: "failed",
+        error: expect.stringContaining("rls denied"),
+      });
     });
 
     it("does not roll back when the upload itself failed", async () => {
@@ -156,12 +157,50 @@ describe("useAssetOperations", () => {
 
       expect(mocks.addAsset).not.toHaveBeenCalled();
       expect(mocks.remove).not.toHaveBeenCalled();
-      expect(mocks.toast.error).toHaveBeenCalledWith(
-        "An upload failed",
-        expect.objectContaining({
-          description: expect.stringContaining("quota exceeded"),
-        }),
+      expect(mocks.toast.error).toHaveBeenCalledWith("Nothing uploaded.");
+      expect(result.current.uploads[0]).toMatchObject({
+        stage: "failed",
+        error: expect.stringContaining("quota exceeded"),
+      });
+    });
+
+    /**
+     * One bad file used to abandon the batch: `Promise.all` rejects on the
+     * first failure, so files still in flight were never awaited and the toast
+     * said only "an upload failed" — with no way to tell whether the other
+     * four had landed.
+     */
+    it("finishes the batch when one file fails", async () => {
+      mocks.upload
+        .mockResolvedValueOnce({ error: { message: "quota exceeded" } })
+        .mockResolvedValue({ error: null });
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      await act(() =>
+        result.current.handleUpload(fileList(png("a.png"), png("b.png"))),
       );
+
+      expect(mocks.upload).toHaveBeenCalledTimes(2);
+      expect(mocks.addAsset).toHaveBeenCalledTimes(1);
+      expect(mocks.toast.warning).toHaveBeenCalledWith("1 uploaded, 1 failed.");
+    });
+
+    /** Successful rows clear; a failure stays until it is dismissed. */
+    it("keeps only the failures on screen afterwards", async () => {
+      mocks.upload
+        .mockResolvedValueOnce({ error: { message: "quota exceeded" } })
+        .mockResolvedValue({ error: null });
+      const { result } = renderHook(() => useAssetOperations([]));
+
+      await act(() =>
+        result.current.handleUpload(fileList(png("a.png"), png("b.png"))),
+      );
+
+      expect(result.current.uploads).toHaveLength(1);
+      expect(result.current.uploads[0].name).toBe("a.png");
+
+      act(() => result.current.dismissUploads());
+      expect(result.current.uploads).toEqual([]);
     });
 
     it("refuses to upload in static mode", async () => {

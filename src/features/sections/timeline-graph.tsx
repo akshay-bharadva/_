@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { PortfolioItem } from "@/types";
+import { GitMerge } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { buildTimeline, railsForRow, type RailState } from "./timeline-model";
 import { ItemDates, ItemTags, Markdown, PlainText, TextLink } from "./shared";
@@ -14,12 +15,16 @@ import { ItemDates, ItemTags, Markdown, PlainText, TextLink } from "./shared";
  * a shape with no way to show that two things happened at once. Everything sat
  * on one line whether it was consecutive or concurrent.
  *
- * **What it shows now**, and only what the data can support (see
- * `timeline-model.ts`): chronology, a lane opening when two items genuinely
- * overlapped in time, that lane rejoining the trunk when the overlap ends, and
- * an open tip for work with no end date. It does **not** draw a merge in the
- * git sense — that needs a parent pointer the schema does not have, and
- * inferring one from adjacency would invent a relationship nobody stated.
+ * **What it shows now**: chronology, a lane opening when two items genuinely
+ * overlapped in time, an open tip for work with no end date — and, since
+ * migration 017, a **merge** where one is declared.
+ *
+ * The distinction between the two is the whole design. Concurrency is
+ * *derived* from overlapping dates and is safe to infer. A merge is *stated*
+ * via `merged_into_id`, because "these ended near each other" is a different
+ * claim from "one became the other", and a graph that invents relationships is
+ * worse than one that omits them. An item with no declared target simply has
+ * its lane end.
  *
  * **Drawn in CSS, not SVG.** An SVG overlay would have to measure every row,
  * because row heights vary with description length, and then re-measure on
@@ -35,7 +40,16 @@ import { ItemDates, ItemTags, Markdown, PlainText, TextLink } from "./shared";
 
 const LANE_WIDTH = "1.5rem";
 
-function Rail({ rail, isBranch }: { rail: RailState; isBranch: boolean }) {
+function Rail({
+  rail,
+  isBranch,
+  merges,
+}: {
+  rail: RailState;
+  isBranch: boolean;
+  /** Which way this row's node feeds into another lane, if it does. */
+  merges?: "left" | "right" | null;
+}) {
   return (
     <div className="relative w-full" aria-hidden>
       {/* The line entering from above. */}
@@ -61,6 +75,20 @@ function Rail({ rail, isBranch }: { rail: RailState; isBranch: boolean }) {
               : "bottom-1/2 rounded-bl-[0.75rem] border-b border-l",
           )}
           style={{ marginRight: "-1px" }}
+        />
+      )}
+
+      {/*
+        The merge arm: a stub leaving the node toward the lane it fed into.
+        Drawn as a solid line because the relationship was declared, unlike the
+        elbow that merely opens a lane.
+      */}
+      {merges && (
+        <span
+          className={cn(
+            "absolute top-1/2 h-px w-[calc(100%+0.25rem)] bg-primary/60",
+            merges === "left" ? "right-1/2" : "left-1/2",
+          )}
         />
       )}
 
@@ -95,6 +123,8 @@ export function TimelineGraph({ items }: { items: PortfolioItem[] }) {
           graph.laneCount,
         );
 
+        const merge = graph.merges.find((edge) => edge.fromRow === index);
+
         return (
           <li key={row.item.id} className="flex min-w-0 gap-3 sm:gap-4">
             {/*
@@ -119,6 +149,13 @@ export function TimelineGraph({ items }: { items: PortfolioItem[] }) {
                     key={rail.lane}
                     rail={showLanes ? rail : { ...rail, node: true }}
                     isBranch={showLanes && rail.lane > 0}
+                    merges={
+                      showLanes && merge?.fromLane === rail.lane
+                        ? merge.toLane < rail.lane
+                          ? "left"
+                          : "right"
+                        : null
+                    }
                   />
                 ))}
               </div>
@@ -149,6 +186,22 @@ export function TimelineGraph({ items }: { items: PortfolioItem[] }) {
               {showLanes && row.lane > 0 && (
                 <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[0.6875rem] font-medium text-primary sm:hidden">
                   Ran alongside
+                </p>
+              )}
+
+              {/*
+                A merge is said as well as drawn.
+                
+                The elbow in the rail is easy to miss and disappears entirely
+                when the lanes collapse on a phone, and this is the one
+                relationship on the graph that was explicitly declared rather
+                than inferred — it should not be the one thing only visible at
+                one breakpoint.
+              */}
+              {merge && (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground">
+                  <GitMerge className="size-3" aria-hidden />
+                  Fed into {graph.rows[merge.toRow]?.item.title}
                 </p>
               )}
 

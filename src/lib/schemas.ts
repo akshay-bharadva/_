@@ -780,6 +780,14 @@ export const portfolioItemSchema = z.object({
   link_url: boundedOptionalString(LIMITS.URL, "Link URL"),
   tags: tagList,
   internal_notes: boundedOptionalString(LIMITS.SUMMARY, "Internal notes"),
+  /**
+   * The item this one fed into, for the timeline layout.
+   *
+   * Nullable and unvalidated beyond being a string: the database holds the
+   * foreign key and a trigger rejects loops, which is the right place for both
+   * — the client can only prevent the cycles it thinks of.
+   */
+  merged_into_id: z.string().nullable().optional(),
 });
 
 export type PortfolioItemFormValues = z.infer<typeof portfolioItemSchema>;

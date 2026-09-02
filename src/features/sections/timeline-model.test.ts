@@ -138,6 +138,7 @@ describe("buildTimeline", () => {
       rows: [],
       laneCount: 0,
       laneSpans: [],
+      merges: [],
     });
   });
 
@@ -201,5 +202,131 @@ describe("railsForRow", () => {
     const first = railsForRow(0, 0, spans, 2)[0];
     expect(first.opens).toBe(false);
     expect(first.closes).toBe(false);
+  });
+});
+
+describe("merges", () => {
+  const item = (
+    id: string,
+    date_from: string,
+    date_to?: string | null,
+    merged_into_id?: string | null,
+  ) => ({ id, title: id, date_from, date_to, merged_into_id });
+
+  /**
+   * A merge is *stated*, not derived. Concurrency comes from overlapping
+   * dates and is honest; "one became the other" is a different claim, and
+   * inferring it from adjacency would draw a relationship nobody made.
+   */
+  it("draws a declared merge between two rows on screen", () => {
+    const { merges } = buildTimeline(
+      [item("trunk", "2020", "2026"), item("branch", "2021", "2023", "trunk")],
+      NOW,
+    );
+
+    expect(merges).toHaveLength(1);
+    expect(merges[0]).toMatchObject({ fromLane: 1, toLane: 0 });
+  });
+
+  it("draws nothing when no merge is declared", () => {
+    const { merges } = buildTimeline(
+      [item("a", "2020", "2022"), item("b", "2021", "2023")],
+      NOW,
+    );
+    expect(merges).toEqual([]);
+  });
+
+  /**
+   * An item can be filed under a different section from the one it fed into.
+   * A line running off the edge of the graph says less than no line.
+   */
+  it("ignores a target that is not in this section", () => {
+    const { merges } = buildTimeline(
+      [item("branch", "2021", "2023", "somewhere-else")],
+      NOW,
+    );
+    expect(merges).toEqual([]);
+  });
+
+  /**
+   * Rows are ordered by *start* date, so a branch that began later than the
+   * work it fed into sits above it — a side project started in 2021 that
+   * merged into a job running since 2020 is the ordinary case, not an error.
+   * An earlier version of this required the target to be above the branch and
+   * dropped exactly that arrangement.
+   */
+  it("draws a merge in either direction", () => {
+    const { merges } = buildTimeline(
+      [item("older", "2019", "2026"), item("newer", "2021", "2023", "older")],
+      NOW,
+    );
+    expect(merges).toHaveLength(1);
+    // The branch sits above the trunk it fed into.
+    expect(merges[0].fromRow).toBeLessThan(merges[0].toRow);
+  });
+
+  it("ignores an item that claims to merge into itself", () => {
+    const { merges } = buildTimeline(
+      [item("self", "2020", "2022", "self")],
+      NOW,
+    );
+    expect(merges).toEqual([]);
+  });
+});
+
+describe("which lane is the trunk", () => {
+  /**
+   * First-fit over the *displayed* order handed lane 0 to whichever item
+   * started most recently, so a three-month side project could occupy the
+   * spine while a six-year job was pushed out to a branch — the graph then
+   * read as though the side project were the main thread of the career.
+   */
+  it("gives the trunk to the longest-running item", () => {
+    const { rows } = buildTimeline(
+      [
+        { title: "side project", date_from: "2021", date_to: "2021-04" },
+        { title: "the job", date_from: "2020", date_to: "2026" },
+      ],
+      NOW,
+    );
+
+    const job = rows.find((row) => row.item.title === "the job");
+    const side = rows.find((row) => row.item.title === "side project");
+
+    expect(job?.lane).toBe(0);
+    expect(side?.lane).toBe(1);
+  });
+
+  /** Display order is still newest-first; only lane assignment changed. */
+  it("does not reorder the rows", () => {
+    const { rows } = buildTimeline(
+      [
+        { title: "side project", date_from: "2021", date_to: "2021-04" },
+        { title: "the job", date_from: "2020", date_to: "2026" },
+      ],
+      NOW,
+    );
+    expect(rows.map((row) => row.item.title)).toEqual([
+      "side project",
+      "the job",
+    ]);
+  });
+
+  /**
+   * Processing by duration means a lane can be offered a span sitting *before*
+   * what it already holds, so the fit has to check every occupant rather than
+   * only the most recent one.
+   */
+  it("reuses a lane for work that fits around what it already holds", () => {
+    const { laneCount } = buildTimeline(
+      [
+        { title: "long", date_from: "2018", date_to: "2026" },
+        { title: "early short", date_from: "2019", date_to: "2019-06" },
+        { title: "late short", date_from: "2024", date_to: "2024-06" },
+      ],
+      NOW,
+    );
+    // Two shorts that never overlap each other share lane 1.
+    expect(laneCount).toBe(2);
   });
 });

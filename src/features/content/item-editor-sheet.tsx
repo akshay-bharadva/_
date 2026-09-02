@@ -414,6 +414,11 @@ export interface ItemEditorSheetProps {
   item: Partial<PortfolioItem> | null;
   sectionId: string;
   layoutStyle?: string; // the parent section's layout_style
+  /**
+   * The other items in this section, for the timeline's merge picker. Only
+   * the timeline layout draws merges, so only it shows the control.
+   */
+  siblings?: PortfolioItem[];
   onSave: (data: Partial<PortfolioItem>, sectionId: string) => void;
   onClose: () => void;
 }
@@ -422,6 +427,7 @@ export function ItemEditorSheet({
   item,
   sectionId,
   layoutStyle,
+  siblings = [],
   onSave,
   onClose,
 }: ItemEditorSheetProps) {
@@ -437,6 +443,7 @@ export function ItemEditorSheet({
     image_url: item?.image_url ?? "",
     tags: item?.tags?.join(", ") ?? "",
     internal_notes: item?.internal_notes ?? "",
+    merged_into_id: item?.merged_into_id ?? "",
   });
 
   const [notesOpen, setNotesOpen] = useState(!!item?.internal_notes);
@@ -463,6 +470,9 @@ export function ItemEditorSheet({
         .map((t) => t.trim())
         .filter(Boolean),
       internal_notes: formData.internal_notes || null,
+      // Empty string is "nothing selected" in a native select; the column
+      // wants NULL, and an empty string would fail the foreign key.
+      merged_into_id: formData.merged_into_id || null,
     };
 
     const parsed = portfolioItemSchema.safeParse(candidate);
@@ -701,6 +711,55 @@ export function ItemEditorSheet({
                       ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/*
+              ── Fed into ──
+
+              Only the timeline draws merges, so only the timeline offers the
+              control. Showing it on a grid or a card list would be a field
+              that changes nothing a reader can see.
+
+              A merge is the one relationship on that graph that is *stated*
+              rather than derived from dates — which is exactly why it needs a
+              control. Concurrency is inferred and safe to infer; "this became
+              that" is not.
+            */}
+            {layoutStyle === "timeline" && siblings.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="item-merged-into">Fed into</Label>
+                <select
+                  id="item-merged-into"
+                  value={formData.merged_into_id}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      merged_into_id: event.target.value,
+                    }))
+                  }
+                  className="h-9 w-full rounded-control bg-card px-2 text-sm shadow-e1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {/*
+                    A native select, so "nothing" is the empty string rather
+                    than a sentinel — Radix reserves `""` and would throw, but
+                    this is not Radix.
+                  */}
+                  <option value="">Nothing — this stands alone</option>
+                  {siblings
+                    .filter((sibling) => sibling.id !== item?.id)
+                    .map((sibling) => (
+                      <option key={sibling.id} value={sibling.id}>
+                        {sibling.title}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Draws a line on the timeline from this item into that one.
+                  Overlapping dates already show that two things ran at once —
+                  this says one <em>became</em> the other, which no date can
+                  tell you.
+                </p>
               </div>
             )}
 

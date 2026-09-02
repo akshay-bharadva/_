@@ -199,6 +199,76 @@ CREATE TABLE IF NOT EXISTS portfolio_items (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 ALTER TABLE portfolio_items ENABLE ROW LEVEL SECURITY;
+-- A branch that fed into another item. Derived concurrency is honest, but a
+-- *merge* is a relationship between two items and needs saying explicitly —
+-- inferring it from adjacency would draw a claim nobody made. See
+-- db/migrations/017.
+ALTER TABLE portfolio_items
+  ADD COLUMN IF NOT EXISTS merged_into_id UUID
+    REFERENCES portfolio_items(id) ON DELETE SET NULL;
+
+-- ON DELETE SET NULL, not CASCADE: deleting the thing a branch merged into
+-- must not delete the branch. The relationship goes; the history stays.
+
+CREATE INDEX IF NOT EXISTS portfolio_items_merged_into_idx
+  ON portfolio_items(merged_into_id)
+  WHERE merged_into_id IS NOT NULL;
+
+-- ----------------------------------------------------------------------------
+-- A merge chain must not loop
+-- ----------------------------------------------------------------------------
+--
+-- A → B → A is expressible and meaningless, and it would make any renderer
+-- that walks the chain hang. Enforced in the database rather than the client,
+-- the same way task dependencies are: the client can only prevent the cycles
+-- it thinks of, and there is more than one way to write this row.
+--
+-- Not a CHECK constraint — Postgres forbids subqueries in those, which is a
+-- trap this schema has already paid for once.
+CREATE OR REPLACE FUNCTION public.reject_merge_cycle()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  cursor_id UUID := NEW.merged_into_id;
+  hops INT := 0;
+BEGIN
+  IF NEW.merged_into_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.merged_into_id = NEW.id THEN
+    RAISE EXCEPTION 'An item cannot merge into itself';
+  END IF;
+
+  -- Walk to the end of the chain. The hop bound is belt and braces: the walk
+  -- terminates on its own for any acyclic chain, and a cycle already present
+  -- from before this trigger existed would otherwise spin here forever.
+  WHILE cursor_id IS NOT NULL AND hops < 64 LOOP
+    IF cursor_id = NEW.id THEN
+      RAISE EXCEPTION 'That merge would form a loop';
+    END IF;
+
+    SELECT merged_into_id INTO cursor_id
+      FROM portfolio_items WHERE id = cursor_id;
+
+    hops := hops + 1;
+  END LOOP;
+
+  IF hops >= 64 THEN
+    RAISE EXCEPTION 'Merge chain is too deep to verify';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS reject_portfolio_merge_cycle ON portfolio_items;
+CREATE TRIGGER reject_portfolio_merge_cycle
+  BEFORE INSERT OR UPDATE OF merged_into_id ON portfolio_items
+  FOR EACH ROW EXECUTE FUNCTION public.reject_merge_cycle();
+
 DROP POLICY IF EXISTS "Public read items" ON portfolio_items;
 CREATE POLICY "Public read items" ON portfolio_items FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Admin manage items" ON portfolio_items;

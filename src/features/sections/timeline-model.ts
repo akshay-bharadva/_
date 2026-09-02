@@ -116,6 +116,15 @@ export interface TimelineRow<T> {
   span: TimelineSpan | null;
 }
 
+export interface MergeEdge {
+  /** Row index of the branch that ends. */
+  fromRow: number;
+  fromLane: number;
+  /** Row index of the item it fed into. */
+  toRow: number;
+  toLane: number;
+}
+
 export interface LaneSpan {
   lane: number;
   /** Topmost (newest) row index the lane reaches. */
@@ -128,11 +137,60 @@ export interface TimelineGraph<T> {
   rows: TimelineRow<T>[];
   laneCount: number;
   laneSpans: LaneSpan[];
+  /** Declared merges, resolved to the rows that are actually on screen. */
+  merges: MergeEdge[];
 }
 
 export interface DatedFields {
+  id?: string;
   date_from?: string | null;
   date_to?: string | null;
+  merged_into_id?: string | null;
+}
+
+/**
+ * Declared merges, as edges between rows that are both on screen.
+ *
+ * A target outside this section is dropped rather than drawn to nowhere — an
+ * item can be filed under a different section from the one it fed into, and a
+ * line running off the edge of the graph says less than no line.
+ *
+ * Direction is deliberately *not* restricted. Rows are ordered by start date,
+ * so a branch that began later than the work it fed into sits **above** it —
+ * a side project started in 2021 that merged into a job running since 2020 is
+ * the ordinary case, not an error. An earlier draft required the target to be
+ * above the branch and dropped exactly that arrangement; the test caught it.
+ *
+ * Cycles are the database's job (migration 017), not this function's: the
+ * client can only prevent the loops it thinks of.
+ */
+export function resolveMerges<T extends DatedFields>(
+  rows: TimelineRow<T>[],
+): MergeEdge[] {
+  const indexById = new Map<string, number>();
+  rows.forEach((row, index) => {
+    if (row.item.id) indexById.set(row.item.id, index);
+  });
+
+  const edges: MergeEdge[] = [];
+
+  rows.forEach((row, fromRow) => {
+    const target = row.item.merged_into_id;
+    if (!target) return;
+
+    const toRow = indexById.get(target);
+    // Self-merge is meaningless and would draw a line from a node to itself.
+    if (toRow === undefined || toRow === fromRow) return;
+
+    edges.push({
+      fromRow,
+      fromLane: row.lane,
+      toRow,
+      toLane: rows[toRow].lane,
+    });
+  });
+
+  return edges;
 }
 
 function spanOf(item: DatedFields, now: number): TimelineSpan | null {
@@ -189,21 +247,56 @@ export function buildTimeline<T extends DatedFields>(
 
   dated.sort((a, b) => b.span.start - a.span.start || b.span.end - a.span.end);
 
-  const laneOccupants: TimelineSpan[] = [];
-  const rows: TimelineRow<T>[] = [];
+  /**
+   * Lanes are assigned longest-running first, not in display order.
+   *
+   * First-fit over the *displayed* order gave lane 0 — the trunk — to whichever
+   * item started most recently, so a three-month side project could occupy the
+   * spine and push a six-year job out to a branch. The graph then read as
+   * though the side project were the main thread of the career.
+   *
+   * Assigning by duration makes the trunk the thing that actually ran longest,
+   * which is what a reader assumes a spine means, and it is what makes a
+   * declared merge read correctly: a branch feeding into the trunk rather than
+   * the other way round.
+   *
+   * Ties break on the later start, so two equal-length items still order
+   * predictably rather than by whatever the database returned.
+   */
+  const byDuration = [...dated].sort(
+    (a, b) =>
+      b.span.end - b.span.start - (a.span.end - a.span.start) ||
+      b.span.start - a.span.start,
+  );
 
-  for (const entry of dated) {
+  const laneOccupants: { lane: number; spans: TimelineSpan[] }[] = [];
+  const laneByItem = new Map<(typeof dated)[number], number>();
+
+  for (const entry of byDuration) {
+    // The leftmost lane where this overlaps nothing already in it. Checking
+    // every occupant rather than only the last matters here: processing by
+    // duration means a lane can be handed a span that sits *before* what it
+    // already holds.
     let lane = laneOccupants.findIndex(
-      (occupant) => !overlaps(occupant, entry.span),
+      (candidate) =>
+        !candidate.spans.some((occupant) => overlaps(occupant, entry.span)),
     );
+
     if (lane === -1) {
       lane = laneOccupants.length;
-      laneOccupants.push(entry.span);
+      laneOccupants.push({ lane, spans: [entry.span] });
     } else {
-      laneOccupants[lane] = entry.span;
+      laneOccupants[lane].spans.push(entry.span);
     }
-    rows.push({ item: entry.item, lane, span: entry.span });
+
+    laneByItem.set(entry, lane);
   }
+
+  const rows: TimelineRow<T>[] = dated.map((entry) => ({
+    item: entry.item,
+    lane: laneByItem.get(entry) ?? 0,
+    span: entry.span,
+  }));
 
   for (const item of undated) {
     rows.push({ item, lane: 0, span: null });
@@ -225,6 +318,7 @@ export function buildTimeline<T extends DatedFields>(
     rows,
     laneCount: Math.max(laneOccupants.length, rows.length > 0 ? 1 : 0),
     laneSpans: Array.from(spansByLane.values()).sort((a, b) => a.lane - b.lane),
+    merges: resolveMerges(rows),
   };
 }
 

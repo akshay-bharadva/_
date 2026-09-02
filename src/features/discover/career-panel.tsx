@@ -31,6 +31,36 @@ const REGION_FILTERS: { id: Region; label: string }[] = [
   { id: "europe", label: "Europe" },
 ];
 
+/**
+ * One labelled row of chips, scrolling sideways rather than wrapping.
+ *
+ * The two sets were previously one wrapping row separated by a hairline. Two
+ * problems: at a narrow width the divider could wrap onto a line of its own,
+ * and an unlabelled separator does not say what either group *is* — "Contract"
+ * and "Remote" sitting together read as one list of seven unrelated filters.
+ *
+ * Scrolling rather than wrapping also keeps the panel's header a fixed height,
+ * so selecting a filter cannot shift the list underneath the pointer.
+ */
+function FilterRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-11 shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <div className="no-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function FilterToggle({
   label,
   active,
@@ -46,7 +76,7 @@ function FilterToggle({
       aria-pressed={active}
       onClick={onToggle}
       className={cn(
-        "rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
+        "shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors",
         active
           ? "bg-primary text-primary-foreground"
           : "bg-secondary text-muted-foreground hover:text-foreground",
@@ -156,36 +186,40 @@ export function CareerPanel() {
             a structured field — so a posting that matches nothing stays
             visible rather than being guessed into a bucket.
           */}
-          <div className="flex flex-wrap gap-1">
-            {EMPLOYMENT_FILTERS.map((option) => (
-              <FilterToggle
-                key={option.id}
-                label={option.label}
-                active={types.includes(option.id)}
-                onToggle={() =>
-                  setTypes((current) =>
-                    current.includes(option.id)
-                      ? current.filter((entry) => entry !== option.id)
-                      : [...current, option.id],
-                  )
-                }
-              />
-            ))}
-            <span aria-hidden className="mx-1 w-px bg-border" />
-            {REGION_FILTERS.map((option) => (
-              <FilterToggle
-                key={option.id}
-                label={option.label}
-                active={regions.includes(option.id)}
-                onToggle={() =>
-                  setRegions((current) =>
-                    current.includes(option.id)
-                      ? current.filter((entry) => entry !== option.id)
-                      : [...current, option.id],
-                  )
-                }
-              />
-            ))}
+          <div className="space-y-1.5">
+            <FilterRow label="Terms">
+              {EMPLOYMENT_FILTERS.map((option) => (
+                <FilterToggle
+                  key={option.id}
+                  label={option.label}
+                  active={types.includes(option.id)}
+                  onToggle={() =>
+                    setTypes((current) =>
+                      current.includes(option.id)
+                        ? current.filter((entry) => entry !== option.id)
+                        : [...current, option.id],
+                    )
+                  }
+                />
+              ))}
+            </FilterRow>
+
+            <FilterRow label="Where">
+              {REGION_FILTERS.map((option) => (
+                <FilterToggle
+                  key={option.id}
+                  label={option.label}
+                  active={regions.includes(option.id)}
+                  onToggle={() =>
+                    setRegions((current) =>
+                      current.includes(option.id)
+                        ? current.filter((entry) => entry !== option.id)
+                        : [...current, option.id],
+                    )
+                  }
+                />
+              ))}
+            </FilterRow>
           </div>
         </header>
 
