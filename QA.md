@@ -310,8 +310,9 @@ Three changes toward the mail-client feel:
 15. for discover, in money and market it;s only showing BTC & ETH no I don't want that and there is on banner with srock indices are not shown, intead is there any way we can watchlist some stock/MF/ETF we can search it and if we find the result we can watchlist and maintain watchlist; in career tab, the only career is list from germany and other but I'm in NA also I want carrer fulltime/parttime/freelance all aspect of things; for What happened tab, it seems goog to me but I know for sure that you can do much better - take full responsiblility of discover module throught research and analyse world web and reconstruct the mosule.
     Recently I'm more interested in reading aartficle which is most popular. Like I have mostly read substack articlers with more than 30K likes and most reshared. Can we do something like that
 
-**`[~]` Career and "worth reading" are done and live; the watchlist has its
-schema, model and tests but not yet its screen.**
+**`[x]` Resolved.** Career, "worth reading" and the watchlist are all built
+and live. See the two follow-up notes at the end of this file for the watchlist
+screen, the instrument search, and the market-data key.
 
 **Live market data: I tested rather than assumed, and the answer is no.** Every
 other source here is keyless and CORS-open, because a static export has no
