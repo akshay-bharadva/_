@@ -45,6 +45,31 @@ describe("ContactCta", () => {
     expect(surface!.querySelector("#cta-heading")).not.toBeNull();
   });
 
+  it("leads to the contact page", () => {
+    identityQuery.mockReturnValue({ data: { social_links: [] } });
+    const { getByRole } = render(<ContactCta />);
+    expect(getByRole("link", { name: /Get in touch/ })).toHaveAttribute(
+      "href",
+      "/contact",
+    );
+  });
+
+  it("says the owner's availability only when it is set", () => {
+    identityQuery.mockReturnValue({ data: { social_links: [] } });
+    const { queryByText, unmount } = render(<ContactCta />);
+    expect(queryByText("Open to work")).toBeNull();
+    unmount();
+
+    identityQuery.mockReturnValue({
+      data: {
+        social_links: [],
+        profile_data: { status_panel: { availability: "Open to work" } },
+      },
+    });
+    const second = render(<ContactCta />);
+    expect(second.getByText("Open to work")).toBeInTheDocument();
+  });
+
   it("offers the email link only when a visible email exists", () => {
     identityQuery.mockReturnValue({ data: { social_links: [] } });
     const { queryByText, unmount } = render(<ContactCta />);
