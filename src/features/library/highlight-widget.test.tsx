@@ -66,6 +66,16 @@ describe("HighlightWidget", () => {
     expect(screen.getByText("Dune").closest("a")).toBeNull();
   });
 
+  /**
+   * Every public page runs down one left edge; a centred quote under a
+   * left-aligned section title pulls the eye onto a second axis.
+   */
+  it("aligns to the page's left edge rather than centring", () => {
+    const { container } = render(<HighlightWidget />);
+    expect(container.querySelector(".text-center")).toBeNull();
+    expect(container.querySelector(".mx-auto")).toBeNull();
+  });
+
   it("marks the source by what it is", () => {
     result.data = line({ source_kind: "podcast" });
     const { container } = render(<HighlightWidget />);

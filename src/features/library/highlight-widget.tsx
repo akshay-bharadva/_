@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BookMarked,
   BookOpen,
   Bookmark,
   Clapperboard,
@@ -29,11 +30,16 @@ const KIND_ICONS: Record<LibraryKind, LucideIcon> = {
 /**
  * One line from the owner's Library, different on each visit.
  *
- * Set as a feature, not a footnote: a centred card with a soft light, the line
- * large at the middle of it, and the citation beneath as a person and a
- * source. Asking for another crossfades to the next line in place rather than
- * snapping, and the refresh control sits in the corner where it does not
- * compete with the words.
+ * **Aligned like everything around it.** Every public page runs down one left
+ * edge — the page header, each section title, every card. The first version
+ * of this widget centred itself, and a centred block under a left-aligned
+ * heading pulls the eye onto a second axis. It now sits on the same edge and
+ * shares its grammar with the featured testimonial — faded quote mark in the
+ * corner, the line in the heading face at a reading measure, a round mark
+ * beside the citation — so the site's two quotations read as one family.
+ *
+ * The request for another line lives in the card's own closing row, on the
+ * same grid as everything else, and the next line crossfades in place.
  *
  * It reads a database function that returns only lines marked public, and
  * resolves to nothing on any failure — an empty Library, a missing migration
@@ -50,14 +56,16 @@ export function HighlightWidget() {
 
   if (isLoading) {
     return (
-      <div
-        className="mx-auto flex max-w-4xl flex-col items-center gap-4 rounded-surface bg-card px-6 py-14 shadow-e1"
-        aria-busy
-      >
-        <Skeleton className="size-12 rounded-full" />
-        <Skeleton className="h-7 w-full max-w-xl rounded-control" />
-        <Skeleton className="h-7 w-4/5 max-w-lg rounded-control" />
-        <Skeleton className="mt-4 h-5 w-48 rounded-full" />
+      <div className="rounded-surface bg-card p-7 shadow-e1 sm:p-10" aria-busy>
+        <Skeleton className="h-7 w-full max-w-2xl rounded-control" />
+        <Skeleton className="mt-3 h-7 w-3/4 max-w-xl rounded-control" />
+        <div className="mt-8 flex items-center gap-3">
+          <Skeleton className="size-10 rounded-full" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-4 w-32 rounded-control" />
+            <Skeleton className="h-3 w-48 rounded-control" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -65,63 +73,63 @@ export function HighlightWidget() {
   if (!data) return null;
 
   return (
-    <div className="relative isolate mx-auto max-w-4xl overflow-hidden rounded-surface bg-card px-6 pb-12 pt-14 text-center shadow-e2 sm:px-14 sm:pb-16 sm:pt-16">
-      <div
+    <div className="relative overflow-hidden rounded-surface bg-card shadow-e1">
+      <Quote
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64 bg-[radial-gradient(50%_70%_at_50%_0%,hsl(var(--primary)/0.16),transparent)]"
+        className="pointer-events-none absolute right-6 top-6 size-16 text-primary/10 sm:size-24"
       />
 
-      <span
-        aria-hidden
-        className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-e1"
-      >
-        <Quote className="size-5 fill-current" />
-      </span>
+      <div className="p-7 sm:p-10">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={data.id}
+            initial={
+              reduceMotion ? { opacity: 0 } : { opacity: 0, y: 10, filter: "blur(4px)" }
+            }
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={
+              reduceMotion ? { opacity: 0 } : { opacity: 0, y: -10, filter: "blur(4px)" }
+            }
+            transition={{ duration: 0.3, ease: EASE }}
+          >
+            <HighlightQuote highlight={data} />
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={data.id}
-          initial={
-            reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14, filter: "blur(6px)" }
-          }
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={
-            reduceMotion ? { opacity: 0 } : { opacity: 0, y: -14, filter: "blur(6px)" }
-          }
-          transition={{ duration: 0.35, ease: EASE }}
-          className="mt-8"
+      <div className="flex items-center justify-between gap-4 border-t border-border/60 px-7 py-4 sm:px-10">
+        <p className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <BookMarked className="size-3.5" aria-hidden />
+          From my library
+        </p>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+          aria-label="Show another line"
+          className="group inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium text-foreground/80 transition-colors duration-200 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
         >
-          <HighlightQuote highlight={data} align="center" />
-        </motion.div>
-      </AnimatePresence>
-
-      <button
-        type="button"
-        onClick={() => void refetch()}
-        disabled={isFetching}
-        aria-label="Show another line"
-        title="Another line"
-        className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 sm:right-4 sm:top-4"
-      >
-        <RefreshCw
-          className={cn(
-            "size-4",
-            isFetching && "animate-spin motion-reduce:animate-none",
-          )}
-          aria-hidden
-        />
-      </button>
+          <RefreshCw
+            className={cn(
+              "size-3.5 transition-transform duration-500 ease-enter group-hover:rotate-180 motion-reduce:transition-none",
+              isFetching && "animate-spin motion-reduce:animate-none",
+            )}
+            aria-hidden
+          />
+          Another line
+        </button>
+      </div>
     </div>
   );
 }
 
 /**
- * The line and its citation. Split out so the admin can preview exactly what a
- * visitor will see before a highlight is made public.
+ * The line and its citation — left-aligned, like the page it sits on. Split
+ * out so the admin can preview exactly what a visitor will see before a
+ * highlight is made public.
  */
 export function HighlightQuote({
   highlight,
-  align = "start",
   className,
 }: {
   highlight: Pick<
@@ -133,7 +141,6 @@ export function HighlightQuote({
     | "source_creator"
     | "source_url"
   > & { source_kind?: LibraryKind | null };
-  align?: "start" | "center";
   className?: string;
 }) {
   // Attribution wins: it is who said the line — a podcast guest, a character
@@ -143,67 +150,45 @@ export function HighlightQuote({
   // The source link is owner-entered, but it is rendered on a public page, so
   // it goes through the same filter as every other outbound link.
   const href = safeLinkUrl(highlight.source_url);
-  const Icon = KIND_ICONS[highlight.source_kind ?? "other"] ?? Bookmark;
-  const centered = align === "center";
-
-  const source = where && (
-    <>
-      <Icon className="size-3.5 shrink-0" aria-hidden />
-      <cite className="min-w-0 truncate not-italic">{where}</cite>
-      {highlight.location && (
-        <span className="shrink-0 text-muted-foreground">
-          · {highlight.location}
-        </span>
-      )}
-    </>
-  );
-
-  const pill =
-    "inline-flex max-w-full items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground";
+  const kind = highlight.source_kind ?? "other";
+  const Icon = KIND_ICONS[kind] ?? Bookmark;
 
   return (
-    <figure className={cn(centered && "text-center", className)}>
-      <blockquote>
+    <figure className={className}>
+      <blockquote className="relative max-w-3xl pr-10 font-heading text-xl leading-snug text-balance [overflow-wrap:anywhere] sm:pr-16 sm:text-2xl">
         {/* overflow-wrap: a pasted line can be one long unbroken token. */}
-        <p
-          className={cn(
-            "font-heading text-2xl font-semibold leading-snug tracking-tight text-balance [overflow-wrap:anywhere] sm:text-3xl",
-            centered && "mx-auto max-w-3xl",
-          )}
-        >
-          {highlight.text}
-        </p>
+        {highlight.text}
       </blockquote>
 
       {(who || where) && (
-        <figcaption
-          className={cn(
-            "mt-8 flex flex-col gap-3",
-            centered ? "items-center" : "items-start",
-          )}
-        >
-          {who && (
-            <span className="text-sm font-semibold text-foreground">{who}</span>
-          )}
-          {source &&
-            (href ? (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-kind={highlight.source_kind ?? "other"}
-                className={cn(
-                  pill,
-                  "transition-colors duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        <figcaption className="mt-8 flex items-center gap-3">
+          <span
+            aria-hidden
+            data-kind={kind}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
+            <Icon className="size-4" />
+          </span>
+          <div className="min-w-0">
+            {who && <p className="text-sm font-semibold">{who}</p>}
+            {where && (
+              <p className="truncate text-xs text-muted-foreground">
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline-offset-4 transition-colors hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <cite className="not-italic">{where}</cite>
+                  </a>
+                ) : (
+                  <cite className="not-italic">{where}</cite>
                 )}
-              >
-                {source}
-              </a>
-            ) : (
-              <span data-kind={highlight.source_kind ?? "other"} className={pill}>
-                {source}
-              </span>
-            ))}
+                {highlight.location && <> · {highlight.location}</>}
+              </p>
+            )}
+          </div>
         </figcaption>
       )}
     </figure>

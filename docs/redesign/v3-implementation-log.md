@@ -1447,6 +1447,16 @@ dotted `hr` in `globals.css` — a v2 rule the class gate could not see — is
 solid; code blocks and images lost their borders. The motion primitives moved
 to `components/layout`, because a feature may not import another's internals.
 
+**One edge, everywhere.** Every public page runs down a single left edge —
+page header, section titles, cards. The random highlight was first redesigned
+as a centred card and the owner rejected it for exactly that: a centred block
+under a left-aligned section title puts the eye on a second axis. It now
+shares the featured testimonial's grammar (faded corner quote mark, heading
+face at a reading measure, a round mark beside the citation), and a test pins
+it to the left edge. Centring is reserved for standalone full-page moments —
+the 404, maintenance, post-not-found — and for empty states inside their own
+box.
+
 **Not verified by eye.** The browser extension was not connected, and the
 production build collides with the owner's `next dev` on the shared `.next`.
 Tests, typecheck, lint and the design gates pass, and every new test was
