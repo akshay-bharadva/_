@@ -89,6 +89,8 @@ describe("SECURITY DEFINER functions", () => {
     "public.fill_transaction_money":
       "trigger inside a transaction write RLS has already authorised",
     increment_blog_post_view: "public view counter on a published post",
+    "public.get_random_public_highlight":
+      "the public quote widget; returns only rows marked is_public",
     update_asset_usage:
       "maintenance sweep over storage paths; touches no user rows",
   };

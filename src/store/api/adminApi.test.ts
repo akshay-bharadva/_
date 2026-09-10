@@ -113,6 +113,13 @@ const EXPECTED_HOOKS = [
   "useAddLifeUpdateMutation",
   "useUpdateLifeUpdateMutation",
   "useDeleteLifeUpdateMutation",
+  // library
+  "useGetLibrarySourcesQuery",
+  "useSaveLibrarySourceMutation",
+  "useDeleteLibrarySourceMutation",
+  "useGetLibraryHighlightsQuery",
+  "useSaveLibraryHighlightMutation",
+  "useDeleteLibraryHighlightMutation",
 ] as const;
 
 describe("adminApi barrel", () => {

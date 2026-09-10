@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
 import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DynamicPageContent } from "@/features/sections/dynamic-page-content";
 import { FeedEnd } from "./feed-end";
 import { ScrapbookLayout } from "./scrapbook-layout";
 import { TimelineLayout } from "./timeline-layout";
@@ -166,6 +167,13 @@ export function UpdatesPage() {
           <FeedEnd />
         </>
       )}
+
+      {/*
+        CMS sections for /updates, the way Contact, About and Home already
+        have them. Added so the Library's random highlight can be placed here
+        from Content rather than hard-coded — and anything else can be too.
+      */}
+      <DynamicPageContent pagePath="/updates" className="mt-16" />
     </Band>
   );
 }

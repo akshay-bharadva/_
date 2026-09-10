@@ -6,13 +6,16 @@ import {
   MOCK_SECTIONS,
   MOCK_NAV_LINKS,
   MOCK_LIFE_UPDATES,
+  MOCK_HIGHLIGHTS,
 } from "@/lib/fallback-data";
+import { pickRandom } from "@/lib/random-pick";
 import { normalizeSiteContent } from "@/lib/site-identity";
 import type {
   BlogPost,
   GitHubRepo,
   LifeUpdate,
   PortfolioSection,
+  PublicHighlight,
   SiteContent,
 } from "@/types";
 
@@ -358,6 +361,34 @@ export const publicApi = createApi({
       },
       keepUnusedDataFor: 60,
     }),
+
+    /**
+     * One public Library highlight, chosen at random.
+     *
+     * Reaches a database function rather than either table: visitors have no
+     * read policy on the Library, and the function returns only rows the owner
+     * marked public, with only the columns a citation needs.
+     *
+     * Resolves to null on any failure rather than erroring. A quote is
+     * decoration, and it must never be the reason a page shows an error —
+     * including before migration 018 has been run, when the function does not
+     * exist yet.
+     */
+    getRandomHighlight: builder.query<PublicHighlight | null, void>({
+      queryFn: async () => {
+        if (!supabase) return { data: pickRandom(MOCK_HIGHLIGHTS) };
+
+        const { data, error } = await supabase.rpc(
+          "get_random_public_highlight",
+        );
+        if (error) return { data: null };
+
+        const row = Array.isArray(data) ? data[0] : data;
+        return { data: (row as PublicHighlight | undefined) ?? null };
+      },
+      // Not cached between visits: "a different line each time" is the point.
+      keepUnusedDataFor: 0,
+    }),
   }),
 });
 
@@ -372,4 +403,5 @@ export const {
   useGetSectionsByPathQuery,
   useGetGitHubReposQuery,
   useGetLockdownStatusQuery,
+  useGetRandomHighlightQuery,
 } = publicApi;

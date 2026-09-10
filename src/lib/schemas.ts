@@ -1102,3 +1102,83 @@ export const discoverTopicSchema = z.object({
 
 export type DiscoverPlaceFormValues = z.infer<typeof discoverPlaceSchema>;
 export type DiscoverTopicFormValues = z.infer<typeof discoverTopicSchema>;
+
+// ─── Library ──────────────────────────────────────────────────────────────
+
+export const LIBRARY_KINDS = [
+  "book",
+  "article",
+  "video",
+  "podcast",
+  "other",
+] as const;
+
+export const LIBRARY_STATUSES = [
+  "want",
+  "in_progress",
+  "done",
+  "abandoned",
+] as const;
+
+/** Mirrors the CHECK constraints in db/migrations/018. */
+export const LIBRARY_LIMITS = {
+  TITLE: 200,
+  CREATOR: 200,
+  URL: 2_048,
+  NOTES: 2_000,
+  TEXT: 2_000,
+  ATTRIBUTION: 200,
+  LOCATION: 50,
+} as const;
+
+export const librarySourceSchema = z
+  .object({
+    kind: z.enum(LIBRARY_KINDS),
+    title: boundedRequiredString(LIBRARY_LIMITS.TITLE, "Title"),
+    creator: boundedOptionalString(LIBRARY_LIMITS.CREATOR, "Author"),
+    /**
+     * A web link only. It is rendered as a citation link on the public site,
+     * so a `javascript:` value must never get as far as the database.
+     */
+    url: boundedOptionalString(LIBRARY_LIMITS.URL, "Link").refine(
+      (value) => !value || /^https?:\/\/\S+$/i.test(value.trim()),
+      "Use a full link starting with https://",
+    ),
+    status: z.enum(LIBRARY_STATUSES),
+    rating: optionalInt(1, 5, "Rating"),
+    notes: boundedOptionalString(LIBRARY_LIMITS.NOTES, "Notes"),
+    started_on: optionalString,
+    finished_on: optionalString,
+  })
+  .superRefine((value, ctx) => {
+    // Mirrors `library_sources_dates_ordered`, so the form says it rather than
+    // the database refusing it opaquely.
+    if (
+      value.started_on &&
+      value.finished_on &&
+      value.finished_on < value.started_on
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["finished_on"],
+        message: "Finished before it was started",
+      });
+    }
+  });
+
+export type LibrarySourceFormValues = z.infer<typeof librarySourceSchema>;
+
+export const libraryHighlightSchema = z.object({
+  source_id: z.string().nullable().optional(),
+  text: boundedRequiredString(LIBRARY_LIMITS.TEXT, "The line"),
+  attribution: boundedOptionalString(
+    LIBRARY_LIMITS.ATTRIBUTION,
+    "Attribution",
+  ),
+  location: boundedOptionalString(LIBRARY_LIMITS.LOCATION, "Where"),
+  note: boundedOptionalString(LIBRARY_LIMITS.NOTES, "Note"),
+  is_public: z.boolean(),
+  is_favorite: z.boolean(),
+});
+
+export type LibraryHighlightFormValues = z.infer<typeof libraryHighlightSchema>;

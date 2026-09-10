@@ -1,5 +1,6 @@
 import {
   Banknote,
+  BookMarked,
   BookText,
   Box,
   BrainCircuit,
@@ -59,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { name: "Tasks", href: "/admin/tasks", icon: ListTodo },
       { name: "Habits", href: "/admin/habits", icon: CheckSquare },
       { name: "Learning", href: "/admin/learning", icon: BrainCircuit },
+      { name: "Library", href: "/admin/library", icon: BookMarked },
       { name: "Calendar", href: "/admin/calendar", icon: Calendar },
       { name: "Notes", href: "/admin/notes", icon: StickyNote },
       { name: "Whiteboard", href: "/admin/whiteboard", icon: Presentation },

@@ -97,6 +97,13 @@ export const LAYOUT_OPTIONS = [
     group: "Basic",
     description: "Auto-fetched GitHub repository cards",
   },
+  {
+    value: "highlight",
+    label: "Random highlight",
+    icon: Quote,
+    group: "Basic",
+    description: "One of your public Library lines, different on each visit",
+  },
   // ── must-haves ──
   {
     value: "case-study",
@@ -328,6 +335,14 @@ export function LayoutPreview({ layout }: { layout: string }) {
               </div>
             </div>
           ))}
+        </div>
+      );
+    case "highlight":
+      return (
+        <div className="space-y-1.5 px-1">
+          <div className={`${bar} w-full`} />
+          <div className={`${bar} w-4/5`} />
+          <div className={`${sbar} mt-2 w-1/3`} />
         </div>
       );
     case "github-grid":

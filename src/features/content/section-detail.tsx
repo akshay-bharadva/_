@@ -95,6 +95,8 @@ const FIELD_HINTS: Record<string, string> = {
   "feature-alternating": "Subtitle doubles as the eyebrow above the title.",
   "github-grid":
     "This layout fetches repositories from GitHub. Items here are ignored.",
+  highlight:
+    "Shows one of your public Library highlights, chosen at random on each visit. Mark lines public in Library; items here are ignored.",
 };
 
 function SaveIndicator({ state }: { state: SaveState }) {

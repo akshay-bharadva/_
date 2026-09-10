@@ -1285,6 +1285,54 @@ licence notice rather than a job, and its locations arrive as "York, " and
 | `014-goal-contributions.sql`         | `finance_goal_contributions`, and `record_goal_contribution` — atomic, AAL2-checked |
 | `015-learning-material-kinds.sql`    | `kind` / `prompt` / `answer` / `choices` on learning topics                         |
 | `016-discover-watchlist.sql`         | `discover_watchlist`, and a market-data key on `integration_settings`               |
+| `017-portfolio-item-merges.sql`      | `merged_into` on portfolio items, for real timeline merges                          |
+| `018-library.sql`                    | `library_sources`, `library_highlights`, and `get_random_public_highlight()`        |
+
+## Library (new)
+
+**What it is.** One module under Life for the reading list and the lines kept
+from it. A _source_ is a book, article, video or podcast with a status (want,
+in progress, done, set aside), dates and a rating; a _highlight_ is a line,
+optionally from a source, with who said it, where (a page or a timestamp), a
+private note, and two flags — favourite, and public.
+
+**The public boundary is one function.** Visitors have no policy on either
+table. `get_random_public_highlight()` is `SECURITY DEFINER`, returns one row
+marked `is_public`, and returns only the columns a citation needs — never the
+note. It is allowlisted in `db-security.test.ts` with that reason. Everything
+is private by default; making a line public is a deliberate toggle, and the
+form previews it using the visitor's own component.
+
+**Placement is a CMS layout, not a hard-coded slot.** `highlight` is a
+self-sourcing layout beside `github-grid`, so the owner puts it on Contact,
+Updates or any page from Content. Updates gained `DynamicPageContent` for this —
+it was the one content page without a CMS slot. The widget resolves to nothing
+on any failure (empty library, network, migration not yet run): a quote is
+decoration, and must never be why someone else's page shows an error.
+
+**Playing here, where the provider allows it.** YouTube (the nocookie player),
+Vimeo, Spotify and Apple Podcasts embed; articles open on the original site,
+because most sites refuse framing and a reader view needs a server this export
+does not have. The iframe `src` is **built from a parsed ID against an exact
+host allowlist, never copied from the pasted link** — `youtube.com.evil.example`
+contains "youtube.com", and a `javascript:` URL parses. A highlight whose
+location is a timestamp gets "Play from 12:34", which reloads the player there.
+A bare number is deliberately not read as seconds: "42" is a page far more
+often than a second.
+
+**Decisions worth reusing.**
+
+- A status reads in the verb its kind takes — "Want to read", "Watching",
+  "Listened" — because the list holds all four kinds.
+- Moving a status stamps the date it implies (started, finished) without
+  overwriting one already recorded, and skips a finish date that would precede
+  the start, since the CHECK would refuse it.
+- Deleting a source keeps its highlights (`ON DELETE SET NULL`), and the
+  confirm says how many will lose their source before it happens.
+- Attribution beats the creator in a citation: a podcast guest said the line,
+  the host did not.
+- The zero-config site shows three correctly attributed lines from
+  `MOCK_HIGHLIGHTS`, picked with the injectable `pickRandom`.
 
 ## Follow-up
 
@@ -1323,6 +1371,9 @@ leaving it stale a second time would be that mistake made knowingly.
 - Learning's certification layer — timed mock exams, per-exam progress, an
   importable question bank — sits on top of the loop this pass built and is not
   built.
-- Assets: per-file upload progress, keyboard-accessible moving, dragging onto a
-  breadcrumb.
-- **Migrations 012 through 016 are unapplied.**
+- Assets: keyboard-accessible moving, dragging onto a breadcrumb. (Per-file
+  upload progress shipped.)
+- Library: no public bookshelf — only the random highlight is public, by
+  choice. A shelf page would be a second public function, not a table policy.
+- **Migration 018 is unapplied.** Until it is, the Library admin errors on load
+  and the public widget shows nothing.

@@ -74,7 +74,11 @@ export const SECTION_LAYOUTS: Record<string, LayoutComponent> = {
 };
 
 /** Layouts that render their own data source and ignore `portfolio_items`. */
-export const SELF_SOURCING_LAYOUTS = new Set(["github-grid"]);
+/**
+ * Layouts that render their own data source and ignore `portfolio_items`.
+ * `highlight` reads one public Library line, chosen at random per visit.
+ */
+export const SELF_SOURCING_LAYOUTS = new Set(["github-grid", "highlight"]);
 
 export function isKnownLayout(layout?: string | null): boolean {
   if (!layout) return false;

@@ -44,6 +44,7 @@ export const adminApi = createApi({
     "FinanceBudgets",
     "FinanceScenarios",
     "FxRates",
+    "Library",
   ],
   endpoints: () => ({}),
 });

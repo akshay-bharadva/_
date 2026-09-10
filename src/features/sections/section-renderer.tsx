@@ -11,6 +11,7 @@ import {
   SELF_SOURCING_LAYOUTS,
 } from "./section-layouts";
 import { RepoGrid } from "@/features/github/repo-grid";
+import { HighlightWidget } from "@/features/library/highlight-widget";
 
 /** Stable, URL-safe anchor so any section can be deep-linked. */
 function sectionAnchor(section: PortfolioSection) {
@@ -44,7 +45,11 @@ function SectionBody({ section }: { section: PortfolioSection }) {
 
   // Layouts that fetch their own data ignore portfolio_items entirely.
   if (section.layout_style && SELF_SOURCING_LAYOUTS.has(section.layout_style)) {
-    return <RepoGrid />;
+    return section.layout_style === "highlight" ? (
+      <HighlightWidget />
+    ) : (
+      <RepoGrid />
+    );
   }
 
   const items = sortedItems(section.portfolio_items);

@@ -961,3 +961,64 @@ export interface DiscoverTopic {
   sort_order: number;
   created_at?: string;
 }
+
+// =============================================================================
+// Library
+// =============================================================================
+
+export type LibraryKind = "book" | "article" | "video" | "podcast" | "other";
+
+/** `abandoned` is a real ending, not a failure to finish recording one. */
+export type LibraryStatus = "want" | "in_progress" | "done" | "abandoned";
+
+/** A book, article, video or podcast. Its status is the reading list. */
+export interface LibrarySource {
+  id: string;
+  user_id?: string;
+  kind: LibraryKind;
+  title: string;
+  /** Author, channel or host. */
+  creator?: string | null;
+  url?: string | null;
+  status: LibraryStatus;
+  rating?: number | null;
+  notes?: string | null;
+  started_on?: string | null;
+  finished_on?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** A line worth keeping, usually from a source. Private until marked public. */
+export interface LibraryHighlight {
+  id: string;
+  user_id?: string;
+  /** Null when the source was deleted, or the line never had a record. */
+  source_id?: string | null;
+  text: string;
+  /** For a line with no source record. */
+  attribution?: string | null;
+  /** "p. 42", "ch. 3", "12:34" — free text, since none of them is a number. */
+  location?: string | null;
+  note?: string | null;
+  is_public: boolean;
+  is_favorite: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * What a visitor receives: one public highlight and only the columns a
+ * citation needs. Ratings, notes and statuses never reach this shape — the
+ * database function behind it does not select them.
+ */
+export interface PublicHighlight {
+  id: string;
+  text: string;
+  attribution: string | null;
+  location: string | null;
+  source_title: string | null;
+  source_creator: string | null;
+  source_kind: LibraryKind | null;
+  source_url: string | null;
+}

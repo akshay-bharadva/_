@@ -5,6 +5,7 @@ import type {
   PortfolioSection,
   BlogPost,
   LifeUpdate,
+  PublicHighlight,
 } from "@/types";
 import config from "../../portfolio.config";
 
@@ -260,5 +261,44 @@ export const MOCK_SECTIONS: PortfolioSection[] = [
         tags: s.tags,
       })),
     ),
+  },
+];
+
+// --- LIBRARY: the random highlight, with no database ---
+//
+// Written here rather than in portfolio.config.ts: it is sample content for the
+// zero-config demo, not something a visitor of a configured site would ever
+// see. Every line is quoted from its original source, with that source named —
+// a quote widget that misattributes is worse than none.
+export const MOCK_HIGHLIGHTS: PublicHighlight[] = [
+  {
+    id: "mock-highlight-1",
+    text: "The purpose of abstraction is not to be vague, but to create a new semantic level in which one can be absolutely precise.",
+    attribution: null,
+    location: null,
+    source_title: "The Humble Programmer",
+    source_creator: "Edsger W. Dijkstra",
+    source_kind: "article",
+    source_url: null,
+  },
+  {
+    id: "mock-highlight-2",
+    text: "Programs must be written for people to read, and only incidentally for machines to execute.",
+    attribution: null,
+    location: "Preface",
+    source_title: "Structure and Interpretation of Computer Programs",
+    source_creator: "Harold Abelson and Gerald Jay Sussman",
+    source_kind: "book",
+    source_url: null,
+  },
+  {
+    id: "mock-highlight-3",
+    text: "Premature optimization is the root of all evil (or at least most of it) in programming.",
+    attribution: null,
+    location: null,
+    source_title: "Structured Programming with go to Statements",
+    source_creator: "Donald E. Knuth",
+    source_kind: "article",
+    source_url: null,
   },
 ];
