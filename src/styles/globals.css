@@ -196,7 +196,7 @@
 
   .markdown pre,
   .prose pre {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto border;
+    @apply bg-muted p-4 rounded-surface overflow-x-auto;
   }
 
   .markdown pre code,
@@ -221,13 +221,14 @@
 
   .markdown hr,
   .prose hr {
+    /* Solid. A dotted rule is the retired v2 separator. */
     border: none;
-    border-top: 2px dotted hsl(var(--border));
+    border-top: 1px solid hsl(var(--border));
   }
 
   .markdown img,
   .prose img {
-    @apply rounded-lg border;
+    @apply rounded-surface;
   }
 
   .markdown table,

@@ -5,7 +5,7 @@ import type { PortfolioItem } from "@/types";
 import { distributeColumns, useColumnCount } from "@/hooks/use-column-count";
 import { cn } from "@/lib/cn";
 import { Timeline } from "./timeline";
-import { CountUp, Reveal, Stagger, StaggerItem } from "./motion";
+import { CountUp, Reveal, Stagger, StaggerItem } from "@/components/layout/motion";
 import {
   CARD,
   CARD_INTERACTIVE,

@@ -69,4 +69,30 @@ describe("NotFoundView", () => {
 
     expect(screen.getByText(/never shipped/i)).toBeInTheDocument();
   });
+
+  /** A way forward, not only a way back: the site's own pages, minus home. */
+  it("suggests the site's pages from the navigation", () => {
+    setPath("/nope/");
+    navQuery.mockReturnValue({
+      data: [
+        { label: "Home", href: "/" },
+        { label: "Blog", href: "/blog" },
+        { label: "About", href: "/about" },
+      ],
+      isLoading: false,
+    });
+
+    render(<NotFoundView />);
+
+    const suggestions = screen.getByRole("navigation", {
+      name: "Suggested pages",
+    });
+    expect(suggestions).toHaveTextContent("Blog");
+    expect(suggestions).toHaveTextContent("About");
+    expect(suggestions).not.toHaveTextContent("Home");
+    expect(screen.getByRole("link", { name: /Back home/ })).toHaveAttribute(
+      "href",
+      "/",
+    );
+  });
 });

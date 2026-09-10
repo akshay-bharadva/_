@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useGetNavLinksQuery } from "@/store/api/publicApi";
 import { Band } from "@/components/layout/band";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Reveal } from "@/components/layout/motion";
 import { CmsPage } from "./cms-page";
 import { resolveCmsPage } from "./cms-fallback";
 
@@ -49,27 +52,72 @@ export function NotFoundView() {
     return <CmsPage pagePath={cmsPage.pagePath} title={cmsPage.title} />;
   }
 
-  return <GenuineNotFound />;
+  return <GenuineNotFound links={links ?? []} />;
 }
 
-function GenuineNotFound() {
+/**
+ * A 404 that offers a way forward rather than only a way back.
+ *
+ * The site's own pages are listed, from the navigation this view has already
+ * loaded to decide whether the path was a CMS page — so a mistyped URL is one
+ * tap from wherever the visitor was probably going.
+ */
+function GenuineNotFound({ links }: { links: { label: string; href: string }[] }) {
+  const pages = links.filter((link) => link.href !== "/").slice(0, 6);
+
   return (
-    <Band weight="content">
-      <div className="flex flex-col items-center py-16 text-center">
-        <p className="t-eyebrow text-destructive">Error 404</p>
-        <h1 className="mt-4 font-heading text-7xl font-bold tracking-tight sm:text-8xl">
-          404<span className="text-primary">.</span>
-        </h1>
-        <p className="mt-4 max-w-sm text-pretty leading-relaxed text-muted-foreground">
-          This page doesn&apos;t exist — it may have been moved, renamed, or
-          never shipped.
-        </p>
-        <Link
-          href="/"
-          className="mt-8 inline-flex items-center gap-2 rounded-control bg-card px-5 py-3 text-sm font-medium shadow-e1 transition-[box-shadow,transform] duration-200 ease-enter hover:-translate-y-0.5 hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:hover:translate-y-0"
-        >
-          ← Back to home
-        </Link>
+    <Band weight="feature">
+      <div className="relative mx-auto flex max-w-2xl flex-col items-center text-center">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-72 w-[36rem] max-w-[100vw] -translate-x-1/2 bg-[radial-gradient(closest-side,hsl(var(--primary)/0.16),transparent)]"
+        />
+        <Reveal>
+          <p className="t-eyebrow">Page not found</p>
+        </Reveal>
+        <Reveal delay={0.05}>
+          <h1 className="mt-4 font-heading text-[clamp(5rem,4rem+8vw,10rem)] font-bold leading-none tracking-tighter">
+            4<span className="text-primary">0</span>4
+          </h1>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <p className="t-lead mt-6 max-w-md text-pretty">
+            This page doesn&apos;t exist — it may have been moved, renamed, or
+            never shipped.
+          </p>
+        </Reveal>
+        <Reveal delay={0.15} className="mt-10">
+          <Button asChild size="lg" className="rounded-full px-7">
+            <Link href="/">
+              <ArrowLeft className="mr-2 size-4" aria-hidden />
+              Back home
+            </Link>
+          </Button>
+        </Reveal>
+
+        {pages.length > 0 && (
+          <Reveal delay={0.2} className="mt-14 w-full">
+            <nav aria-label="Suggested pages">
+              <p className="t-micro">Or try one of these</p>
+              <ul className="mt-4 flex flex-wrap justify-center gap-2">
+                {pages.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="group inline-flex items-center gap-1.5 rounded-full bg-card px-4 py-2 text-sm font-medium shadow-e1 transition-[box-shadow,color] duration-200 ease-enter hover:text-primary hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      {link.label}
+                      <ArrowRight
+                        aria-hidden
+                        className="size-3.5 text-muted-foreground transition-transform duration-200 ease-enter group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </Reveal>
+        )}
       </div>
     </Band>
   );

@@ -5,7 +5,7 @@ import { ArrowUpRight, Check, Quote } from "lucide-react";
 import type { PortfolioItem } from "@/types";
 import { safeImageUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/cn";
-import { CountUp, Reveal, Stagger, StaggerItem } from "./motion";
+import { CountUp, Reveal, Stagger, StaggerItem } from "@/components/layout/motion";
 import { timelineDuration } from "./timeline-model";
 import { useNow } from "./use-now";
 import {

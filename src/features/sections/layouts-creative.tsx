@@ -14,7 +14,7 @@ import {
 import type { PortfolioItem } from "@/types";
 import { safeImageUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/cn";
-import { Reveal, Stagger, StaggerItem } from "./motion";
+import { Reveal, Stagger, StaggerItem } from "@/components/layout/motion";
 import {
   CARD,
   CARD_INTERACTIVE,
