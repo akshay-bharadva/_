@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SITE_IDENTITY_DEFAULTS } from "@/lib/site-identity-defaults";
 import type { SiteContent } from "@/types";
-import { FooterView } from "./public-footer";
+import { FooterView, wordmarkSize } from "./public-footer";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -56,6 +56,33 @@ describe("FooterView", () => {
     render(<FooterView identity={identity()} />);
     fireEvent.click(screen.getByRole("button", { name: /Back to top/ }));
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+  });
+
+  /** The sign-off is decoration: hidden from assistive technology. */
+  it("signs off with the logo as a large wordmark", () => {
+    const base = identity();
+    const { container } = render(
+      <FooterView
+        identity={
+          {
+            ...base,
+            profile_data: {
+              ...base.profile_data,
+              logo: { main: "ada", highlight: ".dev" },
+            },
+          } as SiteContent
+        }
+      />,
+    );
+    const mark = container.querySelector("[data-wordmark]");
+    expect(mark).toHaveTextContent("ada.dev");
+    expect(mark).toHaveAttribute("aria-hidden", "true");
+  });
+
+  /** A long name must shrink to the band rather than be cropped. */
+  it("sizes the wordmark by its length", () => {
+    expect(wordmarkSize("ada")).toBe("min(11rem, 23.33vw)");
+    expect(wordmarkSize("a".repeat(20))).toBe("min(11rem, 7.00vw)");
   });
 
   /** The five-tap admin shortcut is behaviour, not decoration — it stays. */

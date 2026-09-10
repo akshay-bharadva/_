@@ -66,6 +66,12 @@ describe("HighlightWidget", () => {
     expect(screen.getByText("Dune").closest("a")).toBeNull();
   });
 
+  it("marks the source by what it is", () => {
+    result.data = line({ source_kind: "podcast" });
+    const { container } = render(<HighlightWidget />);
+    expect(container.querySelector('[data-kind="podcast"]')).not.toBeNull();
+  });
+
   it("offers another line", () => {
     render(<HighlightWidget />);
     fireEvent.click(screen.getByRole("button", { name: "Show another line" }));

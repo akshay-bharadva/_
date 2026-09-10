@@ -15,11 +15,12 @@ import {
   useGetSiteIdentityQuery,
 } from "@/store/api/publicApi";
 import { Band } from "@/components/layout/band";
+import { Reveal } from "@/components/layout/motion";
 import { isInternalUrl, safeLinkUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/cn";
 
 const FOCUS =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 /**
  * Footer.
@@ -46,14 +47,12 @@ export default function PublicFooter() {
 
   if (isLoading || !identity) {
     return (
-      <Band as="footer" weight="content">
-        <div className="rounded-surface bg-card p-8 shadow-e1 sm:p-10">
-          <div className="grid gap-8 md:grid-cols-3">
-            <Skeleton className="h-16 w-48" />
-            <Skeleton className="h-20 w-32" />
-            <Skeleton className="h-10 w-40" />
-          </div>
+      <Band as="footer" weight="content" className="border-t border-border/60 !pt-16">
+        <div className="flex flex-col gap-8 md:flex-row md:justify-between">
+          <Skeleton className="h-12 w-48" />
+          <Skeleton className="h-16 w-64" />
         </div>
+        <Skeleton className="mt-16 h-24 w-full rounded-control" />
       </Band>
     );
   }
@@ -68,19 +67,33 @@ export default function PublicFooter() {
 }
 
 /**
+ * The size of the closing wordmark, from its length.
+ *
+ * The name is set to run nearly the full width of the band whatever its
+ * length — a short one would otherwise float small in the middle and a long
+ * one would be cropped. A glyph is roughly 0.6em wide in a bold display face,
+ * so `140 / length` vw lands it close to the band's measure; the ceiling
+ * keeps a very short name from turning into a poster.
+ */
+export function wordmarkSize(text: string): string {
+  const length = Math.max(text.length, 6);
+  return `min(11rem, ${(140 / length).toFixed(2)}vw)`;
+}
+
+/**
  * The footer over identity passed in rather than fetched.
  *
  * The same view/container split as `HeroView`, `AboutView` and `ContactView`:
  * the settings preview renders the *real* footer against unsaved form values.
  * `links` is optional for the same reason — the preview has no navigation to
- * pass, and the footer composes from what it is given rather than reserving a
- * column for it. The five-tap shortcut is a prop so the preview never wires a
- * gesture that would navigate away from unsaved settings.
+ * pass, and the footer composes from what it is given. The five-tap shortcut
+ * is a prop so the preview never wires a gesture that would navigate away
+ * from unsaved settings.
  *
- * Composition: a floating panel that answers the floating header pill, so the
- * page opens and closes on the same object. Identity on the left, the site's
- * pages and the owner's channels to the right, and one quiet row beneath for
- * the copyright and a way back up.
+ * Composition: an open sign-off on the page ground rather than a boxed panel.
+ * A fine rule, then who and where — identity on the left, the site's pages and
+ * the owner's channels on the right — then the name set very large across the
+ * band, fading into the page, as a signature. One quiet row closes it.
  */
 export function FooterView({
   identity,
@@ -95,6 +108,9 @@ export function FooterView({
   const currentYear = new Date().getFullYear();
   const { profile_data, social_links, footer_data } = identity;
 
+  const logo = profile_data.logo;
+  const wordmark =
+    `${logo?.main ?? ""}${logo?.highlight ?? ""}`.trim() || profile_data.name;
   const role = profile_data.title?.split("|")[0]?.trim();
   const availability = profile_data.status_panel?.availability?.trim();
   const pages = (links ?? []).filter((link) => safeLinkUrl(link.href));
@@ -106,63 +122,62 @@ export function FooterView({
     );
 
   return (
-    <Band as="footer" weight="content">
-      <div className="rounded-surface bg-card p-8 shadow-e1 sm:p-10">
-        <div
-          className={cn(
-            "grid gap-10",
-            pages.length > 0 && socials.length > 0
-              ? "md:grid-cols-[1.5fr_1fr_1fr]"
-              : pages.length > 0 || socials.length > 0
-                ? "md:grid-cols-[2fr_1fr]"
-                : undefined,
-          )}
-        >
-          <div className="min-w-0 space-y-3">
-            <p className="font-heading text-xl font-bold tracking-tight">
-              <span className="text-foreground">{profile_data.logo?.main}</span>
-              <span className="text-primary">
-                {profile_data.logo?.highlight}
-              </span>
+    <Band
+      as="footer"
+      weight="content"
+      // Footer follows a same-ground band, whose shared padding collapses; the
+      // rule needs its own room above the content.
+      className="relative overflow-hidden border-t border-border/60 !pb-0 !pt-16"
+    >
+      <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0 max-w-sm space-y-3">
+          <p className="font-heading text-lg font-bold tracking-tight">
+            <span className="text-foreground">{logo?.main}</span>
+            <span className="text-primary">{logo?.highlight}</span>
+          </p>
+          {role && (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {role}
             </p>
-            {role && (
-              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-                {role}
-              </p>
-            )}
-            {availability && (
-              <p className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <span aria-hidden className="size-1.5 rounded-full bg-primary" />
-                {availability}
-              </p>
-            )}
-          </div>
-
-          {pages.length > 0 && (
-            <nav aria-label="Footer" className="min-w-0">
-              <p className="t-micro">Explore</p>
-              <ul className="mt-4 space-y-2.5">
-                {pages.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className={cn(
-                        "rounded-control text-sm text-foreground/80 transition-colors duration-200 hover:text-primary",
-                        FOCUS,
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
           )}
+          {availability && (
+            <p className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
+              <span aria-hidden className="relative flex size-2">
+                <span className="absolute inset-0 animate-ping rounded-full bg-chart-2/60 motion-reduce:hidden" />
+                <span className="relative size-2 rounded-full bg-chart-2" />
+              </span>
+              {availability}
+            </p>
+          )}
+        </div>
 
-          {socials.length > 0 && (
-            <div className="min-w-0">
-              <p className="t-micro">Elsewhere</p>
-              <ul className="mt-4 flex flex-wrap gap-2">
+        {(pages.length > 0 || socials.length > 0) && (
+          <div className="flex flex-col gap-10 sm:flex-row sm:gap-20">
+            {pages.length > 0 && (
+              <nav aria-label="Footer">
+                <ul className="grid grid-cols-2 gap-x-12 gap-y-3">
+                  {pages.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className={cn(
+                          // An underline that draws itself from the left.
+                          "bg-gradient-to-r from-primary to-primary bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-0.5 text-sm text-foreground/80",
+                          "transition-[background-size,color] duration-300 ease-enter hover:bg-[length:100%_1px] hover:text-foreground motion-reduce:transition-none",
+                          "rounded-sm",
+                          FOCUS,
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
+
+            {socials.length > 0 && (
+              <ul className="-ml-2 flex flex-wrap gap-1 sm:ml-0">
                 {socials.map((social) => {
                   const Icon = socialIcon(social.id);
                   const external = !isInternalUrl(social.href);
@@ -176,54 +191,67 @@ export function FooterView({
                         aria-label={social.label}
                         title={social.label}
                         className={cn(
-                          "flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground",
-                          "transition-[background-color,color,transform] duration-200 ease-enter hover:-translate-y-0.5 hover:bg-primary hover:text-primary-foreground motion-reduce:hover:translate-y-0",
+                          "flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:bg-secondary hover:text-foreground",
                           FOCUS,
                         )}
                       >
-                        <Icon className="size-4" aria-hidden />
+                        <Icon className="size-[1.125rem]" aria-hidden />
                       </a>
                     </li>
                   );
                 })}
               </ul>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-10 flex flex-col gap-4 border-t border-border/60 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 space-y-1 text-sm text-muted-foreground">
-            <p>
-              <span onClick={onSecretTap} className="cursor-default select-none">
-                &copy; {currentYear}
-              </span>{" "}
-              <span className="font-medium text-foreground">
-                {profile_data.name}
-              </span>
-            </p>
-            {footer_data.copyright_text && (
-              <Markdown className="max-w-none text-sm text-muted-foreground [&_a]:text-primary [&_a]:no-underline [&_a]:underline-offset-4 [&_a:hover]:underline [&_p]:m-0">
-                {footer_data.copyright_text}
-              </Markdown>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })
-            }
-            className={cn(
-              "group inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors duration-200 hover:bg-secondary/70 sm:self-auto",
-              FOCUS,
-            )}
-          >
+        )}
+      </div>
+
+      {/* The sign-off: the name across the band, fading into the ground. */}
+      <Reveal className="mt-16 sm:mt-20">
+        <p
+          aria-hidden
+          data-wordmark
+          className="pointer-events-none select-none whitespace-nowrap bg-gradient-to-b from-foreground/[0.14] via-foreground/[0.07] to-transparent bg-clip-text pb-2 font-heading font-bold leading-[0.85] tracking-tighter text-transparent"
+          style={{ fontSize: wordmarkSize(wordmark) }}
+        >
+          {wordmark}
+        </p>
+      </Reveal>
+
+      <div className="flex flex-col gap-4 border-t border-border/60 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <p>
+            <span onClick={onSecretTap} className="cursor-default select-none">
+              &copy; {currentYear}
+            </span>{" "}
+            <span className="font-medium text-foreground">
+              {profile_data.name}
+            </span>
+          </p>
+          {footer_data.copyright_text && (
+            <Markdown className="max-w-none text-sm text-muted-foreground [&_a]:text-primary [&_a]:no-underline [&_a]:underline-offset-4 [&_a:hover]:underline [&_p]:m-0">
+              {footer_data.copyright_text}
+            </Markdown>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })
+          }
+          className={cn(
+            "group inline-flex shrink-0 items-center gap-2 self-start rounded-full py-1 font-medium text-foreground/80 transition-colors duration-200 hover:text-foreground sm:self-auto",
+            FOCUS,
+          )}
+        >
+          Back to top
+          <span className="flex size-8 items-center justify-center rounded-full bg-secondary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground">
             <ArrowUp
               className="size-4 transition-transform duration-200 ease-enter group-hover:-translate-y-0.5 motion-reduce:transition-none"
               aria-hidden
             />
-            Back to top
-          </button>
-        </div>
+          </span>
+        </button>
       </div>
     </Band>
   );
