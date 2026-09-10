@@ -1,18 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import type { SiteContent } from "@/types";
 import { Markdown } from "@/components/ui/markdown";
+import { Button } from "@/components/ui/button";
 import { socialIcon } from "@/lib/social-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Band } from "@/components/layout/band";
-import { safeLinkUrl } from "@/lib/safe-url";
+import { EASE } from "@/components/layout/motion";
+import { isInternalUrl, safeLinkUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/cn";
 import { StatusPanel } from "./status-panel";
 
 const ROTATE_MS = 3200;
+
+/**
+ * The name, rising word by word out of a mask.
+ *
+ * Each word travels up from behind its own clipped line, which is what makes
+ * it read as type being set rather than as a block fading in. The words stay
+ * real text separated by real spaces, so the heading's accessible name is the
+ * name — not a list of fragments.
+ */
+function AnimatedName({ name }: { name: string }) {
+  const reduceMotion = useReducedMotion();
+  const words = name.split(/\s+/).filter(Boolean);
+  if (reduceMotion) return <>{name}</>;
+
+  return (
+    <>
+      {words.map((word, index) => (
+        <Fragment key={`${word}-${index}`}>
+          {index > 0 && " "}
+          <span className="inline-block overflow-hidden pb-[0.1em] align-bottom">
+            <motion.span
+              className="inline-block"
+              initial={{ y: "105%" }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.85, ease: EASE, delay: 0.1 + index * 0.08 }}
+            >
+              {word}
+            </motion.span>
+          </span>
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 /** Cycles through `title` parts separated by `|`; static when only one. */
 function RotatingTitle({ title }: { title: string }) {
@@ -41,10 +79,10 @@ function RotatingTitle({ title }: { title: string }) {
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={parts[index]}
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 14, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: reduceMotion ? 0 : -14, filter: "blur(4px)" }}
+          transition={{ duration: 0.3, ease: EASE }}
           className="inline-block"
         >
           {parts[index]}
@@ -54,10 +92,7 @@ function RotatingTitle({ title }: { title: string }) {
   );
 }
 
-/**
- * Availability, as a soft pill on the surface rather than a terminal prompt.
- * The `● open to work — Toronto` status-line motif belongs to v2 and is retired.
- */
+/** Availability, as a soft pill with a live pulse. */
 function AvailabilityPill({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-primary">
@@ -70,37 +105,46 @@ function AvailabilityPill({ label }: { label: string }) {
   );
 }
 
+/**
+ * The owner's channels, as round icon buttons.
+ *
+ * Labelled chips sat beside two call-to-action buttons as a third row of
+ * buttons competing with them. As icons they read as a signature under the
+ * actions, and each still carries its name for screen readers and on hover.
+ */
 function SocialRow({
   links,
 }: {
   links: { id: string; label: string; url: string; is_visible?: boolean }[];
 }) {
-  const visible = links.filter((l) => l.is_visible !== false && l.url);
+  const visible = links
+    .filter((link) => link.is_visible !== false)
+    .map((link) => ({ ...link, href: safeLinkUrl(link.url) }))
+    .filter((link): link is typeof link & { href: string } => Boolean(link.href));
   if (visible.length === 0) return null;
 
   return (
-    <ul className="flex flex-wrap items-center gap-2">
+    <ul className="flex flex-wrap items-center gap-2" aria-label="Elsewhere">
       {visible.map((link) => {
-        const href = safeLinkUrl(link.url);
-        if (!href) return null;
         const Icon = socialIcon(link.id);
-        const external = !href.startsWith("/") && !href.startsWith("#");
+        const external = !isInternalUrl(link.href);
         return (
           <li key={link.id}>
             <a
-              href={href}
+              href={link.href}
               {...(external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
+              aria-label={link.label}
+              title={link.label}
               className={cn(
-                "inline-flex items-center gap-2 rounded-control bg-card px-3 py-2 text-sm font-medium",
-                "shadow-e1 transition-[box-shadow,transform] duration-200 ease-enter",
-                "hover:-translate-y-0.5 hover:shadow-e2 motion-reduce:hover:translate-y-0",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "flex size-11 items-center justify-center rounded-full bg-card text-muted-foreground shadow-e1",
+                "transition-[box-shadow,transform,color] duration-200 ease-enter",
+                "hover:-translate-y-0.5 hover:text-primary hover:shadow-e2 motion-reduce:hover:translate-y-0",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               )}
             >
-              <Icon className="size-4 text-muted-foreground" />
-              {link.label}
+              <Icon className="size-[1.125rem]" aria-hidden />
             </a>
           </li>
         );
@@ -118,9 +162,9 @@ function HeroSkeleton() {
           <Skeleton className="h-20 w-full max-w-xl rounded-control" />
           <Skeleton className="h-12 w-2/3 rounded-control" />
           <Skeleton className="h-20 w-full max-w-prose rounded-control" />
-          <div className="flex gap-2">
-            <Skeleton className="h-10 w-28 rounded-control" />
-            <Skeleton className="h-10 w-28 rounded-control" />
+          <div className="flex gap-3">
+            <Skeleton className="h-12 w-36 rounded-full" />
+            <Skeleton className="h-12 w-36 rounded-full" />
           </div>
         </div>
         <Skeleton className="h-72 w-full rounded-surface" />
@@ -132,14 +176,10 @@ function HeroSkeleton() {
 /**
  * The identity band.
  *
- * v3 composition: an asymmetric two-column feature band. The left column is a
- * single descending sequence — availability, name at display size, rotating
- * role, description, channels — so the eye has one path. The right column is a
- * floating surface carrying the status panel, which is deliberately the only
- * elevated object on the band.
- *
- * Nothing here uses the v2 grammar: no graph-paper ground, no dotted rule, no
- * monospace status line.
+ * One descending path on the left — availability, the name at display size,
+ * the rotating role, the description, then what to do: a primary action, a
+ * secondary one, and the owner's channels as a quiet signature beneath. The
+ * status panel on the right is the only elevated object on the band.
  */
 export function Hero() {
   const { data: identity, isLoading } = useGetSiteIdentityQuery();
@@ -149,91 +189,112 @@ export function Hero() {
 }
 
 /**
- * The band itself, over identity passed in rather than fetched.
- *
- * Split out so the settings preview can render the real hero against unsaved
- * form values. Keeping one component and stubbing the query would mean the
- * preview and the live page could only ever be checked together; keeping two
- * copies of the markup would mean they drift. A view/container split is the
- * only arrangement where the thing you preview *is* the thing that ships.
+ * The band itself, over identity passed in rather than fetched, so the
+ * settings preview renders the real hero against unsaved form values.
  */
 export function HeroView({ identity }: { identity: SiteContent }) {
   const reduceMotion = useReducedMotion();
   const { profile_data, social_links } = identity;
   const panel = profile_data.status_panel;
 
-  const rise = reduceMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] as const },
-      };
+  const rise = (delay: number) =>
+    reduceMotion
+      ? {}
+      : {
+          initial: { opacity: 0, y: 16 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.6, ease: EASE, delay },
+        };
 
   /**
-   * The band composes from what exists rather than reserving a column for it.
-   *
-   * The grid was unconditional, so switching the status panel off left the
-   * text at 57% width beside a void — the panel's column was still there, just
-   * empty. Two deliberate compositions instead of one composition with a hole:
-   *
-   *  - **With the panel** — the asymmetric two-column band. The panel is the
-   *    only elevated object on it, which is what makes it read as an aside
-   *    rather than as a second heading.
-   *  - **Without it** — one column across the band's full measure. The name
-   *    runs at display size over the whole width, the description keeps its
-   *    reading measure, and what is left on the right is margin rather than a
-   *    missing column.
-   *
-   * Centring the block was the other candidate and is what this page used to
-   * do. It is rejected on the v3 rule that a full-width block of text is not
-   * centred: at `--t-display` a centred name and a left-aligned paragraph pull
-   * the eye along two different axes, and the band loses the single descending
-   * path the composition is built on.
+   * The band composes from what exists rather than reserving a column for it:
+   * with the panel, the asymmetric two-column band; without it, one column
+   * across the band's full measure. A grid naming two columns is a promise
+   * that both exist.
    */
   const showPanel = Boolean(panel.show);
 
   return (
-    <Band weight="feature" aria-labelledby="hero-name">
+    <Band
+      weight="feature"
+      aria-labelledby="hero-name"
+      className="relative isolate overflow-hidden"
+    >
+      {/* A soft light from the top-left, in the theme's own colour. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_15%_0%,hsl(var(--primary)/0.14),transparent_70%)]"
+      />
+
       <div
         className={cn(
           "grid gap-16",
           showPanel && "lg:grid-cols-[1.35fr_1fr] lg:items-center",
         )}
       >
-        <motion.div {...rise} className="flex flex-col items-start gap-6">
+        <div className="flex min-w-0 flex-col items-start gap-7">
           {panel.availability && (
-            <AvailabilityPill label={panel.availability} />
+            <motion.div {...rise(0)}>
+              <AvailabilityPill label={panel.availability} />
+            </motion.div>
           )}
 
-          <div>
-            <h1 id="hero-name" className="t-display text-balance">
-              {profile_data.name}
+          <div className="min-w-0">
+            <h1
+              id="hero-name"
+              className="t-display text-balance [overflow-wrap:anywhere]"
+            >
+              <AnimatedName name={profile_data.name} />
             </h1>
             {profile_data.title && (
-              <p className="t-title mt-2 text-balance">
+              <motion.p {...rise(0.3)} className="t-title mt-3 text-balance">
                 <RotatingTitle title={profile_data.title} />
-              </p>
+              </motion.p>
             )}
           </div>
 
           {profile_data.description && (
-            <div className="t-lead max-w-prose text-pretty [&_p]:m-0">
+            <motion.div
+              {...rise(0.4)}
+              className="t-lead max-w-prose text-pretty [&_p]:m-0"
+            >
               <Markdown>{profile_data.description}</Markdown>
-            </div>
+            </motion.div>
           )}
 
-          <SocialRow links={social_links ?? []} />
-        </motion.div>
+          <motion.div
+            {...rise(0.5)}
+            className="flex flex-wrap items-center gap-3"
+          >
+            <Button asChild size="lg" className="group rounded-full px-7">
+              <Link href="/contact">
+                Get in touch
+                <ArrowRight
+                  aria-hidden
+                  className="ml-2 size-4 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 motion-reduce:transition-none"
+                />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-full px-7">
+              <Link href="/projects">See my work</Link>
+            </Button>
+          </motion.div>
+
+          <motion.div {...rise(0.6)}>
+            <SocialRow links={social_links ?? []} />
+          </motion.div>
+        </div>
 
         {showPanel && (
           <motion.div
-            {...rise}
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 0.4, delay: 0.08, ease: [0.32, 0.72, 0, 1] }
-            }
+            className="min-w-0"
+            {...(reduceMotion
+              ? {}
+              : {
+                  initial: { opacity: 0, y: 24, scale: 0.98 },
+                  animate: { opacity: 1, y: 0, scale: 1 },
+                  transition: { duration: 0.8, ease: EASE, delay: 0.35 },
+                })}
           >
             <StatusPanel panel={panel} />
           </motion.div>

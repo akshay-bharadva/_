@@ -29,25 +29,49 @@ function useClock(): string {
   return now;
 }
 
+/**
+ * The latest project, as one row: what it is, and the way in. Linked rows are
+ * a single target rather than a name with a small link beside it.
+ */
 function ProjectLink({ panel }: { panel: StatusPanelData }) {
   const href = safeLinkUrl(panel.latestProject.href);
   if (!panel.latestProject.name) return null;
 
-  return (
-    <div className="mt-6 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-      <span className="text-sm text-muted-foreground">
-        {panel.latestProject.name}
+  const body = (
+    <>
+      <span className="min-w-0">
+        <span className="block text-xs text-muted-foreground">Latest</span>
+        <span className="block truncate text-sm font-semibold transition-colors group-hover:text-primary">
+          {panel.latestProject.name}
+        </span>
       </span>
-      {href && panel.latestProject.linkText && (
-        <a
-          href={href}
-          className="group inline-flex items-center gap-0.5 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-        >
+      {href && (
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
           {panel.latestProject.linkText}
-          <ArrowUpRight className="size-3.5 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 motion-reduce:group-hover:translate-y-0" />
-        </a>
+          <ArrowUpRight
+            aria-hidden
+            className="size-3.5 transition-transform duration-200 ease-enter group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none"
+          />
+        </span>
       )}
-    </div>
+    </>
+  );
+
+  const row =
+    "mt-6 flex items-center gap-3 rounded-control bg-secondary/60 px-4 py-3";
+
+  return href ? (
+    <a
+      href={href}
+      className={cn(
+        "group transition-colors duration-200 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        row,
+      )}
+    >
+      {body}
+    </a>
+  ) : (
+    <div className={row}>{body}</div>
   );
 }
 
@@ -88,11 +112,17 @@ function ExploringList({
   );
 }
 
-/** Quiet by default: a single surface, generous padding, no ornament. */
+/** Quiet by default: one raised surface, a live title, the facts beneath. */
 function MinimalPanel({ panel }: { panel: StatusPanelData }) {
   return (
-    <Surface className="p-8">
-      <p className="t-eyebrow">{panel.title}</p>
+    <Surface elevation={2} className="p-7 sm:p-8">
+      <p className="t-eyebrow flex items-center gap-2">
+        <span aria-hidden className="relative flex size-1.5">
+          <span className="absolute inset-0 animate-ping rounded-full bg-primary/60 motion-reduce:hidden" />
+          <span className="relative size-1.5 rounded-full bg-primary" />
+        </span>
+        {panel.title}
+      </p>
       <ExploringList panel={panel} />
       <ProjectLink panel={panel} />
     </Surface>
@@ -142,7 +172,9 @@ function BentoPanel({ panel }: { panel: StatusPanelData }) {
         <Surface
           key={item}
           className={cn(
-            "flex items-center p-4 text-sm font-medium",
+            "flex min-h-20 items-end p-4 text-sm font-semibold",
+            // The first tile carries the colour, so the grid has one anchor.
+            index === 0 && "bg-primary text-primary-foreground",
             // A lone trailing tile spans rather than leaving a gap.
             items.length % 2 === 1 &&
               index === items.length - 1 &&
