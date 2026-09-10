@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   buildTimeline,
-  commitHash,
   isOngoingWord,
   parseTimelinePoint,
+  timelineDuration,
+  trunkAlongside,
 } from "./timeline-model";
 
 const NOW = Date.UTC(2026, 8, 1);
@@ -157,17 +158,60 @@ describe("buildTimeline", () => {
   });
 });
 
-describe("commitHash", () => {
-  it("takes a UUID's first seven hex digits", () => {
-    expect(commitHash("3F2A9C1E-5B6D-4E7F-8091-A2B3C4D5E6F7")).toBe("3f2a9c1");
+describe("timelineDuration", () => {
+  it("counts months inclusively, the way a CV does", () => {
+    expect(timelineDuration("Jan 2020", "Mar 2021", null)).toBe("1 yr 3 mos");
+    expect(timelineDuration("2020-01", "2020-01", null)).toBe("1 mo");
+    expect(timelineDuration("2019-06", "2021-05", null)).toBe("2 yrs");
   });
 
-  /** The zero-config fallback's ids are not UUIDs, and still need one. */
-  it("digests any other id to seven stable hex digits", () => {
-    const hash = commitHash("mock-exp-1");
-    expect(hash).toMatch(/^[0-9a-f]{7}$/);
-    expect(commitHash("mock-exp-1")).toBe(hash);
-    expect(commitHash("mock-exp-2")).not.toBe(hash);
+  /** "2 yrs 0 mos" would claim a precision the author never gave. */
+  it("gives whole years when a date is only a year", () => {
+    expect(timelineDuration("2019", "2022", null)).toBe("3 yrs");
+    expect(timelineDuration("2023", "2023", null)).toBeNull();
+  });
+
+  /** The page is static, so "Present" must be the visitor's today. */
+  it("measures ongoing work to the supplied today, and not before", () => {
+    expect(timelineDuration("2026-01", "Present", NOW)).toBe("9 mos");
+    expect(timelineDuration("2026-01", null, NOW)).toBe("9 mos");
+    expect(timelineDuration("2026-01", null, null)).toBeNull();
+  });
+
+  it("says nothing it cannot read", () => {
+    expect(timelineDuration("Summer 2022", "2023", null)).toBeNull();
+    expect(timelineDuration("2023-05", "2023-01", null)).toBeNull();
+    expect(timelineDuration(null, "2023", null)).toBeNull();
+  });
+});
+
+describe("trunkAlongside", () => {
+  // Two back-to-back jobs on the main line (touching, so not overlapping),
+  // and a talk straddling the change: one month into the old job, two into
+  // the new one.
+  const graph = () =>
+    buildTimeline(
+      [
+        { id: "old job", date_from: "2016-01", date_to: "2021-01" },
+        { id: "new job", date_from: "2021-01", date_to: "2024-01" },
+        { id: "talk", date_from: "2020-12", date_to: "2021-03" },
+      ],
+      NOW,
+    );
+
+  it("names the main-line item a side track overlapped most", () => {
+    const { rows } = graph();
+    const talk = rows.findIndex((r) => r.item.id === "talk");
+    expect(rows[talk].lane).toBeGreaterThan(0);
+    const along = trunkAlongside(rows, talk);
+    expect(rows[along!].item.id).toBe("new job");
+  });
+
+  it("is null for the main line itself", () => {
+    const { rows } = graph();
+    const job = rows.findIndex((r) => r.item.id === "new job");
+    expect(rows[job].lane).toBe(0);
+    expect(trunkAlongside(rows, job)).toBeNull();
   });
 });
 

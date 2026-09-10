@@ -1,5 +1,5 @@
 import type { PortfolioItem } from "@/types";
-import { TimelineGraph } from "./timeline-graph";
+import { Timeline } from "./timeline";
 import { cn } from "@/lib/utils";
 import {
   ItemDates,
@@ -61,9 +61,9 @@ export function DefaultListLayout({ items }: LayoutProps) {
   );
 }
 
-/** Vertical timeline — dotted spine, mono dates, cards. */
+/** The timeline — dates, a rail that fills as you read, and a card per item. */
 export function TimelineLayout({ items }: LayoutProps) {
-  return <TimelineGraph items={items} />;
+  return <Timeline items={items} />;
 }
 
 function GridCard({ item }: { item: PortfolioItem }) {

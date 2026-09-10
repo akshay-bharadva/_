@@ -1334,30 +1334,37 @@ often than a second.
 - The zero-config site shows three correctly attributed lines from
   `MOCK_HIGHLIGHTS`, picked with the injectable `pickRandom`.
 
-## Timeline, redrawn as a git log
+## Timeline, designed from scratch
 
-The owner found the multi-lane graph hard to read and supplied a git-log
-design: one trunk, a node per item, a short connector, and a card with a hash,
-the dates, the title and the description. `TimelineGraph` now draws that.
+Two versions went before this one in the same week: the multi-lane graph
+(accurate, hard to read) and a git-log restyle of a supplied snippet (a card
+per commit with a hash). The owner rejected both and asked for a designed
+timeline. `timeline.tsx` replaces `timeline-graph.tsx`.
 
-- **Lanes went; concurrency stayed.** Overlap is still derived by
-  `buildTimeline`, but it is shown on the commit — a hollow node and "Ran
-  alongside" — at every width, rather than as columns that collapsed on a
-  phone anyway. `railsForRow` existed only to draw lanes and was removed with
-  its tests.
-- **Merges are still only the declared ones**, said on the card as "Merged
-  into …".
-- **The hash is real and stable**: a UUID's first seven hex digits, or FNV-1a
-  of any other id. A hash that changed between visits would read as a
-  different commit.
-- **Adapted, not pasted.** The design arrived as scoped CSS with hex variables,
-  a `prefers-color-scheme` block, a bordered-and-shadowed card, a monospace
-  red hash, and an `innerHTML` template that would have rendered CMS text as
-  markup. Here: theme tokens only (the presets are the dark mode), a fill plus
-  elevation with no border, the hash in the body face on a primary tint, and
-  React text nodes. The marker is a solid dot with a `ring-border` ring rather
-  than the design's card-coloured gap, because a band's fill is not a token
-  the marker can match.
+**The layout is when / rail / what.** From `md` up the period has its own
+column — the start date large, the end or a pulsing "Present" under it, the
+duration under that — so the dates alone read as the shape of a career. It is
+sticky, so a long card never scrolls its own date away. On a phone the period
+folds into one line above the card and the rail moves to the edge.
+
+**The rail fills as you read.** A spring-smoothed, scroll-linked primary fill
+over a track that fades out below the oldest entry; each node fills as it
+arrives; ongoing work pulses. Cards and periods ease in once, on the
+`--m-enter` curve. Under reduced motion nothing moves — no progress fill,
+nodes filled, content present from the start.
+
+**Relationships are words first.** Concurrency (derived) sets an item in as a
+side track — smaller hollow node, indented card — and names the main-line item
+it overlapped most ("Alongside Day job"). A declared merge reads "Became part
+of …". No lanes.
+
+**Durations are honest.** Months count inclusively, as a CV does; a bare year
+gives whole years only; and an ongoing item's duration waits for the
+visitor's clock after mount, because the page is statically exported and a
+build-time "Present" would be stale and would not hydrate.
+
+**Theme.** Tokens only. Nodes are hollow on a card fill rather than ringed in
+a gap colour — a band's fill is not something a node can know.
 
 ## Follow-up
 

@@ -322,22 +322,83 @@ export function buildTimeline<T extends DatedFields>(
   };
 }
 
-/**
- * A short identifier for a row, shown the way a commit log shows a hash.
- *
- * Derived from the item's id, so it is the same on every visit and in every
- * build — a hash that changed on reload would read as a different commit. A
- * UUID gives its first seven hex digits; anything else (the zero-config
- * fallback's ids are not UUIDs) is digested with FNV-1a.
- */
-export function commitHash(id: string): string {
-  const hex = id.replace(/-/g, "").toLowerCase();
-  if (/^[0-9a-f]{7,}$/.test(hex)) return hex.slice(0, 7);
+const BARE_YEAR = /^\d{4}$/;
 
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < id.length; i++) {
-    hash ^= id.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
+const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+
+/**
+ * How long an item lasted, the way a CV says it: "1 yr 3 mos", "5 mos",
+ * "3 yrs". Null whenever it cannot be said honestly.
+ *
+ * - **Months count inclusively**, as a CV does: Jan–Mar is three months.
+ * - **A bare year gives years only.** "2020 — 2022" is two years; saying
+ *   "2 yrs 0 mos" would claim a precision the author never gave.
+ * - **Ongoing work needs `now`**, and is null until it is supplied. The page
+ *   is statically exported, so the component reads the clock after mount; a
+ *   duration computed at build time would be stale, and would not hydrate.
+ */
+export function timelineDuration(
+  from: string | null | undefined,
+  to: string | null | undefined,
+  now: number | null,
+): string | null {
+  const start = parseTimelinePoint(from);
+  if (start === null || !from) return null;
+
+  const rawEnd = to?.trim() || null;
+  const ongoing = !rawEnd || isOngoingWord(rawEnd);
+  if (ongoing && now === null) return null;
+
+  const end = ongoing ? now : parseTimelinePoint(rawEnd);
+  if (end === null || end < start) return null;
+
+  const a = new Date(start);
+  const b = new Date(end);
+
+  if (BARE_YEAR.test(from.trim()) || (!ongoing && BARE_YEAR.test(rawEnd!))) {
+    const years = b.getUTCFullYear() - a.getUTCFullYear();
+    return years >= 1 ? plural(years, "yr") : null;
   }
-  return hash.toString(16).padStart(8, "0").slice(0, 7);
+
+  const months =
+    (b.getUTCFullYear() - a.getUTCFullYear()) * 12 +
+    (b.getUTCMonth() - a.getUTCMonth()) +
+    1;
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+
+  return (
+    [years > 0 && plural(years, "yr"), rest > 0 && plural(rest, "mo")]
+      .filter(Boolean)
+      .join(" ") || null
+  );
+}
+
+/**
+ * The main-line row a side track ran alongside — the one it overlapped
+ * *most*, so "Alongside Day job" names the job rather than a week-long
+ * conference that happened to touch it.
+ */
+export function trunkAlongside<T>(
+  rows: TimelineRow<T>[],
+  index: number,
+): number | null {
+  const row = rows[index];
+  if (!row || row.lane === 0 || !row.span) return null;
+  const span = row.span;
+
+  let best: number | null = null;
+  let bestOverlap = 0;
+  rows.forEach((candidate, i) => {
+    if (candidate.lane !== 0 || !candidate.span) return;
+    if (!overlaps(candidate.span, span)) return;
+    const overlap =
+      Math.min(candidate.span.end, span.end) -
+      Math.max(candidate.span.start, span.start);
+    if (overlap > bestOverlap) {
+      bestOverlap = overlap;
+      best = i;
+    }
+  });
+  return best;
 }
