@@ -226,7 +226,7 @@ export function CompactCardsLayout({ items }: LayoutProps) {
               {item.title}
             </span>
             {item.subtitle?.trim() && (
-              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
+              <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
                 {item.subtitle}
               </span>
             )}

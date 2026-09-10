@@ -295,7 +295,7 @@ export function UsesLayout({ items }: LayoutProps) {
             <h3 className="font-heading font-semibold [overflow-wrap:anywhere]">
               {category}
             </h3>
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium tabular-nums text-secondary-foreground">
               {groupItems.length}
             </span>
           </div>

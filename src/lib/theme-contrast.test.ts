@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { resolve } from "path";
-import { AA_NORMAL_TEXT, contrastRatio, type Hsl } from "./color-utils";
+import {
+  AA_NORMAL_TEXT,
+  contrastRatio,
+  isDarkBackground,
+  type Hsl,
+} from "./color-utils";
 
 /**
  * WCAG AA contrast regression test for every theme preset in themes.css.
@@ -38,6 +43,7 @@ function parseThemes(source: string): Map<string, Map<string, HSL>> {
   return themes;
 }
 
+/** Text pairs, 4.5:1. The last five are ones the public pages actually use. */
 const PAIRS: Array<[string, string]> = [
   ["background", "foreground"],
   ["card", "card-foreground"],
@@ -48,7 +54,26 @@ const PAIRS: Array<[string, string]> = [
   ["destructive", "destructive-foreground"],
   ["muted", "muted-foreground"],
   ["background", "muted-foreground"],
+  // Eyebrows, links and counts are set in the theme colour, on the page and
+  // on cards; card text is mostly muted; form errors sit on cards.
+  ["background", "primary"],
+  ["card", "primary"],
+  ["card", "muted-foreground"],
+  ["background", "destructive"],
+  ["card", "destructive"],
 ];
+
+/**
+ * Non-text pairs, 3:1 (WCAG 1.4.11): an input's boundary and the focus ring
+ * must be visible against whatever they sit on.
+ */
+const NON_TEXT_PAIRS: Array<[string, string]> = [
+  ["background", "input"],
+  ["card", "input"],
+  ["background", "ring"],
+  ["card", "ring"],
+];
+const AA_NON_TEXT = 3;
 
 const themes = parseThemes(css);
 
@@ -60,18 +85,42 @@ describe("theme presets meet WCAG AA contrast", () => {
   for (const [name, tokens] of Array.from(themes.entries())) {
     it(`${name}`, () => {
       const failures: string[] = [];
-      for (const [base, fg] of PAIRS) {
-        const a = tokens.get(base);
-        const b = tokens.get(fg);
-        if (!a || !b) continue;
-        const ratio = contrastRatio(a, b);
-        if (ratio < AA_NORMAL_TEXT) {
-          failures.push(
-            `${base}/${fg}: ${ratio.toFixed(2)} < ${AA_NORMAL_TEXT}`,
-          );
+      const check = (pairs: Array<[string, string]>, minimum: number) => {
+        for (const [base, fg] of pairs) {
+          const a = tokens.get(base);
+          const b = tokens.get(fg);
+          if (!a || !b) continue;
+          const ratio = contrastRatio(a, b);
+          if (ratio < minimum) {
+            failures.push(`${base}/${fg}: ${ratio.toFixed(2)} < ${minimum}`);
+          }
         }
-      }
+      };
+      check(PAIRS, AA_NORMAL_TEXT);
+      check(NON_TEXT_PAIRS, AA_NON_TEXT);
       expect(failures).toEqual([]);
+    });
+  }
+});
+
+/**
+ * A preset is the mode its name says.
+ *
+ * The `dark` class — and with it every `dark:` variant and the dark elevation
+ * — is derived from the background's lightness, not the name. A preset called
+ * "…-light" that measured dark would silently get dark-mode shadows and
+ * inverted prose. Checked with the same function `applyTheme` uses.
+ */
+describe("theme presets are the mode they claim", () => {
+  const LIGHT = /-(light|latte|day)$/;
+  const DARK = /-dark$|-mocha$|-night$/;
+
+  for (const [name, tokens] of Array.from(themes.entries())) {
+    const bg = tokens.get("background");
+    if (!bg || (!LIGHT.test(name) && !DARK.test(name))) continue;
+    it(`${name}`, () => {
+      const dark = isDarkBackground(`${bg.h} ${bg.s}% ${bg.l}%`);
+      expect(dark).toBe(DARK.test(name));
     });
   }
 });

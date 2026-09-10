@@ -182,8 +182,8 @@ export function ContactForm() {
             outcome whichever it is. */}
         <div aria-live="polite" className="min-w-0 text-sm">
           {status === "success" && (
-            <p className="flex items-center gap-2 rounded-control bg-primary/10 px-3 py-2 font-medium text-primary">
-              <Check className="size-4 shrink-0" aria-hidden />
+            <p className="flex items-center gap-2 rounded-control bg-primary/10 px-3 py-2 font-medium text-foreground">
+              <Check className="size-4 shrink-0 text-primary" aria-hidden />
               Message received — I&apos;ll reply soon.
             </p>
           )}

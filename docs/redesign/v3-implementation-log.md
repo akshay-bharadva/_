@@ -1463,6 +1463,48 @@ production build collides with the owner's `next dev` on the shared `.next`.
 Tests, typecheck, lint and the design gates pass, and every new test was
 watched failing against a seeded bug.
 
+## Themes, audited against the pages and the published palettes
+
+The owner asked that every public layout element adapt to all 52 presets, and
+that the palettes be checked against their sources on the web.
+
+**Components were already on tokens.** No Tailwind palette classes, raw hex,
+`rgb()` or colour-bearing inline styles in public code. The one exception was
+outside the components: `themeColor: "#0a0a0a"` in the root metadata, which
+painted the phone's address bar black on every light preset. The static value
+is now the default preset's ground, and `applyTheme` retints the
+`theme-color` meta from the resolved `--background` — custom themes included.
+
+**The contrast gate tested pairs the pages did not use, and missed pairs they
+did.** It checked nine token pairs; the redesign introduced text in the theme
+colour on page and cards, muted and error text on cards, and relies on input
+borders and focus rings being visible. Those are now gated — five more text
+pairs at 4.5:1 and four non-text pairs at 3:1 (WCAG 1.4.11). Composites the
+gate cannot express were measured separately and fixed in the components:
+text on a `primary/10` tint failed on 15 presets (the text is now
+`foreground`, the colour stays on the dot or icon); Spotlight's 75% labels and
+tinted chips failed on four (full-strength labels, outlined chips); muted text
+on `bg-secondary` failed on Neobrutalism Punk (secondary pills and inactive
+filter chips now use `secondary-foreground`, the gated pair).
+
+**Orientation is gated.** Every preset whose name says light or dark is
+checked with `isDarkBackground` — the function that sets the `dark` class — so
+a preset cannot claim one mode and render the other's shadows and prose.
+
+**Palettes, checked against their sources.** Seventeen named presets were
+compared with the Dracula spec, Nord docs, ethanschoonover.com/solarized, the
+Catppuccin palette.json, rose-pine/neovim, folke/tokyonight.nvim,
+morhetz/gruvbox, rebelot/kanagawa.nvim, sainnhe/everforest, Shatur/neovim-ayu,
+Binaryify/OneDark-Pro, sickill/vim-monokai and GitHub Primer. Seven had
+drifted and were restored where the official value passes AA — Ayu Dark
+(ground and accent), GitHub Dark (ground, text, blue), Monokai, One Dark Pro,
+Tokyo Night and Everforest text, Nord's accent (nord8). Solarized Dark's text
+is base1, and its muted text sits between base0 and base1 on a base02 muted
+ground, because base0 itself is 4.2:1 there. `theme-palettes.test.ts` pins
+every anchor within 10/255 per channel; accents that fail AA as published
+(Solarized blue) are listed with the reason. Glass Dark, not a published
+theme, was nudged over the line on three pairs.
+
 ## Follow-up
 
 **The watchlist was built**, in two tiers. Crypto is priced live with no key

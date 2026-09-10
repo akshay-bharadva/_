@@ -111,7 +111,7 @@ function MinimalPanel({ panel }: { panel: StatusPanelData }) {
                 <li key={item} className="flex items-center gap-3 py-3 text-sm">
                   <span
                     aria-hidden
-                    className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[0.6875rem] font-semibold tabular-nums text-primary"
+                    className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[0.6875rem] font-semibold tabular-nums text-foreground"
                   >
                     {index + 1}
                   </span>
@@ -141,7 +141,9 @@ function MinimalPanel({ panel }: { panel: StatusPanelData }) {
  * `bg-foreground` / `text-background` invert with every preset — dark on a
  * light theme, light on a dark one — and that pair is the one every preset is
  * contrast-gated on, so the card is legible everywhere without a colour of
- * its own. Secondary text stays at 75% or above for the same reason.
+ * its own. Every label is full-strength `text-background` and the chips are
+ * outlined rather than tinted: faded text and a tinted chip each fell under
+ * AA on the Solarized, One Dark and Everforest presets.
  */
 function SpotlightPanel({ panel }: { panel: StatusPanelData }) {
   const items = exploring(panel);
@@ -158,14 +160,14 @@ function SpotlightPanel({ panel }: { panel: StatusPanelData }) {
         className="pointer-events-none absolute -right-20 -top-24 -z-10 size-72 rounded-full bg-[radial-gradient(closest-side,hsl(var(--primary)/0.45),transparent)]"
       />
 
-      <p className="flex items-center gap-2.5 text-sm font-medium text-background/80">
+      <p className="flex items-center gap-2.5 text-sm font-medium text-background">
         <LiveDot />
         {panel.title}
       </p>
 
       {project && (
         <div className="mt-8">
-          <p className="text-xs font-medium text-background/75">Latest project</p>
+          <p className="text-xs font-medium text-background">Latest project</p>
           <p className="mt-1.5 font-heading text-3xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere]">
             {project}
           </p>
@@ -186,14 +188,14 @@ function SpotlightPanel({ panel }: { panel: StatusPanelData }) {
 
       {items.length > 0 && (
         <div className={cn(project ? "mt-8 border-t border-background/15 pt-6" : "mt-6")}>
-          <p className="text-xs font-medium text-background/75">
+          <p className="text-xs font-medium text-background">
             {panel.currently_exploring.title}
           </p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {items.map((item) => (
               <li
                 key={item}
-                className="rounded-full bg-background/10 px-3 py-1 text-sm font-medium"
+                className="rounded-full px-3 py-1 text-sm font-medium ring-1 ring-inset ring-background/40"
               >
                 {item}
               </li>

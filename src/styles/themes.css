@@ -256,25 +256,25 @@ select {
 }
 
 .theme-github-dark {
-  --background: 210 11% 7%;
-  --foreground: 213 15% 78%;
-  --card: 210 11% 11%;
-  --card-foreground: 213 15% 78%;
-  --popover: 210 11% 7%;
-  --popover-foreground: 213 15% 78%;
-  --primary: 212 92% 55%;
-  --primary-foreground: 210 11% 7%;
+  --background: 216 27.8% 7.1%;
+  --foreground: 207.7 35.1% 92.7%;
+  --card: 215 21.4% 11%;
+  --card-foreground: 207.7 35.1% 92.7%;
+  --popover: 216 27.8% 7.1%;
+  --popover-foreground: 207.7 35.1% 92.7%;
+  --primary: 215.4 92.6% 57.6%;
+  --primary-foreground: 216 27.8% 7.1%;
   --secondary: 210 10% 15%;
-  --secondary-foreground: 213 15% 78%;
+  --secondary-foreground: 207.7 35.1% 92.7%;
   --muted: 210 10% 15%;
-  --muted-foreground: 215 12% 60%;
+  --muted-foreground: 211.6 8.4% 55.5%;
   --accent: 137 55% 55%;
-  --accent-foreground: 210 11% 7%;
+  --accent-foreground: 216 27.8% 7.1%;
   --destructive: 0 73% 61%;
-  --destructive-foreground: 210 11% 7%;
+  --destructive-foreground: 216 27.8% 7.1%;
   --border: 210 10% 26%;
   --input: 210 10% 42%;
-  --ring: 212 92% 55%;
+  --ring: 215.4 92.6% 57.6%;
   --radius: 0.375rem;
   --chart-1: 215 100% 67%;
   --chart-2: 137 55% 49%;
@@ -321,7 +321,7 @@ select {
   --card-foreground: 219 28% 88%;
   --popover: 220 17% 25%;
   --popover-foreground: 219 28% 88%;
-  --primary: 213 32% 68%;
+  --primary: 193.3 43.4% 67.5%;
   --primary-foreground: 220 16% 8.5%;
   --secondary: 220 16% 28%;
   --secondary-foreground: 219 28% 88%;
@@ -333,7 +333,7 @@ select {
   --destructive-foreground: 219 28% 7.5%;
   --border: 220 16% 39%;
   --input: 220 16% 56%;
-  --ring: 213 32% 68%;
+  --ring: 193.3 43.4% 67.5%;
   --radius: 0.5rem;
 
   --chart-1: 213 32% 56%;
@@ -346,15 +346,15 @@ select {
 /* --- Tokyo Night --- */
 .theme-tokyo-night {
   --background: 235 21% 13%;
-  --foreground: 224 20% 78%;
+  --foreground: 228.7 72.6% 85.7%;
   --card: 235 18% 16%;
-  --card-foreground: 224 20% 78%;
+  --card-foreground: 228.7 72.6% 85.7%;
   --popover: 235 18% 16%;
-  --popover-foreground: 224 20% 78%;
-  --primary: 218 67% 65%;
+  --popover-foreground: 228.7 72.6% 85.7%;
+  --primary: 220.8 88.7% 72.4%;
   --primary-foreground: 235 21% 13%;
   --secondary: 234 17% 19%;
-  --secondary-foreground: 224 20% 78%;
+  --secondary-foreground: 228.7 72.6% 85.7%;
   --muted: 234 17% 19%;
   --muted-foreground: 227 12% 60.5%;
   --accent: 266 60% 68%;
@@ -363,10 +363,10 @@ select {
   --destructive-foreground: 0 0% 9%;
   --border: 234 15% 31%;
   --input: 234 17% 50%;
-  --ring: 218 67% 65%;
+  --ring: 220.8 88.7% 72.4%;
   --radius: 0.5rem;
 
-  --chart-1: 218 67% 65%;
+  --chart-1: 220.8 88.7% 72.4%;
   --chart-2: 266 60% 68%;
   --chart-3: 143 60% 60%;
   --chart-4: 348 70% 60%;
@@ -406,15 +406,15 @@ select {
 /* --- One Dark Pro --- */
 .theme-onedark-pro {
   --background: 220 13% 18%;
-  --foreground: 219 14% 76%;
+  --foreground: 219 13.5% 71%;
   --card: 220 13% 21%;
-  --card-foreground: 219 14% 76%;
+  --card-foreground: 219 13.5% 71%;
   --popover: 220 13% 21%;
-  --popover-foreground: 219 14% 76%;
+  --popover-foreground: 219 13.5% 71%;
   --primary: 207 82% 66%;
   --primary-foreground: 220 13% 18%;
   --secondary: 220 13% 24%;
-  --secondary-foreground: 219 14% 76%;
+  --secondary-foreground: 219 13.5% 71%;
   --muted: 220 13% 24%;
   --muted-foreground: 219 10% 66.5%;
   --accent: 95 38% 62%;
@@ -466,15 +466,15 @@ select {
 /* --- Monokai --- */
 .theme-monokai {
   --background: 70 8% 15%;
-  --foreground: 60 12% 82%;
+  --foreground: 60 30% 96.1%;
   --card: 70 8% 18%;
-  --card-foreground: 60 12% 82%;
+  --card-foreground: 60 30% 96.1%;
   --popover: 70 8% 18%;
-  --popover-foreground: 60 12% 82%;
+  --popover-foreground: 60 30% 96.1%;
   --primary: 80 76% 53%;
   --primary-foreground: 70 8% 15%;
   --secondary: 70 8% 22%;
-  --secondary-foreground: 60 12% 82%;
+  --secondary-foreground: 60 30% 96.1%;
   --muted: 70 8% 22%;
   --muted-foreground: 60 5% 64.5%;
   --accent: 190 81% 67%;
@@ -495,28 +495,28 @@ select {
 
 /* --- Ayu Dark --- */
 .theme-ayu-dark {
-  --background: 220 22% 11%;
-  --foreground: 40 14% 78%;
-  --card: 220 20% 14%;
-  --card-foreground: 40 14% 78%;
-  --popover: 220 20% 14%;
-  --popover-foreground: 40 14% 78%;
-  --primary: 36 100% 50%;
-  --primary-foreground: 220 22% 11%;
+  --background: 220 29% 6.1%;
+  --foreground: 46.7 6.6% 73.1%;
+  --card: 218.2 26.8% 8%;
+  --card-foreground: 46.7 6.6% 73.1%;
+  --popover: 218.2 26.8% 8%;
+  --popover-foreground: 46.7 6.6% 73.1%;
+  --primary: 40 75% 60.8%;
+  --primary-foreground: 220 29% 6.1%;
   --secondary: 220 18% 18%;
-  --secondary-foreground: 40 14% 78%;
+  --secondary-foreground: 46.7 6.6% 73.1%;
   --muted: 220 18% 18%;
   --muted-foreground: 220 10% 59.5%;
   --accent: 200 60% 55%;
-  --accent-foreground: 220 22% 11%;
+  --accent-foreground: 220 29% 6.1%;
   --destructive: 356 70% 63%;
   --destructive-foreground: 40 14% 8%;
   --border: 220 16% 29%;
   --input: 220 18% 46%;
-  --ring: 36 100% 50%;
+  --ring: 40 75% 60.8%;
   --radius: 0.5rem;
 
-  --chart-1: 36 100% 50%;
+  --chart-1: 40 75% 60.8%;
   --chart-2: 200 60% 55%;
   --chart-3: 356 70% 58%;
   --chart-4: 145 55% 50%;
@@ -895,7 +895,7 @@ select {
   --card-foreground: 220 15% 88%;
   --popover: 230 18% 12%;
   --popover-foreground: 220 15% 88%;
-  --primary: 220 90% 62%;
+  --primary: 220 90% 66%;
   --primary-foreground: 230 20% 8%;
   --secondary: 230 15% 18%;
   --secondary-foreground: 220 15% 88%;
@@ -903,11 +903,11 @@ select {
   --muted-foreground: 225 10% 59.5%;
   --accent: 260 75% 61.5%;
   --accent-foreground: 0 0% 99%;
-  --destructive: 0 72% 61%;
+  --destructive: 0 72% 66%;
   --destructive-foreground: 220 15% 4%;
   --border: 230 12% 27%;
-  --input: 230 15% 45%;
-  --ring: 220 90% 62%;
+  --input: 230 15% 50%;
+  --ring: 220 90% 66%;
   --radius: 1rem;
 
   --chart-1: 220 90% 62%;
@@ -1108,17 +1108,19 @@ select {
 /* --- Solarized Dark — Ethan Schoonover's base03 canvas --- */
 .theme-solarized-dark {
   --background: 192 100% 11%;
-  --foreground: 186 8% 65%;
+  --foreground: 180 6.9% 60.4%;
   --card: 192 81% 14%;
-  --card-foreground: 186 8% 65%;
+  --card-foreground: 180 6.9% 60.4%;
   --popover: 192 81% 14%;
   --popover-foreground: 180 7% 72%;
   --primary: 205 69% 58%;
   --primary-foreground: 0 0% 9%;
   --secondary: 192 81% 17%;
   --secondary-foreground: 180 7% 72%;
-  --muted: 192 81% 17%;
-  --muted-foreground: 186 8% 64%;
+  --muted: 192.2 80.8% 14.3%;
+  /* Between base0 and base1, on a base02 muted ground: base0 itself is
+     4.2:1 on base02, and base1 is the body text, so muted sits between. */
+  --muted-foreground: 183 7.5% 58.3%;
   --accent: 192 70% 20%;
   --accent-foreground: 205 69% 68%;
   --destructive: 1 71% 69%;
@@ -1226,15 +1228,15 @@ select {
 /* --- Everforest Dark — forest greens, deliberately soft --- */
 .theme-everforest-dark {
   --background: 197 14% 20%;
-  --foreground: 39 26% 79%;
+  --foreground: 41 31.8% 74.7%;
   --card: 196 13% 24%;
-  --card-foreground: 39 26% 79%;
+  --card-foreground: 41 31.8% 74.7%;
   --popover: 196 13% 24%;
-  --popover-foreground: 39 26% 79%;
+  --popover-foreground: 41 31.8% 74.7%;
   --primary: 88 30% 63%;
   --primary-foreground: 197 14% 18%;
   --secondary: 195 12% 28%;
-  --secondary-foreground: 39 26% 79%;
+  --secondary-foreground: 41 31.8% 74.7%;
   --muted: 195 12% 28%;
   --muted-foreground: 39 12% 72%;
   --accent: 88 18% 27%;

@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  // The default preset's ground; applyTheme retints it for the active theme.
+  themeColor: "#f9f8f5",
 };
 
 export default function RootLayout({

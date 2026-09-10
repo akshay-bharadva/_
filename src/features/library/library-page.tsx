@@ -358,8 +358,8 @@ export default function LibraryPage() {
 
                     <div className="mt-3 flex items-center gap-1">
                       {highlight.is_public && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
-                          <Globe className="size-3" aria-hidden /> On the site
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-foreground">
+                          <Globe className="size-3 text-primary" aria-hidden /> On the site
                         </span>
                       )}
                       <div className="ml-auto flex items-center gap-0.5">

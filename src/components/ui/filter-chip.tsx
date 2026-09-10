@@ -38,7 +38,7 @@ export function FilterChip({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
           ? "bg-primary text-primary-foreground"
-          : "bg-secondary text-muted-foreground hover:text-foreground",
+          : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
         className,
       )}
     >

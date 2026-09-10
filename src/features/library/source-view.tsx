@@ -166,7 +166,7 @@ export function SourceView({
                         <button
                           type="button"
                           onClick={() => setStart(at)}
-                          className="inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Play className="size-3" aria-hidden />
                           Play from {highlight.location}

@@ -116,4 +116,34 @@ describe("applyTheme", () => {
       expect(document.documentElement.classList.contains("dark")).toBe(false);
     });
   });
+
+  /**
+   * The browser's chrome follows the theme. It was a fixed near-black, so on
+   * a light preset the page sat under a black address bar.
+   */
+  describe("theme-color meta", () => {
+    const colors = {
+      foreground: "#ffffff",
+      primary: "#ff0000",
+      secondary: "#00ff00",
+      accent: "#0000ff",
+      card: "#111111",
+    };
+    const themeColor = () =>
+      document.querySelector('meta[name="theme-color"]')?.getAttribute("content");
+    const ground = () =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--background")
+        .trim();
+
+    it("takes the active theme's background", () => {
+      applyTheme(CUSTOM_THEME, "typo-default", { ...colors, background: "#000000" });
+      expect(themeColor()).toBe("hsl(" + ground() + ")");
+      const dark = themeColor();
+
+      applyTheme(CUSTOM_THEME, "typo-default", { ...colors, background: "#ffffff" });
+      expect(themeColor()).toBe("hsl(" + ground() + ")");
+      expect(themeColor()).not.toBe(dark);
+    });
+  });
 });

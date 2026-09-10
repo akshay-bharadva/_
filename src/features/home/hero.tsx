@@ -88,7 +88,7 @@ function RotatingTitle({ title }: { title: string }) {
 
 function AvailabilityPill({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-primary">
+    <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-foreground">
       <span aria-hidden className="relative flex size-2">
         <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
         <span className="relative inline-flex size-2 rounded-full bg-primary" />

@@ -94,7 +94,7 @@ export function ContactView({
 
       {showBadge && (
         <Reveal className="mb-10">
-          <p className="inline-flex items-center gap-2.5 rounded-full bg-primary/10 py-1.5 pl-3 pr-4 text-sm font-medium text-primary">
+          <p className="inline-flex items-center gap-2.5 rounded-full bg-primary/10 py-1.5 pl-3 pr-4 text-sm font-medium text-foreground">
             <span aria-hidden className="relative flex size-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:animate-none" />
               <span className="relative inline-flex size-2 rounded-full bg-primary" />

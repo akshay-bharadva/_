@@ -128,6 +128,28 @@ function syncDarkClass(): void {
   const html = document.documentElement;
   const background = getComputedStyle(html).getPropertyValue("--background");
   html.classList.toggle("dark", isDarkBackground(background));
+  syncThemeColorMeta(background);
+}
+
+/**
+ * Tint the browser's own chrome — the mobile address bar, the task switcher —
+ * with the active theme's ground.
+ *
+ * It was a fixed near-black in the root metadata, so on every light preset
+ * the page sat under a black bar. The static value is only the default
+ * preset's ground; this keeps it in step with whatever is applied, custom
+ * themes included.
+ */
+function syncThemeColorMeta(background: string): void {
+  const value = background.trim();
+  if (!value) return;
+  let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement("meta");
+    meta.name = "theme-color";
+    document.head.appendChild(meta);
+  }
+  meta.content = "hsl(" + value + ")";
 }
 
 /**
