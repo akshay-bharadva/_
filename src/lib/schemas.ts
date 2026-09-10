@@ -765,6 +765,7 @@ export const portfolioSectionSchema = z.object({
     .regex(/^\//, "Page path must start with /"),
   layout_style: z.string().default("default"),
   is_visible: z.boolean().default(true),
+  show_title: z.boolean().default(true),
 });
 
 export type PortfolioSectionFormValues = z.infer<typeof portfolioSectionSchema>;

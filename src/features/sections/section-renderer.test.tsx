@@ -61,6 +61,30 @@ describe("v2 SectionRenderer covers every registry layout", () => {
     });
   }
 
+  it("shows the section title by default", () => {
+    const { getByRole } = renderSection(makeSection("default"));
+    expect(getByRole("heading", { name: "Coverage Section" })).not.toHaveClass(
+      "sr-only",
+    );
+  });
+
+  /**
+   * A hidden title leaves the page but not the accessibility tree: the
+   * section is still a named region, labelled by the title nobody sees.
+   */
+  it("keeps a hidden title for screen readers, still naming the section", () => {
+    const { container, getByRole } = renderSection({
+      ...makeSection("default"),
+      show_title: false,
+    } as PortfolioSection);
+    const heading = getByRole("heading", { name: "Coverage Section" });
+    expect(heading).toHaveClass("sr-only");
+    expect(container.querySelector("section")).toHaveAttribute(
+      "aria-labelledby",
+      heading.id,
+    );
+  });
+
   it("renders markdown sections through the prose pipeline", () => {
     const section = {
       ...makeSection("default"),

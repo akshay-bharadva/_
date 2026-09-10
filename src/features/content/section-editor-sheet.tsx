@@ -12,6 +12,7 @@ import type { PortfolioSection } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -66,6 +67,7 @@ export function SectionEditorSheet({
       layout_style: section?.layout_style ?? "default",
       content: section?.content ?? null,
       is_visible: section?.is_visible ?? true,
+      show_title: section?.show_title ?? true,
     },
   });
 
@@ -79,6 +81,7 @@ export function SectionEditorSheet({
       page_path: values.page_path,
       type: values.type,
       layout_style: values.layout_style,
+      show_title: values.show_title,
     });
   };
 
@@ -101,6 +104,31 @@ export function SectionEditorSheet({
               <p className="text-xs text-destructive">{errors.title.message}</p>
             )}
           </div>
+          {/*
+            Some layouts carry their own heading, and a section title above
+            them reads as a label on a label. Hidden titles stay in the page
+            as screen-reader-only text, so the section keeps its name.
+          */}
+          <Controller
+            name="show_title"
+            control={control}
+            render={({ field }) => (
+              <div className="flex items-start justify-between gap-4 rounded-control bg-secondary/40 px-3 py-2.5">
+                <div className="space-y-0.5">
+                  <Label htmlFor="show_title">Show section title</Label>
+                  <p className="text-xs text-muted-foreground">
+                    When off, the title is hidden on the page but still read
+                    by screen readers.
+                  </p>
+                </div>
+                <Switch
+                  id="show_title"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </div>
+            )}
+          />
           <div className="space-y-1">
             <Label>Page Path *</Label>
             <Controller

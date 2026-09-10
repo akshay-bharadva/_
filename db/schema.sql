@@ -169,6 +169,8 @@ CREATE TABLE IF NOT EXISTS portfolio_sections (
   page_path TEXT NOT NULL DEFAULT '/',
   layout_style TEXT NOT NULL DEFAULT 'default',
   is_visible BOOLEAN DEFAULT true,
+  -- Hidden titles stay in the markup, screen-reader-only (migration 019).
+  show_title BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );

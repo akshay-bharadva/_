@@ -1287,6 +1287,7 @@ licence notice rather than a job, and its locations arrive as "York, " and
 | `016-discover-watchlist.sql`         | `discover_watchlist`, and a market-data key on `integration_settings`               |
 | `017-portfolio-item-merges.sql`      | `merged_into` on portfolio items, for real timeline merges                          |
 | `018-library.sql`                    | `library_sources`, `library_highlights`, and `get_random_public_highlight()`        |
+| `019-section-show-title.sql`         | `show_title` on sections — a hidden title stays in the page, screen-reader-only     |
 
 ## Library (new)
 

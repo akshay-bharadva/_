@@ -108,6 +108,8 @@ export default function SectionRenderer({
   if (!hasBody && process.env.NODE_ENV === "production") return null;
 
   const headingId = `${anchor}-heading`;
+  // Absent (fallback data, pre-019 rows) means shown.
+  const showTitle = section.show_title !== false;
 
   const motionProps = reduceMotion
     ? {}
@@ -125,13 +127,24 @@ export default function SectionRenderer({
       aria-labelledby={headingId}
       className={cn("scroll-mt-24", className)}
     >
-      <header className="mb-8">
+      {/*
+        A hidden title stays in the markup, screen-reader-only: the section's
+        landmark is labelled by it, and a nameless region is worse than one
+        whose name you cannot see. Only the visible spacing goes with it.
+      */}
+      <header className={showTitle ? "mb-8" : undefined}>
         {/*
           The `01 /` mono ordinal is a v2 mannerism and is retired. `index` is
           still accepted so callers do not have to change, but a section's
           position is now conveyed by document order alone.
         */}
-        <h2 id={headingId} className="t-heading [overflow-wrap:anywhere]">
+        <h2
+          id={headingId}
+          className={cn(
+            "t-heading [overflow-wrap:anywhere]",
+            !showTitle && "sr-only",
+          )}
+        >
           {section.title}
         </h2>
 

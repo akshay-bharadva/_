@@ -56,6 +56,11 @@ export interface PortfolioSection {
   created_at?: string;
   updated_at?: string;
   is_visible: boolean;
+  /**
+   * Whether the public page shows the section's title. Absent on fallback
+   * data and on databases before migration 019, where it means shown.
+   */
+  show_title?: boolean;
   page_path: string;
   layout_style: string;
   portfolio_items?: PortfolioItem[];
