@@ -111,7 +111,7 @@ export default function SiteHeader({
             href="/"
             aria-label={logo ? `${logo.main}${logo.highlight} — home` : "Home"}
             className={cn(
-              "group flex shrink-0 items-center gap-2.5 rounded-full py-1 pl-1 pr-3",
+              "group flex min-w-0 items-center gap-2.5 rounded-full py-1 pl-1 pr-3",
               FOCUS,
             )}
           >
@@ -124,11 +124,11 @@ export default function SiteHeader({
               <>
                 <span
                   aria-hidden
-                  className="flex size-8 items-center justify-center rounded-full bg-primary font-heading text-sm font-bold text-primary-foreground transition-transform duration-300 ease-enter group-hover:rotate-[-8deg] group-hover:scale-105 motion-reduce:transition-none"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary font-heading text-sm font-bold text-primary-foreground transition-transform duration-300 ease-enter group-hover:rotate-[-8deg] group-hover:scale-105 motion-reduce:transition-none"
                 >
                   {(logo.main || logo.highlight || "·").charAt(0).toUpperCase()}
                 </span>
-                <span className="font-heading text-base font-bold tracking-tight">
+                <span className="truncate font-heading text-base font-bold tracking-tight">
                   <span className="text-foreground">{logo.main}</span>
                   <span className="text-primary">{logo.highlight}</span>
                 </span>
@@ -136,7 +136,7 @@ export default function SiteHeader({
             )}
           </Link>
 
-          <ul className="ml-auto hidden items-center gap-0.5 md:flex">
+          <ul className="ml-auto hidden items-center gap-0.5 lg:flex">
             {isLoading ? (
               <li className="flex gap-3 px-3">
                 <Skeleton className="h-4 w-14" />
@@ -198,7 +198,7 @@ export default function SiteHeader({
             aria-controls="site-menu"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             className={cn(
-              "relative ml-auto flex size-10 items-center justify-center rounded-full text-foreground transition-colors duration-200 hover:bg-secondary md:hidden",
+              "relative ml-auto flex size-10 shrink-0 items-center justify-center rounded-full text-foreground transition-colors duration-200 hover:bg-secondary lg:hidden",
               FOCUS,
             )}
           >
@@ -229,7 +229,7 @@ export default function SiteHeader({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.98 }}
               transition={{ duration: 0.22, ease: EASE }}
-              className="mt-2 origin-top rounded-surface bg-card p-2 shadow-e3 md:hidden"
+              className="mt-2 origin-top rounded-surface bg-card p-2 shadow-e3 lg:hidden"
             >
               <ul className="flex flex-col gap-0.5">
                 {links.map((link, index) => {

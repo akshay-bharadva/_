@@ -74,6 +74,20 @@ describe("SiteHeader", () => {
     );
   });
 
+  /**
+   * The reported overflow: at 768px the inline links plus Admin ran out of
+   * the pill. Below `lg` the menu takes over, so the two never show together.
+   */
+  it("keeps the inline links for wide screens and the menu for the rest", () => {
+    const { container } = render(<SiteHeader />);
+    const inline = container.querySelector("nav > ul");
+    expect(inline).toHaveClass("hidden", "lg:flex");
+    expect(inline).not.toHaveClass("md:flex");
+    expect(screen.getByRole("button", { name: "Open menu" })).toHaveClass(
+      "lg:hidden",
+    );
+  });
+
   it("names the logo link for screen readers", () => {
     render(<SiteHeader />);
     expect(

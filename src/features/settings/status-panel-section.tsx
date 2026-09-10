@@ -60,10 +60,13 @@ export function StatusPanelSection({ form }: { form: SettingsForm }) {
                 <SelectItem value="minimal">
                   Minimal — editorial card
                 </SelectItem>
+                {/* Stored values kept for existing rows; the designs changed. */}
                 <SelectItem value="terminal">
-                  Terminal — monospace prompt
+                  Spotlight — inverted feature card
                 </SelectItem>
-                <SelectItem value="bento">Bento — flat tile grid</SelectItem>
+                <SelectItem value="bento">
+                  Stack — cards like a wallet
+                </SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />

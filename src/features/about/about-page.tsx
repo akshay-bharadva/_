@@ -75,19 +75,26 @@ export function AboutView({ identity }: { identity: SiteContent }) {
     <div
       className={cn(
         "grid gap-10 lg:gap-16",
-        showPicture && "sm:grid-cols-[minmax(0,15rem)_1fr] lg:grid-cols-[18rem_1fr]",
+        showPicture &&
+          "sm:grid-cols-[11rem_minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)]",
       )}
     >
       {showPicture && (
-        <Reveal className="sm:sticky sm:top-28 sm:self-start">
-          <figure className="overflow-hidden rounded-surface bg-card shadow-e2">
+        <Reveal className="min-w-0 sm:sticky sm:top-28 sm:self-start">
+          {/*
+            On a phone the portrait was the full width at 4:5 — taller than the
+            screen, above a single paragraph. There it is an avatar beside the
+            name; from `sm` up it becomes a narrow portrait card in its own
+            column, never wider than 14rem.
+          */}
+          <figure className="flex items-center gap-4 sm:block sm:overflow-hidden sm:rounded-surface sm:bg-card sm:shadow-e2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={picture as string}
               alt={profile_data.name}
-              className="aspect-[4/5] w-full object-cover"
+              className="size-20 shrink-0 rounded-full object-cover shadow-e1 sm:aspect-[4/5] sm:size-auto sm:w-full sm:rounded-none sm:shadow-none"
             />
-            <figcaption className="p-5">
+            <figcaption className="min-w-0 sm:p-4">
               <p className="font-heading font-semibold [overflow-wrap:anywhere]">
                 {profile_data.name}
               </p>

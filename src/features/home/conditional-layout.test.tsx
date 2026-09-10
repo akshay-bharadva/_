@@ -49,38 +49,50 @@ function gridClasses(container: HTMLElement): string {
 }
 
 describe("Hero composition", () => {
-  it("reserves a second column only when the status panel fills it", () => {
-    const withPanel = render(
+  const hero = (show: boolean, profile: Record<string, unknown> = {}) =>
+    render(
       <HeroView
         identity={identity({
           profile_data: {
             ...SITE_IDENTITY_DEFAULTS.profile_data,
             name: "Akshay",
+            title: "Engineer",
+            description: "Builds things.",
+            ...profile,
             status_panel: {
               ...SITE_IDENTITY_DEFAULTS.profile_data.status_panel,
-              show: true,
+              show,
             },
           },
         })}
       />,
     );
-    expect(gridClasses(withPanel.container)).toContain("lg:grid-cols-");
 
-    const without = render(
-      <HeroView
-        identity={identity({
-          profile_data: {
-            ...SITE_IDENTITY_DEFAULTS.profile_data,
-            name: "Akshay",
-            status_panel: {
-              ...SITE_IDENTITY_DEFAULTS.profile_data.status_panel,
-              show: false,
-            },
-          },
-        })}
-      />,
-    );
-    expect(gridClasses(without.container)).not.toContain("lg:grid-cols-");
+  it("gives the status panel a column only when it is shown", () => {
+    const withPanel = hero(true);
+    expect(
+      withPanel.container.querySelector('[data-composition="panel"]'),
+    ).not.toBeNull();
+    withPanel.unmount();
+
+    const without = hero(false);
+    expect(
+      without.container.querySelector('[data-composition="panel"]'),
+    ).toBeNull();
+  });
+
+  /**
+   * The reported case: with the panel off, everything stacked in one column
+   * beside a void. Without it the hero stands alone, so it centres — the
+   * owner's choice over a split row — and no column is reserved at all.
+   */
+  it("centres a single column when there is no panel", () => {
+    const { container } = hero(false);
+    const centered = container.querySelector('[data-composition="centered"]');
+    expect(centered).not.toBeNull();
+    expect(centered).toHaveClass("text-center", "items-center");
+    expect(container.querySelector('[class*="lg:grid-cols-"]')).toBeNull();
+    expect(centered).toHaveTextContent("Builds things.");
   });
 });
 

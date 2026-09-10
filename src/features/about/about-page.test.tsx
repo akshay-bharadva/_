@@ -44,6 +44,26 @@ describe("AboutView", () => {
     expect(screen.getByText("Ada")).toBeInTheDocument();
   });
 
+  /**
+   * The reported case: on a phone the portrait ran the full width at 4:5,
+   * taller than the screen. There it is an avatar; the portrait card starts
+   * at `sm`, in a column capped at 14rem.
+   */
+  it("keeps the portrait an avatar on a phone and caps its column", () => {
+    const { container } = render(
+      <AboutView
+        identity={identity({
+          show_profile_picture: true,
+          profile_picture_url: "https://example.com/a.png",
+        })}
+      />,
+    );
+    expect(container.querySelector("img")).toHaveClass("size-20", "sm:w-full");
+    expect(container.firstElementChild).toHaveClass(
+      "lg:grid-cols-[14rem_minmax(0,1fr)]",
+    );
+  });
+
   it("opens the bio on its first paragraph, set larger", () => {
     render(
       <AboutView

@@ -5,7 +5,7 @@ import { FeedEnd } from "./feed-end";
 /**
  * Two things are asserted, and the second is the one that will break.
  *
- * `font-tahu` swaps the family and nothing else. `typography.css` is unlayered
+ * `font-caveat` swaps the family and nothing else. `typography.css` is unlayered
  * — it beats `@layer base` — and sets `font-weight: var(--heading-weight)`,
  * 700 to 800 depending on the preset, on every bare heading. A handwriting
  * face at that weight closes its strokes up and smears. `font-normal` is
@@ -22,7 +22,7 @@ describe("FeedEnd", () => {
   it("pairs the handwriting face with an explicit normal weight", () => {
     render(<FeedEnd />);
     const label = screen.getByText(/that's all for now/i);
-    expect(label.className).toContain("font-tahu");
+    expect(label.className).toContain("font-caveat");
     expect(label.className).toContain("font-normal");
   });
 

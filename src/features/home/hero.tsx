@@ -19,12 +19,8 @@ import { StatusPanel } from "./status-panel";
 const ROTATE_MS = 3200;
 
 /**
- * The name, rising word by word out of a mask.
- *
- * Each word travels up from behind its own clipped line, which is what makes
- * it read as type being set rather than as a block fading in. The words stay
- * real text separated by real spaces, so the heading's accessible name is the
- * name — not a list of fragments.
+ * The name, rising word by word out of a mask. The words stay real text
+ * separated by real spaces, so the heading's accessible name is the name.
  */
 function AnimatedName({ name }: { name: string }) {
   const reduceMotion = useReducedMotion();
@@ -72,8 +68,6 @@ function RotatingTitle({ title }: { title: string }) {
 
   if (parts.length === 0) return null;
 
-  // With reduced motion the rotation still happens — it carries content — but
-  // it crossfades in place instead of travelling.
   return (
     <span className="relative inline-block text-primary">
       <AnimatePresence mode="wait" initial={false}>
@@ -92,7 +86,6 @@ function RotatingTitle({ title }: { title: string }) {
   );
 }
 
-/** Availability, as a soft pill with a live pulse. */
 function AvailabilityPill({ label }: { label: string }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-micro font-medium text-primary">
@@ -105,17 +98,13 @@ function AvailabilityPill({ label }: { label: string }) {
   );
 }
 
-/**
- * The owner's channels, as round icon buttons.
- *
- * Labelled chips sat beside two call-to-action buttons as a third row of
- * buttons competing with them. As icons they read as a signature under the
- * actions, and each still carries its name for screen readers and on hover.
- */
+/** The owner's channels, as named round icon buttons. */
 function SocialRow({
   links,
+  className,
 }: {
   links: { id: string; label: string; url: string; is_visible?: boolean }[];
+  className?: string;
 }) {
   const visible = links
     .filter((link) => link.is_visible !== false)
@@ -124,7 +113,10 @@ function SocialRow({
   if (visible.length === 0) return null;
 
   return (
-    <ul className="flex flex-wrap items-center gap-2" aria-label="Elsewhere">
+    <ul
+      className={cn("flex flex-wrap items-center gap-2", className)}
+      aria-label="Elsewhere"
+    >
       {visible.map((link) => {
         const Icon = socialIcon(link.id);
         const external = !isInternalUrl(link.href);
@@ -153,6 +145,25 @@ function SocialRow({
   );
 }
 
+function Actions({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex flex-wrap items-center gap-3", className)}>
+      <Button asChild size="lg" className="group rounded-full px-7">
+        <Link href="/contact">
+          Get in touch
+          <ArrowRight
+            aria-hidden
+            className="ml-2 size-4 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 motion-reduce:transition-none"
+          />
+        </Link>
+      </Button>
+      <Button asChild size="lg" variant="outline" className="rounded-full px-7">
+        <Link href="/projects">See my work</Link>
+      </Button>
+    </div>
+  );
+}
+
 function HeroSkeleton() {
   return (
     <Band weight="feature" aria-busy>
@@ -173,14 +184,7 @@ function HeroSkeleton() {
   );
 }
 
-/**
- * The identity band.
- *
- * One descending path on the left — availability, the name at display size,
- * the rotating role, the description, then what to do: a primary action, a
- * secondary one, and the owner's channels as a quiet signature beneath. The
- * status panel on the right is the only elevated object on the band.
- */
+/** The identity band. */
 export function Hero() {
   const { data: identity, isLoading } = useGetSiteIdentityQuery();
 
@@ -191,6 +195,21 @@ export function Hero() {
 /**
  * The band itself, over identity passed in rather than fetched, so the
  * settings preview renders the real hero against unsaved form values.
+ *
+ * **Two compositions, chosen by what exists** — never one composition with a
+ * hole in it.
+ *
+ *  - **With the status panel**: the asymmetric two-column band. One descending
+ *    path on the left; the panel, the only raised object on the band, beside
+ *    it.
+ *  - **Without it**: one centred column — the hero standing alone as a
+ *    composition. It is the one centred block on the site; everywhere else
+ *    runs down the left edge. A left column beside a void and a split row
+ *    were both tried and rejected by the owner.
+ *
+ * **The light.** It rises from above the band, behind the header, to the top
+ * of the page. It used to start at the band's own top edge with its brightest
+ * point on that edge, which drew a hard line under the header.
  */
 export function HeroView({ identity }: { identity: SiteContent }) {
   const reduceMotion = useReducedMotion();
@@ -206,86 +225,71 @@ export function HeroView({ identity }: { identity: SiteContent }) {
           transition: { duration: 0.6, ease: EASE, delay },
         };
 
-  /**
-   * The band composes from what exists rather than reserving a column for it:
-   * with the panel, the asymmetric two-column band; without it, one column
-   * across the band's full measure. A grid naming two columns is a promise
-   * that both exist.
-   */
   const showPanel = Boolean(panel.show);
+
+  const availability = panel.availability && (
+    <motion.div {...rise(0)}>
+      <AvailabilityPill label={panel.availability} />
+    </motion.div>
+  );
+  const role = Boolean(profile_data.title?.trim()) && (
+    <motion.p {...rise(0.3)} className="t-title text-balance">
+      <RotatingTitle title={profile_data.title} />
+    </motion.p>
+  );
+  const details = (
+    <>
+      {profile_data.description && (
+        <motion.div
+          {...rise(0.4)}
+          className="t-lead max-w-prose text-pretty [&_p]:m-0"
+        >
+          <Markdown>{profile_data.description}</Markdown>
+        </motion.div>
+      )}
+      <motion.div {...rise(0.5)}>
+        <Actions />
+      </motion.div>
+      <motion.div {...rise(0.6)}>
+        <SocialRow links={social_links ?? []} />
+      </motion.div>
+    </>
+  );
 
   return (
     <Band
       weight="feature"
       aria-labelledby="hero-name"
-      className="relative isolate overflow-hidden"
+      className="relative isolate"
     >
-      {/* A soft light from the top-left, in the theme's own colour. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[40rem] bg-[radial-gradient(55%_60%_at_15%_0%,hsl(var(--primary)/0.14),transparent_70%)]"
+        className={cn(
+          "pointer-events-none absolute inset-x-0 -top-48 -z-10 h-[52rem]",
+          showPanel
+            ? "bg-[radial-gradient(55%_50%_at_20%_30%,hsl(var(--primary)/0.13),transparent_72%)]"
+            : "bg-[radial-gradient(50%_50%_at_50%_30%,hsl(var(--primary)/0.14),transparent_72%)]",
+        )}
       />
 
-      <div
-        className={cn(
-          "grid gap-16",
-          showPanel && "lg:grid-cols-[1.35fr_1fr] lg:items-center",
-        )}
-      >
-        <div className="flex min-w-0 flex-col items-start gap-7">
-          {panel.availability && (
-            <motion.div {...rise(0)}>
-              <AvailabilityPill label={panel.availability} />
-            </motion.div>
-          )}
-
-          <div className="min-w-0">
-            <h1
-              id="hero-name"
-              className="t-display text-balance [overflow-wrap:anywhere]"
-            >
-              <AnimatedName name={profile_data.name} />
-            </h1>
-            {profile_data.title && (
-              <motion.p {...rise(0.3)} className="t-title mt-3 text-balance">
-                <RotatingTitle title={profile_data.title} />
-              </motion.p>
-            )}
+      {showPanel ? (
+        <div
+          data-composition="panel"
+          className="grid gap-16 lg:grid-cols-[1.35fr_1fr] lg:items-center"
+        >
+          <div className="flex min-w-0 flex-col items-start gap-7">
+            {availability}
+            <div className="min-w-0">
+              <h1
+                id="hero-name"
+                className="t-display text-balance [overflow-wrap:anywhere]"
+              >
+                <AnimatedName name={profile_data.name} />
+              </h1>
+              {role && <div className="mt-3">{role}</div>}
+            </div>
+            {details}
           </div>
-
-          {profile_data.description && (
-            <motion.div
-              {...rise(0.4)}
-              className="t-lead max-w-prose text-pretty [&_p]:m-0"
-            >
-              <Markdown>{profile_data.description}</Markdown>
-            </motion.div>
-          )}
-
-          <motion.div
-            {...rise(0.5)}
-            className="flex flex-wrap items-center gap-3"
-          >
-            <Button asChild size="lg" className="group rounded-full px-7">
-              <Link href="/contact">
-                Get in touch
-                <ArrowRight
-                  aria-hidden
-                  className="ml-2 size-4 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 motion-reduce:transition-none"
-                />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="rounded-full px-7">
-              <Link href="/projects">See my work</Link>
-            </Button>
-          </motion.div>
-
-          <motion.div {...rise(0.6)}>
-            <SocialRow links={social_links ?? []} />
-          </motion.div>
-        </div>
-
-        {showPanel && (
           <motion.div
             className="min-w-0"
             {...(reduceMotion
@@ -298,8 +302,44 @@ export function HeroView({ identity }: { identity: SiteContent }) {
           >
             <StatusPanel panel={panel} />
           </motion.div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /*
+          Without the panel the hero stands alone, so it centres — the one
+          place on the site that does. Everything else runs down the left
+          edge; a standalone opener with nothing beside it reads as a
+          composition rather than as a column with a void.
+        */
+        <div
+          data-composition="centered"
+          className="mx-auto flex max-w-4xl flex-col items-center gap-7 text-center"
+        >
+          {availability}
+          <div className="min-w-0">
+            <h1
+              id="hero-name"
+              className="font-heading text-[clamp(2.75rem,1.6rem+5vw,6rem)] font-bold leading-[1.02] tracking-tighter text-balance [overflow-wrap:anywhere]"
+            >
+              <AnimatedName name={profile_data.name} />
+            </h1>
+            {role && <div className="mt-4">{role}</div>}
+          </div>
+          {profile_data.description && (
+            <motion.div
+              {...rise(0.4)}
+              className="t-lead mx-auto max-w-prose text-pretty [&_p]:m-0"
+            >
+              <Markdown>{profile_data.description}</Markdown>
+            </motion.div>
+          )}
+          <motion.div {...rise(0.5)}>
+            <Actions className="justify-center" />
+          </motion.div>
+          <motion.div {...rise(0.6)}>
+            <SocialRow links={social_links ?? []} className="justify-center" />
+          </motion.div>
+        </div>
+      )}
     </Band>
   );
 }

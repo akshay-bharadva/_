@@ -30,7 +30,7 @@ module.exports = {
           "IBM Plex Mono",
           "monospace",
         ],
-        tahu: ["var(--font-tahu)", "sans-serif"],
+        caveat: ["var(--font-caveat)", "Caveat", "cursive"],
         handwriting: ["Caveat", "cursive"],
       },
       colors: {

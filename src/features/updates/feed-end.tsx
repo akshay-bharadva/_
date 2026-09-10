@@ -6,7 +6,7 @@
  * as the dashboard's "nothing is waiting" panel, which exists because an empty
  * region reads as a broken one.
  *
- * Set in the handwriting face to match the card titles, and at `text-xl`
+ * Set in the handwriting face (Caveat) to match the card titles, and at `text-xl`
  * rather than the metadata sizes around it: a script face carries much less
  * ink per pixel than the UI face, so the small sizes that work for a sans
  * label are unreadable here. `font-normal` is load-bearing for the same reason
@@ -21,7 +21,7 @@ export function FeedEnd({ label = "that's all for now" }: { label?: string }) {
   return (
     <div className="mt-16 flex items-center justify-center gap-4" role="note">
       <span aria-hidden className="h-px w-12 bg-border sm:w-20" />
-      <p className="font-tahu text-xl font-normal leading-none text-muted-foreground">
+      <p className="font-caveat text-xl font-normal leading-none text-muted-foreground">
         {label}
       </p>
       <span aria-hidden className="h-px w-12 bg-border sm:w-20" />

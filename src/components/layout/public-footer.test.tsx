@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SITE_IDENTITY_DEFAULTS } from "@/lib/site-identity-defaults";
 import type { SiteContent } from "@/types";
-import { FooterView, wordmarkSize } from "./public-footer";
+import { FooterView, fitFontSize } from "./public-footer";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -79,10 +79,15 @@ describe("FooterView", () => {
     expect(mark).toHaveAttribute("aria-hidden", "true");
   });
 
-  /** A long name must shrink to the band rather than be cropped. */
-  it("sizes the wordmark by its length", () => {
-    expect(wordmarkSize("ada")).toBe("min(11rem, 23.33vw)");
-    expect(wordmarkSize("a".repeat(20))).toBe("min(11rem, 7.00vw)");
+  /**
+   * Fitted by measurement, not guessed from the character count: the guess
+   * cropped "akshay.dev" and left a short name filling part of the band.
+   */
+  it("fits the wordmark to the band from one measurement", () => {
+    expect(fitFontSize(500, 1000, 100)).toBe(197);
+    expect(fitFontSize(2000, 1000, 100)).toBe(49.25);
+    expect(fitFontSize(0, 1000, 100)).toBeNull();
+    expect(fitFontSize(500, 0, 100)).toBeNull();
   });
 
   /** The five-tap admin shortcut is behaviour, not decoration — it stays. */

@@ -271,7 +271,6 @@ const MONO_BUDGET = [
   "features/focus/focus-timer.tsx",
   "features/habits/habit-grid.tsx",
   "features/habits/habit-row.tsx",
-  "features/home/status-panel.tsx",
   "features/integrations/webhook-settings.tsx",
   "features/inventory/inventory-table.tsx",
   "features/learning/session-tracker.tsx",

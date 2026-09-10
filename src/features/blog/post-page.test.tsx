@@ -51,13 +51,10 @@ describe("PostPage", () => {
     expect(writeText).toHaveBeenCalledWith(window.location.href);
   });
 
-  it("closes on the author, with a way to get in touch", () => {
+  /** The author already opens the post; a second card at the end repeated it. */
+  it("does not repeat the author at the end", () => {
     render(<PostPage />);
-    expect(screen.getByText("Written by")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Get in touch/ })).toHaveAttribute(
-      "href",
-      "/contact",
-    );
+    expect(screen.queryByText("Written by")).toBeNull();
   });
 
   it("offers the list when there is no post", () => {

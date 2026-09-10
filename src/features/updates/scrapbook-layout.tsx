@@ -68,11 +68,11 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
         /**
          * `font-normal` is load-bearing. typography.css is unlayered and sets
          * `font-weight: var(--heading-weight)` — 700 to 800 depending on the
-         * preset — on every bare h1–h6, and `font-tahu` only swaps the family.
+         * preset — on every bare h1–h6, and `font-caveat` only swaps the family.
          * A handwriting face at 700 is a smear; the strokes close up and the
          * title stops being readable at any size.
          */
-        <h2 className="mt-2 font-tahu text-2xl font-normal leading-snug tracking-normal">
+        <h2 className="mt-2 font-caveat text-2xl font-normal leading-snug tracking-normal">
           {update.title}
         </h2>
       )}
@@ -95,13 +95,13 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
           Two things are load-bearing. `font-normal`, for the reason given on
           the title above — typography.css is unlayered and puts 700–800 on
           bare headings, and a handwriting face at that weight smears. And the
-          size: Tahu at the 0.6875rem this row used to be is genuinely
+          size: a script face at the 0.6875rem this row used to be is genuinely
           unreadable, since a script face carries far less ink per pixel than
           the UI face. Script here means *bigger*, not smaller.
         */}
         <time
           dateTime={update.created_at}
-          className="font-tahu text-base font-normal leading-none text-muted-foreground"
+          className="font-caveat text-base font-normal leading-none text-muted-foreground"
         >
           {relativeDate(update.created_at)}
         </time>
@@ -113,7 +113,7 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
             {update.tags.slice(0, 3).map((tag) => (
               <li
                 key={tag}
-                className="font-tahu text-base font-normal leading-none text-muted-foreground"
+                className="font-caveat text-base font-normal leading-none text-muted-foreground"
               >
                 #{tag}
               </li>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
@@ -66,18 +66,84 @@ export default function PublicFooter() {
   );
 }
 
+const useIsoLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 /**
- * The size of the closing wordmark, from its length.
- *
- * The name is set to run nearly the full width of the band whatever its
- * length — a short one would otherwise float small in the middle and a long
- * one would be cropped. A glyph is roughly 0.6em wide in a bold display face,
- * so `140 / length` vw lands it close to the band's measure; the ceiling
- * keeps a very short name from turning into a poster.
+ * The font size that makes a line of text exactly fill a box, from one
+ * measurement taken at a known size. A hair under the exact fit, so sub-pixel
+ * rounding never clips the last glyph.
  */
-export function wordmarkSize(text: string): string {
-  const length = Math.max(text.length, 6);
-  return `min(11rem, ${(140 / length).toFixed(2)}vw)`;
+export function fitFontSize(
+  textWidth: number,
+  boxWidth: number,
+  measuredAt: number,
+): number | null {
+  if (textWidth <= 0 || boxWidth <= 0) return null;
+  return Math.floor(((measuredAt * boxWidth) / textWidth) * 0.985 * 100) / 100;
+}
+
+/** First paint, before measurement: small enough never to clip. */
+function wordmarkFallback(text: string): string {
+  return `min(14rem, ${(110 / Math.max(text.length, 4)).toFixed(2)}vw)`;
+}
+
+/**
+ * The closing wordmark, fitted to the band by measurement.
+ *
+ * Sizing it from its character count was a guess, and it guessed wrong both
+ * ways: a bold display face has wide glyphs, so "akshay.dev" overran and lost
+ * its last letter, while a short name stopped at the ceiling and filled only
+ * part of the band. Measuring the rendered text once, at a known size, gives
+ * the exact size for this face and this width; it is refitted when the band
+ * resizes and again once web fonts finish loading.
+ */
+function Wordmark({ text }: { text: string }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [size, setSize] = useState<number | null>(null);
+
+  useIsoLayoutEffect(() => {
+    const box = boxRef.current;
+    const el = textRef.current;
+    if (!box || !el) return;
+
+    const MEASURE_AT = 100;
+    const fit = () => {
+      const previous = el.style.fontSize;
+      el.style.fontSize = `${MEASURE_AT}px`;
+      const next = fitFontSize(
+        el.getBoundingClientRect().width,
+        box.clientWidth,
+        MEASURE_AT,
+      );
+      el.style.fontSize = previous;
+      if (next !== null) setSize(next);
+    };
+
+    fit();
+    let observer: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(fit);
+      observer.observe(box);
+    }
+    void document.fonts?.ready.then(fit);
+    return () => observer?.disconnect();
+  }, [text]);
+
+  return (
+    <div ref={boxRef} className="w-full">
+      <span
+        ref={textRef}
+        aria-hidden
+        data-wordmark
+        className="pointer-events-none inline-block select-none whitespace-nowrap bg-gradient-to-b from-foreground/[0.14] via-foreground/[0.07] to-transparent bg-clip-text pb-[0.12em] font-heading font-bold leading-none tracking-tighter text-transparent"
+        style={{ fontSize: size !== null ? `${size}px` : wordmarkFallback(text) }}
+      >
+        {text}
+      </span>
+    </div>
+  );
 }
 
 /**
@@ -208,14 +274,7 @@ export function FooterView({
 
       {/* The sign-off: the name across the band, fading into the ground. */}
       <Reveal className="mt-16 sm:mt-20">
-        <p
-          aria-hidden
-          data-wordmark
-          className="pointer-events-none select-none whitespace-nowrap bg-gradient-to-b from-foreground/[0.14] via-foreground/[0.07] to-transparent bg-clip-text pb-2 font-heading font-bold leading-[0.85] tracking-tighter text-transparent"
-          style={{ fontSize: wordmarkSize(wordmark) }}
-        >
-          {wordmark}
-        </p>
+        <Wordmark text={wordmark} />
       </Reveal>
 
       <div className="flex flex-col gap-4 border-t border-border/60 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import localFont from "next/font/local";
+import { Caveat } from "next/font/google";
 import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import { Provider } from "react-redux";
@@ -14,9 +14,14 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ConfirmDialogProvider } from "@/components/providers/ConfirmDialogProvider";
 import GlobalCommandPalette from "@/components/GlobalCommandPalette";
 
-const tahuFont = localFont({
-  src: "./fonts/Tahu.woff2",
-  variable: "--font-tahu",
+/**
+ * The handwriting face for Updates. Self-hosted by next/font at build time, so
+ * the static export serves it from the site's own origin with no request to
+ * Google at runtime. It replaced Tahu, which nothing uses any more.
+ */
+const caveatFont = Caveat({
+  subsets: ["latin"],
+  variable: "--font-caveat",
   display: "swap",
 });
 
@@ -42,7 +47,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <ConfirmDialogProvider>
             <ThemeSync>
               {/* Font-variable carrier only — page landmarks live in the route layouts. */}
-              <div className={tahuFont.variable}>
+              <div className={caveatFont.variable}>
                 <LearningSessionManager />
                 {children}
                 <GlobalCommandPalette />

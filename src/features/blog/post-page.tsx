@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { ArrowLeft, ArrowRight, Check, Link2, Linkedin, Twitter } from "lucide-react";
+import { ArrowLeft, Check, Link2, Linkedin, Twitter } from "lucide-react";
 import { toast } from "sonner";
 import {
   useGetBlogPostBySlugQuery,
@@ -127,7 +127,6 @@ export function PostPage() {
   const avatar = author?.show_profile_picture
     ? safeImageUrl(author.profile_picture_url)
     : null;
-  const role = author?.title?.split("|")[0]?.trim();
   const cover = safeImageUrl(post.cover_image_url);
   const published = post.published_at
     ? new Date(post.published_at).toLocaleDateString("en-US", {
@@ -249,7 +248,7 @@ export function PostPage() {
               <PostContent content={post.content ?? ""} />
             </div>
 
-            <footer className="mt-16 space-y-10">
+            <footer className="mt-16">
               <div className="flex flex-wrap items-center justify-between gap-6 border-t border-border/60 pt-8">
                 {tags.length > 0 ? (
                   <ul className="flex flex-wrap gap-2" aria-label="Topics">
@@ -303,37 +302,6 @@ export function PostPage() {
                 </div>
               </div>
 
-              {/* The page closes on the person who wrote it. */}
-              {author?.name && (
-                <div className="flex flex-col gap-5 rounded-surface bg-card p-6 shadow-e1 sm:flex-row sm:items-center sm:p-8">
-                  {avatar && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={avatar}
-                      alt=""
-                      className="size-16 shrink-0 rounded-full object-cover"
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="t-micro">Written by</p>
-                    <p className="mt-1 font-heading text-lg font-semibold">
-                      {author.name}
-                    </p>
-                    {role && (
-                      <p className="text-sm text-muted-foreground">{role}</p>
-                    )}
-                  </div>
-                  <Button asChild variant="outline" className="group rounded-full">
-                    <Link href="/contact">
-                      Get in touch
-                      <ArrowRight
-                        aria-hidden
-                        className="ml-2 size-4 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 motion-reduce:transition-none"
-                      />
-                    </Link>
-                  </Button>
-                </div>
-              )}
             </footer>
           </article>
 
