@@ -2,45 +2,83 @@
 
 import { useState } from "react";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { GitFork, Star } from "lucide-react";
+import { ArrowUpRight, CloudOff, FolderGit2, GitFork, Star } from "lucide-react";
 import {
   useGetGitHubReposQuery,
   useGetSiteIdentityQuery,
 } from "@/store/api/publicApi";
 import type { GitHubRepo } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Stagger, StaggerItem } from "@/components/layout/motion";
+import { safeLinkUrl } from "@/lib/safe-url";
 
+/**
+ * One repository: a mark, the name, what it does, and its numbers.
+ *
+ * The name left monospace — it is read as a name here, not character by
+ * character — and the stats use tabular figures so a row of cards lines up.
+ */
 function RepoCard({ repo }: { repo: GitHubRepo }) {
-  return (
-    <a
-      href={repo.html_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
-    >
-      <p className="truncate font-mono text-sm font-medium group-hover:text-primary">
-        {repo.name}
-      </p>
-      <p className="mt-1.5 line-clamp-2 grow text-sm text-muted-foreground">
+  const href = safeLinkUrl(repo.html_url);
+  const body = (
+    <>
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden
+          className="flex size-9 shrink-0 items-center justify-center rounded-control bg-primary/10 text-primary"
+        >
+          <FolderGit2 className="size-4" />
+        </span>
+        <p
+          className="min-w-0 flex-1 truncate pt-1.5 font-semibold transition-colors group-hover:text-primary"
+          title={repo.name}
+        >
+          {repo.name}
+        </p>
+        {href && (
+          <ArrowUpRight
+            aria-hidden
+            className="mt-2 size-4 shrink-0 text-muted-foreground transition-[transform,color] duration-200 ease-enter group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transition-none"
+          />
+        )}
+      </div>
+      <p className="mt-3 line-clamp-2 grow text-sm leading-relaxed text-muted-foreground">
         {repo.description ?? "No description"}
       </p>
-      <div className="mt-3 flex items-center gap-4 font-mono text-xs text-muted-foreground">
+      <div className="mt-4 flex items-center gap-4 text-xs tabular-nums text-muted-foreground">
         {repo.language && (
           <span className="flex items-center gap-1.5">
             <span aria-hidden className="size-2 rounded-full bg-primary" />
             {repo.language}
           </span>
         )}
-        <span className="flex items-center gap-1">
-          <Star className="size-3" aria-hidden />
-          {repo.stargazers_count}
+        <span className="flex items-center gap-1" title="Stars">
+          <Star className="size-3.5" aria-hidden />
+          {repo.stargazers_count.toLocaleString()}
         </span>
-        <span className="flex items-center gap-1">
-          <GitFork className="size-3" aria-hidden />
-          {repo.forks_count}
+        <span className="flex items-center gap-1" title="Forks">
+          <GitFork className="size-3.5" aria-hidden />
+          {repo.forks_count.toLocaleString()}
         </span>
       </div>
+    </>
+  );
+
+  const card =
+    "group flex h-full flex-col rounded-surface bg-card p-5 shadow-e1";
+
+  return href ? (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${card} transition-[box-shadow,transform] duration-200 ease-enter hover:-translate-y-0.5 hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:hover:translate-y-0`}
+    >
+      {body}
     </a>
+  ) : (
+    <div className={card}>{body}</div>
   );
 }
 
@@ -75,9 +113,9 @@ export function RepoGrid() {
 
   if (isLoading || isIdentityLoading || !identity) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-busy>
         {Array.from({ length: Math.min(perPage, 6) }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-surface" />
+          <Skeleton key={i} className="h-40 rounded-surface" />
         ))}
       </div>
     );
@@ -87,37 +125,53 @@ export function RepoGrid() {
 
   if (isError || !repos?.length) {
     return (
-      <p className="t-micro">
-        <span aria-hidden>▲ </span>
-        Could not load repositories from GitHub right now.
-      </p>
+      <div className="flex items-center gap-4 rounded-surface bg-card p-5 shadow-e1">
+        <span
+          aria-hidden
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+        >
+          <CloudOff className="size-4" />
+        </span>
+        <p className="text-sm text-muted-foreground">
+          Repositories couldn&apos;t be loaded from GitHub right now.
+        </p>
+      </div>
     );
   }
 
   return (
     <div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Stagger className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {repos.slice(0, shown).map((repo) => (
-          <RepoCard key={repo.id} repo={repo} />
+          <StaggerItem key={repo.id}>
+            <RepoCard repo={repo} />
+          </StaggerItem>
         ))}
-      </div>
-      <div className="mt-6 flex flex-wrap items-center gap-4">
+      </Stagger>
+      <div className="mt-8 flex flex-wrap items-center gap-3">
         {shown < repos.length && (
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            className="rounded-full"
             onClick={() => setVisibleCount(shown + perPage)}
-            className="rounded-md border px-4 py-2 font-mono text-xs transition-shadow duration-200 ease-enter hover:shadow-e2 hover:text-primary"
           >
-            Load more ({repos.length - shown})
-          </button>
+            Load more
+            <span className="ml-1.5 text-muted-foreground">
+              {repos.length - shown}
+            </span>
+          </Button>
         )}
         <a
-          href={`https://github.com/${config.username}?tab=repositories`}
+          href={`https://github.com/${encodeURIComponent(config.username)}?tab=repositories`}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono text-xs text-primary underline-offset-4 hover:underline"
+          className="group inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          View all on GitHub →
+          View all on GitHub
+          <ArrowUpRight
+            aria-hidden
+            className="size-4 transition-transform duration-200 ease-enter group-hover:-translate-y-0.5 group-hover:translate-x-0.5 motion-reduce:transition-none"
+          />
         </a>
       </div>
     </div>

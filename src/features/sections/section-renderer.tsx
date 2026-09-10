@@ -144,7 +144,7 @@ export default function SectionRenderer({
         {process.env.NODE_ENV !== "production" &&
           section.type !== "markdown" &&
           !isKnownLayout(section.layout_style) && (
-            <p className="mt-2 rounded border border-dashed border-destructive/40 bg-destructive/5 px-2 py-1 font-mono text-xs text-destructive">
+            <p className="mt-2 rounded border border-dashed border-destructive/40 bg-destructive/5 px-2 py-1 text-xs font-medium text-destructive">
               Unknown layout_style &quot;{section.layout_style}&quot; — falling
               back to Default List.
             </p>

@@ -62,7 +62,7 @@ export function UpdatesPage() {
         <div className="relative w-full sm:max-w-xs">
           <Search
             aria-hidden
-            className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             type="search"
@@ -70,7 +70,7 @@ export function UpdatesPage() {
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Search updates…"
             aria-label="Search updates"
-            className="pl-9"
+            className="h-11 rounded-full bg-card pl-11 shadow-e1"
           />
         </div>
 

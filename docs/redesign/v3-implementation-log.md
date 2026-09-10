@@ -1406,6 +1406,52 @@ pages compile, not how the layouts look. The production build could not be
 checked either: a `next dev` on port 3000 shares `.next` and collides with
 `next build`.
 
+## Every public page, redesigned
+
+The section pass left the frame untouched, and the owner asked for every
+public component, from `/` outward, to the standard of a top product team.
+Done route by route in five commits.
+
+**Chrome.** The header is a translucent pill that thickens and rises once
+content scrolls under it; the active page is one shared pill that travels
+between links (`layoutId`), not a colour swap; the phone menu is a floating
+sheet that closes on navigation and Escape. The footer is a floating panel
+that answers the header — identity, the site's pages, channels, copyright and
+Back to top — and takes `links` as an optional prop so the settings preview
+still composes from what it is given. `PageHeader` arrives in three beats at
+display size. The 404 offers the site's own pages, not only "home". The
+maintenance screen says "Back shortly", not "status: maintenance".
+
+**Home, About, Contact.** The hero's name rises word by word from a mask while
+staying one accessible name; it gained the primary and secondary actions it
+never had, with channels as named round icon buttons. About is an editorial
+spread: a portrait card beside the bio, which opens on a larger first
+paragraph. Contact puts the form in a raised card and says under each channel
+where a tap lands.
+
+**Blog.** The newest post leads as a featured card while browsing and steps
+aside while filtering; tag chips come from the posts and `?tag=` arrives
+pressed. A post opens on "All posts", its first topic and a large title, and
+closes on share (X, LinkedIn, copy link) and an author card.
+
+**Updates and repositories.** The journal timeline holds each month beside its
+entries; the repository grid got cards, tabular stats and an outline "Load
+more".
+
+**Security, found on the way.** The About portrait, Updates images and
+repository links reached `src`/`href` without the allowlist. All now go
+through `safeImageUrl` / `safeLinkUrl`, each with a test.
+
+**Ratchets tightened.** Seven more files left the monospace budget; the
+dotted `hr` in `globals.css` — a v2 rule the class gate could not see — is
+solid; code blocks and images lost their borders. The motion primitives moved
+to `components/layout`, because a feature may not import another's internals.
+
+**Not verified by eye.** The browser extension was not connected, and the
+production build collides with the owner's `next dev` on the shared `.next`.
+Tests, typecheck, lint and the design gates pass, and every new test was
+watched failing against a seeded bug.
+
 ## Follow-up
 
 **The watchlist was built**, in two tiers. Crypto is priced live with no key

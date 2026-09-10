@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { skipToken } from "@reduxjs/toolkit/query";
-import { ChevronRight, Clock, Linkedin, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Link2, Linkedin, Twitter } from "lucide-react";
+import { toast } from "sonner";
 import {
   useGetBlogPostBySlugQuery,
   useGetSiteIdentityQuery,
   useIncrementPostViewMutation,
 } from "@/store/api/publicApi";
 import { isSupabaseConfigured } from "@/lib/config";
+import { safeImageUrl } from "@/lib/safe-url";
 import { Band } from "@/components/layout/band";
+import { Reveal } from "@/components/layout/motion";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/cn";
 import { readTime } from "./blog-list-page";
 import { ReadingProgress } from "./reading-progress";
 import { TableOfContents, useHeadings } from "./table-of-contents";
@@ -23,8 +28,7 @@ const ARTICLE_ID = "post-article";
 
 // The markdown pipeline (raw → sanitize → prism/refractor → slug) is by far the
 // heaviest thing on this route, and nothing above the article body needs it.
-// Splitting it lets the breadcrumb, title and cover image paint on the light
-// chunk; the preload below keeps the fetch off the critical path.
+// Splitting it lets the title and cover paint on the light chunk.
 const PostContent = dynamic(
   () => import("./post-content").then((mod) => mod.PostContent),
   {
@@ -40,24 +44,28 @@ const PostContent = dynamic(
   },
 );
 
-function NotFoundView() {
+const ICON_BUTTON =
+  "flex size-10 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition-colors duration-200 hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+
+/** "status: 404 — post not found" was the v2 terminal voice. */
+function PostNotFound() {
   return (
-    <Band weight="content" className="text-center">
-      <p className="t-micro justify-center">
-        <span aria-hidden className="text-destructive">
-          ●{" "}
-        </span>
-        status: 404 — post not found
-      </p>
-      <h1 className="mt-4 font-heading text-4xl font-bold tracking-tight">
-        This post doesn&apos;t exist.
-      </h1>
-      <Link
-        href="/blog"
-        className="mt-8 inline-block rounded-md border bg-card px-4 py-2 font-mono text-xs transition-shadow duration-200 ease-enter hover:shadow-e2 hover:text-primary"
-      >
-        ← All posts
-      </Link>
+    <Band weight="feature">
+      <div className="mx-auto flex max-w-xl flex-col items-center text-center">
+        <p className="t-eyebrow">Post not found</p>
+        <h1 className="t-title mt-4 text-balance">
+          This post doesn&apos;t exist.
+        </h1>
+        <p className="t-lead mt-4 text-pretty">
+          It may have been unpublished, or the link may be mistyped.
+        </p>
+        <Button asChild size="lg" className="mt-10 rounded-full px-7">
+          <Link href="/blog">
+            <ArrowLeft className="mr-2 size-4" aria-hidden />
+            All posts
+          </Link>
+        </Button>
+      </div>
     </Band>
   );
 }
@@ -73,13 +81,13 @@ export function PostPage() {
   } = useGetBlogPostBySlugQuery(slug || skipToken);
   const { data: identity } = useGetSiteIdentityQuery();
   const [incrementView] = useIncrementPostViewMutation();
+  const [copied, setCopied] = useState(false);
 
   // Owned by the page, not the rail: the layout has to know whether a table of
   // contents will render before it decides how wide the article is.
   const { headings, activeId } = useHeadings(ARTICLE_ID);
 
-  // Warm the markdown chunk alongside the post query rather than after it, so
-  // the code split doesn't serialize two round trips before the body appears.
+  // Warm the markdown chunk alongside the post query rather than after it.
   useEffect(() => {
     void import("./post-content");
   }, []);
@@ -96,19 +104,31 @@ export function PostPage() {
     return () => clearTimeout(timer);
   }, [post, incrementView]);
 
-  if (!slug || isError) return <NotFoundView />;
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  if (!slug || isError) return <PostNotFound />;
 
   if (isLoading || !post) {
     return (
       <Band weight="content" width="prose" aria-busy>
-        <Skeleton className="h-4 w-40" />
-        <Skeleton className="mt-5 h-12 w-3/4" />
-        <Skeleton className="mt-8 h-64 w-full rounded-surface" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="mt-8 h-14 w-3/4" />
+        <Skeleton className="mt-6 h-5 w-56" />
+        <Skeleton className="mt-10 h-72 w-full rounded-surface" />
       </Band>
     );
   }
 
   const author = identity?.profile_data;
+  const avatar = author?.show_profile_picture
+    ? safeImageUrl(author.profile_picture_url)
+    : null;
+  const role = author?.title?.split("|")[0]?.trim();
+  const cover = safeImageUrl(post.cover_image_url);
   const published = post.published_at
     ? new Date(post.published_at).toLocaleDateString("en-US", {
         month: "long",
@@ -116,11 +136,11 @@ export function PostPage() {
         year: "numeric",
       })
     : "";
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
   const hasToc = post.show_toc !== false && headings.length > 0;
+  const tags = (post.tags ?? []).filter((tag) => tag.trim());
 
   const share = (network: "x" | "linkedin") => {
-    const url = encodeURIComponent(shareUrl);
+    const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(post.title);
     window.open(
       network === "x"
@@ -131,32 +151,23 @@ export function PostPage() {
     );
   };
 
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+    } catch {
+      toast.error("Couldn't copy the link");
+    }
+  };
+
   return (
     <>
       <ReadingProgress />
       <Band weight="content" width="wide">
-        <nav aria-label="Breadcrumb" className="mb-8">
-          <ol className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
-            <li>
-              <Link href="/blog" className="hover:text-primary">
-                blog
-              </Link>
-            </li>
-            <li aria-hidden>
-              <ChevronRight className="size-3" />
-            </li>
-            <li aria-current="page" className="truncate text-foreground">
-              {post.slug}
-            </li>
-          </ol>
-        </nav>
-
         {/*
           Keyed on whether a table of contents will actually render, not on the
-          `show_toc` flag alone. The rail returns null when the post has no
-          h2/h3, so keying on the flag reserved a 14rem column for nothing and
-          left the article pinned at max-w-3xl — the "content doesn't expand"
-          case.
+          `show_toc` flag alone — a rail that returns null must not reserve a
+          column the article then never widens into.
         */}
         <div
           className={
@@ -167,80 +178,162 @@ export function PostPage() {
         >
           <article id={ARTICLE_ID} className="min-w-0">
             <header>
-              <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
-                {post.title}
-              </h1>
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs text-muted-foreground">
-                {author?.show_profile_picture && author.profile_picture_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={author.profile_picture_url}
-                    alt=""
-                    className="size-6 rounded-full border object-cover"
+              <Reveal>
+                <Link
+                  href="/blog"
+                  className="group inline-flex items-center gap-1.5 rounded-full text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <ArrowLeft
+                    className="size-4 transition-transform duration-200 ease-enter group-hover:-translate-x-0.5 motion-reduce:transition-none"
+                    aria-hidden
                   />
+                  All posts
+                </Link>
+              </Reveal>
+
+              <Reveal delay={0.05}>
+                {tags[0] && <p className="t-eyebrow mt-10">{tags[0]}</p>}
+                <h1
+                  className={cn(
+                    "t-title text-balance [overflow-wrap:anywhere]",
+                    tags[0] ? "mt-3" : "mt-10",
+                  )}
+                >
+                  {post.title}
+                </h1>
+                {post.excerpt && (
+                  <p className="t-lead mt-5 text-pretty">{post.excerpt}</p>
                 )}
-                {author?.name && <span>{author.name}</span>}
-                {published && (
-                  <time dateTime={post.published_at ?? undefined}>
-                    {published}
-                  </time>
-                )}
-                <span className="flex items-center gap-1">
-                  <Clock className="size-3" aria-hidden />
-                  {readTime(post)} min read
-                </span>
-              </div>
-              {post.cover_image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={post.cover_image_url}
-                  alt=""
-                  className="mt-8 w-full rounded-surface border object-cover"
-                />
+              </Reveal>
+
+              <Reveal delay={0.1}>
+                <div className="mt-8 flex items-center gap-3">
+                  {avatar && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatar}
+                      alt=""
+                      className="size-10 rounded-full object-cover shadow-e1"
+                    />
+                  )}
+                  <div className="min-w-0 text-sm">
+                    {author?.name && (
+                      <p className="font-semibold">{author.name}</p>
+                    )}
+                    <p className="text-muted-foreground">
+                      {published && (
+                        <time dateTime={post.published_at ?? undefined}>
+                          {published}
+                        </time>
+                      )}
+                      {published && " · "}
+                      {readTime(post)} min read
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+
+              {cover && (
+                <Reveal delay={0.15}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={cover}
+                    alt=""
+                    className="mt-10 w-full rounded-surface object-cover shadow-e2"
+                  />
+                </Reveal>
               )}
-              <div className="mt-8 h-px w-16 bg-primary/40" aria-hidden />
             </header>
 
-            <PostContent content={post.content ?? ""} />
+            <div className="mt-12">
+              <PostContent content={post.content ?? ""} />
+            </div>
 
-            <footer className="mt-12 border-t pt-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                {post.tags && post.tags.length > 0 && (
-                  <ul className="flex flex-wrap gap-2">
-                    {post.tags.map((tag) => (
+            <footer className="mt-16 space-y-10">
+              <div className="flex flex-wrap items-center justify-between gap-6 border-t border-border/60 pt-8">
+                {tags.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2" aria-label="Topics">
+                    {tags.map((tag) => (
                       <li key={tag}>
                         <Link
                           href={`/blog?tag=${encodeURIComponent(tag)}`}
-                          className="rounded border bg-secondary/60 px-2 py-1 font-mono text-xs text-muted-foreground transition-shadow duration-200 ease-enter hover:shadow-e2 hover:text-primary"
+                          className="inline-flex rounded-full bg-secondary px-3.5 py-1.5 text-sm font-medium text-secondary-foreground transition-colors duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          #{tag}
+                          {tag}
                         </Link>
                       </li>
                     ))}
                   </ul>
+                ) : (
+                  <span />
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-muted-foreground">
-                    share
-                  </span>
+                  <span className="mr-1 text-sm text-muted-foreground">Share</span>
                   <button
                     type="button"
                     onClick={() => share("x")}
                     aria-label="Share on X"
-                    className="rounded-md border bg-card p-2 transition-shadow duration-200 ease-enter hover:shadow-e2 hover:text-primary"
+                    title="Share on X"
+                    className={ICON_BUTTON}
                   >
-                    <Share2 className="size-3.5" aria-hidden />
+                    <Twitter className="size-4" aria-hidden />
                   </button>
                   <button
                     type="button"
                     onClick={() => share("linkedin")}
                     aria-label="Share on LinkedIn"
-                    className="rounded-md border bg-card p-2 transition-shadow duration-200 ease-enter hover:shadow-e2 hover:text-primary"
+                    title="Share on LinkedIn"
+                    className={ICON_BUTTON}
                   >
-                    <Linkedin className="size-3.5" aria-hidden />
+                    <Linkedin className="size-4" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    aria-label={copied ? "Link copied" : "Copy link"}
+                    title={copied ? "Link copied" : "Copy link"}
+                    className={ICON_BUTTON}
+                  >
+                    {copied ? (
+                      <Check className="size-4" aria-hidden />
+                    ) : (
+                      <Link2 className="size-4" aria-hidden />
+                    )}
                   </button>
                 </div>
               </div>
+
+              {/* The page closes on the person who wrote it. */}
+              {author?.name && (
+                <div className="flex flex-col gap-5 rounded-surface bg-card p-6 shadow-e1 sm:flex-row sm:items-center sm:p-8">
+                  {avatar && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatar}
+                      alt=""
+                      className="size-16 shrink-0 rounded-full object-cover"
+                    />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="t-micro">Written by</p>
+                    <p className="mt-1 font-heading text-lg font-semibold">
+                      {author.name}
+                    </p>
+                    {role && (
+                      <p className="text-sm text-muted-foreground">{role}</p>
+                    )}
+                  </div>
+                  <Button asChild variant="outline" className="group rounded-full">
+                    <Link href="/contact">
+                      Get in touch
+                      <ArrowRight
+                        aria-hidden
+                        className="ml-2 size-4 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 motion-reduce:transition-none"
+                      />
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </footer>
           </article>
 

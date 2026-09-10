@@ -371,7 +371,7 @@ export function TableOfContents({
           <SheetTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2 rounded-full bg-card px-4 py-2.5 font-mono text-xs shadow-e3"
+              className="flex items-center gap-2 rounded-full bg-card px-4 py-2.5 text-sm font-medium shadow-e3 transition-transform duration-200 ease-enter active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 motion-reduce:transition-none"
             >
               <List className="size-4" aria-hidden />
               On this page

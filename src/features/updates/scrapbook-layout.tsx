@@ -5,6 +5,7 @@ import type { LifeUpdate } from "@/types";
 import { Markdown } from "@/components/ui/markdown";
 import { distributeColumns, useColumnCount } from "@/hooks/use-column-count";
 import { cn } from "@/lib/utils";
+import { safeImageUrl } from "@/lib/safe-url";
 import { categoryOption, PinBadge, relativeDate } from "./update-meta";
 
 /** Deterministic pseudo-random in [0, 1) from the row id — stable across renders. */
@@ -27,6 +28,8 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
   const rotation = (seed - 0.5) * 4; // −2° … 2°
   const tape = TAPE_TINTS[Math.floor(seed * TAPE_TINTS.length)];
   const option = categoryOption(update.category);
+  // Owner-entered, rendered publicly: through the image allowlist.
+  const image = safeImageUrl(update.image_url);
 
   return (
     <article
@@ -44,13 +47,13 @@ function ScrapCard({ update }: { update: LifeUpdate }) {
         )}
       />
 
-      {update.image_url && (
+      {image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={update.image_url}
+          src={image}
           alt={update.title ?? ""}
           loading="lazy"
-          className="mb-3 w-full rounded-sm border object-cover"
+          className="mb-3 w-full rounded-sm object-cover"
         />
       )}
 

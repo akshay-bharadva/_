@@ -12,7 +12,6 @@ function SectionSkeleton() {
     <div className="space-y-4">
       <div className="space-y-3">
         <Skeleton className="h-7 w-56" />
-        <Skeleton className="h-px w-full" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Skeleton className="h-28 rounded-surface" />
@@ -101,9 +100,9 @@ export function DynamicPageContent({
         )}
       >
         <FileQuestion className="mx-auto mb-3 size-8 text-muted-foreground/40" />
-        <p className="font-mono text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           No visible sections for{" "}
-          <span className="text-foreground">{pagePath}</span>
+          <span className="font-medium text-foreground">{pagePath}</span>
         </p>
         <p className="mt-1 text-xs text-muted-foreground/70">
           Check the page path and the section&apos;s visibility toggle.
