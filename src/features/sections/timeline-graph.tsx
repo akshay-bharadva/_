@@ -2,168 +2,100 @@
 
 import { useMemo } from "react";
 import type { PortfolioItem } from "@/types";
-import { GitMerge } from "lucide-react";
+import { GitBranch, GitMerge } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { buildTimeline, railsForRow, type RailState } from "./timeline-model";
+import { buildTimeline, commitHash } from "./timeline-model";
 import { ItemDates, ItemTags, Markdown, PlainText, TextLink } from "./shared";
 
 /**
- * The branching timeline.
+ * The timeline, drawn as a git log.
  *
- * **What it replaces.** A flat `<ol>` with `border-l-2 border-dotted` and a dot
- * per item — a dotted rule as a separator, which is the retired v2 grammar, and
- * a shape with no way to show that two things happened at once. Everything sat
- * on one line whether it was consecutive or concurrent.
+ * **One trunk, a commit per item.** A single branch line runs down the left;
+ * every item is a node on it, joined by a short connector to a card carrying a
+ * short hash, the dates, the title and the description. Newest first, the way
+ * a log reads.
  *
- * **What it shows now**: chronology, a lane opening when two items genuinely
- * overlapped in time, an open tip for work with no end date — and, since
- * migration 017, a **merge** where one is declared.
+ * **What replaced the lanes.** The previous version drew a column per
+ * concurrent track and elbows between them. It was accurate and hard to read —
+ * and on a phone it had to collapse to one line anyway. Concurrency is still
+ * derived from overlapping dates, but it now lives *on the commit*: a hollow
+ * node and the words "Ran alongside". A merge is still only ever the declared
+ * one (`merged_into_id`, migration 017) and is said on the card, never
+ * inferred from dates.
  *
- * The distinction between the two is the whole design. Concurrency is
- * *derived* from overlapping dates and is safe to infer. A merge is *stated*
- * via `merged_into_id`, because "these ended near each other" is a different
- * claim from "one became the other", and a graph that invents relationships is
- * worse than one that omits them. An item with no declared target simply has
- * its lane end.
+ * **Theming.** The design this follows arrived as scoped CSS with hex
+ * variables and a `prefers-color-scheme` block. Here every colour is a theme
+ * token, so the 52 presets restyle it and the dark ones need no special case —
+ * the presets already are the dark mode. The card is a fill plus an elevation
+ * with no border, per the Surface rule, and the hash is set in the body face
+ * rather than monospace, which is reserved for code.
  *
- * **Drawn in CSS, not SVG.** An SVG overlay would have to measure every row,
- * because row heights vary with description length, and then re-measure on
- * resize and on font load. Rails are per-row spans instead: a lane column
- * carries a line above and/or below its node, and a lane that opens draws a
- * short elbow back to the trunk. That gives the branch read with no
- * measurement and nothing to fall out of sync.
- *
- * **Mobile collapses to a single trunk.** Lanes at 375px are four-pixel
- * columns — the same failure mode the log records for month view — so below
- * `sm` the rails narrow to one and the lane is named on the item instead.
+ * **Drawn in CSS, not SVG.** Row heights vary with description length, so an
+ * overlay would have to measure and re-measure. The trunk is one absolutely
+ * positioned line behind the list and each row draws its own node and
+ * connector, so nothing can fall out of sync.
  */
-
-const LANE_WIDTH = "1.5rem";
-
-function Rail({
-  rail,
-  isBranch,
-  merges,
-}: {
-  rail: RailState;
-  isBranch: boolean;
-  /** Which way this row's node feeds into another lane, if it does. */
-  merges?: "left" | "right" | null;
-}) {
-  return (
-    <div className="relative w-full" aria-hidden>
-      {/* The line entering from above. */}
-      {rail.above && (
-        <span className="absolute left-1/2 top-0 h-[calc(50%-0.5rem)] w-px -translate-x-1/2 bg-border" />
-      )}
-      {/* The line continuing below. */}
-      {rail.below && (
-        <span className="absolute bottom-0 left-1/2 top-[calc(50%+0.5rem)] w-px -translate-x-1/2 bg-border" />
-      )}
-
-      {/*
-        The elbow. A lane that opens or closes is connected back toward the
-        trunk with a rounded corner, which is what makes it read as a branch
-        leaving the line rather than a second unrelated column.
-      */}
-      {isBranch && (rail.opens || rail.closes) && (
-        <span
-          className={cn(
-            "absolute right-1/2 h-3 w-[calc(100%+0.5rem)] border-border",
-            rail.opens
-              ? "top-1/2 rounded-tl-[0.75rem] border-l border-t"
-              : "bottom-1/2 rounded-bl-[0.75rem] border-b border-l",
-          )}
-          style={{ marginRight: "-1px" }}
-        />
-      )}
-
-      {/*
-        The merge arm: a stub leaving the node toward the lane it fed into.
-        Drawn as a solid line because the relationship was declared, unlike the
-        elbow that merely opens a lane.
-      */}
-      {merges && (
-        <span
-          className={cn(
-            "absolute top-1/2 h-px w-[calc(100%+0.25rem)] bg-primary/60",
-            merges === "left" ? "right-1/2" : "left-1/2",
-          )}
-        />
-      )}
-
-      {rail.node && (
-        <span
-          className={cn(
-            "absolute left-1/2 top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full",
-            rail.lane === 0
-              ? "bg-primary"
-              : "border-2 border-primary bg-background",
-          )}
-        />
-      )}
-    </div>
-  );
-}
-
 export function TimelineGraph({ items }: { items: PortfolioItem[] }) {
   const graph = useMemo(() => buildTimeline(items), [items]);
 
   if (graph.rows.length === 0) return null;
 
-  const showLanes = graph.laneCount > 1;
-
   return (
-    <ol className="relative">
-      {graph.rows.map((row, index) => {
-        const rails = railsForRow(
-          index,
-          row.lane,
-          graph.laneSpans,
-          graph.laneCount,
-        );
+    <div className="relative max-w-3xl">
+      {/* The trunk: the branch every commit sits on. */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-4 w-1 -translate-x-1/2 rounded-full bg-border sm:left-8"
+      />
 
-        const merge = graph.merges.find((edge) => edge.fromRow === index);
+      <ol className="relative flex flex-col gap-6 sm:gap-8">
+        {graph.rows.map((row, index) => {
+          const isBranch = row.lane > 0;
+          const merge = graph.merges.find((edge) => edge.fromRow === index);
+          const mergedInto = merge
+            ? graph.rows[merge.toRow]?.item.title
+            : undefined;
 
-        return (
-          <li key={row.item.id} className="flex min-w-0 gap-3 sm:gap-4">
-            {/*
-              The rail column. One lane wide on a phone whatever the graph
-              says, because parallel lanes at that width are unreadable.
-            */}
-            <div
-              className="relative flex shrink-0"
-              style={{
-                width: showLanes
-                  ? `calc(${graph.laneCount} * ${LANE_WIDTH})`
-                  : LANE_WIDTH,
-              }}
-            >
-              <div
-                className="flex w-full"
-                style={{ minHeight: "100%" }}
-                role="presentation"
-              >
-                {(showLanes ? rails : rails.slice(0, 1)).map((rail) => (
-                  <Rail
-                    key={rail.lane}
-                    rail={showLanes ? rail : { ...rail, node: true }}
-                    isBranch={showLanes && rail.lane > 0}
-                    merges={
-                      showLanes && merge?.fromLane === rail.lane
-                        ? merge.toLane < rail.lane
-                          ? "left"
-                          : "right"
-                        : null
-                    }
-                  />
-                ))}
-              </div>
-            </div>
+          return (
+            <li key={row.item.id} className="relative flex">
+              {/* The connector from the trunk to the card. */}
+              <span
+                aria-hidden
+                className="absolute left-4 top-3.5 h-1 w-6 bg-border sm:left-8 sm:w-[30px]"
+              />
+              {/*
+                The commit node. Solid on the trunk; hollow for work that ran
+                alongside it, which is the one fact the old lanes drew that a
+                single line otherwise could not.
+              */}
+              <span
+                aria-hidden
+                data-commit={isBranch ? "branch" : "trunk"}
+                className={cn(
+                  "absolute left-4 top-1.5 z-10 size-4 -translate-x-1/2 rounded-full ring-[3px] ring-border sm:left-8",
+                  isBranch
+                    ? "border-[3px] border-primary bg-background"
+                    : "bg-primary",
+                )}
+              />
 
-            <div className="min-w-0 flex-1 pb-8">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <h3 className="min-w-0 font-heading font-semibold [overflow-wrap:anywhere]">
+              <article className="ml-10 min-w-0 flex-1 rounded-surface bg-card p-4 shadow-e1 sm:ml-[4.375rem] sm:p-5">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-control bg-primary/10 px-1.5 py-0.5 text-xs font-semibold tabular-nums tracking-wide text-primary">
+                      {commitHash(row.item.id)}
+                    </span>
+                    {isBranch && (
+                      <span className="inline-flex items-center gap-1 text-xs">
+                        <GitBranch className="size-3" aria-hidden />
+                        Ran alongside
+                      </span>
+                    )}
+                  </span>
+                  <ItemDates from={row.item.date_from} to={row.item.date_to} />
+                </div>
+
+                <h3 className="font-heading text-lg font-semibold leading-snug [overflow-wrap:anywhere] sm:text-xl">
                   <TextLink
                     href={row.item.link_url}
                     className="hover:text-primary"
@@ -171,48 +103,30 @@ export function TimelineGraph({ items }: { items: PortfolioItem[] }) {
                     {row.item.title}
                   </TextLink>
                 </h3>
-                <ItemDates from={row.item.date_from} to={row.item.date_to} />
-              </div>
 
-              <PlainText className="text-sm text-muted-foreground" clamp={2}>
-                {row.item.subtitle}
-              </PlainText>
+                <PlainText
+                  className="mt-0.5 text-sm text-muted-foreground"
+                  clamp={2}
+                >
+                  {row.item.subtitle}
+                </PlainText>
 
-              {/*
-                On a phone the lanes are collapsed, so concurrency has to be
-                said rather than drawn. Only for branch lanes: labelling the
-                trunk "Track 1" on every item would be noise.
-              */}
-              {showLanes && row.lane > 0 && (
-                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2 py-0.5 text-[0.6875rem] font-medium text-primary sm:hidden">
-                  Ran alongside
-                </p>
-              )}
+                {mergedInto && (
+                  <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <GitMerge className="size-3.5" aria-hidden />
+                    Merged into {mergedInto}
+                  </p>
+                )}
 
-              {/*
-                A merge is said as well as drawn.
-                
-                The elbow in the rail is easy to miss and disappears entirely
-                when the lanes collapse on a phone, and this is the one
-                relationship on the graph that was explicitly declared rather
-                than inferred — it should not be the one thing only visible at
-                one breakpoint.
-              */}
-              {merge && (
-                <p className="mt-1.5 inline-flex items-center gap-1.5 text-[0.6875rem] font-medium text-muted-foreground">
-                  <GitMerge className="size-3" aria-hidden />
-                  Fed into {graph.rows[merge.toRow]?.item.title}
-                </p>
-              )}
-
-              <Markdown className="mt-2 text-muted-foreground">
-                {row.item.description}
-              </Markdown>
-              <ItemTags tags={row.item.tags} className="mt-2.5" max={8} />
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+                <Markdown className="mt-2 text-muted-foreground">
+                  {row.item.description}
+                </Markdown>
+                <ItemTags tags={row.item.tags} className="mt-3" max={8} />
+              </article>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

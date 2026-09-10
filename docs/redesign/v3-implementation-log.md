@@ -1334,6 +1334,31 @@ often than a second.
 - The zero-config site shows three correctly attributed lines from
   `MOCK_HIGHLIGHTS`, picked with the injectable `pickRandom`.
 
+## Timeline, redrawn as a git log
+
+The owner found the multi-lane graph hard to read and supplied a git-log
+design: one trunk, a node per item, a short connector, and a card with a hash,
+the dates, the title and the description. `TimelineGraph` now draws that.
+
+- **Lanes went; concurrency stayed.** Overlap is still derived by
+  `buildTimeline`, but it is shown on the commit — a hollow node and "Ran
+  alongside" — at every width, rather than as columns that collapsed on a
+  phone anyway. `railsForRow` existed only to draw lanes and was removed with
+  its tests.
+- **Merges are still only the declared ones**, said on the card as "Merged
+  into …".
+- **The hash is real and stable**: a UUID's first seven hex digits, or FNV-1a
+  of any other id. A hash that changed between visits would read as a
+  different commit.
+- **Adapted, not pasted.** The design arrived as scoped CSS with hex variables,
+  a `prefers-color-scheme` block, a bordered-and-shadowed card, a monospace
+  red hash, and an `innerHTML` template that would have rendered CMS text as
+  markup. Here: theme tokens only (the presets are the dark mode), a fill plus
+  elevation with no border, the hash in the body face on a primary tint, and
+  React text nodes. The marker is a solid dot with a `ring-border` ring rather
+  than the design's card-coloured gap, because a band's fill is not a token
+  the marker can match.
+
 ## Follow-up
 
 **The watchlist was built**, in two tiers. Crypto is priced live with no key

@@ -322,61 +322,22 @@ export function buildTimeline<T extends DatedFields>(
   };
 }
 
-export interface RailState {
-  lane: number;
-  /** A line continues upward out of this row. */
-  above: boolean;
-  /** A line continues downward out of this row. */
-  below: boolean;
-  /** This row's own node sits in this lane. */
-  node: boolean;
-  /**
-   * The lane opens here — drawn as a branch leaving the trunk rather than a
-   * line arriving from off-screen.
-   */
-  opens: boolean;
-  /** The lane closes here, rejoining the trunk. */
-  closes: boolean;
-}
-
 /**
- * What to draw in each lane column for one row.
+ * A short identifier for a row, shown the way a commit log shows a hash.
  *
- * Kept separate from the component because it is the part with rules in it.
- * The renderer only turns booleans into spans.
+ * Derived from the item's id, so it is the same on every visit and in every
+ * build — a hash that changed on reload would read as a different commit. A
+ * UUID gives its first seven hex digits; anything else (the zero-config
+ * fallback's ids are not UUIDs) is digested with FNV-1a.
  */
-export function railsForRow(
-  rowIndex: number,
-  rowLane: number,
-  laneSpans: LaneSpan[],
-  laneCount: number,
-): RailState[] {
-  const rails: RailState[] = [];
+export function commitHash(id: string): string {
+  const hex = id.replace(/-/g, "").toLowerCase();
+  if (/^[0-9a-f]{7,}$/.test(hex)) return hex.slice(0, 7);
 
-  for (let lane = 0; lane < laneCount; lane++) {
-    const span = laneSpans.find((candidate) => candidate.lane === lane);
-    if (!span) {
-      rails.push({
-        lane,
-        above: false,
-        below: false,
-        node: false,
-        opens: false,
-        closes: false,
-      });
-      continue;
-    }
-
-    const inside = rowIndex >= span.firstRow && rowIndex <= span.lastRow;
-    rails.push({
-      lane,
-      above: inside && rowIndex > span.firstRow,
-      below: inside && rowIndex < span.lastRow,
-      node: rowLane === lane,
-      opens: lane > 0 && rowIndex === span.firstRow,
-      closes: lane > 0 && rowIndex === span.lastRow,
-    });
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
   }
-
-  return rails;
+  return hash.toString(16).padStart(8, "0").slice(0, 7);
 }

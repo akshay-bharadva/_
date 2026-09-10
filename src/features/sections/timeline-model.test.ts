@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
   buildTimeline,
+  commitHash,
   isOngoingWord,
   parseTimelinePoint,
-  railsForRow,
 } from "./timeline-model";
 
 const NOW = Date.UTC(2026, 8, 1);
@@ -157,51 +157,17 @@ describe("buildTimeline", () => {
   });
 });
 
-describe("railsForRow", () => {
-  const spans = [
-    { lane: 0, firstRow: 0, lastRow: 3 },
-    { lane: 1, firstRow: 1, lastRow: 2 },
-  ];
-
-  it("draws the trunk through every row", () => {
-    expect(railsForRow(1, 0, spans, 2)[0]).toMatchObject({
-      above: true,
-      below: true,
-      node: true,
-    });
+describe("commitHash", () => {
+  it("takes a UUID's first seven hex digits", () => {
+    expect(commitHash("3F2A9C1E-5B6D-4E7F-8091-A2B3C4D5E6F7")).toBe("3f2a9c1");
   });
 
-  it("opens a branch at the lane's first row and closes it at the last", () => {
-    expect(railsForRow(1, 1, spans, 2)[1]).toMatchObject({
-      opens: true,
-      closes: false,
-      below: true,
-      above: false,
-    });
-    expect(railsForRow(2, 1, spans, 2)[1]).toMatchObject({
-      opens: false,
-      closes: true,
-      above: true,
-      below: false,
-    });
-  });
-
-  it("draws nothing in a lane the row is outside of", () => {
-    expect(railsForRow(3, 0, spans, 2)[1]).toMatchObject({
-      above: false,
-      below: false,
-      node: false,
-    });
-  });
-
-  /**
-   * The trunk is not a branch. Marking it as opening would draw a connector
-   * curving out of nothing at the top of every timeline.
-   */
-  it("never marks the trunk as opening or closing", () => {
-    const first = railsForRow(0, 0, spans, 2)[0];
-    expect(first.opens).toBe(false);
-    expect(first.closes).toBe(false);
+  /** The zero-config fallback's ids are not UUIDs, and still need one. */
+  it("digests any other id to seven stable hex digits", () => {
+    const hash = commitHash("mock-exp-1");
+    expect(hash).toMatch(/^[0-9a-f]{7}$/);
+    expect(commitHash("mock-exp-1")).toBe(hash);
+    expect(commitHash("mock-exp-2")).not.toBe(hash);
   });
 });
 

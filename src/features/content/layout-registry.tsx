@@ -39,7 +39,7 @@ export const LAYOUT_OPTIONS = [
     label: "Timeline",
     icon: Clock,
     group: "Basic",
-    description: "Vertical timeline with dot markers and cards",
+    description: "A git log: one branch line, a commit card per item",
   },
   {
     value: "grid-2-col",
