@@ -1,272 +1,382 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { ArrowUpRight, Check, Quote } from "lucide-react";
 import type { PortfolioItem } from "@/types";
+import { safeImageUrl } from "@/lib/safe-url";
+import { cn } from "@/lib/cn";
+import { CountUp, Reveal, Stagger, StaggerItem } from "./motion";
+import { timelineDuration } from "./timeline-model";
+import { useNow } from "./use-now";
 import {
+  CARD,
   ItemDates,
   ItemImage,
   ItemTags,
   Markdown,
+  Monogram,
   PlainText,
   TextLink,
+  isLinkable,
 } from "./shared";
 
 type LayoutProps = { items: PortfolioItem[] };
 
-/** Long-form proof of work — hero image, context, markdown body, outcome tags. */
-export function CaseStudyLayout({ items }: LayoutProps) {
+/** De-duplicated, non-blank tags — for layouts where tags are content. */
+function cleanTags(tags?: string[] | null): string[] {
+  return Array.from(
+    new Set((tags ?? []).map((t) => t?.trim()).filter((t): t is string => !!t)),
+  );
+}
+
+function Meta({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="space-y-16">
-      {items.map((item) => (
-        <article
-          key={item.id}
-          className="overflow-hidden rounded-surface bg-card shadow-e1"
-        >
-          {/*
-            The hero is only rendered when there is a real image. Unlike the
-            grid layouts, a case study without one reads fine as a text block —
-            forcing a placeholder here would waste 320px above the fold.
-          */}
-          {item.image_url && (
-            <ItemImage
-              src={item.image_url}
-              alt={item.title}
-              className="max-h-80 w-full border-b object-cover"
-            />
-          )}
-          <div className="min-w-0 p-6 sm:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h3 className="min-w-0 font-heading text-xl font-bold tracking-tight [overflow-wrap:anywhere]">
-                {item.title}
-              </h3>
-              <ItemDates
-                from={item.date_from}
-                to={item.date_to}
-                className="mt-1.5"
-              />
-            </div>
-            <PlainText className="mt-1 text-sm text-muted-foreground" clamp={2}>
-              {item.subtitle}
-            </PlainText>
-            <Markdown className="mt-4 text-muted-foreground">
-              {item.description}
-            </Markdown>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-              <ItemTags tags={item.tags} max={10} />
-              {/*
-                FIX: this used a raw <a href={item.link_url}>. `link_url` is
-                unconstrained TEXT and the seed stores javascript: values in it,
-                so it now goes through TextLink's allowlist. An unsafe value
-                renders as plain text instead of a live anchor.
-              */}
-              {item.link_url && (
-                <TextLink
-                  href={item.link_url}
-                  className="shrink-0 font-mono text-xs text-primary underline-offset-4 hover:underline"
-                >
-                  View project →
-                </TextLink>
-              )}
-            </div>
-          </div>
-        </article>
-      ))}
+    <div>
+      <p className="t-micro">{label}</p>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
 
-/** What-you-offer tiles — tags render as a checklist. */
+/**
+ * Long-form proof of work: a wide hero, then the story beside a rail of facts
+ * — when, the stack, and the way in.
+ *
+ * The hero renders only for a real image. A case study without one reads fine
+ * as text, and a placeholder would waste the top of the card. The project link
+ * goes through `TextLink`'s allowlist; `link_url` is unconstrained TEXT and
+ * the seed stores `javascript:` values in it.
+ */
+export function CaseStudyLayout({ items }: LayoutProps) {
+  return (
+    <div className="space-y-10">
+      {items.map((item) => {
+        const tags = cleanTags(item.tags);
+        const hasDates = !!(item.date_from?.trim() || item.date_to?.trim());
+        const linked = isLinkable(item.link_url);
+        const hasRail = hasDates || tags.length > 0 || linked;
+
+        return (
+          <Reveal
+            key={item.id}
+            as="article"
+            className={cn(CARD, "overflow-hidden")}
+          >
+            {safeImageUrl(item.image_url) && (
+              <ItemImage
+                src={item.image_url}
+                alt={item.title}
+                className="aspect-[21/9] w-full object-cover"
+              />
+            )}
+            <div
+              className={cn(
+                "grid gap-8 p-6 sm:p-8 lg:p-10",
+                hasRail && "md:grid-cols-[minmax(0,1fr)_14rem] md:gap-12",
+              )}
+            >
+              <div className="min-w-0">
+                {item.subtitle?.trim() && (
+                  <p className="t-eyebrow">{item.subtitle}</p>
+                )}
+                <h3 className="t-heading mt-2 [overflow-wrap:anywhere]">
+                  {item.title}
+                </h3>
+                <Markdown className="mt-5 text-base text-muted-foreground">
+                  {item.description}
+                </Markdown>
+              </div>
+
+              {hasRail && (
+                <aside className="min-w-0 space-y-6 md:border-l md:border-border/60 md:pl-8">
+                  {hasDates && (
+                    <Meta label="When">
+                      <ItemDates
+                        from={item.date_from}
+                        to={item.date_to}
+                        className="text-sm text-foreground"
+                      />
+                    </Meta>
+                  )}
+                  {tags.length > 0 && (
+                    <Meta label="Stack">
+                      <ItemTags tags={tags} max={10} />
+                    </Meta>
+                  )}
+                  {linked && (
+                    <TextLink
+                      href={item.link_url}
+                      className="inline-flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity duration-200 hover:opacity-90"
+                    >
+                      View project
+                      <ArrowUpRight aria-hidden className="size-4" />
+                    </TextLink>
+                  )}
+                </aside>
+              )}
+            </div>
+          </Reveal>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * What you offer. Tags become the checklist, so here they are content rather
+ * than metadata — not capped and not truncated.
+ */
 export function ServicesLayout({ items }: LayoutProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className="flex min-w-0 flex-col rounded-surface bg-card shadow-e1 p-5"
-        >
-          <h3 className="font-heading font-semibold [overflow-wrap:anywhere]">
-            <TextLink href={item.link_url} className="hover:text-primary">
-              {item.title}
-            </TextLink>
-          </h3>
-          <PlainText
-            className="mt-0.5 font-mono text-xs text-muted-foreground"
-            clamp={1}
+    <Stagger className="grid gap-5 md:grid-cols-3">
+      {items.map((item) => {
+        const features = cleanTags(item.tags);
+        return (
+          <StaggerItem
+            key={item.id}
+            className={cn(CARD, "flex min-w-0 flex-col p-6 sm:p-7")}
           >
-            {item.subtitle}
-          </PlainText>
-          <Markdown className="mt-3 text-muted-foreground">
-            {item.description}
-          </Markdown>
-          {/*
-            Tags become a feature checklist here, so they are NOT capped and
-            NOT truncated — in this layout they are content, not metadata.
-            Duplicates are still removed upstream in ItemTags' sibling logic,
-            so the same guard is applied inline.
-          */}
-          {(() => {
-            const features = Array.from(
-              new Set((item.tags ?? []).map((t) => t?.trim()).filter(Boolean)),
-            ) as string[];
-            if (!features.length) return null;
-            return (
-              <ul className="mt-4 space-y-1.5 border-t pt-3">
-                {features.map((tag) => (
-                  <li key={tag} className="flex items-start gap-2 text-sm">
-                    <span aria-hidden className="mt-0.5 shrink-0 text-primary">
-                      ✓
-                    </span>
-                    <span className="[overflow-wrap:anywhere]">{tag}</span>
+            <Monogram text={item.title} className="size-11 rounded-control text-lg" />
+            <h3 className="mt-5 font-heading text-lg font-semibold [overflow-wrap:anywhere]">
+              <TextLink
+                href={item.link_url}
+                className="transition-colors hover:text-primary"
+              >
+                {item.title}
+              </TextLink>
+            </h3>
+            <PlainText className="mt-1 text-sm font-medium text-primary" clamp={1}>
+              {item.subtitle}
+            </PlainText>
+            <Markdown className="mt-3 text-muted-foreground">
+              {item.description}
+            </Markdown>
+            {features.length > 0 && (
+              <ul className="mt-auto space-y-2 border-t border-border/60 pt-5 [&:not(:first-child)]:mt-5">
+                {features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2.5 text-sm">
+                    <Check
+                      aria-hidden
+                      className="mt-0.5 size-4 shrink-0 text-primary"
+                    />
+                    <span className="[overflow-wrap:anywhere]">{feature}</span>
                   </li>
                 ))}
               </ul>
-            );
-          })()}
-        </div>
-      ))}
-    </div>
+            )}
+          </StaggerItem>
+        );
+      })}
+    </Stagger>
   );
 }
 
-/** Role, company, dates, impact lines. */
+/**
+ * Roles: the organisation's mark, the role, the organisation, the dates and
+ * how long it lasted — the same honest duration the timeline gives.
+ */
 export function WorkExperienceLayout({ items }: LayoutProps) {
+  const now = useNow();
+
   return (
-    <div className="space-y-8">
+    <Stagger as="ol" className="space-y-4">
       {items.map((item) => {
-        const monogram = (item.subtitle?.trim() || item.title || "?")
-          .charAt(0)
-          .toUpperCase();
+        const duration = timelineDuration(item.date_from, item.date_to, now);
         return (
-          <article
+          <StaggerItem
+            as="li"
             key={item.id}
-            className="grid gap-4 sm:grid-cols-[3rem_1fr] sm:gap-5"
+            className={cn(
+              CARD,
+              "grid gap-4 p-5 sm:grid-cols-[3.5rem_minmax(0,1fr)] sm:gap-5 sm:p-6",
+            )}
           >
-            {item.image_url ? (
+            {safeImageUrl(item.image_url) ? (
               <ItemImage
                 src={item.image_url}
                 alt=""
-                className="hidden size-12 rounded-surface border object-cover sm:block"
+                className="hidden size-14 rounded-control object-cover sm:block"
               />
             ) : (
-              <div
-                aria-hidden
-                className="hidden size-12 items-center justify-center rounded-surface border bg-secondary font-heading font-bold text-muted-foreground sm:flex"
-              >
-                {monogram}
-              </div>
+              <Monogram
+                text={item.subtitle || item.title}
+                className="hidden size-14 rounded-control text-xl sm:flex"
+              />
             )}
             <div className="min-w-0">
-              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                <h3 className="min-w-0 font-heading font-semibold [overflow-wrap:anywhere]">
-                  {item.title}
-                </h3>
-                <ItemDates
-                  from={item.date_from}
-                  to={item.date_to}
-                  className="mt-0.5"
-                />
+              <div className="flex flex-col gap-x-4 gap-y-1 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <h3 className="font-heading text-lg font-semibold leading-snug [overflow-wrap:anywhere]">
+                    <TextLink
+                      href={item.link_url}
+                      className="transition-colors hover:text-primary"
+                    >
+                      {item.title}
+                    </TextLink>
+                  </h3>
+                  <PlainText className="text-sm font-medium text-primary" clamp={2}>
+                    {item.subtitle}
+                  </PlainText>
+                </div>
+                <div className="shrink-0 sm:text-right">
+                  <ItemDates from={item.date_from} to={item.date_to} />
+                  {duration && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {duration}
+                    </p>
+                  )}
+                </div>
               </div>
-              <PlainText className="text-sm text-primary" clamp={2}>
-                {item.subtitle}
-              </PlainText>
-              <Markdown className="mt-2 text-muted-foreground">
+              <Markdown className="mt-3 text-muted-foreground">
                 {item.description}
               </Markdown>
-              <ItemTags tags={item.tags} className="mt-3" max={8} />
+              <ItemTags tags={item.tags} className="mt-4" max={8} />
             </div>
-          </article>
+          </StaggerItem>
         );
       })}
-    </div>
+    </Stagger>
   );
 }
 
 /**
- * title = quote, subtitle = author, description = role, image = avatar.
+ * A quote, clamped when long and expandable in place — a 1,000-character
+ * testimonial once made its grid cell six times its neighbour's height.
+ */
+function QuoteText({ quote, limit }: { quote: string; limit: number }) {
+  if (quote.length <= limit + 20) return <>{quote}</>;
+  return (
+    <details className="group inline">
+      <summary className="list-none [&::-webkit-details-marker]:hidden">
+        <span className="group-open:hidden">
+          {quote.slice(0, limit).trimEnd()}…{" "}
+          <span className="cursor-pointer text-sm font-medium text-primary underline-offset-4 hover:underline">
+            Read more
+          </span>
+        </span>
+      </summary>
+      <span>{quote}</span>
+    </details>
+  );
+}
+
+function Attribution({ item }: { item: PortfolioItem }) {
+  if (!item.subtitle?.trim() && !item.description?.trim()) return null;
+  return (
+    <figcaption className="mt-6 flex items-center gap-3">
+      {safeImageUrl(item.image_url) ? (
+        <ItemImage
+          src={item.image_url}
+          alt=""
+          className="size-10 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <Monogram
+          text={item.subtitle}
+          className="size-10 rounded-full text-sm"
+        />
+      )}
+      <div className="min-w-0">
+        <PlainText className="text-sm font-semibold" clamp={1}>
+          {item.subtitle}
+        </PlainText>
+        <PlainText className="text-xs text-muted-foreground" clamp={2}>
+          {item.description}
+        </PlainText>
+      </div>
+    </figcaption>
+  );
+}
+
+/**
+ * title = quote, subtitle = who, description = their role, image = avatar.
  *
- * FIX: the quote was rendered unclamped. The seed contains a 1,000-character
- * testimonial, which in a two-column grid produced one cell six times the
- * height of its neighbour and a page that scrolled for no reason. Long quotes
- * now clamp to eight lines and expand on click — no truncation of meaning,
- * no broken grid. `group-open` styling keeps it to one element.
+ * The first testimonial is set large, on its own — one voice given room reads
+ * as conviction, where a uniform grid reads as a wall. The rest follow in two
+ * columns.
  */
 export function TestimonialsLayout({ items }: LayoutProps) {
-  return (
-    <div className="grid items-start gap-4 md:grid-cols-2">
-      {items.map((item) => {
-        const quote = item.title ?? "";
-        const isLong = quote.length > 320;
+  const [featured, ...rest] = items;
+  if (!featured) return null;
 
-        return (
-          <figure
-            key={item.id}
-            className="min-w-0 rounded-surface bg-card shadow-e1 p-6"
-          >
-            <blockquote className="border-none p-0 text-sm not-italic leading-relaxed [overflow-wrap:anywhere]">
-              <span
-                aria-hidden
-                className="mr-0.5 font-heading text-2xl leading-none text-primary"
-              >
-                “
-              </span>
-              {isLong ? (
-                <details className="group inline">
-                  <summary className="list-none [&::-webkit-details-marker]:hidden">
-                    <span className="group-open:hidden">
-                      {quote.slice(0, 300).trimEnd()}…{" "}
-                      <span className="cursor-pointer font-mono text-xs text-primary underline-offset-2 hover:underline">
-                        read more
-                      </span>
-                    </span>
-                  </summary>
-                  <span>{quote}</span>
-                </details>
-              ) : (
-                quote
-              )}
-            </blockquote>
-            <figcaption className="mt-4 flex items-center gap-3 border-t pt-4">
-              {item.image_url && (
-                <ItemImage
-                  src={item.image_url}
-                  alt=""
-                  className="size-9 shrink-0 rounded-full border object-cover"
-                />
-              )}
-              <div className="min-w-0">
-                <PlainText className="text-sm font-medium" clamp={1}>
-                  {item.subtitle}
-                </PlainText>
-                <PlainText className="text-xs text-muted-foreground" clamp={2}>
-                  {item.description}
-                </PlainText>
-              </div>
-            </figcaption>
-          </figure>
-        );
-      })}
+  return (
+    <div className="space-y-5">
+      <Reveal
+        as="figure"
+        className={cn(CARD, "relative overflow-hidden p-7 sm:p-10")}
+      >
+        <Quote
+          aria-hidden
+          data-featured
+          className="absolute right-6 top-6 size-16 text-primary/10 sm:size-24"
+        />
+        <blockquote className="relative max-w-3xl font-heading text-xl leading-snug [overflow-wrap:anywhere] sm:text-2xl">
+          <QuoteText quote={featured.title ?? ""} limit={420} />
+        </blockquote>
+        <Attribution item={featured} />
+      </Reveal>
+
+      {rest.length > 0 && (
+        <Stagger className="grid items-start gap-5 md:grid-cols-2">
+          {rest.map((item) => (
+            <StaggerItem
+              as="figure"
+              key={item.id}
+              className={cn(CARD, "min-w-0 p-6 sm:p-7")}
+            >
+              <blockquote className="text-[0.9375rem] leading-relaxed [overflow-wrap:anywhere]">
+                <span
+                  aria-hidden
+                  className="mr-1 font-heading text-2xl leading-none text-primary"
+                >
+                  “
+                </span>
+                <QuoteText quote={item.title ?? ""} limit={300} />
+              </blockquote>
+              <Attribution item={item} />
+            </StaggerItem>
+          ))}
+        </Stagger>
+      )}
     </div>
   );
 }
 
+/** md column classes by count, so three figures are three columns, not four. */
+const IMPACT_COLUMNS: Record<number, string> = {
+  1: "md:grid-cols-1",
+  2: "md:grid-cols-2",
+  3: "md:grid-cols-3",
+};
+
 /**
- * Seamless quantified-results grid — title = number, subtitle/description = label.
- *
- * FIX: `outline outline-1` on each cell drew a ring that sat *outside* the
- * element box and doubled up on shared edges, which is why the grid lines
- * looked inconsistent between rows. A 1px gap over a `bg-border` parent gives
- * genuinely seamless hairlines instead.
+ * Quantified results as one panel with hairline divisions, each figure
+ * counting up. The hairlines are a 1px gap over a `bg-border` fill — seamless,
+ * unlike per-cell outlines, which doubled on shared edges. An odd last cell
+ * spans the row on a phone rather than leaving a grey hole.
  */
 export function ImpactNumbersLayout({ items }: LayoutProps) {
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-surface border bg-border md:grid-cols-4">
+    <Stagger
+      className={cn(
+        "grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-border shadow-e1",
+        IMPACT_COLUMNS[items.length] ?? "md:grid-cols-4",
+      )}
+    >
       {items.map((item) => (
-        <div key={item.id} className="min-w-0 bg-card p-6 text-center">
-          <p className="font-mono text-3xl font-bold tracking-tight text-primary [overflow-wrap:anywhere]">
-            {item.title}
-          </p>
-          <PlainText className="mt-1.5 text-xs text-muted-foreground" clamp={3}>
+        <StaggerItem
+          key={item.id}
+          className="min-w-0 bg-card p-6 max-md:[&:last-child:nth-child(odd)]:col-span-2 sm:p-8"
+        >
+          <CountUp
+            value={item.title}
+            className="block font-heading text-4xl font-semibold tracking-tight tabular-nums text-primary [overflow-wrap:anywhere] sm:text-5xl"
+          />
+          <PlainText className="mt-2 text-sm text-muted-foreground" clamp={3}>
             {item.subtitle || item.description}
           </PlainText>
-        </div>
+        </StaggerItem>
       ))}
-    </div>
+    </Stagger>
   );
 }

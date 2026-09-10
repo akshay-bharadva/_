@@ -1,205 +1,278 @@
-import type { PortfolioItem } from "@/types";
+"use client";
+
 import {
+  Award,
+  FolderGit2,
+  Headphones,
+  Megaphone,
+  Mic,
+  Newspaper,
+  Presentation,
+  Video,
+  type LucideIcon,
+} from "lucide-react";
+import type { PortfolioItem } from "@/types";
+import { safeImageUrl } from "@/lib/safe-url";
+import { cn } from "@/lib/cn";
+import { Reveal, Stagger, StaggerItem } from "./motion";
+import {
+  CARD,
+  CARD_INTERACTIVE,
   ItemDates,
   ItemImage,
   ItemTags,
+  LinkCue,
   Markdown,
   MaybeLink,
   PlainText,
+  TextLink,
+  isLinkable,
 } from "./shared";
 
 type LayoutProps = { items: PortfolioItem[] };
 
-/** Repo rows — avatar, mono repo name, description, star/meta line. */
+/** Repositories: a mark, the name, its meta line, what it does. */
 export function OpenSourceLayout({ items }: LayoutProps) {
   return (
-    <ul className="space-y-3">
-      {items.map((item) => (
-        <li key={item.id}>
-          <MaybeLink
-            href={item.link_url}
-            className="flex items-start gap-3 rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
-          >
-            {item.image_url && (
-              <ItemImage
-                src={item.image_url}
-                alt=""
-                className="size-8 shrink-0 rounded border object-cover"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              {/*
-                FIX: the meta (subtitle) used to be a sibling of this column,
-                pinned to the far right of the row. On a narrow viewport it was
-                pushed onto the title's line and truncated the repo name away.
-                It now sits under the title on mobile and inline on sm+.
-              */}
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                <p className="min-w-0 truncate font-mono text-sm font-medium group-hover/link:text-primary">
-                  {item.title}
-                </p>
-                {item.subtitle?.trim() && (
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                    {item.subtitle}
+    <Stagger className="grid gap-4 sm:grid-cols-2">
+      {items.map((item) => {
+        const linked = isLinkable(item.link_url);
+        return (
+          <StaggerItem key={item.id}>
+            <MaybeLink
+              href={item.link_url}
+              className={cn(CARD, "flex h-full flex-col p-5", linked && CARD_INTERACTIVE)}
+            >
+              <div className="flex items-start gap-3">
+                {safeImageUrl(item.image_url) ? (
+                  <ItemImage
+                    src={item.image_url}
+                    alt=""
+                    className="size-10 shrink-0 rounded-control object-cover"
+                  />
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex size-10 shrink-0 items-center justify-center rounded-control bg-primary/10 text-primary"
+                  >
+                    <FolderGit2 className="size-5" />
                   </span>
                 )}
+                {/*
+                  The meta line sits under the name rather than beside it: pinned
+                  to the right, it truncated the repository name away on a
+                  phone.
+                */}
+                <div className="min-w-0 flex-1">
+                  <h3
+                    className="truncate font-semibold transition-colors group-hover/link:text-primary"
+                    title={item.title}
+                  >
+                    {item.title}
+                  </h3>
+                  <PlainText className="mt-0.5 text-xs text-muted-foreground" clamp={1}>
+                    {item.subtitle}
+                  </PlainText>
+                </div>
+                <LinkCue href={item.link_url} className="mt-1" />
               </div>
-              <Markdown className="mt-1 text-muted-foreground">
+              <Markdown className="mt-3 text-muted-foreground">
                 {item.description}
               </Markdown>
-              <ItemTags tags={item.tags} className="mt-2" max={6} />
-            </div>
-          </MaybeLink>
-        </li>
-      ))}
-    </ul>
+              <ItemTags tags={item.tags} className="mt-auto pt-4" max={6} />
+            </MaybeLink>
+          </StaggerItem>
+        );
+      })}
+    </Stagger>
   );
 }
 
-/** Talks/articles/podcasts — subtitle is the type badge. */
+/** The mark for a talk, podcast, article… read from the subtitle's words. */
+const KINDS: { pattern: RegExp; kind: string; icon: LucideIcon }[] = [
+  { pattern: /podcast|episode/i, kind: "podcast", icon: Headphones },
+  { pattern: /workshop|course|training|class/i, kind: "workshop", icon: Presentation },
+  { pattern: /video|youtube|stream|webinar/i, kind: "video", icon: Video },
+  { pattern: /article|post|essay|blog|interview|paper/i, kind: "article", icon: Newspaper },
+  { pattern: /talk|keynote|conference|meetup|panel|lecture/i, kind: "talk", icon: Mic },
+];
+
+export function speakingKind(subtitle?: string | null): {
+  kind: string;
+  icon: LucideIcon;
+} {
+  const match = KINDS.find(({ pattern }) => pattern.test(subtitle ?? ""));
+  return match ?? { kind: "other", icon: Megaphone };
+}
+
+/** Talks, articles, podcasts — each with the mark of what it is. */
 export function SpeakingLayout({ items }: LayoutProps) {
   return (
-    <ul className="divide-y divide-border/60">
-      {items.map((item) => (
-        <li key={item.id} className="py-4 first:pt-0 last:pb-0">
-          <MaybeLink href={item.link_url} className="-mx-2 px-2 py-1">
-            <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
-              {item.subtitle?.trim() && (
-                <span className="mt-0.5 shrink-0 rounded border border-primary/40 px-1.5 py-0.5 font-mono text-[0.6875rem] uppercase tracking-wide text-primary">
-                  {item.subtitle}
-                </span>
-              )}
-              <h3 className="min-w-0 flex-1 font-heading font-semibold [overflow-wrap:anywhere] group-hover/link:text-primary">
-                {item.title}
-              </h3>
-              <ItemDates
-                from={item.date_from}
-                to={item.date_to}
-                className="mt-0.5"
-              />
-            </div>
-            <Markdown className="mt-2 text-muted-foreground">
-              {item.description}
-            </Markdown>
-          </MaybeLink>
-        </li>
-      ))}
-    </ul>
+    <Stagger as="ul" className="space-y-3">
+      {items.map((item) => {
+        const { kind, icon: Icon } = speakingKind(item.subtitle);
+        const linked = isLinkable(item.link_url);
+        return (
+          <StaggerItem as="li" key={item.id}>
+            <MaybeLink
+              href={item.link_url}
+              className={cn(CARD, "flex items-start gap-4 p-5", linked && CARD_INTERACTIVE)}
+            >
+              <span
+                aria-hidden
+                data-kind={kind}
+                className="flex size-10 shrink-0 items-center justify-center rounded-control bg-primary/10 text-primary"
+              >
+                <Icon className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {item.subtitle?.trim() && (
+                    <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                      {item.subtitle}
+                    </span>
+                  )}
+                  <ItemDates from={item.date_from} to={item.date_to} />
+                </div>
+                <h3 className="mt-2 font-heading font-semibold [overflow-wrap:anywhere] transition-colors group-hover/link:text-primary sm:text-lg">
+                  {item.title}
+                </h3>
+                <Markdown className="mt-1.5 text-muted-foreground">
+                  {item.description}
+                </Markdown>
+              </div>
+              <LinkCue href={item.link_url} className="mt-1" />
+            </MaybeLink>
+          </StaggerItem>
+        );
+      })}
+    </Stagger>
   );
 }
 
-/** Recognition strip — compact chips. */
+/** Recognition: a compact grid of awards and mentions. */
 export function PressAwardsLayout({ items }: LayoutProps) {
   return (
-    <ul className="flex flex-wrap gap-3">
-      {items.map((item) => (
-        <li key={item.id} className="max-w-full">
-          <MaybeLink
-            href={item.link_url}
-            className="flex max-w-full items-center gap-2.5 rounded-surface bg-card shadow-e1 px-4 py-2.5 transition-shadow duration-200 ease-enter hover:shadow-e2"
-          >
-            <span aria-hidden className="shrink-0 text-primary">
-              ◆
-            </span>
-            <span className="min-w-0 truncate text-sm font-medium group-hover/link:text-primary">
-              {item.title}
-            </span>
-            {item.subtitle?.trim() && (
-              <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                {item.subtitle}
+    <Stagger as="ul" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((item) => {
+        const linked = isLinkable(item.link_url);
+        return (
+          <StaggerItem as="li" key={item.id} className="min-w-0">
+            <MaybeLink
+              href={item.link_url}
+              className={cn(CARD, "flex h-full items-center gap-3 p-4", linked && CARD_INTERACTIVE)}
+            >
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+              >
+                <Award className="size-4" />
               </span>
-            )}
-          </MaybeLink>
-        </li>
-      ))}
-    </ul>
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 text-sm font-semibold [overflow-wrap:anywhere] transition-colors group-hover/link:text-primary">
+                  {item.title}
+                </p>
+                <PlainText className="text-xs text-muted-foreground" clamp={1}>
+                  {item.subtitle}
+                </PlainText>
+              </div>
+              <LinkCue href={item.link_url} />
+            </MaybeLink>
+          </StaggerItem>
+        );
+      })}
+    </Stagger>
   );
 }
 
 /**
- * "Worked with" grid — grayscale logos, colour on hover.
- *
- * FIX: grayscale was applied to the whole tile, so the *text* fallback for a
- * logo-less client was also washed out and barely readable. The filter now
- * applies to the image only.
+ * "Worked with". Logos rest desaturated and come to colour under the pointer;
+ * the filter applies to the image only, so a text fallback for a logo-less
+ * client stays readable. The hover belongs to the tile, not the link, so an
+ * unlinked logo still responds.
  */
 export function ClientLogosLayout({ items }: LayoutProps) {
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <Stagger
+      as="ul"
+      step={0.05}
+      className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+    >
       {items.map((item) => (
-        <li key={item.id}>
+        <StaggerItem as="li" key={item.id} className="group/logo">
           <MaybeLink
             href={item.link_url}
-            className="flex aspect-[2/1] items-center justify-center rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
             ariaLabel={item.title}
+            className={cn(
+              CARD,
+              "flex aspect-[5/3] items-center justify-center p-6",
+              isLinkable(item.link_url) && CARD_INTERACTIVE,
+            )}
           >
-            {item.image_url ? (
+            {safeImageUrl(item.image_url) ? (
               <ItemImage
                 src={item.image_url}
                 alt={item.title}
-                className="max-h-full max-w-full object-contain grayscale transition-all duration-200 group-hover/link:grayscale-0"
+                className="max-h-full max-w-full object-contain opacity-70 grayscale transition duration-300 ease-enter group-hover/logo:opacity-100 group-hover/logo:grayscale-0 motion-reduce:transition-none"
               />
             ) : (
-              <span className="line-clamp-2 px-2 text-center font-heading text-sm font-semibold text-muted-foreground group-hover/link:text-foreground">
+              <span className="line-clamp-2 text-center font-heading text-base font-semibold text-muted-foreground transition-colors group-hover/logo:text-foreground">
                 {item.title}
               </span>
             )}
           </MaybeLink>
-        </li>
+        </StaggerItem>
       ))}
-    </ul>
-  );
-}
-
-/** Now page — subtitle is the category, live-status feel. */
-export function NowPageLayout({ items }: LayoutProps) {
-  return (
-    <ul className="space-y-3">
-      {items.map((item) => (
-        <li
-          key={item.id}
-          className="flex items-start gap-3 rounded-surface bg-card shadow-e1 p-4"
-        >
-          <span
-            aria-hidden
-            className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
-          />
-          <div className="min-w-0 flex-1">
-            {item.subtitle?.trim() && (
-              <p className="t-micro">{item.subtitle}</p>
-            )}
-            <h3 className="mt-0.5 font-heading text-sm font-semibold [overflow-wrap:anywhere]">
-              {item.title}
-            </h3>
-            <Markdown className="mt-1 text-muted-foreground">
-              {item.description}
-            </Markdown>
-          </div>
-          <ItemDates
-            from={item.date_from}
-            to={item.date_to}
-            className="mt-0.5"
-          />
-        </li>
-      ))}
-    </ul>
+    </Stagger>
   );
 }
 
 /**
- * Uses / setup — grouped by subtitle category.
- *
- * FIX 1: the original rebuilt the array on every insert
- * (`groups.set(key, [...(groups.get(key) ?? []), item])`), which is O(n²) and
- * pointless. Push into the existing array instead.
- *
- * FIX 2: because `subtitle` becomes the group heading it was also being
- * rendered per item in some sibling layouts — here it is deliberately shown
- * only as the heading, so "MacBook Pro / Computing" does not read as
- * "Computing → MacBook Pro → Computing".
- *
- * Group order follows first appearance, which respects display_order. Items
- * with no subtitle collect under "Tools" rather than vanishing.
+ * What I'm doing now. The subtitle is the category; the first card carries a
+ * live pulse — one, not one per card, or nothing reads as current.
+ */
+export function NowPageLayout({ items }: LayoutProps) {
+  return (
+    <Stagger className="grid gap-4 sm:grid-cols-2">
+      {items.map((item, index) => (
+        <StaggerItem key={item.id} className={cn(CARD, "min-w-0 p-6")}>
+          <div className="flex items-center justify-between gap-3">
+            <span className="inline-flex min-w-0 items-center gap-2 text-xs font-semibold text-primary">
+              <span className="relative flex size-2 shrink-0" aria-hidden>
+                {index === 0 && (
+                  <span
+                    data-live
+                    className="absolute inset-0 animate-ping rounded-full bg-primary/50 motion-reduce:hidden"
+                  />
+                )}
+                <span className="relative size-2 rounded-full bg-primary" />
+              </span>
+              <span className="truncate">{item.subtitle?.trim() || "Now"}</span>
+            </span>
+            <ItemDates from={item.date_from} to={item.date_to} />
+          </div>
+          <h3 className="mt-3 font-heading text-lg font-semibold [overflow-wrap:anywhere]">
+            <TextLink
+              href={item.link_url}
+              className="transition-colors hover:text-primary"
+            >
+              {item.title}
+            </TextLink>
+          </h3>
+          <Markdown className="mt-2 text-muted-foreground">
+            {item.description}
+          </Markdown>
+        </StaggerItem>
+      ))}
+    </Stagger>
+  );
+}
+
+/**
+ * Uses / setup, grouped by the subtitle: one panel per category, the tools as
+ * rows inside it. Group order follows first appearance, which respects
+ * display_order; items with no subtitle collect under "Tools" rather than
+ * vanishing. The subtitle is the heading only, never repeated per row.
  */
 export function UsesLayout({ items }: LayoutProps) {
   const groups = new Map<string, PortfolioItem[]>();
@@ -211,33 +284,46 @@ export function UsesLayout({ items }: LayoutProps) {
   }
 
   return (
-    <div className="space-y-8">
-      {Array.from(groups.entries()).map(([category, groupItems]) => (
-        <div key={category}>
-          <h3 className="t-eyebrow mb-3 flex items-center gap-2">
-            <span className="[overflow-wrap:anywhere]">{category}</span>
-            <span className="font-mono text-[0.6875rem] text-muted-foreground/70">
+    <div className="grid items-start gap-6 md:grid-cols-2">
+      {Array.from(groups.entries()).map(([category, groupItems], index) => (
+        <Reveal
+          key={category}
+          delay={Math.min(index * 0.06, 0.3)}
+          className={cn(CARD, "min-w-0 overflow-hidden")}
+        >
+          <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-5">
+            <h3 className="font-heading font-semibold [overflow-wrap:anywhere]">
+              {category}
+            </h3>
+            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
               {groupItems.length}
             </span>
-          </h3>
-          <ul className="grid gap-3 sm:grid-cols-2">
+          </div>
+          <ul className="divide-y divide-border/60">
             {groupItems.map((item) => (
               <li key={item.id}>
                 <MaybeLink
                   href={item.link_url}
-                  className="flex h-full flex-col rounded-surface bg-card shadow-e1 p-4 transition-shadow duration-200 ease-enter hover:shadow-e2"
+                  className={cn(
+                    "flex items-start gap-3 rounded-none px-5 py-3.5",
+                    isLinkable(item.link_url) &&
+                      "transition-colors duration-200 ease-enter hover:bg-muted/50",
+                  )}
                 >
-                  <PlainText className="text-sm font-medium group-hover/link:text-primary">
-                    {item.title}
-                  </PlainText>
-                  <Markdown className="mt-1 text-muted-foreground">
-                    {item.description}
-                  </Markdown>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium [overflow-wrap:anywhere] transition-colors group-hover/link:text-primary">
+                      {item.title}
+                    </p>
+                    <Markdown className="mt-0.5 text-muted-foreground">
+                      {item.description}
+                    </Markdown>
+                  </div>
+                  <LinkCue href={item.link_url} className="mt-0.5" />
                 </MaybeLink>
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
       ))}
     </div>
   );

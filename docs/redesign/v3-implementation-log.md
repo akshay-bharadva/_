@@ -1366,6 +1366,46 @@ build-time "Present" would be stale and would not hydrate.
 **Theme.** Tokens only. Nodes are hollow on a card fill rather than ringed in
 a gap colour — a band's fill is not something a node can know.
 
+## Public section layouts, redesigned
+
+After the timeline, the owner asked for the same treatment across every
+public section. Done in layers so the nineteen layouts share one vocabulary
+instead of each inventing a shadow, a hover and an entrance.
+
+**The shared layer.** `motion.tsx` holds three moves — `Reveal`, `Stagger` /
+`StaggerItem`, and `CountUp` — all run once on the `--m-enter` curve and all
+absent under reduced motion. The stagger step shrinks with the group so a
+long list never takes more than ~0.7s to arrive. `shared.tsx` gained `CARD`
+and `CARD_INTERACTIVE` (the lift, only on linked cards — a card that rises
+promises it goes somewhere), `LinkCue` (up-right leaves the site, right stays
+on it, nothing for an unusable link) and `Monogram`. Tags and dates left
+monospace for the body face; `shared.tsx` and the three layout files left the
+mono budget.
+
+**Count-up is only for quantities.** A year counting from zero, a ratio
+("24/7") counting its first half, and a phrase ("Since 2019") render as
+written. The server renders the real value; screen readers get it once from
+an `sr-only` copy, never the frames; the animation always lands on the
+author's exact string.
+
+**Per layout, one signature each.** Stats and impact figures count up;
+impact sizes its columns to the number of figures. Masonry was CSS columns —
+the reading-order bug `CLAUDE.md` names — and now deals round-robin through
+`distributeColumns`. Testimonials set the first voice large on its own.
+Speaking marks each entry by kind, read from the subtitle. Work experience
+shows the timeline's honest duration via the shared `useNow`. Case studies
+put the story beside a rail of facts. Uses is one panel per category.
+Feature rows arrive from their own side, inside `overflow-x-clip` so the
+entrance cannot widen the page.
+
+**Not verified visually.** The browser extension was not connected, so this
+pass was checked by tests and the design-system gates, not by eye. The five
+public pages were requested from the dev server and return 200 with no error
+overlay — but sections load client-side through RTK Query, so that proves the
+pages compile, not how the layouts look. The production build could not be
+checked either: a `next dev` on port 3000 shares `.next` and collides with
+`next build`.
+
 ## Follow-up
 
 **The watchlist was built**, in two tiers. Crypto is priced live with no key

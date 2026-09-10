@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useId } from "react";
 import { Markdown as MarkdownBase } from "@/components/ui/markdown";
-import { ImageOff } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ImageOff } from "lucide-react";
 import type { PortfolioItem } from "@/types";
 import { cn } from "@/lib/utils";
 import { isInternalUrl, safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
@@ -109,16 +109,18 @@ export function ItemTags({
   return (
     <ul className={cn("flex flex-wrap gap-1.5", className)}>
       {shown.map((tag) => (
+        // Soft pills in the body face. These were bordered mono labels — the
+        // retired v2 "technical metadata" voice.
         <li
           key={tag}
-          className="max-w-[14rem] truncate rounded border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[0.6875rem] text-muted-foreground"
+          className="max-w-[14rem] truncate rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
           title={tag}
         >
           {tag}
         </li>
       ))}
       {overflow > 0 && (
-        <li className="rounded px-1.5 py-0.5 font-mono text-[0.6875rem] text-muted-foreground">
+        <li className="px-1.5 py-0.5 text-xs font-medium text-muted-foreground">
           +{overflow}
         </li>
       )}
@@ -166,7 +168,7 @@ export function ItemDates({
   return (
     <span
       className={cn(
-        "shrink-0 whitespace-nowrap font-mono text-xs text-muted-foreground",
+        "shrink-0 whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground",
         className,
       )}
     >
@@ -353,10 +355,82 @@ export function EmptySection({
   if (process.env.NODE_ENV === "production") return null;
   return (
     <div className="rounded-surface border border-dashed bg-muted/10 px-4 py-8 text-center">
-      <p className="font-mono text-xs text-muted-foreground">{label}</p>
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="mt-1 text-xs text-muted-foreground/70">
         Visible in development only.
       </p>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Cards
+ * ──────────────────────────────────────────────────────────────── */
+
+/** A card: a fill and an elevation, never a border. */
+export const CARD = "rounded-surface bg-card shadow-e1";
+
+/**
+ * The lift a *linked* card gets on hover. Only linked cards: a card that rises
+ * under the pointer promises it goes somewhere.
+ */
+export const CARD_INTERACTIVE =
+  "transition-[box-shadow,transform] duration-200 ease-enter hover:-translate-y-0.5 hover:shadow-e2 motion-reduce:transition-none motion-reduce:hover:translate-y-0";
+
+/** Whether an item's link will actually render as one. */
+export function isLinkable(href?: string | null): boolean {
+  return safeLinkUrl(href) !== null;
+}
+
+/**
+ * The arrow that says a card goes somewhere, and where: up-right leaves the
+ * site, right stays on it. Renders nothing for an unusable link, so a card
+ * never promises a destination it does not have.
+ */
+export function LinkCue({
+  href,
+  className,
+}: {
+  href?: string | null;
+  className?: string;
+}) {
+  const safe = safeLinkUrl(href);
+  if (!safe) return null;
+  const internal = isInternalUrl(safe);
+  const Icon = internal ? ArrowRight : ArrowUpRight;
+  return (
+    <Icon
+      aria-hidden
+      data-link-cue
+      className={cn(
+        "size-4 shrink-0 text-muted-foreground transition-[transform,color] duration-200 ease-enter group-hover/link:text-primary motion-reduce:transition-none",
+        internal
+          ? "group-hover/link:translate-x-0.5"
+          : "group-hover/link:-translate-y-0.5 group-hover/link:translate-x-0.5",
+        className,
+      )}
+    />
+  );
+}
+
+/** A first-letter mark for an item with no image, in the theme's primary. */
+export function Monogram({
+  text,
+  className,
+}: {
+  text?: string | null;
+  className?: string;
+}) {
+  const letter = (text?.trim().charAt(0) || "?").toUpperCase();
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "flex shrink-0 items-center justify-center bg-primary/10 font-heading font-semibold text-primary",
+        className,
+      )}
+    >
+      {letter}
     </div>
   );
 }
