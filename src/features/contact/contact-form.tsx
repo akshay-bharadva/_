@@ -29,6 +29,13 @@ const GENERIC_ERROR = "Something broke. Try again or email me directly.";
 
 const STATUS_RESET_MS = 5000;
 
+/**
+ * Fields sit on the card as quiet wells — the page ground inside the card —
+ * and take the theme colour on focus rather than a thicker border.
+ */
+const FIELD =
+  "rounded-control bg-background transition-[box-shadow,border-color] duration-200 ease-enter focus-visible:border-primary/60 aria-[invalid=true]:border-destructive/60";
+
 export function ContactForm() {
   const [submitContactForm, { isLoading }] = useSubmitContactFormMutation();
   const [status, setStatus] = useState<Status>("idle");
@@ -95,9 +102,10 @@ export function ContactForm() {
         {props?.textarea ? (
           <Textarea
             id={`contact-${name}`}
-            rows={5}
+            rows={6}
             placeholder={props.placeholder}
             aria-invalid={!!errors[name]}
+            className={cn(FIELD, "resize-y py-3")}
             {...form.register(name)}
           />
         ) : (
@@ -106,6 +114,7 @@ export function ContactForm() {
             type={props?.type ?? "text"}
             placeholder={props?.placeholder}
             aria-invalid={!!errors[name]}
+            className={cn(FIELD, "h-11")}
             {...form.register(name)}
           />
         )}
@@ -145,8 +154,13 @@ export function ContactForm() {
         max: CONTACT_LIMITS.MESSAGE,
       })}
 
-      <div className="flex items-center gap-4">
-        <Button type="submit" disabled={isLoading} className="min-w-36">
+      <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={isLoading}
+          className="w-full gap-2 rounded-full px-7 sm:w-auto sm:min-w-44"
+        >
           {isLoading ? (
             <>
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -164,19 +178,22 @@ export function ContactForm() {
             </>
           )}
         </Button>
-        <p aria-live="polite" className="text-xs">
+        {/* One live region, always present, so a screen reader hears the
+            outcome whichever it is. */}
+        <div aria-live="polite" className="min-w-0 text-sm">
           {status === "success" && (
-            <span className="text-primary">
+            <p className="flex items-center gap-2 rounded-control bg-primary/10 px-3 py-2 font-medium text-primary">
+              <Check className="size-4 shrink-0" aria-hidden />
               Message received — I&apos;ll reply soon.
-            </span>
+            </p>
           )}
           {status === "error" && (
-            <span className="flex items-center gap-1.5 text-destructive">
-              <TriangleAlert className="size-3.5" aria-hidden />
+            <p className="flex items-center gap-2 rounded-control bg-destructive/10 px-3 py-2 font-medium text-destructive">
+              <TriangleAlert className="size-4 shrink-0" aria-hidden />
               {errorMessage}
-            </span>
+            </p>
           )}
-        </p>
+        </div>
       </div>
     </form>
   );
