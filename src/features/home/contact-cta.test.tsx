@@ -11,38 +11,26 @@ vi.mock("@/store/api/publicApi", () => ({
 import { ContactCta } from "./contact-cta";
 
 /**
- * The accent band may tint the ground, but nothing may be *legible only*
- * because of it.
+ * The closing invitation is one more section of the page, not a banner.
  *
- * `band-accent` is `hsl(var(--accent) / 0.35)` over the page background, and
- * the text on it was `--foreground` / `--muted-foreground`. No test covers
- * that pair: `theme-contrast.test.ts` gates `accent` against
- * `accent-foreground`, which is a different colour entirely. Composited and
- * measured across the 52 presets, the real pair fails AA on 31 of them —
- * `muted-foreground` reaching 2.10:1 on cyberpunk, and `foreground` itself
- * failing on solarized-light, onedark-pro and monokai.
- *
- * Rather than re-tinting — which trades a failure on the pale presets for one
- * on the dark presets — the content sits on a `Surface`. Its ground is `--card`
- * and its text `--card-foreground`, and that pair *is* gated on every preset.
- * The band keeps its accent weight, so it still reads as the end of the page.
+ * It used to sit on a tinted accent band inside a raised card — the card was
+ * there because text straight on the tint failed AA on 31 of the 52 presets.
+ * The owner rejected the banner outright, so it now sits on the page ground,
+ * where its text uses the pairs every preset is gated on and no card is
+ * needed.
  */
 
 describe("ContactCta", () => {
-  it("puts its content on a surface rather than straight on the tint", () => {
+  it("sits in the page's own flow, not on a banner", () => {
     identityQuery.mockReturnValue({ data: { social_links: [] } });
 
     const { container } = render(<ContactCta />);
 
-    const band = container.querySelector(".band-accent");
-    expect(band).not.toBeNull();
-
-    const surface = band!.querySelector(".surface");
-    expect(surface).not.toBeNull();
-
-    // The heading has to be *inside* the surface — a surface sitting beside
-    // the text would satisfy a shallower assertion while changing nothing.
-    expect(surface!.querySelector("#cta-heading")).not.toBeNull();
+    expect(container.querySelector(".band-accent")).toBeNull();
+    expect(container.querySelector(".surface")).toBeNull();
+    expect(container.querySelector(".band-content")).not.toBeNull();
+    // A section-sized heading, matching the section titles above it.
+    expect(container.querySelector("#cta-heading")).toHaveClass("t-heading");
   });
 
   it("leads to the contact page", () => {
@@ -96,10 +84,13 @@ describe("ContactCta", () => {
 /**
  * The structural rule, so the next accent band cannot reintroduce the problem.
  *
- * A render test covers the one band that exists today; this covers the one
- * somebody adds next year. Kept as a source rule because the property being
- * asserted *is* a structural one — an accent band must carry a surface.
+ * No page uses an accent band today — the closing invitation was the last,
+ * and it now sits on the page ground. The rule stays for the one somebody adds
+ * next year: an accent band must carry its content on a surface, because text
+ * straight on the tint fails AA on most presets.
  */
+const ACCENT_BAND = /weight=("accent"|\{"accent"\})/;
+
 describe("accent bands", () => {
   const SRC = resolve(__dirname, "../..");
 
@@ -118,13 +109,17 @@ describe("accent bands", () => {
     source: readFileSync(path, "utf-8"),
   }));
 
-  const usingAccent = files.filter(({ source }) =>
-    /weight=("accent"|\{"accent"\})/.test(source),
-  );
+  const usingAccent = files.filter(({ source }) => ACCENT_BAND.test(source));
 
-  it("finds the accent bands it means to check", () => {
-    // A pattern that matches nothing reports every rule clean.
-    expect(usingAccent.length).toBeGreaterThan(0);
+  /**
+   * A pattern that matches nothing reports every rule clean. With no accent
+   * band on the site to find, the pattern is checked against the forms it
+   * must catch instead — so the rule below is live, not vacuous.
+   */
+  it("has a pattern that recognises an accent band", () => {
+    expect(ACCENT_BAND.test('<Band weight="accent">')).toBe(true);
+    expect(ACCENT_BAND.test('<Band weight={"accent"}>')).toBe(true);
+    expect(ACCENT_BAND.test('<Band weight="content">')).toBe(false);
   });
 
   it("place their content on a surface", () => {
