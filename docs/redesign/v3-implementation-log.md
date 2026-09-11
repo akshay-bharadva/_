@@ -1505,6 +1505,34 @@ every anchor within 10/255 per channel; accents that fail AA as published
 (Solarized blue) are listed with the reason. Glass Dark, not a published
 theme, was nudged over the line on three pairs.
 
+## Four themes and two typefaces, from research
+
+Before pushing, the owner asked for research into current palettes and type,
+and for anything genuinely better to be added.
+
+**Themes added, each from its source:** Flexoki Light and Dark
+(stephango.com/flexoki — Steph Ango's ink-on-paper palette, calibrated for
+reading in both modes, and a natural companion to the site's own Ink), Rosé
+Pine Dawn (the official light variant, from rose-pine/neovim), and Poimandres
+(drcmda/poimandres-theme). Grounds, text and accents are the published
+values; only derived tokens were fitted, by a generator that moves lightness
+until each clears AA — Dawn's muted text and error colour, Poimandres' muted
+text, error and input border, Flexoki's muted text and, in dark, error and
+input. Two choices worth knowing: Dawn's accent is pine, because its iris is
+3.4:1 on its own base; and Flexoki Dark's cards share the black ground, as
+Flexoki Light's do, because blue-400 is 4.37:1 on base-950. All four pass the
+contrast, mode and palette gates; `-dawn` now counts as light in the mode
+gate. Flexoki's role table on the author's page did not extract cleanly; the
+dark roles were taken from the rows that did, which follow the same ladder.
+
+**Typography added:** Contemporary — Funnel Display over Funnel Sans, the
+2025–26 pair with the most momentum, with Geist Mono as its specimens use —
+and Modern Editorial, Newsreader's screen-drawn optical-size serif over
+Figtree. Both families were confirmed against the Google Fonts CSS API before
+being added. `typography-presets.test.ts` now fails if any preset lacks its
+block or names a family missing from the import — a missing family otherwise
+falls back to the system stack silently.
+
 ## Follow-up
 
 **The watchlist was built**, in two tiers. Crypto is priced live with no key

@@ -330,6 +330,20 @@ export const TYPOGRAPHY_PRESETS = [
     families: ["Onest", "JetBrains Mono"],
   },
   {
+    value: "typo-contemporary",
+    label: "Contemporary",
+    heading: "Funnel Display",
+    body: "Funnel Sans",
+    code: "Geist Mono",
+    weight: 700,
+    serif: false,
+    mood: "Sans",
+    description: "A designed display/text pair with 2025–26 character",
+    pairing:
+      "Funnel Display is tight and slightly condensed with real character; Funnel Sans is its calm text sibling, so the page reads as one voice at two volumes.",
+    families: ["Funnel Display", "Funnel Sans", "Geist Mono"],
+  },
+  {
     value: "typo-bold-quirky",
     label: "Bold & Expressive",
     heading: "Bricolage Grotesque",
@@ -388,6 +402,20 @@ export const TYPOGRAPHY_PRESETS = [
     pairing:
       "Instrument Serif ships one weight and needs no other; setting it at 400 across large sizes is the whole effect.",
     families: ["Instrument Serif", "Manrope", "IBM Plex Mono"],
+  },
+  {
+    value: "typo-modern-editorial",
+    label: "Modern Editorial",
+    heading: "Newsreader",
+    body: "Figtree",
+    code: "JetBrains Mono",
+    weight: 500,
+    serif: true,
+    mood: "Editorial",
+    description: "A screen-drawn optical-size serif over a clear geometric sans",
+    pairing:
+      "Newsreader sharpens its detail as it grows, so headlines feel set rather than scaled; Figtree keeps body text friendly and legible.",
+    families: ["Newsreader", "Figtree", "JetBrains Mono"],
   },
   {
     value: "typo-classic-pro",
@@ -523,6 +551,10 @@ export const THEME_PRESETS = [
   { value: "theme-stripe-light", label: "Stripe" },
   { value: "theme-aaa-light", label: "Accessible Light" },
   { value: "theme-aaa-dark", label: "Accessible Dark" },
+  { value: "theme-flexoki-light", label: "Flexoki" },
+  { value: "theme-flexoki-dark", label: "Flexoki Dark" },
+  { value: "theme-rose-pine-dawn", label: "Rosé Pine Dawn" },
+  { value: "theme-poimandres", label: "Poimandres" },
 ] as const;
 
 // =============================================================================

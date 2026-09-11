@@ -112,7 +112,7 @@ describe("theme presets meet WCAG AA contrast", () => {
  * inverted prose. Checked with the same function `applyTheme` uses.
  */
 describe("theme presets are the mode they claim", () => {
-  const LIGHT = /-(light|latte|day)$/;
+  const LIGHT = /-(light|latte|day|dawn)$/;
   const DARK = /-dark$|-mocha$|-night$/;
 
   for (const [name, tokens] of Array.from(themes.entries())) {

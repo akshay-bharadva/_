@@ -388,3 +388,33 @@ html {
 /* Respect a reader who has asked their OS for larger text: none of the presets
    set a fixed root size, so rem-based scales follow the browser setting. This
    is here as a reminder not to add `html { font-size: 14px }` later. */
+
+/* --- Contemporary — Funnel Display over Funnel Sans (2025–26) --------------
+   A designed pair: the display cut is tight and slightly condensed with real
+   character, the text cut is its calm sibling. Geist Mono, which the pair's
+   own specimens use, for code. */
+.typo-contemporary {
+  --font-heading: "Funnel Display", var(--stack-sans);
+  --font-body: "Funnel Sans", var(--stack-sans);
+  --font-code: "Geist Mono", var(--stack-mono);
+  --heading-weight: 700;
+  --heading-letter-spacing: -0.025em;
+  --heading-line-height: 1.05;
+  --body-letter-spacing: 0;
+  --body-line-height: 1.65;
+}
+
+/* --- Modern Editorial — Newsreader over Figtree ---------------------------
+   Newsreader is an optical-size serif drawn for screens: its large sizes get
+   finer, higher-contrast detail automatically. Figtree is a clear, friendly
+   geometric sans that holds at body sizes. */
+.typo-modern-editorial {
+  --font-heading: "Newsreader", var(--stack-serif);
+  --font-body: "Figtree", var(--stack-sans);
+  --font-code: "JetBrains Mono", var(--stack-mono);
+  --heading-weight: 500;
+  --heading-letter-spacing: -0.015em;
+  --heading-line-height: 1.1;
+  --body-letter-spacing: 0;
+  --body-line-height: 1.7;
+}

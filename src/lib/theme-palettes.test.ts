@@ -10,7 +10,8 @@ import { resolve } from "path";
  * the Dracula spec, Nord docs, ethanschoonover.com/solarized, the Catppuccin
  * palette.json, rose-pine/neovim, folke/tokyonight.nvim, morhetz/gruvbox,
  * rebelot/kanagawa.nvim, sainnhe/everforest, Shatur/neovim-ayu,
- * Binaryify/OneDark-Pro, sickill/vim-monokai, and GitHub Primer.
+ * Binaryify/OneDark-Pro, sickill/vim-monokai, GitHub Primer, stephango.com/flexoki
+ * and drcmda/poimandres-theme.
  *
  * Background and text must match within a small tolerance. The accent must
  * match too, except where the published accent fails AA as small text on
@@ -48,6 +49,14 @@ const OFFICIAL: Record<string, Anchor> = {
   "theme-monokai": { background: "#272822", foreground: "#f8f8f2", primary: "#a6e22e" },
   "theme-github-dark": { background: "#0d1117", foreground: "#e6edf3", primary: "#2f81f7" },
   "theme-github-light": { background: "#ffffff", foreground: "#1f2328", primary: "#0969da" },
+  // Dawn's iris (#907aa9) is 3.4:1 on its own base, so the accent is pine —
+  // also a Dawn palette colour — rather than an adjusted iris.
+  "theme-rose-pine-dawn": { background: "#faf4ed", foreground: "#464261", primary: "#286983" },
+  "theme-poimandres": { background: "#1b1e28", foreground: "#a6accd", primary: "#5de4c7" },
+  // Flexoki's own role table: paper / black / blue-600 in light; black /
+  // base-200 / blue-400 in dark (600 accents on light, 400 on dark).
+  "theme-flexoki-light": { background: "#fffcf0", foreground: "#100f0f", primary: "#205ea6" },
+  "theme-flexoki-dark": { background: "#100f0f", foreground: "#cecdc3", primary: "#4385be" },
 };
 
 /** Published accents that fail AA as small text on their own ground. */
