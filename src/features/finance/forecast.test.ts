@@ -357,3 +357,31 @@ describe("currency", () => {
     expect(points[points.length - 1].committed).toBe(4300);
   });
 });
+
+describe("money in that no rule covers", () => {
+  /**
+   * The run-rate used to be spending only, so after an import every purchase
+   * was projected and every deposit dropped — the line could only fall.
+   */
+  it("counts money in that no rule covers", () => {
+    const deposit = txn({ type: "earning", amount: 900, base_amount: 900, category_id: null, date: "2026-08-01" });
+    const points = forecast({ horizonDays: 30, transactions: [deposit] });
+    expect(points[points.length - 1].expected).toBeCloseTo(5000 + (900 / 90) * 30, 2);
+  });
+
+  it("can be switched off", () => {
+    const deposit = txn({ type: "earning", amount: 900, base_amount: 900, category_id: null, date: "2026-08-01" });
+    const points = forecast({ horizonDays: 30, transactions: [deposit], countOtherIncome: false });
+    expect(points[points.length - 1].expected).toBe(5000);
+  });
+
+  it("does not project money coming back from savings", () => {
+    const back = txn({ type: "earning", amount: 900, base_amount: 900, category_id: "save", date: "2026-08-01" });
+    const points = forecast({
+      horizonDays: 30,
+      transactions: [back],
+      categories: [{ id: "save", name: "Investments", bucket: "save", is_essential: false, sort_order: 0 }],
+    });
+    expect(points[points.length - 1].expected).toBe(5000);
+  });
+});

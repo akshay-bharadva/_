@@ -19,6 +19,7 @@ import { ConfirmQueue } from "./confirm-queue";
 import { CoachingPanel } from "./coaching-panel";
 import { netWorth, summarise } from "./finance-insights";
 import { buildConfirmQueue } from "./pending-occurrences";
+import { FinanceHealth } from "./finance-health";
 
 /**
  * Where you stand, and anything waiting on you.
@@ -43,6 +44,7 @@ export function OverviewSection({
   categories,
   settings,
   onGoToAccounts,
+  onGo,
 }: {
   accounts: FinanceAccount[];
   balances: Record<string, number>;
@@ -53,6 +55,8 @@ export function OverviewSection({
   categories: FinanceCategory[];
   settings: FinanceSettings;
   onGoToAccounts: () => void;
+  /** Go to any section — for the checklist's fixes. */
+  onGo?: (section: string) => void;
 }) {
   const currency = settings.base_currency;
   const active = accounts.filter((account) => !account.archived_at);
@@ -145,6 +149,17 @@ export function OverviewSection({
           />
         </dl>
       </section>
+
+      {onGo && (
+        <FinanceHealth
+          accounts={accounts}
+          balances={balances}
+          transactions={transactions}
+          recurring={recurring}
+          categories={categories}
+          onGo={onGo}
+        />
+      )}
 
       <ConfirmQueue queue={queue} accounts={accounts} baseCurrency={currency} />
 

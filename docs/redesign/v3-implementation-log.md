@@ -1835,6 +1835,46 @@ numbered companies and local shops no rule could know — which is what the
 learned rules are for. Tests use the same shapes with invented names; the
 repository is public.
 
+## One ledger, four readers: making import, balances, rules and the forecast agree
+
+After importing a year of statements the owner saw net worth at $2,200
+against about $10,000 in the bank, and a forecast heading below zero. Both
+were the same finding: each part of the module was correct on its own inputs,
+and nothing connected an import to the inputs the other parts needed.
+
+**Balances.** A balance is an anchor plus everything since. Bank CSVs carry no
+balances, so imported accounts had no real anchor — either dated after the
+history (every import ignored) or at zero before it (the pre-export money
+missing). "Holds today" (`balance-check.ts`) takes the one number the owner
+can read off their banking app and back-solves the anchor onto the first
+transaction, so today matches the bank *and* every earlier balance agrees
+with the history. It is asked for straight after every import, and the
+Accounts check explains each balance and names money that left for places
+not tracked: investments, own accounts never added, a closed card (with
+"count as spending" — net worth is right, but the purchases were on a card
+with no export), goal set-asides.
+
+**The forecast only projected spending.** `discretionaryDailyRate` counted
+expenses and skipped earnings, so with pay not yet a rule every purchase was
+projected and every deposit dropped. `unscheduledIncomeDailyRate` adds money
+in that no rule covers (money back from savings excluded — a withdrawal is
+not income), the start is spendable money (liquid accounts less debts, not
+an RRSP), and "What moves this line" splits the slope into recurring in/out,
+other income and day-to-day, so a falling line explains itself.
+
+**Schedules were in the history and not in the rules.** `recurring-detect.ts`
+finds them — regular gaps, still running (a job that stopped paying is not
+projected), steady amounts (grocery runs are habits, not bills) — and "Found
+what repeats" turns each into a rule starting at its next due date, so the
+confirm queue is not flooded with the past. The history is then linked to the
+rule (migration 023 teaches `recategorise_transactions` a
+`recurring_transaction_id`), so the run-rate stops counting it twice.
+
+**Overview says what is left to trust the numbers.** `FinanceHealth` lists
+unreconciled accounts, unadded schedules, uncategorised imports and
+unconverted amounts, each with the way to its fix. It is the checklist an
+import should have produced from the start.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an
@@ -1844,8 +1884,9 @@ repository is public.
   upload progress shipped.)
 - Library: no public bookshelf — only the random highlight is public, by
   choice. A shelf page would be a second public function, not a table policy.
-- **Migration 022 is unapplied** (021 was applied). Until it is, "Improve
-  imported transactions" cannot save.
+- **Migrations 022 and 023 are unapplied.** Until they are, "Improve imported
+  transactions" cannot save, and rules added from "Found what repeats" cannot
+  link their history.
 - Loans: no link from a loan to the ledger — EMIs actually paid are recorded as
   ordinary transactions, and the schedule assumes every instalment was paid on
   its date.

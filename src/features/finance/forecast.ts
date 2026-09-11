@@ -169,6 +169,39 @@ export function discretionaryDailyRate(
   return total / lookbackDays;
 }
 
+/**
+ * Average daily money in that no rule accounts for — gig payouts, friends
+ * paying you back, interest, a refund.
+ *
+ * The run-rate used to be spending only. After an import that meant every
+ * purchase was projected forward and every deposit — pay included, until it
+ * is a rule — was dropped, so the line could only fall. Money returning from
+ * savings or investments (the save bucket) is left out: it is a withdrawal,
+ * not income, and projecting a GIC maturing every quarter would be fiction.
+ */
+export function unscheduledIncomeDailyRate(
+  transactions: Transaction[],
+  lookbackDays: number,
+  today: Date,
+  categories: FinanceCategory[],
+): number {
+  if (lookbackDays <= 0) return 0;
+  const since = addDays(startOfDay(today), -lookbackDays);
+  const bucketById = new Map(categories.map((c) => [c.id, c.bucket]));
+
+  let total = 0;
+  for (const transaction of transactions) {
+    if (transaction.type !== "earning") continue;
+    if (transaction.transfer_group || transaction.recurring_transaction_id || transaction.is_pending) continue;
+    const bucket = bucketById.get(transaction.category_id ?? "");
+    if (bucket === "transfer" || bucket === "save") continue;
+    const date = parseLocalDate(transaction.date);
+    if (isAfter(since, date) || isAfter(date, today)) continue;
+    total += Number(transaction.base_amount ?? 0);
+  }
+  return total / lookbackDays;
+}
+
 /** Rules whose currency has no rate, so the forecast leaves them out. */
 export function unconvertibleRules(
   rules: RecurringTransaction[],
@@ -206,6 +239,72 @@ export interface ForecastOptions {
   rates?: RateTable;
   /** Dated movements that are not recurring rules, already in base. */
   extraFlows?: ForecastExtraFlow[];
+  /**
+   * Count money in that no rule covers, at its run-rate. On by default; off
+   * reproduces the spending-only line.
+   */
+  countOtherIncome?: boolean;
+}
+
+/** What moves the line, per month, in base. */
+export interface ForecastDrivers {
+  recurringIn: number;
+  recurringOut: number;
+  otherIncome: number;
+  dayToDay: number;
+  net: number;
+}
+
+const DAYS_PER_MONTH = 365.25 / 12;
+
+/**
+ * The line's slope, split into what makes it: recurring money in and out
+ * (rules and loan instalments, over the next 90 days), money in no rule
+ * covers, and day-to-day spending. The answer to "why is it falling" is
+ * whichever of these is out of proportion — usually pay that is not a rule.
+ */
+export function forecastDrivers({
+  rules,
+  transactions,
+  categories,
+  currency,
+  lookbackDays = 90,
+  adjustments = [],
+  today = new Date(),
+  rates,
+  extraFlows = [],
+  countOtherIncome = true,
+}: Omit<ForecastOptions, "startingBalance" | "horizonDays">): ForecastDrivers {
+  const start = startOfDay(today);
+  const window = 90;
+  const end = addDays(start, window);
+  const flows = scheduledFlows(rules, start, end, adjustments, currency, rates);
+  for (const extra of extraFlows) {
+    const date = parseLocalDate(extra.date);
+    if (isAfter(start, date) || isAfter(date, end)) continue;
+    flows.push({ date, delta: extra.amount, label: extra.label });
+  }
+  const perMonth = (total: number) => roundMoney((total / window) * DAYS_PER_MONTH, currency);
+  const recurringIn = perMonth(flows.filter((f) => f.delta > 0).reduce((s, f) => s + f.delta, 0));
+  const recurringOut = perMonth(flows.filter((f) => f.delta < 0).reduce((s, f) => s - f.delta, 0));
+  const incomeMultiplier = adjustments.reduce(
+    (m, a) => (a.kind === "income_delta" ? 1 + a.percent / 100 : m),
+    1,
+  );
+  const otherIncome = countOtherIncome
+    ? roundMoney(unscheduledIncomeDailyRate(transactions, lookbackDays, today, categories) * incomeMultiplier * DAYS_PER_MONTH, currency)
+    : 0;
+  const dayToDay = roundMoney(
+    discretionaryDailyRate(transactions, lookbackDays, today, categories, adjustments) * DAYS_PER_MONTH,
+    currency,
+  );
+  return {
+    recurringIn,
+    recurringOut,
+    otherIncome,
+    dayToDay,
+    net: roundMoney(recurringIn - recurringOut + otherIncome - dayToDay, currency),
+  };
 }
 
 export function buildForecast({
@@ -220,6 +319,7 @@ export function buildForecast({
   today = new Date(),
   rates,
   extraFlows = [],
+  countOtherIncome = true,
 }: ForecastOptions): ForecastPoint[] {
   const start = startOfDay(today);
   const end = addDays(start, horizonDays);
@@ -237,6 +337,13 @@ export function buildForecast({
     categories,
     adjustments,
   );
+  const incomeMultiplier = adjustments.reduce(
+    (m, a) => (a.kind === "income_delta" ? 1 + a.percent / 100 : m),
+    1,
+  );
+  const dailyIncome = countOtherIncome
+    ? unscheduledIncomeDailyRate(transactions, lookbackDays, today, categories) * incomeMultiplier
+    : 0;
 
   const oneOffs = adjustments.filter(
     (
@@ -288,7 +395,7 @@ export function buildForecast({
     }
     // Day zero is today's balance as it stands; burning on it would make the
     // first point disagree with the balance shown everywhere else.
-    if (offset > 0) expected -= dailyBurn;
+    if (offset > 0) expected += dailyIncome - dailyBurn;
 
     const labels = todaysFlows.map((flow) => flow.label);
 

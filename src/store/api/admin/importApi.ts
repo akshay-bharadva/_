@@ -25,6 +25,8 @@ export interface RecategoriseUpdate {
   description?: string;
   merchant?: string;
   pair_with?: string;
+  /** Attach the row to a recurring rule found in its history. Migration 023. */
+  recurring_transaction_id?: string | null;
 }
 
 export interface ImportResult {

@@ -397,6 +397,7 @@ export default function FinancePage() {
               categories={categories}
               settings={settings}
               onGoToAccounts={() => setSectionId("accounts")}
+              onGo={setSectionId}
             />
           )}
 
@@ -473,10 +474,19 @@ export default function FinancePage() {
 
           {sectionId === "forecast" && (
             <ForecastSection
-              startingBalance={Object.values(balancesInBase).reduce(
-                (sum, value) => sum + value,
-                0,
-              )}
+              // Money you can spend, less what you owe: liquid accounts and
+              // every debt. An RRSP or an investment account is net worth, not
+              // cash for next month, and counting it would hide a shortfall.
+              startingBalance={accounts
+                .filter((account) => !account.archived_at)
+                .reduce((sum, account) => {
+                  const value = balancesInBase[account.id];
+                  if (value === undefined) return sum;
+                  return account.is_liquid || value < 0 ? sum + value : sum;
+                }, 0)}
+              accounts={accounts}
+              balances={balances}
+              onGo={setSectionId}
               rules={recurring}
               transactions={transactions}
               categories={categories}

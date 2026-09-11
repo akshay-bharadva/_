@@ -3400,7 +3400,7 @@ REVOKE ALL ON FUNCTION public.undo_import(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.undo_import(UUID) TO authenticated;
 
 -- ============================================================================
--- FINANCE — IMPROVING IMPORTED TRANSACTIONS (migration 022)
+-- FINANCE — IMPROVING IMPORTED TRANSACTIONS (migrations 022, 023)
 -- ============================================================================
 
 -- p_updates: [{ id, category_id?, description?, merchant?, pair_with? }]
@@ -3416,6 +3416,7 @@ DECLARE
   v_row     JSONB;
   v_id      UUID;
   v_cat     UUID;
+  v_rule    UUID;
   v_pair    UUID;
   v_group   UUID;
   v_updated INT := 0;
@@ -3435,11 +3436,18 @@ BEGIN
   FOR v_row IN SELECT value FROM jsonb_array_elements(p_updates) LOOP
     v_id := (v_row->>'id')::uuid;
     v_cat := NULLIF(v_row->>'category_id', '')::uuid;
+    v_rule := NULLIF(v_row->>'recurring_transaction_id', '')::uuid;
 
     IF v_cat IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM finance_categories WHERE id = v_cat AND user_id = v_uid
     ) THEN
       RAISE EXCEPTION 'Category not found';
+    END IF;
+
+    IF v_rule IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM recurring_transactions WHERE id = v_rule AND user_id = v_uid
+    ) THEN
+      RAISE EXCEPTION 'Recurring rule not found';
     END IF;
 
     UPDATE transactions
@@ -3450,7 +3458,13 @@ BEGIN
            description = coalesce(left(NULLIF(v_row->>'description', ''), 200), description),
            merchant = CASE
              WHEN v_row ? 'merchant' THEN left(NULLIF(v_row->>'merchant', ''), 200)
-             ELSE merchant END
+             ELSE merchant END,
+           recurring_transaction_id = CASE
+             WHEN v_row ? 'recurring_transaction_id' THEN v_rule
+             ELSE recurring_transaction_id END,
+           occurrence_date = CASE
+             WHEN v_row ? 'recurring_transaction_id' AND v_rule IS NOT NULL THEN coalesce(occurrence_date, date)
+             ELSE occurrence_date END
      WHERE id = v_id AND user_id = v_uid;
     IF FOUND THEN
       v_updated := v_updated + 1;

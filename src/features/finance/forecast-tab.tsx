@@ -15,6 +15,7 @@ import { format, parseISO } from "date-fns";
 import { Loader2, RotateCcw, Trash2, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import type {
+  FinanceAccount,
   FinanceCategory,
   FinanceScenario,
   FinanceSettings,
@@ -44,10 +45,13 @@ import { formatMoney, rateFrom, type RateTable } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import {
   buildForecast,
+  forecastDrivers,
   readForecast,
   unconvertibleRules,
   type ForecastExtraFlow,
 } from "./forecast";
+import { checkAccount } from "./balance-check";
+import { RecurringSuggestions } from "./recurring-suggestions";
 import type { ExtraFlow } from "./category-forecast";
 import { CategoryForecastPanel } from "./category-forecast-panel";
 
@@ -89,8 +93,15 @@ export function ForecastTab({
   settings,
   rates,
   loanFlows,
+  accounts = [],
+  balances = {},
+  onGo,
 }: {
   startingBalance: number;
+  /** For the balance warning and the recurring suggestions. */
+  accounts?: FinanceAccount[];
+  balances?: Record<string, number>;
+  onGo?: (section: string) => void;
   rules: RecurringTransaction[];
   transactions: Transaction[];
   categories: FinanceCategory[];
@@ -206,6 +217,31 @@ export function ForecastTab({
 
   const changed = adjustments.length > 0;
 
+  const drivers = useMemo(
+    () =>
+      forecastDrivers({
+        rules,
+        transactions,
+        categories,
+        currency,
+        adjustments,
+        rates,
+        extraFlows,
+      }),
+    [rules, transactions, categories, currency, adjustments, rates, extraFlows],
+  );
+
+  /** Accounts whose balance is not real yet: the line starts from a guess. */
+  const unreconciled = useMemo(
+    () =>
+      accounts
+        .filter((account) => !account.archived_at)
+        .map((account) => checkAccount(account, transactions, balances[account.id]))
+        .filter((check) => check.issue === "anchor-after-history" || check.issue === "zero-start")
+        .map((check) => check.account.name),
+    [accounts, transactions, balances],
+  );
+
   // Merged so both lines share one X axis; Recharts cannot align two datasets.
   const series = useMemo(
     () =>
@@ -258,6 +294,31 @@ export function ForecastTab({
           </Button>
         )}
       </div>
+
+      {unreconciled.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-surface bg-chart-3/10 p-4 text-sm">
+          <p className="min-w-0 flex-1 text-foreground">
+            <strong className="font-semibold">This starts from {formatMoney({ amount: startingBalance, currency })}, which may not be what you have.</strong>{" "}
+            <span className="text-muted-foreground">
+              {unreconciled.join(", ")} {unreconciled.length === 1 ? "hasn't" : "haven't"} been told what{" "}
+              {unreconciled.length === 1 ? "it holds" : "they hold"} today, and bank exports don&apos;t include balances.
+            </span>
+          </p>
+          {onGo && (
+            <Button type="button" size="sm" variant="outline" onClick={() => onGo("accounts")}>
+              Set balances
+            </Button>
+          )}
+        </div>
+      )}
+
+      <RecurringSuggestions
+        transactions={transactions}
+        rules={rules}
+        categories={categories}
+        accounts={accounts}
+        base={currency}
+      />
 
       {verdict && (
         <div className="grid gap-4 sm:grid-cols-3">
@@ -482,6 +543,49 @@ export function ForecastTab({
           The lower line adds a daily run-rate from your last 90 days of
           everyday spending. A forecast of commitments alone draws a beautifully
           rising line that ignores the fact that you buy groceries.
+        </p>
+      </section>
+
+      <section className="rounded-surface bg-card p-5 shadow-e1" aria-label="What moves this line">
+        <h2 className="text-sm font-semibold text-foreground">What moves this line, per month</h2>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-4">
+          {(
+            [
+              ["Recurring in", drivers.recurringIn, "Rules and pay you've set up", "in"],
+              ["Other money in", drivers.otherIncome, "Last 90 days, not attached to a rule", "in"],
+              ["Recurring out", drivers.recurringOut, "Bills, rules and loan EMIs", "out"],
+              ["Day-to-day", drivers.dayToDay, "Last 90 days of spending, not attached to a rule", "out"],
+            ] as const
+          ).map(([label, amount, note, direction]) => (
+            <div key={label} className="rounded-control bg-secondary/40 p-3">
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd
+                className={cn(
+                  "mt-0.5 text-lg font-semibold tabular-nums",
+                  direction === "in" ? "text-chart-2" : "text-foreground",
+                )}
+              >
+                {direction === "in" ? "+" : "−"}
+                {formatMoney({ amount, currency }, { whole: true })}
+              </dd>
+              <dd className="text-[11px] text-muted-foreground">{note}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-sm text-foreground">
+          Net{" "}
+          <strong className={cn("font-semibold tabular-nums", drivers.net < 0 ? "text-destructive" : "text-chart-2")}>
+            {drivers.net >= 0 ? "+" : "−"}
+            {formatMoney({ amount: Math.abs(drivers.net), currency }, { whole: true })}
+          </strong>{" "}
+          a month.{" "}
+          <span className="text-muted-foreground">
+            {drivers.recurringIn === 0 && drivers.dayToDay > 0
+              ? "No pay is set up as recurring, so nothing regular comes in — add it above."
+              : drivers.net < 0
+                ? "More goes out than comes in; the line falls by about this much each month."
+                : "More comes in than goes out; the line rises by about this much each month."}
+          </span>
         </p>
       </section>
 
