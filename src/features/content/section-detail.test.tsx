@@ -67,10 +67,11 @@ describe("SectionDetail", () => {
     expect(h.onDeleteItem).toHaveBeenCalledWith("b");
   });
 
-  it("previews the section with the site's own renderer, in order", () => {
+  /** The renderer is loaded on demand, so the preview arrives asynchronously. */
+  it("previews the section with the site's own renderer, in order", async () => {
     render(<SectionDetail section={section()} {...handlers()} />);
     fireEvent.click(screen.getByRole("button", { name: "Preview" }));
-    expect(screen.getByTestId("public-render")).toHaveTextContent(
+    expect(await screen.findByTestId("public-render")).toHaveTextContent(
       "What I do:Alpha,Beta",
     );
   });

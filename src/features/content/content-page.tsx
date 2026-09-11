@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { ChevronsUpDown, LayoutTemplate, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioItem, PortfolioSection } from "@/types";
@@ -22,7 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import SectionRenderer from "@/features/sections/section-renderer";
+// Same reason as the section preview: the layouts load when a page preview
+// is opened, not with the module.
+const SectionRenderer = dynamic(
+  () => import("@/features/sections/section-renderer"),
+  { ssr: false },
+);
 import { Button } from "@/components/ui/button";
 import {
   Sheet,

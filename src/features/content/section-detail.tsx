@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   AlertTriangle,
   ArrowDown,
@@ -25,7 +26,19 @@ import type { PortfolioItem, PortfolioSection } from "@/types";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/admin/shared";
 import NovelEditor from "@/components/admin/novel-editor";
-import SectionRenderer from "@/features/sections/section-renderer";
+/**
+ * The public renderer pulls in every section layout — ~100 kB that the edit
+ * view never needs. Loaded when a preview is actually asked for.
+ */
+const SectionRenderer = dynamic(
+  () => import("@/features/sections/section-renderer"),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-sm text-muted-foreground">Drawing the preview…</p>
+    ),
+  },
+);
 import { LAYOUT_OPTIONS } from "./layout-registry";
 import { safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/cn";
