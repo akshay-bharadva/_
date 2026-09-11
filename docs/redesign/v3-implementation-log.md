@@ -1933,6 +1933,48 @@ unreconciled accounts, unadded schedules, uncategorised imports and
 unconverted amounts, each with the way to its fix. It is the checklist an
 import should have produced from the start.
 
+## The block editor (Notes, Blog, Learning, Content)
+
+**Was** — a bordered box with a sticky bar of thirty-odd buttons, its own
+scroll area and a fixed height, so every editing surface looked like an
+attachment sitting on the page. A slash menu existed but counted keystrokes
+into a filter string, which drifted from the text as soon as the cursor
+moved or anything was pasted.
+
+**Is — rebuilt as a Notion-style editor (2026-09-11)**, on the TipTap 3
+already installed; no new dependency.
+
+- **No toolbar, no frame.** The page variant is part of the surface it sits
+  on and grows with its content — the page scrolls, never the editor. A
+  `field` variant stays framed for forms (the CMS item sheet). `measure="prose"`
+  (the blog) holds long-form writing to a reading column at a larger size.
+- **`/` for blocks** — text, three headings, bulleted / numbered / to-do lists,
+  quote, code, divider, table, image — each with its markdown shortcut shown.
+  The query is read from the document (`slashQuery`), not tallied from keys;
+  a slash inside a word, after a URL or in a code block never opens it.
+- **Formatting on selection** (`BubbleToolbar`): Turn into, bold, italic,
+  underline, strike, code, highlight, link. Links go through `safeLinkUrl`
+  (`link-url.ts`), because the body is rendered publicly.
+- **A handle in the margin** of the hovered block: `+` adds a block below and
+  opens the slash menu; the grip drags the block (ProseMirror's own drop
+  handling, so the drop cursor and undo work) or, clicked, offers Turn into,
+  Duplicate, Move up/down and Delete. Alt+Shift+↑/↓ moves a block from the
+  keyboard. Shown only on hover-capable wide screens; callers leave a left
+  padding (`md:pl-14`) for it, and the root must never clip.
+- **One list of block types** (`slash-commands.ts`) for the slash menu, Turn
+  into and the handle, so they cannot disagree. Every conversion clears the
+  block's wrapping first, so "list → heading" converts rather than nests.
+- **StarterKit 3 bundles Link and Underline** — they were being registered a
+  second time. **TrailingNode is off**: it appended a blank line to any
+  document ending in a heading or list the moment it loaded — an edit nobody
+  made, and in an autosaving note, a write on open. Clicking below the last
+  block adds the line instead.
+- Styles are theme tokens in `globals.css` under `.novel-editor`; the
+  highlight was a literal yellow.
+
+**Known limit:** the handle works on top-level blocks, so a list moves as one
+block rather than item by item.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

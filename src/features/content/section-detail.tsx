@@ -431,13 +431,14 @@ export function SectionDetail({
                 <Label className="text-base">Content</Label>
                 <SaveIndicator state={saveState} />
               </div>
-              <div className="min-h-[500px] w-full max-w-full overflow-hidden rounded-surface border">
+              {/* Not clipped, and no fixed height: the editor grows with the
+                  section, and its block handle sits in the left padding. */}
+              <div className="w-full rounded-surface border px-4 py-3 md:pl-14">
                 <NovelEditor
                   value={content}
                   onChange={setContent}
-                  placeholder="Write your section content here…"
-                  minHeight="500px"
-                  className="prose-sm sm:prose min-w-full"
+                  placeholder="Write your section content here, or press '/' for commands…"
+                  minHeight="20rem"
                 />
               </div>
               <p className="text-xs text-muted-foreground">

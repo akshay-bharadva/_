@@ -415,14 +415,13 @@ export function TopicEditor({
               />
             </div>
 
-            <div className="flex-1 px-4 pb-12 pt-4">
+            {/* Left padding on wide screens is the block handle's margin. */}
+            <div className="flex-1 px-4 pb-12 pt-4 md:pl-14">
               <NovelEditor
                 value={coreNotes}
                 onChange={setCoreNotes}
-                placeholder="Start taking notes..."
-                minHeight="500px"
-                isRounded={true}
-                className="border-none bg-transparent px-0 shadow-none"
+                placeholder="Start taking notes, or press '/' for commands…"
+                minHeight="20rem"
               />
             </div>
 

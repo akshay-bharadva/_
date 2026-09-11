@@ -420,11 +420,8 @@ export default function BlogEditor({
               value={formData.content}
               onChange={(newContent) => patchForm({ content: newContent })}
               onImageUpload={handleContentImageUpload}
-              // Below the admin topbar (h-14) and this page's own bar (h-14).
-              toolbarOffset="7rem"
               minHeight="60vh"
-              className="border-none"
-              isRounded={false}
+              measure="prose"
             />
           </div>
         </div>

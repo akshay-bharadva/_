@@ -228,7 +228,8 @@ export function NoteDocument({
     >
       <article
         aria-label={label.text}
-        className="rounded-surface p-5 shadow-e1 sm:p-8"
+        // The wide side padding is the editor's block-handle margin.
+        className="rounded-surface p-5 shadow-e1 sm:px-14 sm:py-8"
         // Per-note user data, not a theme token, so it cannot be a class.
         style={{ background: tile }}
       >
@@ -368,16 +369,12 @@ export function NoteDocument({
         <div className="mt-6">
           {editing ? (
             <>
-              <div className="overflow-hidden rounded-control bg-background/40">
-                <NovelEditor
-                  value={draft.content}
-                  onChange={(content) => change({ content })}
-                  placeholder="Start writing…"
-                  minHeight="22rem"
-                  isRounded={false}
-                  className="h-full border-none"
-                />
-              </div>
+              <NovelEditor
+                value={draft.content}
+                onChange={(content) => change({ content })}
+                placeholder="Start writing, or press '/' for commands…"
+                minHeight="16rem"
+              />
               <p className="mt-2 text-xs text-muted-foreground">
                 Type{" "}
                 <code className="rounded-control bg-background/60 px-1">

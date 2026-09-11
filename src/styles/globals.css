@@ -341,102 +341,105 @@
     }
   }
 
-  /* --- Novel Editor (Tiptap) Styles --- */
-
-  /*
-   * The writing surface, sized for writing.
+  /* --- Block editor (TipTap) ------------------------------------------------
    *
-   * This was `prose-sm`. Long-form drafting at 0.875rem is uncomfortable in a
-   * way that only shows up after a few hundred words, and every editor built
-   * for essays — Medium, Substack, Ghost — writes at 18–21px for exactly that
-   * reason. `prose` at the base size with a bounded measure is the closest
-   * this component gets to that without inventing its own scale.
+   * The text is the interface: no frame, no toolbar, no scroll area of its own.
+   * The rhythm is Notion's — blocks sit close together and headings take the
+   * space above them — and every colour is a theme token (the highlight used
+   * to be a literal yellow that ignored the preset).
    *
-   * The measure matters as much as the size: prose set across the full admin
-   * width runs to 120+ characters a line, which is past the point where the
-   * eye reliably finds the start of the next one.
+   * `data-measure="prose"` is long-form writing (the blog): a larger size,
+   * because drafting an essay at 14–16px is uncomfortable in a way that only
+   * shows after a few hundred words. The measure itself is set on the editor
+   * root, so the block handle stays beside the text column.
    */
   .novel-editor .ProseMirror {
-    @apply prose dark:prose-invert;
-    @apply mx-auto min-h-[200px] max-w-[46rem] px-6 py-8;
-    @apply focus:outline-none;
+    @apply text-base leading-7 text-foreground outline-none;
+    overflow-wrap: break-word;
+    caret-color: hsl(var(--primary));
   }
 
-  /*
-   * Headings in the editor use the heading face, not monospace.
-   *
-   * They were `font-mono`, which is the retired decorative voice — and worse
-   * than a style slip here, because the public post renders them in
-   * `font-heading`. The writer was drafting in one typeface and publishing in
-   * another, which is the one thing a WYSIWYG editor exists to avoid.
-   */
+  .novel-editor[data-measure="prose"] .ProseMirror {
+    @apply text-[1.0625rem] leading-8;
+  }
+
+  .novel-editor .ProseMirror > * {
+    @apply my-0;
+  }
+
+  .novel-editor .ProseMirror > * + * {
+    margin-top: 0.125rem;
+  }
+
+  .novel-editor .ProseMirror p {
+    @apply py-[3px];
+  }
+
+  /* Headings in the heading face, as the public page renders them. */
   .novel-editor .ProseMirror h1,
   .novel-editor .ProseMirror h2,
   .novel-editor .ProseMirror h3,
   .novel-editor .ProseMirror h4,
   .novel-editor .ProseMirror h5,
   .novel-editor .ProseMirror h6 {
-    @apply font-heading font-semibold tracking-tight;
+    @apply font-heading font-semibold tracking-tight text-foreground;
   }
 
   .novel-editor .ProseMirror h1 {
-    @apply text-3xl mt-8 mb-4;
+    @apply mb-1 mt-8 text-[1.875em] leading-tight;
   }
 
   .novel-editor .ProseMirror h2 {
-    @apply text-2xl mt-6 mb-3;
+    @apply mb-0.5 mt-6 text-[1.5em] leading-snug;
   }
 
   .novel-editor .ProseMirror h3 {
-    @apply text-xl mt-5 mb-2;
+    @apply mt-5 text-[1.25em] leading-snug;
   }
 
-  .novel-editor .ProseMirror p {
-    @apply leading-7 my-4;
+  .novel-editor .ProseMirror :is(h4, h5, h6) {
+    @apply mt-4 text-[1.05em];
+  }
+
+  .novel-editor .ProseMirror > :first-child {
+    @apply mt-0;
+  }
+
+  .novel-editor .ProseMirror strong {
+    @apply font-semibold;
   }
 
   .novel-editor .ProseMirror a {
-    @apply text-primary underline cursor-pointer;
+    @apply cursor-pointer text-foreground underline decoration-muted-foreground/60 underline-offset-2 hover:decoration-foreground;
   }
 
-  .novel-editor .ProseMirror a:hover {
-    @apply text-primary/80;
-  }
-
-  .novel-editor .ProseMirror code {
-    @apply bg-muted px-1.5 py-0.5 rounded font-mono text-sm;
-  }
-
-  .novel-editor .ProseMirror pre {
-    @apply bg-muted p-4 rounded-lg overflow-x-auto my-4;
-  }
-
-  .novel-editor .ProseMirror pre code {
-    @apply bg-transparent p-0;
-  }
-
-  .novel-editor .ProseMirror blockquote {
-    @apply border-l-4 border-primary pl-4 italic text-muted-foreground my-4;
+  .novel-editor .ProseMirror ul,
+  .novel-editor .ProseMirror ol {
+    @apply my-1 pl-6;
   }
 
   .novel-editor .ProseMirror ul {
-    @apply list-disc list-outside ml-6 my-4;
+    @apply list-disc;
   }
 
   .novel-editor .ProseMirror ol {
-    @apply list-decimal list-outside ml-6 my-4;
+    @apply list-decimal;
   }
 
   .novel-editor .ProseMirror li {
-    @apply my-1;
+    @apply py-px;
   }
 
   .novel-editor .ProseMirror li p {
-    @apply my-0;
+    @apply py-0.5;
+  }
+
+  .novel-editor .ProseMirror li::marker {
+    color: hsl(var(--muted-foreground));
   }
 
   .novel-editor .ProseMirror ul[data-type="taskList"] {
-    @apply list-none ml-0;
+    @apply list-none pl-0.5;
   }
 
   .novel-editor .ProseMirror ul[data-type="taskList"] li {
@@ -444,70 +447,93 @@
   }
 
   .novel-editor .ProseMirror ul[data-type="taskList"] li > label {
-    @apply flex items-center;
+    @apply mt-[0.35rem] flex shrink-0 select-none items-center;
   }
 
-  .novel-editor
-    .ProseMirror
-    ul[data-type="taskList"]
-    li
-    > label
-    input[type="checkbox"] {
-    @apply h-4 w-4 rounded border-border cursor-pointer accent-primary;
+  .novel-editor .ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+    @apply size-4 cursor-pointer accent-primary;
   }
 
-  .novel-editor
-    .ProseMirror
-    ul[data-type="taskList"]
-    li[data-checked="true"]
-    > div {
-    @apply line-through text-muted-foreground;
+  .novel-editor .ProseMirror ul[data-type="taskList"] li > div {
+    @apply min-w-0 flex-1;
+  }
+
+  .novel-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+    @apply text-muted-foreground line-through;
+  }
+
+  .novel-editor .ProseMirror blockquote {
+    @apply my-1 border-l-[3px] border-foreground/80 py-0.5 pl-4;
+  }
+
+  .novel-editor .ProseMirror code {
+    @apply rounded-[0.3rem] bg-muted px-1.5 py-0.5 font-mono text-[0.875em];
+  }
+
+  .novel-editor .ProseMirror pre {
+    @apply my-2 overflow-x-auto bg-muted p-4 font-mono text-sm leading-6;
+    border-radius: var(--r-control);
+  }
+
+  .novel-editor .ProseMirror pre code {
+    @apply bg-transparent p-0 text-inherit;
   }
 
   .novel-editor .ProseMirror hr {
-    @apply border-border my-8;
-  }
-
-  .novel-editor .ProseMirror table {
-    @apply border-collapse w-full my-4;
-  }
-
-  .novel-editor .ProseMirror table th {
-    @apply border border-border bg-muted p-2 text-left font-semibold;
-  }
-
-  .novel-editor .ProseMirror table td {
-    @apply border border-border p-2;
-  }
-
-  .novel-editor .ProseMirror table tr:hover td {
-    @apply bg-muted/30;
-  }
-
-  .novel-editor .ProseMirror .selectedCell::after {
-    @apply absolute inset-0 bg-primary/10 pointer-events-none;
-    content: "";
+    @apply my-4 border-border;
   }
 
   .novel-editor .ProseMirror img {
-    @apply rounded-lg border max-w-full h-auto my-4;
+    @apply my-2 h-auto max-w-full;
+    border-radius: var(--r-control);
   }
 
   .novel-editor .ProseMirror img.ProseMirror-selectednode {
-    @apply ring-2 ring-primary ring-offset-2;
+    @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* A block picked up by its handle, or selected whole. */
+  .novel-editor .ProseMirror > .ProseMirror-selectednode:not(img) {
+    background: hsl(var(--primary) / 0.08);
+    border-radius: var(--r-control);
   }
 
   .novel-editor .ProseMirror mark {
-    @apply bg-yellow-200 dark:bg-yellow-800/50 px-0.5 rounded;
+    @apply rounded-[0.2rem] bg-chart-3/30 px-0.5 text-inherit;
   }
 
-  .novel-editor .ProseMirror p.is-editor-empty:first-child::before {
-    @apply text-muted-foreground pointer-events-none float-left h-0;
-    content: attr(data-placeholder);
+  .novel-editor .ProseMirror table {
+    @apply my-2 w-full border-collapse text-sm;
+    table-layout: fixed;
   }
 
-  .novel-editor .ProseMirror.is-editor-empty::before {
-    @apply text-muted-foreground pointer-events-none absolute;
+  .novel-editor .ProseMirror th,
+  .novel-editor .ProseMirror td {
+    @apply relative border border-border px-3 py-2 text-left align-top;
+  }
+
+  .novel-editor .ProseMirror th {
+    @apply bg-muted/60 font-semibold;
+  }
+
+  .novel-editor .ProseMirror .selectedCell::after {
+    @apply pointer-events-none absolute inset-0 bg-primary/10;
+    content: "";
+  }
+
+  .novel-editor .ProseMirror .column-resize-handle {
+    @apply absolute right-0 top-0 h-full w-1 cursor-col-resize bg-primary;
+  }
+
+  .novel-editor .ProseMirror .resize-cursor {
+    @apply cursor-col-resize;
+  }
+
+  /* The prompt on an empty editor always; on an empty line only while typing
+     — a page scattered with "Type '/' for commands" reads as unfinished. */
+  .novel-editor .ProseMirror .is-editor-empty:first-child::before,
+  .novel-editor .ProseMirror.ProseMirror-focused .is-empty::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground/60;
     content: attr(data-placeholder);
   }
 
@@ -517,14 +543,6 @@
 
   .novel-editor .ProseMirror .ProseMirror-gapcursor::after {
     @apply border-t-2 border-foreground;
-  }
-
-  .novel-editor .ProseMirror .column-resize-handle {
-    @apply absolute top-0 right-0 w-1 h-full bg-primary cursor-col-resize;
-  }
-
-  .novel-editor .ProseMirror .resize-cursor {
-    @apply cursor-col-resize;
   }
 }
 

@@ -623,7 +623,8 @@ export function ItemEditorSheet({
                     placeholder={
                       hints.description?.placeholder ?? "Describe this item..."
                     }
-                    minHeight="180px"
+                    minHeight="8rem"
+                    variant="field"
                   />
                 ) : (
                   <Textarea

@@ -2,103 +2,59 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Highlight } from "@tiptap/extension-highlight";
 import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
-import { Underline } from "@tiptap/extension-underline";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { Placeholder } from "@tiptap/extension-placeholder";
-import { Link } from "@tiptap/extension-link";
 import { Image } from "@tiptap/extension-image";
 import { Typography } from "@tiptap/extension-typography";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { TextAlign } from "@tiptap/extension-text-align";
 
-export const getExtensions = (placeholder: string = "Start writing...") => [
+/**
+ * The editor's schema. Styling lives in `globals.css` under `.novel-editor`,
+ * in theme tokens, rather than as class lists here — the old ones carried
+ * literal palette colours (`bg-yellow-200`) that ignored the theme.
+ *
+ * StarterKit 3 already bundles Link and Underline; they are configured here
+ * rather than registered a second time.
+ */
+export const getExtensions = (placeholder: string = "Start writing…") => [
   StarterKit.configure({
-    heading: {
-      levels: [1, 2, 3, 4, 5, 6],
+    // Six levels are kept so existing posts with an h4–h6 still load intact;
+    // the menus offer three, as Notion does.
+    heading: { levels: [1, 2, 3, 4, 5, 6] },
+    link: {
+      openOnClick: false,
+      autolink: true,
+      HTMLAttributes: { rel: "noopener noreferrer" },
     },
-    codeBlock: {
-      HTMLAttributes: {
-        class: "rounded-lg bg-muted p-4 font-mono text-sm",
-      },
-    },
-    blockquote: {
-      HTMLAttributes: {
-        class: "border-l-4 border-primary pl-4 italic text-muted-foreground",
-      },
-    },
-    bulletList: {
-      HTMLAttributes: {
-        class: "list-disc list-outside ml-4",
-      },
-    },
-    orderedList: {
-      HTMLAttributes: {
-        class: "list-decimal list-outside ml-4",
-      },
-    },
-    horizontalRule: {
-      HTMLAttributes: {
-        class: "my-4 border-border",
-      },
-    },
+    dropcursor: { color: "hsl(var(--primary))", width: 2 },
+    // Off: it appends a blank line after a closing heading or list the moment
+    // a document loads, which is an edit nobody made — and in an autosaving
+    // note, a write on open. Clicking below the last block adds the line
+    // instead (see the editor root).
+    trailingNode: false,
   }),
   Placeholder.configure({
-    placeholder,
     emptyEditorClass: "is-editor-empty",
-  }),
-  Highlight.configure({
-    multicolor: true,
-    HTMLAttributes: {
-      class: "bg-yellow-200 dark:bg-yellow-800/50 px-1 rounded",
+    emptyNodeClass: "is-empty",
+    placeholder: ({ editor, node }) => {
+      if (node.type.name === "heading") return `Heading ${node.attrs.level}`;
+      if (editor.isEmpty) return placeholder;
+      return "Type '/' for commands";
     },
   }),
-  TaskList.configure({
-    HTMLAttributes: {
-      class: "not-prose",
-    },
-  }),
-  TaskItem.configure({
-    nested: true,
-    HTMLAttributes: {
-      class: "flex items-start gap-2",
-    },
-  }),
-  Underline,
-  Table.configure({
-    resizable: true,
-    HTMLAttributes: {
-      class: "border-collapse table-auto w-full",
-    },
-  }),
+  Highlight,
+  TaskList,
+  TaskItem.configure({ nested: true }),
+  Table.configure({ resizable: true }),
   TableRow,
-  TableCell.configure({
-    HTMLAttributes: {
-      class: "border border-border p-2",
-    },
-  }),
-  TableHeader.configure({
-    HTMLAttributes: {
-      class: "border border-border bg-muted p-2 font-semibold",
-    },
-  }),
-  Link.configure({
-    openOnClick: false,
-    HTMLAttributes: {
-      class: "text-primary underline cursor-pointer",
-    },
-  }),
-  Image.configure({
-    allowBase64: false,
-    HTMLAttributes: {
-      class: "rounded-lg border max-w-full h-auto",
-    },
-  }),
+  TableCell,
+  TableHeader,
+  Image.configure({ allowBase64: false }),
   Typography,
   CharacterCount,
-  TextAlign.configure({
-    types: ["heading", "paragraph"],
-  }),
+  TextAlign.configure({ types: ["heading", "paragraph"] }),
 ];
