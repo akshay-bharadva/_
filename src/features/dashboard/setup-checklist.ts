@@ -26,6 +26,25 @@ export interface SetupItem {
   done: boolean;
 }
 
+/**
+ * What `db/schema.sql` seeds, which is placeholder text rather than an answer.
+ *
+ * A fresh install arrives with "Your Name", "Your Professional Title",
+ * `github.com/your-username` and the blueprint theme already in the row. Read
+ * naively, three steps tick themselves on day one — while the live site still
+ * says "Your Name" to every visitor, which is exactly what the checklist
+ * exists to prevent.
+ */
+const SEEDED_NAME = "your name";
+const SEEDED_TITLE = "your professional title";
+const SEEDED_THEME = "theme-blueprint";
+const SEEDED_URL = /your-username|your-profile|your-email@example\.com/i;
+
+function answered(value: string | undefined, seeded: string): boolean {
+  const text = (value ?? "").trim();
+  return text !== "" && text.toLowerCase() !== seeded;
+}
+
 export function setupItems({
   identity,
   sectionCount,
@@ -34,7 +53,10 @@ export function setupItems({
 }: SetupInputs): SetupItem[] {
   const profile = identity?.profile_data;
   const hasLink = (identity?.social_links ?? []).some(
-    (link) => link.is_visible !== false && link.url.trim() !== "",
+    (link) =>
+      link.is_visible !== false &&
+      link.url.trim() !== "" &&
+      !SEEDED_URL.test(link.url),
   );
 
   return [
@@ -43,7 +65,9 @@ export function setupItems({
       title: "Say who you are",
       description: "Your name, your role and a photo.",
       href: "/admin/settings",
-      done: !!profile?.name?.trim() && !!profile?.title?.trim(),
+      done:
+        answered(profile?.name, SEEDED_NAME) &&
+        answered(profile?.title, SEEDED_TITLE),
     },
     {
       id: "pitch",
@@ -59,7 +83,9 @@ export function setupItems({
       href: "/admin/settings",
       done:
         !!profile &&
-        ((profile.default_theme ?? DEFAULT_THEME) !== DEFAULT_THEME ||
+        ((profile.default_theme !== DEFAULT_THEME &&
+          profile.default_theme !== SEEDED_THEME &&
+          !!profile.default_theme) ||
           (profile.typography_preset ?? "typo-default") !== "typo-default"),
     },
     {

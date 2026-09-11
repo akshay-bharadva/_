@@ -2093,9 +2093,13 @@ which. `<code>` and `<kbd>` lost a `font-mono` class they never needed.
   upload progress shipped.)
 - Library: no public bookshelf — only the random highlight is public, by
   choice. A shelf page would be a second public function, not a table policy.
-- **Migrations 022 and 023 are unapplied.** Until they are, "Improve imported
-  transactions" cannot save, and rules added from "Found what repeats" cannot
-  link their history.
+- **Migrations 022, 023 and 024 are unapplied.** Until they are, "Improve
+  imported transactions" cannot save, rules added from "Found what repeats"
+  cannot link their history, and reordering a section's items fails.
+- **No password reset.** Sign-in points the owner at the Supabase dashboard,
+  because a reset link needs a route that accepts the recovery session and
+  sets a new password — which does not exist. For a product other people
+  install, that is the last real gap in the first ten minutes.
 - Loans: no link from a loan to the ledger — EMIs actually paid are recorded as
   ordinary transactions, and the schedule assumes every instalment was paid on
   its date.

@@ -16,9 +16,58 @@ const inputs = (overrides: Partial<SetupInputs> = {}): SetupInputs => ({
 const done = (list: ReturnType<typeof setupItems>) =>
   list.filter((item) => item.done).map((item) => item.id);
 
+/** What db/schema.sql actually seeds into site_identity. */
+const seeded = (): SiteContent =>
+  ({
+    ...fresh,
+    profile_data: {
+      ...fresh.profile_data,
+      name: "Your Name",
+      title: "Your Professional Title",
+      default_theme: "theme-blueprint",
+      logo: { main: "YOUR", highlight: ".DEV" },
+    },
+    social_links: [
+      {
+        id: "github",
+        label: "GitHub",
+        url: "https://github.com/your-username",
+        is_visible: true,
+      },
+      {
+        id: "email",
+        label: "Email",
+        url: "mailto:your-email@example.com",
+        is_visible: true,
+      },
+    ],
+  }) as SiteContent;
+
 describe("setupItems", () => {
   it("has everything left to do on a fresh install", () => {
     expect(done(setupItems(inputs()))).toEqual([]);
+  });
+
+  /**
+   * The seed fills the row with placeholders. Counting them as answers ticked
+   * three steps on day one while the site still said "Your Name" to visitors.
+   */
+  it("does not count the seeded placeholders as answers", () => {
+    expect(done(setupItems(inputs({ identity: seeded() })))).toEqual([]);
+  });
+
+  it("counts a real theme, and a real link", () => {
+    const identity = {
+      ...seeded(),
+      profile_data: { ...seeded().profile_data, default_theme: "theme-nord" },
+      social_links: [
+        { id: "github", label: "GitHub", url: "https://github.com/ada", is_visible: true },
+      ],
+    } as SiteContent;
+    const items = done(setupItems(inputs({ identity })));
+    expect(items).toContain("look");
+    expect(items).toContain("links");
+    expect(items).not.toContain("profile");
   });
 
   /** Read from the data, not ticked by hand. */
