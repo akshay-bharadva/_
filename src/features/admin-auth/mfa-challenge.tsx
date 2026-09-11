@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound } from "lucide-react";
 import { supabase } from "@/supabase/client";
 import { useSignOutMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
@@ -11,16 +10,34 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import {
-  AuthCard,
-  AuthErrorAlert,
-  AuthPending,
-  AuthStatusLine,
-} from "./auth-card";
+import { AuthError, AuthPanel, AuthPending } from "./auth-card";
+
+/** The 30-second window a code is valid for, as a ring that empties. */
+function CodeWindow({ seconds }: { seconds: number }) {
+  const radius = 9;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+      <svg viewBox="0 0 24 24" className="size-5 -rotate-90" aria-hidden>
+        <circle cx="12" cy="12" r={radius} className="fill-none stroke-secondary" strokeWidth="3" />
+        <circle
+          cx="12"
+          cy="12"
+          r={radius}
+          className="fill-none stroke-primary transition-[stroke-dashoffset] duration-1000 ease-linear motion-reduce:transition-none"
+          strokeWidth="3"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - seconds / 30)}
+        />
+      </svg>
+      New code in <span className="font-medium tabular-nums text-foreground">{seconds}s</span>
+    </p>
+  );
+}
 
 /**
- * Second-factor challenge for an aal1 session with a verified TOTP factor.
- * Auto-submits when 6 digits are entered; shows the live TOTP window.
+ * The second factor for an aal1 session with a verified TOTP factor. Submits
+ * as soon as six digits are in.
  */
 export function MfaChallenge() {
   const router = useRouter();
@@ -92,11 +109,11 @@ export function MfaChallenge() {
     };
   }, [router]);
 
-  // Live 30-second TOTP window countdown, aligned to the wall clock.
+  // The 30-second TOTP window, aligned to the wall clock.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setRemainingTime(30 - (new Date().getSeconds() % 30));
-    }, 1000);
+    const tick = () => setRemainingTime(30 - (new Date().getSeconds() % 30));
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -134,24 +151,22 @@ export function MfaChallenge() {
     try {
       await signOut().unwrap();
     } catch {
-      // Fall through to login either way.
+      // Stranding someone on a half-signed-in page is worse than a stale session.
     }
     router.replace("/admin/login");
   };
 
   if (isBusy && !error && !factorId) {
-    return <AuthPending text="checking assurance level…" />;
+    return <AuthPending text="Checking your sign-in…" />;
   }
 
   return (
-    <AuthCard
-      step="02 / verify"
-      title="Security challenge"
-      description="Enter the 6-digit code from your authenticator app."
-      icon={KeyRound}
+    <AuthPanel
+      title="Enter your code"
+      description="From your authenticator app — it confirms it's you."
     >
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="space-y-3">
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="space-y-4">
           <label htmlFor="mfa-challenge-otp" className="sr-only">
             Verification code
           </label>
@@ -164,32 +179,23 @@ export function MfaChallenge() {
             autoFocus
           >
             <InputOTPGroup className="w-full justify-center">
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
+              {[0, 1, 2, 3, 4, 5].map((index) => (
+                <InputOTPSlot key={index} index={index} />
+              ))}
             </InputOTPGroup>
           </InputOTP>
-          <p className="text-center font-mono text-xs text-muted-foreground">
-            code resets in{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              {remainingTime}s
-            </span>
-          </p>
+          <CodeWindow seconds={remainingTime} />
         </div>
 
-        {error && (
-          <AuthErrorAlert title="verification failed" message={error} />
-        )}
+        {error && <AuthError message={error} />}
 
         <Button
           type="submit"
+          size="lg"
           disabled={isBusy || otp.length !== 6 || !factorId}
           className="w-full"
         >
-          {isBusy ? "Verifying…" : "Verify & sign in"}
+          {isBusy ? "Checking…" : "Verify"}
         </Button>
 
         <div className="text-center">
@@ -199,12 +205,10 @@ export function MfaChallenge() {
             className="text-sm text-muted-foreground"
             onClick={handleSignOut}
           >
-            Cancel and sign out
+            Sign out
           </Button>
         </div>
-
-        <AuthStatusLine text="aal1 session — second factor required" />
       </form>
-    </AuthCard>
+    </AuthPanel>
   );
 }

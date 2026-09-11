@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
+import { AuthShell } from "@/features/admin-auth/auth-shell";
 
 export const metadata: Metadata = {
   robots: { index: false },
 };
 
-/** Centered card stage for the auth flow — no shell, no guard. */
+/**
+ * The stage for the auth flow — no admin shell, no guard. `AuthShell` checks
+ * that there is a database to sign in to before any screen is shown.
+ */
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-background p-4 text-foreground">
-      {children}
-    </div>
-  );
+  return <AuthShell>{children}</AuthShell>;
 }

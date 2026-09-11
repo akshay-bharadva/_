@@ -11,6 +11,7 @@ import { adminApi } from "./adminApi";
 const EXPECTED_HOOKS = [
   // auth
   "useCheckAdminExistsQuery",
+  "useGetSetupStatusQuery",
   "useGetMfaFactorsQuery",
   "useUnenrollMfaFactorMutation",
   "useUpdateUserPasswordMutation",

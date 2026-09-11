@@ -42,7 +42,7 @@ const verifiedFactor = { id: "factor-1", status: "verified" };
 
 /** Wait for the guard to settle and the challenge form to appear. */
 const awaitForm = () =>
-  screen.findByRole("button", { name: "Verify & sign in" });
+  screen.findByRole("button", { name: "Verify" });
 
 const enterCode = (code: string) =>
   fireEvent.change(screen.getByLabelText("Verification code"), {
@@ -198,7 +198,7 @@ describe("MfaChallenge", () => {
       await awaitForm();
 
       fireEvent.click(
-        screen.getByRole("button", { name: "Cancel and sign out" }),
+        screen.getByRole("button", { name: "Sign out" }),
       );
 
       await waitFor(() =>
@@ -217,7 +217,7 @@ describe("MfaChallenge", () => {
       await awaitForm();
 
       fireEvent.click(
-        screen.getByRole("button", { name: "Cancel and sign out" }),
+        screen.getByRole("button", { name: "Sign out" }),
       );
 
       await waitFor(() =>

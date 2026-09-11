@@ -2,6 +2,7 @@ import { supabase } from "@/supabase/client";
 import type { Factor } from "@supabase/supabase-js";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR } from "./query-helpers";
+import { classifySetupError, type SetupStatus } from "@/lib/setup-status";
 
 export const authApi = adminApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -17,6 +18,19 @@ export const authApi = adminApi.injectEndpoints({
       },
       providesTags: ["System"],
       keepUnusedDataFor: 300,
+    }),
+    /**
+     * Whether this install can be signed in to at all — see `SetupStatus`.
+     * Probes the same function sign-up and sign-in depend on, and says *why*
+     * when it fails, which `checkAdminExists` deliberately does not.
+     */
+    getSetupStatus: builder.query<SetupStatus, void>({
+      queryFn: async () => {
+        if (!supabase) return { data: "no-database" };
+        const { error } = await supabase.rpc("check_admin_exists");
+        return { data: classifySetupError(error) };
+      },
+      providesTags: ["System"],
     }),
     getMfaFactors: builder.query<Factor[], void>({
       queryFn: async () => {
@@ -77,6 +91,7 @@ export const authApi = adminApi.injectEndpoints({
 
 export const {
   useCheckAdminExistsQuery,
+  useGetSetupStatusQuery,
   useGetMfaFactorsQuery,
   useUnenrollMfaFactorMutation,
   useUpdateUserPasswordMutation,

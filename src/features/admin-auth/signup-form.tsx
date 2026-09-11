@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ShieldPlus } from "lucide-react";
+import { MailCheck } from "lucide-react";
 import { supabase } from "@/supabase/client";
 import { adminApi, useCheckAdminExistsQuery } from "@/store/api/adminApi";
 import { useAppDispatch } from "@/store/hooks";
@@ -10,16 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  AuthCard,
-  AuthErrorAlert,
+  AuthError,
+  AuthNote,
+  AuthPanel,
   AuthPending,
-  AuthStatusLine,
+  PasswordInput,
 } from "./auth-card";
 
 /**
- * Bootstrap-only signup: creates the single owner account on a fresh
- * install. If an admin already exists this redirects to login (and the
- * database trigger blocks additional signups regardless).
+ * The first screen of a new install: create the one account the site will
+ * ever have. If an owner already exists this redirects to sign-in — and the
+ * database refuses further sign-ups regardless; this is the friendly half.
  */
 export function SignupForm() {
   const router = useRouter();
@@ -34,8 +35,8 @@ export function SignupForm() {
     useCheckAdminExistsQuery();
 
   useEffect(() => {
-    // Skip the redirect right after a successful signup so the
-    // "verify email" state stays on screen.
+    // Not right after a successful signup: the "check your email" step has to
+    // stay on screen.
     if (!isChecking && adminExists && !success) {
       router.replace("/admin/login");
     }
@@ -61,101 +62,85 @@ export function SignupForm() {
       return;
     }
 
-    // Mark success first so the redirect effect above stays inert.
+    // Success first, so the redirect effect above stays inert.
     setSuccess(true);
     setIsSubmitting(false);
 
-    // Refresh the cached admin-exists check for the login page.
+    // Refresh the cached admin-exists answer for the sign-in page.
     dispatch(adminApi.util.invalidateTags(["System"]));
   };
 
   if ((isChecking || adminExists) && !success) {
-    return <AuthPending text="checking system state…" />;
+    return <AuthPending text="One moment…" />;
+  }
+
+  if (success) {
+    return (
+      <AuthPanel step={1} title="Check your email" description="One click to confirm it's yours.">
+        <div className="flex items-start gap-4 rounded-surface bg-card p-5 shadow-e1">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <MailCheck className="size-5" aria-hidden />
+          </span>
+          <p className="text-sm text-muted-foreground">
+            We sent a confirmation link to{" "}
+            <strong className="break-all font-medium text-foreground">{email}</strong>.
+            Open it, then come back and sign in — you&apos;ll set up two-factor
+            next.
+          </p>
+        </div>
+        <Button size="lg" className="mt-6 w-full" onClick={() => router.push("/admin/login")}>
+          Go to sign in
+        </Button>
+      </AuthPanel>
+    );
   }
 
   return (
-    <AuthCard
-      step="00 / bootstrap"
-      title="Initialize system"
-      description={
-        success
-          ? "Setup complete — one step left."
-          : "No administrator detected. Create the root account to take control."
-      }
-      icon={ShieldPlus}
+    <AuthPanel
+      step={0}
+      title="Create your account"
+      description="This site has no owner yet. The account you create here is the only one it will ever have."
     >
-      {success ? (
-        <div className="space-y-5">
-          <div className="flex flex-col items-center gap-3 rounded-md border border-border bg-secondary/50 p-5 text-center">
-            <CheckCircle2 className="size-8 text-primary" aria-hidden="true" />
-            <div>
-              <p className="font-heading font-semibold text-foreground">
-                Account created
-              </p>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                A confirmation link has been sent to{" "}
-                <strong className="font-mono text-foreground">{email}</strong>.
-                Verify your email address to activate the admin account, then
-                proceed to login.
-              </p>
-            </div>
-          </div>
-          <Button
-            className="w-full"
-            onClick={() => router.push("/admin/login")}
-          >
-            Go to login
-          </Button>
-          <AuthStatusLine text="verification email dispatched" />
+      <form className="space-y-5" onSubmit={handleSignup} noValidate>
+        <div className="space-y-2">
+          <Label htmlFor="signup-email">Email</Label>
+          <Input
+            id="signup-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="h-11"
+          />
         </div>
-      ) : (
-        <form className="space-y-5" onSubmit={handleSignup} noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="signup-email">Admin email</Label>
-            <Input
-              id="signup-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="signup-password">Secure password</Label>
-            <Input
-              id="signup-password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-describedby="signup-password-hint"
-            />
-            <p
-              id="signup-password-hint"
-              className="font-mono text-[11px] text-muted-foreground"
-            >
-              min 6 characters
-            </p>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="signup-password">Password</Label>
+          <PasswordInput
+            id="signup-password"
+            autoComplete="new-password"
+            minLength={6}
+            value={password}
+            onChange={setPassword}
+            describedBy="signup-password-hint"
+          />
+          <p id="signup-password-hint" className="text-xs text-muted-foreground">
+            At least 6 characters. A long passphrase is easiest to remember.
+          </p>
+        </div>
 
-          {error && (
-            <AuthErrorAlert title="registration failed" message={error} />
-          )}
+        {error && <AuthError message={error} />}
 
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? "Creating admin…" : "Create owner account"}
-          </Button>
+        <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "Creating your account…" : "Create account"}
+        </Button>
 
-          <AuthStatusLine text="single-admin system — one account only" />
-        </form>
-      )}
-    </AuthCard>
+        <AuthNote>
+          Next: confirm your email, then turn on two-factor sign-in.
+        </AuthNote>
+      </form>
+    </AuthPanel>
   );
 }

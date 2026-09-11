@@ -38,13 +38,13 @@ vi.mock("@/store/hooks", () => ({
 }));
 
 const fillAndSubmit = (email = "owner@domain.com") => {
-  fireEvent.change(screen.getByLabelText("Admin email"), {
+  fireEvent.change(screen.getByLabelText("Email"), {
     target: { value: email },
   });
-  fireEvent.change(screen.getByLabelText("Secure password"), {
+  fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "hunter2" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Create owner account" }));
+  fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 };
 
 beforeEach(() => {
@@ -65,7 +65,7 @@ describe("SignupForm", () => {
     render(<SignupForm />);
 
     expect(
-      screen.queryByRole("button", { name: "Create owner account" }),
+      screen.queryByRole("button", { name: "Create account" }),
     ).not.toBeInTheDocument();
   });
 
@@ -79,7 +79,7 @@ describe("SignupForm", () => {
       expect(mocks.replace).toHaveBeenCalledWith("/admin/login"),
     );
     expect(
-      screen.queryByRole("button", { name: "Create owner account" }),
+      screen.queryByRole("button", { name: "Create account" }),
     ).not.toBeInTheDocument();
   });
 
@@ -87,7 +87,7 @@ describe("SignupForm", () => {
     render(<SignupForm />);
 
     expect(
-      screen.getByRole("button", { name: "Create owner account" }),
+      screen.getByRole("button", { name: "Create account" }),
     ).toBeInTheDocument();
   });
 
@@ -96,7 +96,7 @@ describe("SignupForm", () => {
 
     fillAndSubmit("owner@domain.com");
 
-    expect(await screen.findByText("Account created")).toBeInTheDocument();
+    expect(await screen.findByText("Check your email")).toBeInTheDocument();
     expect(mocks.signUp).toHaveBeenCalledWith({
       email: "owner@domain.com",
       password: "hunter2",
@@ -116,14 +116,14 @@ describe("SignupForm", () => {
   it("keeps the success panel up once an admin exists", async () => {
     const { rerender } = render(<SignupForm />);
     fillAndSubmit();
-    await screen.findByText("Account created");
+    await screen.findByText("Check your email");
 
     // The signup just made `adminExists` true; without the success guard the
     // redirect effect would fire and hide the verify-your-email instructions.
     mocks.adminExists = true;
     rerender(<SignupForm />);
 
-    expect(screen.getByText("Account created")).toBeInTheDocument();
+    expect(screen.getByText("Check your email")).toBeInTheDocument();
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 
@@ -137,7 +137,7 @@ describe("SignupForm", () => {
     fillAndSubmit();
 
     expect(await screen.findByText("Signups are disabled")).toBeInTheDocument();
-    expect(screen.queryByText("Account created")).not.toBeInTheDocument();
+    expect(screen.queryByText("Check your email")).not.toBeInTheDocument();
   });
 
   it("refuses to sign up with no backend configured", async () => {

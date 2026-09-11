@@ -46,13 +46,13 @@ const withAal = (aal: Aal) =>
   mocks.getAal.mockResolvedValue({ data: aal, error: null });
 
 const signIn = () => {
-  fireEvent.change(screen.getByLabelText("Email address"), {
+  fireEvent.change(screen.getByLabelText("Email"), {
     target: { value: "operator@domain.com" },
   });
   fireEvent.change(screen.getByLabelText("Password"), {
     target: { value: "hunter2" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Authorize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 };
 
 beforeEach(() => {
@@ -84,7 +84,7 @@ describe("LoginForm", () => {
     render(<LoginForm />);
 
     expect(
-      screen.queryByRole("button", { name: "Authorize" }),
+      screen.queryByRole("button", { name: "Sign in" }),
     ).not.toBeInTheDocument();
   });
 
@@ -129,7 +129,7 @@ describe("LoginForm", () => {
 
       // Better to re-authenticate than to guess at an assurance level.
       expect(
-        await screen.findByRole("button", { name: "Authorize" }),
+        await screen.findByRole("button", { name: "Sign in" }),
       ).toBeInTheDocument();
       expect(mocks.replace).not.toHaveBeenCalled();
     });

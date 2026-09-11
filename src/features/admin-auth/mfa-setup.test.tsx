@@ -51,7 +51,7 @@ const client = () => ({
 });
 
 const awaitForm = () =>
-  screen.findByRole("button", { name: "Verify & complete" });
+  screen.findByRole("button", { name: "Turn on two-factor" });
 
 const enterCode = (code: string) =>
   fireEvent.change(screen.getByLabelText(/6-digit code/), {
@@ -121,7 +121,7 @@ describe("MfaSetup", () => {
         await screen.findByText(/MFA is already set up/),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Return to login" }),
+        screen.getByRole("button", { name: "Back to sign in" }),
       ).toBeInTheDocument();
     });
 
@@ -261,7 +261,7 @@ describe("MfaSetup", () => {
       await awaitForm();
 
       fireEvent.click(
-        screen.getByRole("button", { name: "Cancel & sign out" }),
+        screen.getByRole("button", { name: "Sign out" }),
       );
 
       await waitFor(() =>

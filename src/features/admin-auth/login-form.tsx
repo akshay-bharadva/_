@@ -2,22 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock } from "lucide-react";
 import { supabase } from "@/supabase/client";
 import { useCheckAdminExistsQuery } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  AuthCard,
-  AuthErrorAlert,
+  AuthError,
+  AuthNote,
+  AuthPanel,
   AuthPending,
-  AuthStatusLine,
+  PasswordInput,
 } from "./auth-card";
 
 /**
  * Routes an authenticated session to the right admin destination based on
- * its Authenticator Assurance Level.
+ * its Authenticator Assurance Level. This table is the security contract: an
+ * aal1 session never reaches /admin.
  */
 async function routeByAssuranceLevel(replace: (href: string) => void) {
   if (!supabase) return;
@@ -42,8 +43,7 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Bootstrap check: if no admin account exists yet, this is a fresh
-  // install — send the visitor to the one-time signup instead.
+  // A fresh install has no owner yet: send the visitor to the one-time signup.
   const { data: adminExists, isLoading: isCheckingAdmin } =
     useCheckAdminExistsQuery();
 
@@ -119,58 +119,50 @@ export function LoginForm() {
     }
   };
 
-  if (isCheckingAdmin) return <AuthPending text="checking system state…" />;
-  if (isRedirecting) return <AuthPending text="session found — routing…" />;
+  if (isCheckingAdmin) return <AuthPending text="One moment…" />;
+  if (isRedirecting) return <AuthPending text="You're signed in — opening your workspace…" />;
 
   return (
-    <AuthCard
-      step="01 / access"
-      title="Admin access"
-      description="Authenticate to open the Personal OS."
-      icon={Lock}
+    <AuthPanel
+      title="Sign in"
+      description="to your workspace. You'll confirm it's you with your authenticator app next."
     >
       <form className="space-y-5" onSubmit={handleLogin} noValidate>
         <div className="space-y-2">
-          <Label htmlFor="login-email">Email address</Label>
+          <Label htmlFor="login-email">Email</Label>
           <Input
             id="login-email"
             name="email"
             type="email"
             autoComplete="email"
             required
-            placeholder="operator@domain.com"
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="h-11"
           />
         </div>
         <div className="space-y-2">
           <Label htmlFor="login-password">Password</Label>
-          <Input
+          <PasswordInput
             id="login-password"
-            name="password"
-            type="password"
             autoComplete="current-password"
-            required
-            placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={setPassword}
           />
         </div>
 
-        {error && <AuthErrorAlert title="auth failed" message={error} />}
+        {error && <AuthError message={error} />}
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Authenticating…" : "Authorize"}
+        <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "Signing in…" : "Sign in"}
         </Button>
 
-        <AuthStatusLine
-          text={
-            isSubmitting
-              ? "verifying credentials…"
-              : "awaiting credentials — mfa required"
-          }
-        />
+        <AuthNote>
+          Forgotten your password? Reset it from your Supabase dashboard under
+          Authentication → Users.
+        </AuthNote>
       </form>
-    </AuthCard>
+    </AuthPanel>
   );
 }

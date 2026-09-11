@@ -26,7 +26,7 @@ const InputOTPGroup = React.forwardRef<
   React.ElementRef<"div">,
   React.ComponentPropsWithoutRef<"div">
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("flex items-center", className)} {...props} />
+  <div ref={ref} className={cn("flex items-center gap-2", className)} {...props} />
 ));
 InputOTPGroup.displayName = "InputOTPGroup";
 
@@ -41,8 +41,10 @@ const InputOTPSlot = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "relative flex h-10 w-10 items-center justify-center border-y border-r border-input text-sm transition-all first:border-l first:rounded-l-md last:rounded-r-md",
-        isActive && "z-10 ring-2 ring-ring ring-offset-background",
+        // One box per digit, not a strip with shared edges: each reads as a
+        // place a digit goes, and the active one lifts.
+        "relative flex h-12 w-11 items-center justify-center rounded-control border border-input bg-background text-lg font-semibold tabular-nums transition-[box-shadow,border-color]",
+        isActive && "z-10 border-transparent ring-2 ring-ring",
         className,
       )}
       {...props}

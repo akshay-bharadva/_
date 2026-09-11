@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Eye, EyeOff, Loader2, Smartphone } from "lucide-react";
+import { Copy, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/supabase/client";
 import { config } from "@/lib/config";
@@ -13,26 +13,37 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import {
-  AuthCard,
-  AuthErrorAlert,
-  AuthPending,
-  AuthStatusLine,
-} from "./auth-card";
+import { AuthError, AuthNote, AuthPanel, AuthPending } from "./auth-card";
 
-/** Mono numbered step heading for the enrollment walkthrough. */
-function StepLabel({ index, text }: { index: string; text: string }) {
+function Step({
+  number,
+  title,
+  children,
+}: {
+  number: number;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <h2 className="font-heading text-sm font-semibold text-foreground">
-      <span className="mr-2 font-mono text-primary">{index}</span>
-      {text}
-    </h2>
+    <section aria-label={title} className="flex gap-4">
+      <span
+        aria-hidden
+        className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold tabular-nums text-primary"
+      >
+        {number}
+      </span>
+      <div className="min-w-0 flex-1 pt-0.5">
+        <h2 className="font-medium">{title}</h2>
+        <div className="mt-2">{children}</div>
+      </div>
+    </section>
   );
 }
 
 /**
- * TOTP enrollment: requires an active session, enrolls a factor, shows the
- * QR + manual secret, then verifies a 6-digit code before entering /admin.
+ * Turning on two-factor: requires a session, enrols a TOTP factor, shows the
+ * QR code and the key for manual entry, then verifies a code before opening
+ * the workspace. Mandatory — every write in the database requires it.
  */
 export function MfaSetup() {
   const router = useRouter();
@@ -121,7 +132,8 @@ export function MfaSetup() {
       return;
     }
 
-    // Refresh the assurance level before entering the protected shell.
+    // Refresh the assurance level before entering the protected shell —
+    // otherwise its guard reads a stale aal1 and bounces straight back out.
     await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     router.replace("/admin");
   };
@@ -130,7 +142,7 @@ export function MfaSetup() {
     try {
       await signOut().unwrap();
     } catch {
-      // Even if the API call fails, fall through to login.
+      // Even if the call fails, fall through to sign-in.
     }
     router.replace("/admin/login");
   };
@@ -145,68 +157,51 @@ export function MfaSetup() {
   };
 
   if (isBusy && !qrCodeUrl && !error) {
-    return <AuthPending text="generating totp factor…" />;
+    return <AuthPending text="Preparing your two-factor code…" />;
+  }
+
+  if (error && !factorId) {
+    return (
+      <AuthPanel title="Couldn't start two-factor setup">
+        <AuthError message={error} />
+        <Button size="lg" className="mt-6 w-full" onClick={() => router.push("/admin/login")}>
+          Back to sign in
+        </Button>
+      </AuthPanel>
+    );
   }
 
   return (
-    <AuthCard
-      step="02 / enroll"
-      title="Set up 2FA"
-      description="Secure the admin account with an authenticator app. This is mandatory."
-      icon={Smartphone}
-      size="lg"
+    <AuthPanel
+      wide
+      step={2}
+      title="Turn on two-factor"
+      description="Every change to your site needs a code from your phone, so a stolen password is not enough."
     >
-      {error && !factorId ? (
-        <div className="space-y-4">
-          <AuthErrorAlert title="enrollment error" message={error} />
-          <Button
-            className="w-full"
-            onClick={() => router.push("/admin/login")}
-          >
-            Return to login
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <section className="space-y-3" aria-labelledby="mfa-step-scan">
-            <div id="mfa-step-scan">
-              <StepLabel index="01" text="Scan QR code" />
+      <div className="space-y-8">
+        <Step number={1} title="Scan this code">
+          <p className="text-sm text-muted-foreground">
+            With an authenticator app — Google Authenticator, Authy, 1Password
+            or similar.
+          </p>
+          {qrCodeUrl ? (
+            // White behind the code on every theme: scanners need contrast.
+            <div className="mt-4 inline-flex rounded-surface bg-white p-3 shadow-e1">
+              {/* Supabase returns the QR as an SVG data URL. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrCodeUrl} alt="QR code for MFA enrollment" className="size-40" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              Open your authenticator app (Google Authenticator, Authy,
-              1Password…) and scan this code.
-            </p>
-            {qrCodeUrl ? (
-              <div className="flex justify-center rounded-md border border-border bg-white p-3">
-                {/* Supabase returns the QR as an SVG data URL. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qrCodeUrl}
-                  alt="QR code for MFA enrollment"
-                  className="size-44"
-                />
-              </div>
-            ) : (
-              <div className="flex h-44 items-center justify-center rounded-md border border-border bg-secondary">
-                <Loader2
-                  className="animate-spin text-muted-foreground"
-                  aria-label="Loading QR code"
-                />
-              </div>
-            )}
-          </section>
-
-          <div className="h-px w-full bg-border/60" aria-hidden />
-
-          <section className="space-y-3" aria-labelledby="mfa-step-manual">
-            <div id="mfa-step-manual">
-              <StepLabel index="02" text="Manual entry" />
+          ) : (
+            <div className="mt-4 flex size-44 items-center justify-center rounded-surface bg-secondary">
+              <Loader2 className="animate-spin text-muted-foreground" aria-label="Loading QR code" />
             </div>
+          )}
+          <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Can&apos;t scan? Enter this secret key in your app instead.
+              Can&apos;t scan? Enter this key instead.
             </p>
-            <div className="flex items-center gap-2 rounded-md border border-border bg-secondary p-3">
-              <code className="flex-1 break-all font-mono text-sm tracking-widest text-foreground">
+            <div className="mt-2 flex items-center gap-1 rounded-control bg-secondary py-1.5 pl-3 pr-1">
+              <code className="min-w-0 flex-1 break-all text-sm tracking-widest text-foreground">
                 {showSecret
                   ? manualEntryKey.match(/.{1,4}/g)?.join(" ")
                   : "•••• •••• •••• ••••"}
@@ -215,86 +210,66 @@ export function MfaSetup() {
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="size-8"
                 onClick={() => setShowSecret((v) => !v)}
                 aria-label={showSecret ? "Hide secret key" : "Show secret key"}
               >
-                {showSecret ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
+                {showSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="size-8"
                 onClick={copySecret}
                 aria-label="Copy secret key"
               >
                 <Copy className="size-4" />
               </Button>
             </div>
-          </section>
+          </div>
+        </Step>
 
-          <div className="h-px w-full bg-border/60" aria-hidden />
+        <Step number={2} title="Enter the code it shows">
+          <form onSubmit={handleVerify} className="space-y-5">
+            <label htmlFor="mfa-setup-otp" className="block text-sm text-muted-foreground">
+              The 6-digit code from your app.
+            </label>
+            <InputOTP
+              id="mfa-setup-otp"
+              maxLength={6}
+              value={otp}
+              onChange={(value) => setOtp(value)}
+            >
+              <InputOTPGroup>
+                {[0, 1, 2, 3, 4, 5].map((index) => (
+                  <InputOTPSlot key={index} index={index} />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
 
-          <section className="space-y-3" aria-labelledby="mfa-step-verify">
-            <div id="mfa-step-verify">
-              <StepLabel index="03" text="Verify code" />
+            {error && factorId && <AuthError message={error} />}
+
+            <div className="flex flex-col gap-3 sm:flex-row-reverse">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isBusy || otp.length !== 6}
+                className="flex-1"
+              >
+                {isBusy ? "Checking…" : "Turn on two-factor"}
+              </Button>
+              <Button type="button" size="lg" variant="ghost" onClick={handleSignOut}>
+                Sign out
+              </Button>
             </div>
-            <form onSubmit={handleVerify} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="mfa-setup-otp"
-                  className="block text-sm text-muted-foreground"
-                >
-                  Enter the 6-digit code from your app to complete setup.
-                </label>
-                <div className="mt-3">
-                  <InputOTP
-                    id="mfa-setup-otp"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(value) => setOtp(value)}
-                  >
-                    <InputOTPGroup className="w-full justify-center">
-                      <InputOTPSlot index={0} />
-                      <InputOTPSlot index={1} />
-                      <InputOTPSlot index={2} />
-                      <InputOTPSlot index={3} />
-                      <InputOTPSlot index={4} />
-                      <InputOTPSlot index={5} />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-              </div>
-
-              {error && factorId && (
-                <AuthErrorAlert title="verification failed" message={error} />
-              )}
-
-              <div className="flex flex-col gap-3 sm:flex-row-reverse">
-                <Button
-                  type="submit"
-                  disabled={isBusy || otp.length !== 6}
-                  className="flex-1"
-                >
-                  {isBusy ? "Verifying…" : "Verify & complete"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleSignOut}
-                >
-                  Cancel & sign out
-                </Button>
-              </div>
-              <AuthStatusLine text="totp secret is shown once — store it safely" />
-            </form>
-          </section>
-        </div>
-      )}
-    </AuthCard>
+            <AuthNote>
+              Keep the key somewhere safe — it is shown only now, and it is how
+              you move your codes to a new phone.
+            </AuthNote>
+          </form>
+        </Step>
+      </div>
+    </AuthPanel>
   );
 }

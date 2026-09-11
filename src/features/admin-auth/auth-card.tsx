@@ -1,98 +1,177 @@
-import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+"use client";
 
-interface AuthCardProps {
-  /** Mono step label, e.g. "01 / access" */
-  step: string;
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  size?: "sm" | "lg";
-  children: React.ReactNode;
-}
+import { useState, type ReactNode } from "react";
+import { AlertCircle, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/cn";
 
 /**
- * Shared chrome for the admin auth screens: a focused card on the
- * graph-paper backdrop with a mono step label and heading.
+ * The pieces every sign-in screen is built from.
+ *
+ * They replace a v2 card that the redesign had skipped: a numbered mono step
+ * label ("01 / access"), a terminal status line ("// awaiting credentials"),
+ * uppercase mono errors, and a border drawn around a shadowed card. These are
+ * the first screens a new owner sees, so they speak plainly and sit on the
+ * page, not in a box.
  */
-export function AuthCard({
-  step,
+
+/** A sign-in screen: an optional first-run stepper, a title, then the form. */
+export function AuthPanel({
   title,
   description,
-  icon: Icon,
-  size = "sm",
+  step,
+  wide = false,
   children,
-}: AuthCardProps) {
-  return (
-    <div
-      className={cn(
-        "w-full space-y-6 rounded-surface bg-card shadow-e1 p-6 shadow-e1 sm:p-8",
-        size === "sm" ? "max-w-sm" : "max-w-lg",
-      )}
-    >
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="t-micro">{step}</span>
-          <span
-            className="flex size-9 items-center justify-center rounded-md border border-border bg-secondary"
-            aria-hidden="true"
-          >
-            <Icon className="size-4 text-primary" />
-          </span>
-        </div>
-        <div>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">
-            {title}
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <div className="h-px w-full bg-border/60" aria-hidden />
-      {children}
-    </div>
-  );
-}
-
-/** Mono terminal-style status hint, announced politely to screen readers. */
-export function AuthStatusLine({ text }: { text: string }) {
-  return (
-    <p role="status" className="font-mono text-xs text-muted-foreground">
-      <span aria-hidden="true">{"// "}</span>
-      {text}
-    </p>
-  );
-}
-
-/** Inline error block for failed auth operations. */
-export function AuthErrorAlert({
-  title = "error",
-  message,
 }: {
-  title?: string;
-  message: string;
+  title: string;
+  description?: ReactNode;
+  /** Where this screen sits in first-time setup, when it is part of it. */
+  step?: number;
+  wide?: boolean;
+  children: ReactNode;
 }) {
+  return (
+    <section
+      aria-labelledby="auth-title"
+      className={cn("w-full", wide ? "max-w-md" : "max-w-sm")}
+    >
+      {step !== undefined && <SetupSteps current={step} />}
+      <h1
+        id="auth-title"
+        className={cn(
+          "text-balance font-heading text-3xl font-semibold tracking-tight",
+          step !== undefined && "mt-8",
+        )}
+      >
+        {title}
+      </h1>
+      {description && (
+        <p className="mt-2 text-pretty text-muted-foreground">{description}</p>
+      )}
+      <div className="mt-8">{children}</div>
+    </section>
+  );
+}
+
+const FIRST_RUN = ["Account", "Email", "Two-factor", "Workspace"];
+
+/** First-time setup, as four steps the new owner can see the end of. */
+export function SetupSteps({ current }: { current: number }) {
+  return (
+    <ol aria-label="Setting up your workspace" className="flex items-center gap-2">
+      {FIRST_RUN.map((label, index) => {
+        const done = index < current;
+        const here = index === current;
+        return (
+          <li
+            key={label}
+            aria-current={here ? "step" : undefined}
+            className="flex items-center gap-2 text-xs"
+          >
+            <span
+              className={cn(
+                "flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums",
+                done && "bg-primary text-primary-foreground",
+                here && "bg-primary/15 text-primary ring-1 ring-primary",
+                !done && !here && "bg-secondary text-muted-foreground",
+              )}
+            >
+              {done ? <Check className="size-3.5" aria-hidden /> : index + 1}
+            </span>
+            <span
+              className={cn(
+                here ? "font-medium text-foreground" : "text-muted-foreground",
+                !here && "sr-only sm:not-sr-only",
+              )}
+            >
+              {label}
+              {done && <span className="sr-only"> (done)</span>}
+            </span>
+            {index < FIRST_RUN.length - 1 && (
+              <span aria-hidden className="h-px w-3 bg-border sm:w-5" />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** A quiet line of help under a form. */
+export function AuthNote({ children }: { children: ReactNode }) {
+  return <p className="text-sm text-muted-foreground">{children}</p>;
+}
+
+/** What went wrong, in the words the server gave, announced as an alert. */
+export function AuthError({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-destructive/40 bg-destructive/10 p-3"
+      className="flex items-start gap-2.5 rounded-control bg-destructive/10 px-3.5 py-3 text-sm text-destructive"
     >
-      <p className="font-mono text-xs uppercase tracking-widest text-destructive">
-        {title}
-      </p>
-      <p className="mt-1 text-sm text-destructive">{message}</p>
+      <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <p className="min-w-0 break-words">{message}</p>
     </div>
   );
 }
 
-/** Full-card branded pending state used while auth status resolves. */
+/** While the screen works out where the visitor belongs. */
 export function AuthPending({ text }: { text: string }) {
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-3 py-12">
-      <span
-        className="size-2 animate-pulse rounded-full bg-primary"
-        aria-hidden="true"
+    <div
+      role="status"
+      className="flex flex-col items-center gap-3 py-16 text-sm text-muted-foreground"
+    >
+      <Loader2 className="size-5 animate-spin text-primary" aria-hidden />
+      {text}
+    </div>
+  );
+}
+
+/** A password field that can be shown, because typing blind is how typos lock people out. */
+export function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  describedBy,
+  minLength,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: "current-password" | "new-password";
+  describedBy?: string;
+  minLength?: number;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        name="password"
+        type={shown ? "text" : "password"}
+        autoComplete={autoComplete}
+        required
+        minLength={minLength}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-describedby={describedBy}
+        className="h-11 pr-11"
       />
-      <AuthStatusLine text={text} />
+      <button
+        type="button"
+        onClick={() => setShown((current) => !current)}
+        aria-label={shown ? "Hide password" : "Show password"}
+        aria-pressed={shown}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-control text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {shown ? (
+          <EyeOff className="size-4" aria-hidden />
+        ) : (
+          <Eye className="size-4" aria-hidden />
+        )}
+      </button>
     </div>
   );
 }
