@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/cn";
 import { readTime } from "./blog-list-page";
+import { loadPostContent } from "./post-content-loader";
 import { ReadingProgress } from "./reading-progress";
 import { TableOfContents, useHeadings } from "./table-of-contents";
 
@@ -30,7 +31,7 @@ const ARTICLE_ID = "post-article";
 // heaviest thing on this route, and nothing above the article body needs it.
 // Splitting it lets the title and cover paint on the light chunk.
 const PostContent = dynamic(
-  () => import("./post-content").then((mod) => mod.PostContent),
+  () => loadPostContent().then((mod) => mod.PostContent),
   {
     ssr: false,
     loading: () => (
@@ -89,7 +90,7 @@ export function PostPage() {
 
   // Warm the markdown chunk alongside the post query rather than after it.
   useEffect(() => {
-    void import("./post-content");
+    void loadPostContent();
   }, []);
 
   // Static-export limitation: the document title is set client-side.

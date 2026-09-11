@@ -18,6 +18,7 @@ import { noteLabel } from "./note-title";
 import { buildLinkGraph, linkifyContent } from "./note-links";
 import { NoteForm } from "./note-form";
 import { NoteBody } from "./note-body";
+import { loadNovelEditor } from "@/components/admin/novel-editor/load-editor";
 
 export interface NoteDetailProps {
   /** A draft (no id) when writing a new note. */
@@ -129,13 +130,17 @@ export function NoteDetail({
   /**
    * Warm the editor chunk while the note is being read.
    *
-   * TipTap is code-split at the novel-editor barrel, so the first Edit click
-   * paid for downloading and booting it — a visible pause on a button that
-   * should feel instant. Reading a note is a reliable signal that editing is
-   * next, and the import is idempotent, so this costs nothing if it never is.
+   * TipTap is code-split, so the first Edit click paid for downloading and
+   * booting it — a visible pause on a button that should feel instant. Reading
+   * a note is a reliable signal that editing is next, and the import is
+   * idempotent, so this costs nothing if it never is.
+   *
+   * This used to import the novel-editor *barrel*, which only re-exports the
+   * lazy wrapper — so it warmed a few hundred bytes and never TipTap itself.
+   * `loadNovelEditor` imports the editor chunk the wrapper mounts.
    */
   useEffect(() => {
-    void import("@/components/admin/novel-editor");
+    void loadNovelEditor();
   }, []);
 
   // Rendered through the shared markdown pipeline, so links get the same

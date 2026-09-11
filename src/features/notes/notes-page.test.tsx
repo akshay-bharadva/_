@@ -26,6 +26,24 @@ const confirmSpy =
 
 let notes: Note[] = [];
 
+/**
+ * The editor chunk, reached only through its loader. The loader is mocked
+ * statically — a mock of an inline dynamic import is not reliably applied,
+ * and an unawaited warm-up that loads the real module can outlive the test.
+ * `realEditorRequested` records any request for the real TipTap editor.
+ */
+const { loadEditor, realEditorRequested } = vi.hoisted(() => ({
+  loadEditor: vi.fn(() => Promise.resolve({ default: () => null })),
+  realEditorRequested: vi.fn(),
+}));
+vi.mock("@/components/admin/novel-editor/load-editor", () => ({
+  loadNovelEditor: loadEditor,
+}));
+vi.mock("@/components/admin/novel-editor/novel-editor", () => {
+  realEditorRequested();
+  return { default: () => null };
+});
+
 vi.mock("@/store/api/adminApi", () => ({
   useGetNotesQuery: () => ({ data: notes, isLoading: false }),
   useAddNoteMutation: () => [addNote],
@@ -84,6 +102,19 @@ describe("NotesPage", () => {
   it("shows an empty state with no notes", () => {
     render(<NotesPage />);
     expect(screen.getByText("No notes yet")).toBeInTheDocument();
+  });
+
+  /**
+   * Reading a note warms the editor so the first Edit is instant — through
+   * the loader, which fetches TipTap itself (the old barrel import only
+   * fetched the lazy wrapper), and never by loading the real editor here.
+   */
+  it("warms the editor through its loader while a note is read", () => {
+    notes = [note({ id: "a", title: "Alpha" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    expect(loadEditor).toHaveBeenCalled();
+    expect(realEditorRequested).not.toHaveBeenCalled();
   });
 
   /**
