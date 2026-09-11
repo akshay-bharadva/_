@@ -33,6 +33,7 @@ import {
 import { cashflow, habitHeat } from "./metrics";
 import { Heatmap, Ring, Sparkline } from "./charts";
 import { DaySpine } from "./day-spine";
+import { SetupChecklist } from "./setup-checklist-card";
 
 /**
  * Home, built around the day rather than around the modules.
@@ -98,6 +99,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4 pb-10">
       <Header next={view.next} />
+
+      {/* First-run: what is left before the site is yours. Gone once done. */}
+      <SetupChecklist />
 
       {/* Only exists when something is actually late. An always-present
           "0 overdue" panel trains you to ignore the space it occupies. */}

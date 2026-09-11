@@ -12,6 +12,7 @@ const EXPECTED_HOOKS = [
   // auth
   "useCheckAdminExistsQuery",
   "useGetSetupStatusQuery",
+  "useGetStorageStatusQuery",
   "useGetMfaFactorsQuery",
   "useUnenrollMfaFactorMutation",
   "useUpdateUserPasswordMutation",

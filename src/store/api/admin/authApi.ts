@@ -3,6 +3,7 @@ import type { Factor } from "@supabase/supabase-js";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR } from "./query-helpers";
 import { classifySetupError, type SetupStatus } from "@/lib/setup-status";
+import { BUCKET_NAME } from "@/lib/constants";
 
 export const authApi = adminApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -29,6 +30,24 @@ export const authApi = adminApi.injectEndpoints({
         if (!supabase) return { data: "no-database" };
         const { error } = await supabase.rpc("check_admin_exists");
         return { data: classifySetupError(error) };
+      },
+      providesTags: ["System"],
+    }),
+    /**
+     * Whether the image bucket exists. Uploads fail without it, and the
+     * schema cannot create it — Supabase buckets are made in the dashboard —
+     * so the first-run checklist asks for it.
+     */
+    getStorageStatus: builder.query<"ok" | "missing" | "unknown", void>({
+      queryFn: async () => {
+        if (!supabase) return { data: "unknown" };
+        const { error } = await supabase.storage
+          .from(BUCKET_NAME)
+          .list("", { limit: 1 });
+        if (!error) return { data: "ok" };
+        return {
+          data: /not found/i.test(error.message) ? "missing" : "unknown",
+        };
       },
       providesTags: ["System"],
     }),
@@ -92,6 +111,7 @@ export const authApi = adminApi.injectEndpoints({
 export const {
   useCheckAdminExistsQuery,
   useGetSetupStatusQuery,
+  useGetStorageStatusQuery,
   useGetMfaFactorsQuery,
   useUnenrollMfaFactorMutation,
   useUpdateUserPasswordMutation,
