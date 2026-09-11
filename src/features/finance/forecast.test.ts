@@ -8,6 +8,7 @@ import {
   buildForecast,
   discretionaryDailyRate,
   readForecast,
+  unconvertibleRules,
 } from "./forecast";
 
 const TODAY = new Date("2026-08-20T12:00:00.000Z");
@@ -322,5 +323,37 @@ describe("long horizons", () => {
   it("keeps daily resolution inside eighteen months", () => {
     const short = forecast({ horizonDays: 540 });
     expect(short.length).toBe(541);
+  });
+});
+
+describe("currency", () => {
+  /**
+   * The bug: rules were projected at face value, so a ₹45,000 rule moved a
+   * CAD forecast by $45,000. It is converted through the rate table now.
+   */
+  it("converts a rule in another currency to the base", () => {
+    const points = forecast({
+      horizonDays: 40,
+      rates: { INR: 60 },
+      rules: [rule({ amount: 45_000, currency: "INR", start_date: "2026-09-01" })],
+    });
+    const last = points[points.length - 1];
+    expect(last.committed).toBeCloseTo(5000 - 750, 2);
+  });
+
+  it("leaves out, rather than counting at parity, a rule with no rate", () => {
+    const rules = [rule({ amount: 45_000, currency: "INR", start_date: "2026-09-01" })];
+    const points = forecast({ horizonDays: 40, rules });
+    expect(points[points.length - 1].committed).toBe(5000);
+    expect(unconvertibleRules(rules, "CAD", undefined)).toHaveLength(1);
+    expect(unconvertibleRules(rules, "CAD", { INR: 60 })).toHaveLength(0);
+  });
+
+  it("applies extra dated flows such as loan instalments", () => {
+    const points = forecast({
+      horizonDays: 30,
+      extraFlows: [{ date: "2026-09-05", amount: -700, label: "Home loan — EMI" }],
+    });
+    expect(points[points.length - 1].committed).toBe(4300);
   });
 });

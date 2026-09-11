@@ -118,6 +118,14 @@ export const CONCEPTS: Concept[] = [
     detail:
       "Balances are derived from an anchor date forward, so accuracy is maintained by correcting the anchor rather than by entering every coffee. Do it when a statement arrives. This is what makes a credit card tractable — its bill is genuinely unknown until it lands.",
   },
+  {
+    id: "emi",
+    term: "EMI on a floating rate",
+    short:
+      "A fixed instalment whose split between interest and principal changes every month.",
+    detail:
+      "Each EMI pays that month's interest on what is still owed, and the rest reduces the loan — so early instalments are mostly interest and the balance falls slowly at first. Most Indian home loans float with the RBI repo rate through the lender's external benchmark. When the rate moves, lenders usually keep the EMI and change the tenure, which is how a few rate rises quietly add years. Record each reset under Loans and the schedule shows what it did. The schedule is worked out from the terms rather than read from the bank, so it can differ from a statement by small amounts in a month where something changed.",
+  },
 ];
 
 export interface GrowthIdea {
@@ -179,6 +187,13 @@ export const GROWTH_IDEAS: GrowthIdea[] = [
     body: "Living in one country and holding assets in another creates tax questions that are genuinely complicated: reporting obligations in both places, treatment of foreign accounts, and what happens if you move again. This is the one area where paying a professional once is usually cheaper than the mistake.",
     tradeoff:
       "Advice costs money and the rules change. Still cheaper than an unexpected tax bill in two jurisdictions.",
+  },
+  {
+    id: "loan-from-abroad",
+    title: "Borrowing in rupees while earning in dollars",
+    body: "An EMI fixed in rupees is not fixed in dollars: its Canadian cost moves with the exchange rate every month, which is why Loans shows both figures and the forecast converts each instalment rather than assuming parity. Indian lenders do lend to non-residents for property, repaid from an NRE or NRO account or by remittance from abroad. RBI rules bar prepayment charges on floating-rate loans to individuals, so paying down in a strong-dollar month is always open to you. The tax side is where it gets hard — Indian deductions on home-loan interest and principal depend on having Indian taxable income and on the regime you file under, and Canada taxes its residents on worldwide income, including any rent. This app deliberately calculates neither.",
+    tradeoff:
+      "Prepaying removes guaranteed interest, but moves money into an illiquid asset in another country. Keep the buffer in the country you live in first.",
   },
   {
     id: "currency",

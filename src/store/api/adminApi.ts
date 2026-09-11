@@ -30,3 +30,4 @@ export * from "./admin/financeSetupApi";
 export * from "./admin/calendarSetupApi";
 export * from "./admin/discoverApi";
 export * from "./admin/libraryApi";
+export * from "./admin/loansApi";

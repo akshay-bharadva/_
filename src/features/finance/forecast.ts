@@ -7,7 +7,7 @@ import type {
 } from "@/types";
 import { getFirstOccurrence, getNextOccurrence } from "@/lib/finance-utils";
 import { parseLocalDate } from "@/lib/utils";
-import { roundMoney } from "@/lib/money";
+import { rateFrom, roundMoney, type RateTable } from "@/lib/money";
 import { toLocalISODate } from "@/lib/date-utils";
 
 /**
@@ -60,6 +60,8 @@ function scheduledFlows(
   from: Date,
   until: Date,
   adjustments: ScenarioAdjustment[],
+  base: string,
+  rates: RateTable | undefined,
 ): DatedFlow[] {
   const flows: DatedFlow[] = [];
 
@@ -77,6 +79,17 @@ function scheduledFlows(
   for (const rule of rules) {
     if (rule.archived_at) continue;
 
+    /**
+     * A rule in another currency is converted to the base before it is
+     * projected. It used to be added at face value, so a ₹45,000 rule moved a
+     * CAD forecast by $45,000. Without a rate the rule is left out — see
+     * `unconvertibleRules` — never counted at parity.
+     */
+    const ruleCurrency = rule.currency || base;
+    const toBase =
+      ruleCurrency === base ? 1 : rates ? rateFrom(rates, base, ruleCurrency, base) : null;
+    if (toBase === null) continue;
+
     const end = rule.end_date ? parseLocalDate(rule.end_date) : null;
     let cursor = getFirstOccurrence(parseLocalDate(rule.start_date), rule);
 
@@ -85,7 +98,8 @@ function scheduledFlows(
       if (end && isAfter(cursor, end)) break;
 
       if (!isAfter(from, cursor)) {
-        let amount = Number(rule.amount) + (recurringDeltas.get(rule.id) ?? 0);
+        let amount =
+          (Number(rule.amount) + (recurringDeltas.get(rule.id) ?? 0)) * toBase;
         if (rule.type === "earning") amount *= incomeMultiplier;
         // A scenario that drives an amount negative is nonsense rather than a
         // reversal of direction — clamp instead of flipping income to expense.
@@ -155,6 +169,28 @@ export function discretionaryDailyRate(
   return total / lookbackDays;
 }
 
+/** Rules whose currency has no rate, so the forecast leaves them out. */
+export function unconvertibleRules(
+  rules: RecurringTransaction[],
+  base: string,
+  rates: RateTable | undefined,
+): RecurringTransaction[] {
+  return rules.filter((rule) => {
+    if (rule.archived_at) return false;
+    const currency = rule.currency || base;
+    if (currency === base) return false;
+    return !rates || rateFrom(rates, base, currency, base) === null;
+  });
+}
+
+/** A dated movement already in the base currency — a loan instalment. */
+export interface ForecastExtraFlow {
+  date: string;
+  /** Negative for money out. */
+  amount: number;
+  label: string;
+}
+
 export interface ForecastOptions {
   startingBalance: number;
   rules: RecurringTransaction[];
@@ -166,6 +202,10 @@ export interface ForecastOptions {
   lookbackDays?: number;
   adjustments?: ScenarioAdjustment[];
   today?: Date;
+  /** Base-quoted rates, to convert rules in other currencies. */
+  rates?: RateTable;
+  /** Dated movements that are not recurring rules, already in base. */
+  extraFlows?: ForecastExtraFlow[];
 }
 
 export function buildForecast({
@@ -178,11 +218,18 @@ export function buildForecast({
   lookbackDays = 90,
   adjustments = [],
   today = new Date(),
+  rates,
+  extraFlows = [],
 }: ForecastOptions): ForecastPoint[] {
   const start = startOfDay(today);
   const end = addDays(start, horizonDays);
 
-  const flows = scheduledFlows(rules, start, end, adjustments);
+  const flows = scheduledFlows(rules, start, end, adjustments, currency, rates);
+  for (const extra of extraFlows) {
+    const date = parseLocalDate(extra.date);
+    if (isAfter(start, date) || isAfter(date, end)) continue;
+    flows.push({ date, delta: extra.amount, label: extra.label });
+  }
   const dailyBurn = discretionaryDailyRate(
     transactions,
     lookbackDays,

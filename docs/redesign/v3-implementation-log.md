@@ -1565,6 +1565,54 @@ machines the same person uses. Both arrangements read `NAV_GROUPS` and
 while a rail sat in the code, which is how this pass's contradiction arose;
 leaving it stale a second time would be that mistake made knowingly.
 
+## Loans, and the forecast by category
+
+Built for a specific situation: living in Canada, budgeting in CAD, planning a
+home loan in India. That shaped every decision below.
+
+**A loan is an instrument, not a recurring expense** (migration 020). A
+recurring rule could say what leaves the account each month; it could not say
+how much of that was interest, what was still owed, or what a rate reset or a
+prepayment would do. `finance_loans` holds the terms; `finance_loan_events`
+holds what happened — rate changes and part-prepayments. The schedule is
+derived by `loan-schedule.ts` and never stored, for the module's usual reason:
+a stored schedule is stale the moment an event is added.
+
+**The engine follows how Indian lenders actually behave.** Monthly reducing
+balance, the standard EMI formula. A floating-rate reset by default keeps the
+EMI and moves the tenure — what most lenders do — or, per loan or per event,
+keeps the end date and moves the EMI. When a rate rise means the EMI no longer
+covers the month's interest, holding it would draw a loan that never ends;
+lenders raise the EMI instead, so the schedule re-prices and says so in a
+warning rather than drawing an impossibility. The last instalment clears the
+balance exactly. Interest is monthly, not daily, and the screen says a
+statement can differ by small amounts in a month where something changed.
+
+**Two currencies on every figure.** Rupees first, because that is what the
+statement says, with lakh/crore grouping; CAD beside it "at today's rate",
+because that is what it costs and it moves every month even when the EMI does
+not. No rate means "—", never parity.
+
+**This found a real bug in the forecast.** `scheduledFlows` added each
+recurring rule at face value, in the rule's own currency, to a base-currency
+forecast — a ₹45,000 rule moved a CAD forecast by $45,000. Rules now convert
+through the rate table; a rule with no rate is left out and named on screen.
+The regression test was watched failing against the old file.
+
+**The forecast by category** (`category-forecast.ts`). Per month, per category
+or per group: committed money (rules and loan EMIs, converted) plus each
+category's own pace over the last 90 days, outside any rule — so a rule is
+never billed twice through its own history. Money with no category gets a row
+rather than vanishing; transfers are excluded. Group view is the default,
+because it is the level a decision is made at. The first month counts only the
+days still to come — and counting those days by millisecond gap made every
+month a day long, since `endOfMonth` is 23:59:59.999. Calendar days now.
+
+**Deliberately not built: Indian tax.** Deductions on home-loan interest and
+principal depend on having Indian taxable income and on the regime filed under,
+and Canada taxes residents on worldwide income. A calculator here would be
+confidently wrong for exactly the person it was built for. The guide says so.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an
@@ -1574,5 +1622,9 @@ leaving it stale a second time would be that mistake made knowingly.
   upload progress shipped.)
 - Library: no public bookshelf — only the random highlight is public, by
   choice. A shelf page would be a second public function, not a table policy.
-- **Migration 018 is unapplied.** Until it is, the Library admin errors on load
-  and the public widget shows nothing.
+- **Migrations 018, 019 and 020 are unapplied.** Until 018 is, the Library
+  admin errors on load and the public widget shows nothing; until 020 is, the
+  Loans section says so and the forecast carries no EMIs.
+- Loans: no link from a loan to the ledger — EMIs actually paid are recorded as
+  ordinary transactions, and the schedule assumes every instalment was paid on
+  its date.

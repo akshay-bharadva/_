@@ -20,6 +20,7 @@ import {
   useGetFinanceAccountsQuery,
   useGetFinanceBudgetsQuery,
   useGetFinanceCategoriesQuery,
+  useGetFinanceLoansQuery,
   useGetFinanceSettingsQuery,
   useGetFinancialDataQuery,
   useGetFxRatesQuery,
@@ -46,7 +47,8 @@ import {
   ManagerWrapper,
 } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
-import { rateFrom } from "@/lib/money";
+import { rateFrom, type RateTable } from "@/lib/money";
+import { toLocalISODate } from "@/lib/date-utils";
 import { cn } from "@/lib/cn";
 import { DEFAULT_SECTION, FINANCE_SECTIONS, findSection } from "./finance-nav";
 import { useFxSync } from "./use-fx-sync";
@@ -56,6 +58,13 @@ import { LedgerSection } from "./ledger-section";
 import { TransactionForm } from "./transaction-form";
 import { TransferForm } from "./transfer-form";
 import { CurrencySettings } from "./currency-settings";
+import type { ExtraFlow } from "./category-forecast";
+import {
+  buildLoanSchedule,
+  eventsOf,
+  termsOf,
+  upcomingPayments,
+} from "./loan-schedule";
 
 /**
  * The finance module.
@@ -111,6 +120,11 @@ const GuideSection = dynamic(
   { ssr: false, loading: sectionLoader },
 );
 
+const LoansSection = dynamic(
+  () => import("./loans-section").then((mod) => mod.LoansSection),
+  { ssr: false, loading: sectionLoader },
+);
+
 const RecurringSection = dynamic(
   () => import("./recurring-section").then((mod) => mod.RecurringSection),
   { ssr: false, loading: sectionLoader },
@@ -124,6 +138,7 @@ export default function FinancePage() {
   const { data: balances = {} } = useGetAccountBalancesQuery();
   const { data: skips = [] } = useGetRecurringSkipsQuery();
   const { data: budgets = [] } = useGetFinanceBudgetsQuery();
+  const { data: loans = [], isError: loansFailed } = useGetFinanceLoansQuery();
   const { data: fxRates = [] } = useGetFxRatesQuery(
     settings?.base_currency ?? "CAD",
     { skip: !settings },
@@ -151,6 +166,17 @@ export default function FinancePage() {
   const goals = financialData?.goals ?? [];
   const base = settings?.base_currency ?? "CAD";
 
+  /** Base-quoted rates, one per currency — the table every conversion reads. */
+  const rateTable = useMemo(() => {
+    const table: RateTable = {};
+    for (const row of fxRates) {
+      if (row.base === base && !(row.quote in table)) {
+        table[row.quote] = Number(row.rate);
+      }
+    }
+    return table;
+  }, [fxRates, base]);
+
   /**
    * Balances converted to base, each at its own currency's rate.
    *
@@ -160,13 +186,6 @@ export default function FinancePage() {
    * than counted at parity.
    */
   const balancesInBase = useMemo(() => {
-    const table: Record<string, number> = {};
-    for (const row of fxRates) {
-      if (row.base === base && !(row.quote in table)) {
-        table[row.quote] = Number(row.rate);
-      }
-    }
-
     const converted: Record<string, number> = {};
     for (const account of accounts) {
       const balance = balances[account.id];
@@ -175,11 +194,33 @@ export default function FinancePage() {
         converted[account.id] = balance;
         continue;
       }
-      const rate = rateFrom(table, base, account.currency, base);
+      const rate = rateFrom(rateTable, base, account.currency, base);
       if (rate !== null) converted[account.id] = balance * rate;
     }
     return converted;
-  }, [accounts, balances, fxRates, base]);
+  }, [accounts, balances, rateTable, base]);
+
+  /**
+   * Every loan instalment still to come, in the loan's own currency. The
+   * forecast converts them, and names a loan whose currency has no rate
+   * rather than counting it at parity.
+   */
+  const loanFlows = useMemo<ExtraFlow[]>(() => {
+    const today = toLocalISODate(new Date());
+    return loans
+      .filter((loan) => !loan.archived_at)
+      .flatMap((loan) =>
+        upcomingPayments(
+          buildLoanSchedule(termsOf(loan), eventsOf(loan)),
+          loan.name,
+          today,
+        ).map((payment) => ({
+          ...payment,
+          currency: loan.currency,
+          categoryId: loan.category_id ?? null,
+        })),
+      );
+  }, [loans]);
 
   const removeTransaction = async (id: string, description: string) => {
     const ok = await confirm({
@@ -386,6 +427,17 @@ export default function FinancePage() {
             />
           )}
 
+          {sectionId === "loans" && (
+            <LoansSection
+              loans={loans}
+              failed={loansFailed}
+              accounts={accounts}
+              categories={categories}
+              settings={settings}
+              rates={rateTable}
+            />
+          )}
+
           {sectionId === "forecast" && (
             <ForecastSection
               startingBalance={Object.values(balancesInBase).reduce(
@@ -396,6 +448,8 @@ export default function FinancePage() {
               transactions={transactions}
               categories={categories}
               settings={settings}
+              rates={rateTable}
+              loanFlows={loanFlows}
             />
           )}
 

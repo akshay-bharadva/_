@@ -1183,3 +1183,80 @@ export const libraryHighlightSchema = z.object({
 });
 
 export type LibraryHighlightFormValues = z.infer<typeof libraryHighlightSchema>;
+
+// ─── Loans ───────────────────────────────────────────────────────────────────
+
+/** Mirrors the CHECK constraints in db/migrations/020-finance-loans.sql. */
+export const LOAN_LIMITS = {
+  NAME: 120,
+  LENDER: 120,
+  NOTES: 2_000,
+  EVENT_NOTE: 300,
+  /** NUMERIC(16,2). */
+  AMOUNT_MAX: 99_999_999_999_999.99,
+  RATE_MAX: 100,
+  TENURE_MIN: 1,
+  TENURE_MAX: 600,
+} as const;
+
+const loanEffect = z.enum(["tenure", "emi"]);
+
+export const financeLoanSchema = z.object({
+  name: boundedRequiredString(LOAN_LIMITS.NAME, "Name"),
+  lender: boundedOptionalString(LOAN_LIMITS.LENDER, "Lender"),
+  // CHAR(3) with an upper-case CHECK: an ISO code, never a symbol.
+  currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/, "Currency must be a three-letter code, like INR"),
+  principal: z.coerce
+    .number({ invalid_type_error: "Amount must be a number" })
+    .positive("Amount must be more than zero")
+    .max(LOAN_LIMITS.AMOUNT_MAX, "Amount is too large"),
+  annual_rate: z.coerce
+    .number({ invalid_type_error: "Rate must be a number" })
+    .min(0, "Rate cannot be negative")
+    .max(LOAN_LIMITS.RATE_MAX, "Rate must be 100% or less"),
+  tenure_months: z.coerce
+    .number({ invalid_type_error: "Tenure must be a number" })
+    .int("Tenure must be whole months")
+    .min(LOAN_LIMITS.TENURE_MIN, "Tenure must be at least a month")
+    .max(LOAN_LIMITS.TENURE_MAX, "Tenure must be 50 years or less"),
+  first_emi_date: requiredDateString,
+  rate_type: z.enum(["fixed", "floating"]),
+  on_rate_change: loanEffect,
+  pay_from_account_id: z.string().uuid().nullish(),
+  category_id: z.string().uuid().nullish(),
+  notes: boundedOptionalString(LOAN_LIMITS.NOTES, "Notes"),
+});
+
+export type FinanceLoanFormValues = z.infer<typeof financeLoanSchema>;
+
+export const financeLoanEventSchema = z
+  .object({
+    kind: z.enum(["rate_change", "prepayment"]),
+    effective_date: requiredDateString,
+    rate: z.coerce
+      .number({ invalid_type_error: "Rate must be a number" })
+      .min(0, "Rate cannot be negative")
+      .max(LOAN_LIMITS.RATE_MAX, "Rate must be 100% or less")
+      .nullish(),
+    amount: z.coerce
+      .number({ invalid_type_error: "Amount must be a number" })
+      .positive("Amount must be more than zero")
+      .max(LOAN_LIMITS.AMOUNT_MAX, "Amount is too large")
+      .nullish(),
+    effect: loanEffect.nullish(),
+    note: boundedOptionalString(LOAN_LIMITS.EVENT_NOTE, "Note"),
+  })
+  // Mirrors `finance_loan_events_complete`: each kind needs its own figure.
+  .superRefine((value, ctx) => {
+    if (value.kind === "rate_change" && value.rate == null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["rate"], message: "Enter the new rate" });
+    }
+    if (value.kind === "prepayment" && value.amount == null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: "Enter the amount prepaid" });
+    }
+  });
+
+export type FinanceLoanEventFormValues = z.infer<typeof financeLoanEventSchema>;

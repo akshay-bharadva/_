@@ -1,6 +1,7 @@
 import {
   ArrowRightLeft,
   BookOpen,
+  HandCoins,
   Landmark,
   LayoutDashboard,
   Receipt,
@@ -55,6 +56,12 @@ export const FINANCE_SECTIONS: readonly FinanceSection[] = [
     label: "Budgets & goals",
     description: "Monthly caps, and what you are saving towards.",
     icon: Target,
+  },
+  {
+    id: "loans",
+    label: "Loans",
+    description: "What you owe, what it costs, and what paying early saves.",
+    icon: HandCoins,
   },
   {
     id: "forecast",

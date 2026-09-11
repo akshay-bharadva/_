@@ -120,6 +120,12 @@ const EXPECTED_HOOKS = [
   "useGetLibraryHighlightsQuery",
   "useSaveLibraryHighlightMutation",
   "useDeleteLibraryHighlightMutation",
+  // loans
+  "useGetFinanceLoansQuery",
+  "useSaveFinanceLoanMutation",
+  "useDeleteFinanceLoanMutation",
+  "useSaveLoanEventMutation",
+  "useDeleteLoanEventMutation",
 ] as const;
 
 describe("adminApi barrel", () => {

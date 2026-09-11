@@ -40,9 +40,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StatCard } from "@/components/admin/shared";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, rateFrom, type RateTable } from "@/lib/money";
 import { cn } from "@/lib/cn";
-import { buildForecast, readForecast } from "./forecast";
+import {
+  buildForecast,
+  readForecast,
+  unconvertibleRules,
+  type ForecastExtraFlow,
+} from "./forecast";
+import type { ExtraFlow } from "./category-forecast";
+import { CategoryForecastPanel } from "./category-forecast-panel";
 
 /**
  * What happens next, and what would happen if you changed something.
@@ -80,14 +87,54 @@ export function ForecastTab({
   transactions,
   categories,
   settings,
+  rates,
+  loanFlows,
 }: {
   startingBalance: number;
   rules: RecurringTransaction[];
   transactions: Transaction[];
   categories: FinanceCategory[];
   settings: FinanceSettings;
+  /** Base-quoted rates; rules and loans in other currencies convert through it. */
+  rates: RateTable;
+  /** Loan instalments still to come, in each loan's own currency. */
+  loanFlows: ExtraFlow[];
 }) {
   const currency = settings.base_currency;
+
+  /**
+   * Loan EMIs join the balance forecast as outflows in base. A loan whose
+   * currency has no rate is named below rather than counted at parity.
+   */
+  const { extraFlows, unpricedLoans } = useMemo(() => {
+    const flows: ForecastExtraFlow[] = [];
+    const unpriced: string[] = [];
+    for (const flow of loanFlows) {
+      const rate =
+        flow.currency === currency
+          ? 1
+          : rateFrom(rates, currency, flow.currency, currency);
+      if (rate === null) {
+        if (!unpriced.includes(flow.label)) unpriced.push(flow.label);
+        continue;
+      }
+      flows.push({
+        date: flow.date,
+        amount: -flow.amount * rate,
+        label: flow.label,
+      });
+    }
+    return { extraFlows: flows, unpricedLoans: unpriced };
+  }, [loanFlows, rates, currency]);
+
+  const unpricedRules = useMemo(
+    () => unconvertibleRules(rules, currency, rates),
+    [rules, currency, rates],
+  );
+  const leftOut = [
+    ...unpricedRules.map((rule) => rule.description),
+    ...unpricedLoans,
+  ];
 
   const [horizon, setHorizon] = useState<number>(180);
   const [spendDelta, setSpendDelta] = useState(0);
@@ -116,8 +163,19 @@ export function ForecastTab({
         categories,
         currency,
         horizonDays: horizon,
+        rates,
+        extraFlows,
       }),
-    [startingBalance, rules, transactions, categories, currency, horizon],
+    [
+      startingBalance,
+      rules,
+      transactions,
+      categories,
+      currency,
+      horizon,
+      rates,
+      extraFlows,
+    ],
   );
 
   const adjusted = useMemo(
@@ -130,6 +188,8 @@ export function ForecastTab({
         currency,
         horizonDays: horizon,
         adjustments,
+        rates,
+        extraFlows,
       }),
     [
       startingBalance,
@@ -139,6 +199,8 @@ export function ForecastTab({
       currency,
       horizon,
       adjustments,
+      rates,
+      extraFlows,
     ],
   );
 
@@ -215,7 +277,7 @@ export function ForecastTab({
           <StatCard
             title="Commitments only"
             value={formatMoney({ amount: verdict.endingCommitted, currency })}
-            helpText="Rent, salary, subscriptions"
+            helpText="Recurring rules and loan EMIs"
           />
         </div>
       )}
@@ -241,6 +303,15 @@ export function ForecastTab({
           of a decision — whether a mortgage payment leaves room — and not for
           any particular number on it. Longer horizons are plotted monthly; the
           arithmetic underneath stays daily, so a shortfall date is still exact.
+        </p>
+      )}
+
+      {leftOut.length > 0 && (
+        <p className="rounded-surface bg-chart-3/10 p-3 text-xs text-foreground">
+          <strong className="font-medium">Left out of this forecast</strong>{" "}
+          because there is no exchange rate for their currency yet:{" "}
+          {leftOut.join(", ")}. Fetch rates under Exchange — counting them at
+          face value would be wrong by the whole exchange rate.
         </p>
       )}
 
@@ -413,6 +484,15 @@ export function ForecastTab({
           rising line that ignores the fact that you buy groceries.
         </p>
       </section>
+
+      <CategoryForecastPanel
+        rules={rules}
+        transactions={transactions}
+        categories={categories}
+        base={currency}
+        rates={rates}
+        extraFlows={loanFlows}
+      />
 
       <section
         className="space-y-4 rounded-surface bg-card p-5 shadow-e1"

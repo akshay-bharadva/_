@@ -1027,3 +1027,45 @@ export interface PublicHighlight {
   source_kind: LibraryKind | null;
   source_url: string | null;
 }
+
+/** What a rate change or prepayment does: keep the EMI, or keep the end date. */
+export type LoanEffect = "tenure" | "emi";
+
+/** An amortising loan — terms only; the schedule is derived. Migration 020. */
+export interface FinanceLoan {
+  id: string;
+  user_id?: string;
+  name: string;
+  lender?: string | null;
+  /** The loan's own currency, which need not be the base. */
+  currency: string;
+  principal: number;
+  /** Annual percentage rate at the start, e.g. 8.5. */
+  annual_rate: number;
+  tenure_months: number;
+  first_emi_date: string;
+  rate_type: "fixed" | "floating";
+  on_rate_change: LoanEffect;
+  pay_from_account_id?: string | null;
+  category_id?: string | null;
+  notes?: string | null;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  /** Joined on read. */
+  finance_loan_events?: FinanceLoanEvent[];
+}
+
+/** Something that happened to a loan: a rate change or a part-prepayment. */
+export interface FinanceLoanEvent {
+  id: string;
+  user_id?: string;
+  loan_id: string;
+  kind: "rate_change" | "prepayment";
+  effective_date: string;
+  rate?: number | null;
+  amount?: number | null;
+  effect?: LoanEffect | null;
+  note?: string | null;
+  created_at?: string;
+}
