@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { format, isSameDay } from "date-fns";
-import { ArrowRightLeft, Pencil, Receipt, Trash2 } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Landmark,
+  Pencil,
+  Receipt,
+  Trash2,
+} from "lucide-react";
 import type {
   FinanceAccount,
   FinanceCategory,
@@ -10,6 +16,13 @@ import type {
   Transaction,
 } from "@/types";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState, SearchInput } from "@/components/admin/shared";
 import { formatMoney } from "@/lib/money";
 import { parseLocalDate } from "@/lib/utils";
@@ -24,19 +37,83 @@ import { cn } from "@/lib/cn";
  * the amount. So it is a day-grouped list with the amount right-aligned and
  * everything else subordinate to it.
  *
- * Two things the old version could not show at all, because the data did not
- * exist: which account something came out of, and what currency it was in.
- * Both are load-bearing when you hold money in two countries.
+ * Every row names its account, because with money in two countries "which
+ * account" is half of what a transaction is.
  */
 
-type Filter = "all" | "earning" | "expense" | "transfers";
+export type LedgerFilter = "all" | "earning" | "expense" | "transfers";
 
-const FILTERS: { id: Filter; label: string }[] = [
+const FILTERS: { id: LedgerFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "expense", label: "Out" },
   { id: "earning", label: "In" },
   { id: "transfers", label: "Transfers" },
 ];
+
+/** Account filter values that are not an account id. */
+export const ALL_ACCOUNTS = "all";
+export const NO_ACCOUNT = "none";
+
+/**
+ * What the toolbar leaves on screen, newest first. Pure, so the filtering is
+ * tested directly rather than through a dropdown.
+ */
+export function filterLedger(
+  transactions: Transaction[],
+  {
+    filter,
+    account,
+    search,
+  }: { filter: LedgerFilter; account: string; search: string },
+  {
+    accountName,
+    categoryName,
+  }: {
+    accountName: (id: string | null | undefined) => string | undefined;
+    categoryName: (transaction: Transaction) => string | null | undefined;
+  },
+): Transaction[] {
+  const needle = search.trim().toLowerCase();
+
+  return transactions
+    .filter((transaction) => {
+      if (filter === "transfers" && !transaction.transfer_group) return false;
+      if (filter === "earning" && transaction.type !== "earning") return false;
+      if (filter === "expense" && transaction.type !== "expense") return false;
+      // "Out" and "In" mean money you spent and money you earned, so a
+      // transfer leg under either would count a move as a transaction.
+      if (
+        (filter === "earning" || filter === "expense") &&
+        transaction.transfer_group
+      ) {
+        return false;
+      }
+      if (account === NO_ACCOUNT && transaction.account_id) return false;
+      if (
+        account !== ALL_ACCOUNTS &&
+        account !== NO_ACCOUNT &&
+        transaction.account_id !== account
+      ) {
+        return false;
+      }
+      if (needle === "") return true;
+
+      return [
+        transaction.description,
+        transaction.merchant,
+        categoryName(transaction),
+        accountName(transaction.account_id),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
+    })
+    .sort(
+      (a, b) =>
+        parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime(),
+    );
+}
 
 export function LedgerSection({
   transactions,
@@ -46,7 +123,6 @@ export function LedgerSection({
   onEdit,
   onDelete,
   onAdd,
-  onTransfer,
 }: {
   transactions: Transaction[];
   accounts: FinanceAccount[];
@@ -58,7 +134,8 @@ export function LedgerSection({
   onTransfer: () => void;
 }) {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<LedgerFilter>("all");
+  const [accountFilter, setAccountFilter] = useState<string>(ALL_ACCOUNTS);
 
   const accountById = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -69,46 +146,39 @@ export function LedgerSection({
     [categories],
   );
 
-  const visible = useMemo(() => {
-    const needle = search.trim().toLowerCase();
+  /**
+   * The accounts worth offering as a filter: every open one, plus any closed
+   * one that still has history — archiving an account must not make its past
+   * transactions unfindable.
+   */
+  const filterAccounts = useMemo(() => {
+    const used = new Set(transactions.map((t) => t.account_id));
+    return accounts.filter(
+      (account) => !account.archived_at || used.has(account.id),
+    );
+  }, [accounts, transactions]);
+  const hasUnassigned = transactions.some((t) => !t.account_id);
 
-    return transactions
-      .filter((transaction) => {
-        if (filter === "transfers" && !transaction.transfer_group) return false;
-        if (filter === "earning" && transaction.type !== "earning")
-          return false;
-        if (filter === "expense" && transaction.type !== "expense")
-          return false;
-        // "Out" and "In" mean money you spent and money you earned, so a
-        // transfer leg showing up under either would double-count a move as a
-        // transaction. Transfers get their own filter.
-        if (
-          (filter === "earning" || filter === "expense") &&
-          transaction.transfer_group
-        ) {
-          return false;
-        }
-        if (needle === "") return true;
+  const categoryNameOf = (transaction: Transaction) =>
+    transaction.category_id
+      ? categoryById.get(transaction.category_id)?.name
+      : transaction.category;
 
-        const category = transaction.category_id
-          ? categoryById.get(transaction.category_id)?.name
-          : transaction.category;
-        return [
-          transaction.description,
-          transaction.merchant,
-          category,
-          accountById.get(transaction.account_id ?? "")?.name,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(needle);
-      })
-      .sort(
-        (a, b) =>
-          parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime(),
-      );
-  }, [transactions, filter, search, accountById, categoryById]);
+  const visible = useMemo(
+    () =>
+      filterLedger(
+        transactions,
+        { filter, account: accountFilter, search },
+        {
+          accountName: (id) => accountById.get(id ?? "")?.name,
+          categoryName: (transaction) =>
+            transaction.category_id
+              ? categoryById.get(transaction.category_id)?.name
+              : transaction.category,
+        },
+      ),
+    [transactions, filter, accountFilter, search, accountById, categoryById],
+  );
 
   /** Grouped by day, because a repeated date on every row is noise. */
   const days = useMemo(() => {
@@ -124,7 +194,17 @@ export function LedgerSection({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
+      {/*
+        One toolbar: search, what kind, which account. It was two rows of
+        tabs, the second a strip of every account that scrolled sideways once
+        there were more than three — a filter you had to scroll to find is not
+        a filter. The account is a dropdown now, and the row wraps rather than
+        scrolls on a narrow screen.
+
+        No Add or Transfer here: the page header's Add menu covers both, on
+        every section.
+      */}
+      <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-48 flex-1">
           <SearchInput
             value={search}
@@ -132,44 +212,56 @@ export function LedgerSection({
             placeholder="Search description, category or account…"
           />
         </div>
-        {/*
-          No Add or Transfer here.
 
-          The page header carries an Add menu covering all four things this
-          module can create, and it is present on every section. Repeating two
-          of its four entries in this toolbar put two buttons labelled "Add" on
-          screen at once, doing the same thing — which is what the owner
-          noticed. One control, in one place, on every section beats a
-          contextual duplicate of half of it.
+        <div
+          role="tablist"
+          aria-label="Filter"
+          className="inline-flex rounded-control bg-secondary p-0.5"
+        >
+          {FILTERS.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              aria-selected={entry.id === filter}
+              onClick={() => setFilter(entry.id)}
+              className={cn(
+                "rounded-control px-2.5 py-1 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+                entry.id === filter
+                  ? "bg-card text-foreground shadow-e1"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
 
-          The empty state below keeps its own call to action: it only appears
-          when there is nothing to look at, where prompting is the entire
-          point, and it competes with nothing.
-        */}
-      </div>
-
-      <div
-        role="tablist"
-        aria-label="Filter"
-        className="flex flex-wrap gap-1.5"
-      >
-        {FILTERS.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            role="tab"
-            aria-selected={entry.id === filter}
-            onClick={() => setFilter(entry.id)}
-            className={cn(
-              "rounded-control px-2.5 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
-              entry.id === filter
-                ? "bg-card text-foreground shadow-e2"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {entry.label}
-          </button>
-        ))}
+        {filterAccounts.length > 0 && (
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger
+              aria-label="Account"
+              className="h-9 w-auto min-w-40 max-w-60 gap-1.5"
+            >
+              <Landmark
+                className="size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              <SelectItem value={ALL_ACCOUNTS}>All accounts</SelectItem>
+              {filterAccounts.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  {account.name} · {account.currency}
+                </SelectItem>
+              ))}
+              {hasUnassigned && (
+                <SelectItem value={NO_ACCOUNT}>No account</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {days.length === 0 ? (
@@ -183,7 +275,7 @@ export function LedgerSection({
           description={
             transactions.length === 0
               ? "Add what you spent, or confirm a recurring item from Overview. Balances are derived from these, so the more that is here the more the rest of the module can tell you."
-              : "Try a different filter or search term."
+              : "Try a different filter, account or search term."
           }
           {...(transactions.length === 0
             ? { action: { label: "Add a transaction", onClick: onAdd } }
@@ -202,11 +294,7 @@ export function LedgerSection({
                     <LedgerRow
                       transaction={transaction}
                       account={accountById.get(transaction.account_id ?? "")}
-                      categoryName={
-                        transaction.category_id
-                          ? categoryById.get(transaction.category_id)?.name
-                          : transaction.category
-                      }
+                      categoryName={categoryNameOf(transaction)}
                       baseCurrency={settings.base_currency}
                       onEdit={() => onEdit(transaction)}
                       onDelete={() =>
@@ -256,15 +344,42 @@ function LedgerRow({
         <p className="truncate text-sm font-medium text-foreground">
           {transaction.description}
         </p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 truncate text-xs text-muted-foreground">
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          {/*
+            The account, first and always. It was a grey "· name" after the
+            category, easy to read past — and absent entirely when a
+            transaction had no account, which is exactly the row worth
+            noticing, so that case now says so.
+          */}
+          <span
+            className={cn(
+              "inline-flex min-w-0 max-w-full items-center gap-1 rounded-control px-1.5 py-0.5 text-[11px] font-medium",
+              account ? "bg-secondary text-foreground" : "bg-chart-3/10",
+            )}
+            title={
+              account
+                ? `${account.name} · ${account.currency}`
+                : "Not linked to an account, so no balance moved. Edit it to pick one."
+            }
+          >
+            <Landmark className="size-3 shrink-0" aria-hidden />
+            <span className="truncate">
+              {account
+                ? isTransfer
+                  ? `${incoming ? "Into" : "Out of"} ${account.name}`
+                  : account.name
+                : "No account"}
+            </span>
+          </span>
           {isTransfer && (
             <span className="inline-flex items-center gap-1">
               <ArrowRightLeft className="size-3" aria-hidden />
               Transfer
             </span>
           )}
-          {categoryName && !isTransfer && <span>{categoryName}</span>}
-          {account && <span>· {account.name}</span>}
+          {categoryName && !isTransfer && (
+            <span className="truncate">{categoryName}</span>
+          )}
           {transaction.is_pending && (
             <span className="rounded-control bg-secondary px-1.5 py-0.5 text-[10px]">
               pending

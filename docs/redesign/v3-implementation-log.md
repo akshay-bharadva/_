@@ -1670,6 +1670,21 @@ floored at 32px an hour so a short window scrolls instead of reviving the
 ~20px hours of the first percentage-based grid. The fixed sizes remain for
 reading rather than overview. Month no longer reads density at all.
 
+## Activity names the account
+
+The ledger did show the account — as a grey "· name" after the category, easy
+to read past, and nothing at all when a transaction had no account, which is
+the row that most needs noticing. Every row now leads with an account tag;
+transfer legs read "Into" / "Out of"; an unlinked row says "No account" and
+its tooltip says no balance moved.
+
+Filtering by account landed first as a second row of tabs, one per account.
+The owner disliked it on sight: it scrolled sideways past three accounts, and
+two stacked tab rows were more chrome than the question deserved. It is now
+one toolbar — search, an In/Out/Transfers switch, an Account dropdown — that
+wraps rather than scrolls. The filtering itself is `filterLedger`, pure and
+tested without driving a dropdown in jsdom.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an
