@@ -9,16 +9,14 @@ import {
 import type { Note } from "@/types";
 import NotesPage from "./notes-page";
 
-const addNote = vi.fn<(note: Partial<Note>) => { unwrap: () => Promise<Note> }>(
-  () => ({ unwrap: () => Promise.resolve({ id: "new" } as Note) }),
+const ok = <T,>(value: T) => ({ unwrap: () => Promise.resolve(value) });
+
+const addNote = vi.fn((note: Partial<Note>) =>
+  ok({ id: "new", title: note.title ?? null, content: null } as Note),
 );
-const updateNote = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
-const archiveNote = vi.fn<
-  (args: { id: string; archived: boolean }) => {
-    unwrap: () => Promise<unknown>;
-  }
->(() => ({ unwrap: () => Promise.resolve({}) }));
-const deleteNote = vi.fn(() => ({ unwrap: () => Promise.resolve({}) }));
+const updateNote = vi.fn((_note: Partial<Note>) => ok({}));
+const archiveNote = vi.fn((_args: { id: string; archived: boolean }) => ok({}));
+const deleteNote = vi.fn((_id: string) => ok({}));
 const confirmSpy =
   vi.fn<
     (options: { title: string; description: string }) => Promise<boolean>
@@ -27,10 +25,8 @@ const confirmSpy =
 let notes: Note[] = [];
 
 /**
- * The editor chunk, reached only through its loader. The loader is mocked
- * statically — a mock of an inline dynamic import is not reliably applied,
- * and an unawaited warm-up that loads the real module can outlive the test.
- * `realEditorRequested` records any request for the real TipTap editor.
+ * The editor chunk, reached only through its loader, mocked statically — and
+ * the lazy editor itself stands in as a textarea.
  */
 const { loadEditor, realEditorRequested } = vi.hoisted(() => ({
   loadEditor: vi.fn(() => Promise.resolve({ default: () => null })),
@@ -43,10 +39,25 @@ vi.mock("@/components/admin/novel-editor/novel-editor", () => {
   realEditorRequested();
   return { default: () => null };
 });
+vi.mock("@/components/admin/novel-editor", () => ({
+  default: ({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+  }) => (
+    <textarea
+      aria-label="Note body"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ),
+}));
 
 vi.mock("@/store/api/adminApi", () => ({
   useGetNotesQuery: () => ({ data: notes, isLoading: false }),
-  useAddNoteMutation: () => [addNote],
+  useAddNoteMutation: () => [addNote, { isLoading: false }],
   useUpdateNoteMutation: () => [updateNote],
   useArchiveNoteMutation: () => [archiveNote],
   useDeleteNoteMutation: () => [deleteNote],
@@ -56,30 +67,9 @@ vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
   useConfirm: () => confirmSpy,
 }));
 
-// The rich editor pulls in TipTap, which is code-split in the app and not
-// worth booting to assert on the page around it.
 vi.mock("./note-body", () => ({
   NoteBody: ({ children }: { children: string }) => (
     <div data-testid="note-body">{children}</div>
-  ),
-}));
-
-vi.mock("./note-form", () => ({
-  NoteForm: ({
-    onCancel,
-    onColorChange,
-  }: {
-    onCancel: () => void;
-    onColorChange?: (color: string | null) => void;
-  }) => (
-    <div data-testid="note-editor">
-      <button type="button" onClick={onCancel}>
-        Cancel
-      </button>
-      <button type="button" onClick={() => onColorChange?.("#22d3ee")}>
-        Pick cyan
-      </button>
-    </div>
   ),
 }));
 
@@ -92,259 +82,49 @@ const note = (overrides: Partial<Note> = {}): Note => ({
   ...overrides,
 });
 
+const saved = { timeout: 3000 };
+
 beforeEach(() => {
   vi.clearAllMocks();
   confirmSpy.mockResolvedValue(true);
   notes = [];
 });
 
-describe("NotesPage", () => {
-  it("shows an empty state with no notes", () => {
+describe("NotesPage — the list", () => {
+  it("says there is nothing yet", () => {
     render(<NotesPage />);
     expect(screen.getByText("No notes yet")).toBeInTheDocument();
   });
 
-  /**
-   * Reading a note warms the editor so the first Edit is instant — through
-   * the loader, which fetches TipTap itself (the old barrel import only
-   * fetched the lazy wrapper), and never by loading the real editor here.
-   */
-  it("warms the editor through its loader while a note is read", () => {
-    notes = [note({ id: "a", title: "Alpha" })];
+  it("leads with pinned notes", () => {
+    notes = [
+      note({ id: "a", title: "Recent", updated_at: "2026-06-01T00:00:00Z" }),
+      note({ id: "b", title: "Pinned", is_pinned: true }),
+    ];
     render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    expect(loadEditor).toHaveBeenCalled();
-    expect(realEditorRequested).not.toHaveBeenCalled();
-  });
-
-  /**
-   * Editing happens on the note view now. The drawer capped the editor at
-   * roughly one visible line, and it was mounted separately from the reading
-   * view — which is why pressing Edit appeared to do nothing until you
-   * navigated back.
-   */
-  it("edits in place on the note view, with no drawer", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
-    // Still the note view — the back link is part of it, a drawer has none.
+    const rows = screen
+      .getAllByRole("button", { name: /^Open / })
+      .map((el) => el.getAttribute("aria-label"));
+    expect(rows[0]).toBe("Open Pinned");
     expect(
-      screen.getByRole("button", { name: /All notes/ }),
+      screen.getByRole("heading", { level: 2, name: "Pinned" }),
     ).toBeInTheDocument();
   });
 
-  it("returns to reading when an edit is cancelled", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
+  it("shows the start of what each note says", () => {
+    notes = [note({ title: "Alpha", content: "## Heading\n\nbody **text**" })];
     render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
-    expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Alpha" })).toBeInTheDocument();
+    expect(screen.getByText("Heading body text")).toBeInTheDocument();
   });
 
-  it("opens a blank note view to write a new note", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
+  /** "Untitled / Untitled / Untitled" says nothing about what is in them. */
+  it("names an untitled note by its first line", () => {
+    notes = [note({ title: "", content: "Call the letting agent\nMonday" })];
     render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
-    expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /All notes/ }),
+      screen.getByLabelText("Open Call the letting agent"),
     ).toBeInTheDocument();
-  });
-
-  /** A new note has nothing to fall back to, so cancelling leaves. */
-  it("closes the blank view when a new note is abandoned", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Cancel" }));
-    expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
-  });
-
-  it("edits from a card without opening the note first", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Edit note"));
-    expect(await screen.findByTestId("note-editor")).toBeInTheDocument();
-  });
-
-  /**
-   * The editor sat on a plain surface inside a coloured tile, and the tile
-   * showed the saved colour — so a colour picked while editing did not appear
-   * anywhere until it was committed.
-   */
-  it("follows the colour picker while editing, before saving", async () => {
-    notes = [note({ id: "a", title: "Alpha", color: "#f87171" })];
-    const { container } = render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-
-    const tile = () =>
-      Array.from(container.querySelectorAll<HTMLElement>("article")).find(
-        (el) => el.style.background !== "",
-      );
-    expect(tile()?.style.background).toContain("#f87171");
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Pick cyan" }));
-    expect(tile()?.style.background).toContain("#22d3ee");
-  });
-
-  it("opens a note to read rather than to edit", () => {
-    notes = [note({ title: "Alpha", content: "Some body" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    expect(screen.getByRole("heading", { name: "Alpha" })).toBeInTheDocument();
-    expect(screen.queryByTestId("note-editor")).not.toBeInTheDocument();
-  });
-
-  /**
-   * The preview printed the markdown source. It renders now — with GFM, so a
-   * table is not a row of literal pipes — but without Prism, which is a 290 kB
-   * import that a six-line preview has no use for.
-   */
-  it("sends the note body to the shared renderer, not raw text", () => {
-    notes = [
-      note({
-        id: "a",
-        title: "Alpha",
-        content: "## Heading\n\n- a bullet",
-      }),
-    ];
-    render(<NotesPage />);
-    // The card and the reading view use one renderer, so the card cannot show
-    // a note differently from the page it opens into.
-    expect(screen.getByTestId("note-body")).toHaveTextContent("Heading");
-  });
-
-  /** They were rendered at 6% opacity over a tinted tile, which is present in
-      the DOM and invisible on screen. */
-  it("shows a note's tags on the reading view", () => {
-    notes = [note({ id: "a", title: "Alpha", tags: ["work", "urgent"] })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    const article = screen.getByRole("article");
-    expect(within(article).getByText("#work")).toBeInTheDocument();
-    expect(within(article).getByText("#urgent")).toBeInTheDocument();
-  });
-
-  /** The reason linking is worth having at all. */
-  it("shows what links to a note", () => {
-    notes = [
-      note({ id: "a", title: "Alpha", content: "see [[Beta]]" }),
-      note({ id: "b", title: "Beta" }),
-    ];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Beta"));
-    expect(screen.getByText("Linked from")).toBeInTheDocument();
-  });
-
-  it("shows what a note links to", () => {
-    notes = [
-      note({ id: "a", title: "Alpha", content: "see [[Beta]]" }),
-      note({ id: "b", title: "Beta" }),
-    ];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    expect(screen.getByText("Links to")).toBeInTheDocument();
-  });
-
-  it("offers to create a note a link points at but does not exist", async () => {
-    notes = [note({ id: "a", title: "Alpha", content: "see [[Nowhere]]" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    expect(screen.getByText("Not written yet")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: /Nowhere/ }));
-    await waitFor(() => expect(addNote).toHaveBeenCalled());
-    expect(addNote.mock.calls[0]?.[0]).toMatchObject({ title: "Nowhere" });
-  });
-
-  it("archives a note instead of only offering deletion", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Archive note"));
-    await waitFor(() => expect(archiveNote).toHaveBeenCalled());
-    expect(archiveNote.mock.calls[0]?.[0]).toEqual({
-      id: "a",
-      archived: true,
-    });
-  });
-
-  it("hides archived notes from the main list", () => {
-    notes = [
-      note({ id: "a", title: "Alpha" }),
-      note({
-        id: "b",
-        title: "Filed away",
-        archived_at: "2026-02-01T00:00:00Z",
-      }),
-    ];
-    render(<NotesPage />);
-    expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Open Filed away")).not.toBeInTheDocument();
-  });
-
-  it("shows archived notes in the archive view", () => {
-    notes = [
-      note({ id: "a", title: "Alpha" }),
-      note({
-        id: "b",
-        title: "Filed away",
-        archived_at: "2026-02-01T00:00:00Z",
-      }),
-    ];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    expect(screen.getByLabelText("Open Filed away")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Open Alpha")).not.toBeInTheDocument();
-  });
-
-  /**
-   * The detail view hard-coded "Archive", so opening an already-archived note
-   * offered to archive it a second time and there was no way back from there.
-   */
-  it("offers Restore, not Archive, when reading an archived note", async () => {
-    notes = [
-      note({
-        id: "a",
-        title: "Filed away",
-        archived_at: "2026-02-01T00:00:00Z",
-      }),
-    ];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Archive/ }));
-    fireEvent.click(screen.getByLabelText("Open Filed away"));
-
-    expect(screen.getByRole("button", { name: "Restore" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
-    await waitFor(() => expect(archiveNote).toHaveBeenCalled());
-    expect(archiveNote.mock.calls[0]?.[0]).toEqual({
-      id: "a",
-      archived: false,
-    });
-  });
-
-  it("archives from the reading view of a live note", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Open Alpha"));
-    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    await waitFor(() => expect(archiveNote).toHaveBeenCalled());
-    expect(archiveNote.mock.calls[0]?.[0]).toEqual({ id: "a", archived: true });
-  });
-
-  /** Deleting is the one action here that loses something unrecoverable. */
-  it("says archiving is the alternative before deleting", async () => {
-    notes = [note({ id: "a", title: "Alpha" })];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByLabelText("Delete note"));
-    await waitFor(() => expect(confirmSpy).toHaveBeenCalled());
-    expect(confirmSpy.mock.calls[0]?.[0]?.description).toMatch(/Archiving/);
+    expect(screen.getByText("Monday")).toBeInTheDocument();
   });
 
   it("searches title, body and tags", () => {
@@ -358,156 +138,279 @@ describe("NotesPage", () => {
     fireEvent.change(screen.getByLabelText("Search notes"), {
       target: { value: "dentist" },
     });
-    expect(screen.queryByLabelText("Open Unrelated")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Open Dentist")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Open Unrelated")).toBeNull();
+    expect(screen.getByLabelText("Open Beta")).toBeInTheDocument();
+    expect(screen.getByLabelText("Open Gamma")).toBeInTheDocument();
   });
 
-  it("filters by tag from the Filters popover", () => {
+  it("filters by a tag", () => {
     notes = [
       note({ id: "a", title: "Alpha", tags: ["work"] }),
       note({ id: "b", title: "Beta", tags: ["home"] }),
     ];
     render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^work/ }));
+    const tags = screen.getByRole("group", { name: "Filter by tag" });
+    fireEvent.click(within(tags).getByRole("button", { name: /work/ }));
     expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Open Beta")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Open Beta")).toBeNull();
   });
 
-  it("filters to pinned notes", () => {
-    notes = [
-      note({ id: "a", title: "Alpha", is_pinned: true }),
-      note({ id: "b", title: "Beta" }),
-    ];
-    render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
-    fireEvent.click(screen.getByLabelText("Pinned"));
-    expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Open Beta")).not.toBeInTheDocument();
-  });
-
-  /** Only meaningful now that notes link to each other. */
-  it("filters to notes that take part in the link graph", () => {
+  it("shows only notes in the link graph under Linked", () => {
     notes = [
       note({ id: "a", title: "Alpha", content: "see [[Beta]]" }),
       note({ id: "b", title: "Beta" }),
       note({ id: "c", title: "Orphan" }),
     ];
     render(<NotesPage />);
-    fireEvent.click(screen.getByRole("button", { name: /Filters/ }));
-    fireEvent.click(screen.getByLabelText("Connected to another note"));
+    fireEvent.click(screen.getByRole("button", { name: /^Linked/ }));
     expect(screen.getByLabelText("Open Alpha")).toBeInTheDocument();
     expect(screen.getByLabelText("Open Beta")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Open Orphan")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Open Orphan")).toBeNull();
   });
 
-  it("keeps pinned notes first", () => {
+  it("keeps archived notes out of the list, and in the archive", () => {
     notes = [
-      note({ id: "a", title: "Older", updated_at: "2026-06-01T00:00:00Z" }),
-      note({
-        id: "b",
-        title: "Pinned",
-        is_pinned: true,
-        updated_at: "2026-01-01T00:00:00Z",
-      }),
+      note({ id: "a", title: "Alpha" }),
+      note({ id: "b", title: "Filed away", archived_at: "2026-02-01T00:00:00Z" }),
     ];
     render(<NotesPage />);
-    const opened = screen
-      .getAllByRole("button", { name: /^Open / })
-      .map((el) => el.getAttribute("aria-label"));
-    expect(opened[0]).toBe("Open Pinned");
+    expect(screen.queryByLabelText("Open Filed away")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Archive/ }));
+    expect(screen.getByLabelText("Open Filed away")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Open Alpha")).toBeNull();
   });
 });
 
-describe("NoteCard colour", () => {
-  /**
-   * Keep colours the whole tile. Mixing against the card token rather than
-   * laying a fixed alpha over it is what keeps the text contrast intact on a
-   * dark preset, where a flat tint turned every colour to the same grey.
-   */
-  it("fills the card with the note colour, mixed against the theme", () => {
-    notes = [note({ id: "a", title: "Alpha", color: "#e11d48" })];
-    const { container } = render(<NotesPage />);
-    const filled = Array.from(
-      container.querySelectorAll<HTMLElement>("*"),
-    ).find((el) => el.style.background.includes("color-mix"));
-
-    expect(filled).toBeTruthy();
-    expect(filled?.style.background).toContain("#e11d48");
-    expect(filled?.style.background).toContain("hsl(var(--card))");
+describe("NotesPage — a note", () => {
+  it("opens to read, and warms the editor through its loader", () => {
+    notes = [note({ title: "Alpha", content: "Some body" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    expect(screen.getByLabelText("Note title")).toHaveValue("Alpha");
+    expect(screen.getByTestId("note-body")).toHaveTextContent("Some body");
+    expect(screen.queryByLabelText("Note body")).toBeNull();
+    expect(loadEditor).toHaveBeenCalled();
+    expect(realEditorRequested).not.toHaveBeenCalled();
   });
 
-  /** The actions are revealed on hover, but must stay reachable by keyboard —
-      opacity, not display, so they keep their place in the tab order. */
-  it("keeps the card actions in the accessibility tree at rest", () => {
+  /** No Save button: the body saves itself once typing pauses. */
+  it("saves an edit on its own", async () => {
+    notes = [note({ content: "Hello" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByLabelText("Note body"), {
+      target: { value: "Hello there" },
+    });
+    await waitFor(
+      () =>
+        expect(updateNote).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "n1", content: "Hello there" }),
+        ),
+      saved,
+    );
+    expect(await screen.findByText("Saved", {}, saved)).toBeInTheDocument();
+  });
+
+  it("saves a title change", async () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.change(screen.getByLabelText("Note title"), {
+      target: { value: "Renamed" },
+    });
+    await waitFor(
+      () =>
+        expect(updateNote).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "n1", title: "Renamed" }),
+        ),
+      saved,
+    );
+  });
+
+  it("saves at once on Ctrl + S", async () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    const title = screen.getByLabelText("Note title");
+    fireEvent.change(title, { target: { value: "Now" } });
+    fireEvent.keyDown(title, { key: "s", ctrlKey: true });
+    await waitFor(() => expect(updateNote).toHaveBeenCalledTimes(1));
+  });
+
+  /** Plain state rather than a form library: the shared schema checks it. */
+  it("refuses a title over the limit, and says so", async () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.change(screen.getByLabelText("Note title"), {
+      target: { value: "x".repeat(201) },
+    });
+    expect(await screen.findByRole("alert", {}, saved)).toHaveTextContent(
+      "Not saved",
+    );
+    expect(updateNote).not.toHaveBeenCalled();
+  });
+
+  it("saves a tag added as a chip", async () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.change(screen.getByLabelText("Add a tag"), {
+      target: { value: "work," },
+    });
+    await waitFor(
+      () =>
+        expect(updateNote).toHaveBeenCalledWith(
+          expect.objectContaining({ tags: ["work"] }),
+        ),
+      saved,
+    );
+  });
+
+  /**
+   * Keep colours the whole tile, mixed against the card token so the text
+   * contrast holds on a dark preset — and the tile follows the picker at once.
+   */
+  it("fills the note with its colour and follows the picker", async () => {
+    notes = [note({ color: "#f87171" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    const tile = screen.getByRole("article");
+    expect(tile.style.background).toContain("#f87171");
+    expect(tile.style.background).toContain("hsl(var(--card))");
+
+    fireEvent.click(screen.getByLabelText("Note colour"));
+    fireEvent.click(await screen.findByLabelText("Use colour #22d3ee"));
+    expect(tile.style.background).toContain("#22d3ee");
+    await waitFor(
+      () =>
+        expect(updateNote).toHaveBeenCalledWith(
+          expect.objectContaining({ color: "#22d3ee" }),
+        ),
+      saved,
+    );
+  });
+
+  it("pins from the note", () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByLabelText("Pin note"));
+    expect(updateNote).toHaveBeenCalledWith({ id: "n1", is_pinned: true });
+  });
+
+  it("archives, and offers Restore on an archived note", async () => {
+    notes = [note({ archived_at: "2026-02-01T00:00:00Z" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /^Archive/ }));
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    await waitFor(() =>
+      expect(archiveNote).toHaveBeenCalledWith({ id: "n1", archived: false }),
+    );
+  });
+
+  it("archives a live note", async () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByLabelText("Archive note"));
+    await waitFor(() =>
+      expect(archiveNote).toHaveBeenCalledWith({ id: "n1", archived: true }),
+    );
+  });
+
+  /** Deleting is the one action here that loses something unrecoverable. */
+  it("says archiving is the alternative before deleting", async () => {
+    notes = [note()];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    fireEvent.click(screen.getByLabelText("Delete note"));
+    await waitFor(() => expect(deleteNote).toHaveBeenCalledWith("n1"));
+    expect(confirmSpy.mock.calls[0]?.[0]?.description).toMatch(/Archiving/);
+  });
+});
+
+describe("NotesPage — new notes", () => {
+  it("creates a note and opens it to write in", async () => {
+    render(<NotesPage />);
+    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
+    await waitFor(() => expect(addNote).toHaveBeenCalled());
+    expect(await screen.findByLabelText("Note title")).toHaveValue("");
+    expect(screen.getByLabelText("Note body")).toBeInTheDocument();
+  });
+
+  /** Trying the button should not leave an empty note behind. */
+  it("discards a new note left blank, without asking", async () => {
     notes = [note({ id: "a", title: "Alpha" })];
     render(<NotesPage />);
-    expect(screen.getByLabelText("Edit note")).toBeInTheDocument();
-    expect(screen.getByLabelText("Archive note")).toBeInTheDocument();
-    expect(screen.getByLabelText("Delete note")).toBeInTheDocument();
-    expect(screen.getByLabelText("Pin note")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
+    await screen.findByLabelText("Note body");
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    await waitFor(() => expect(deleteNote).toHaveBeenCalledWith("new"));
+    expect(confirmSpy).not.toHaveBeenCalled();
   });
 
-  it("strips wikilink syntax from the preview it renders", () => {
-    notes = [
-      note({
-        id: "a",
-        title: "Alpha",
-        content: "see [[Beta]]",
-      }),
-      note({ id: "b", title: "Beta" }),
-    ];
+  it("keeps a new note once anything is in it", async () => {
+    notes = [note({ id: "a", title: "Alpha" })];
     render(<NotesPage />);
-    // `[[Beta]]` is markup, not something anyone wrote to be read.
-    expect(screen.getAllByTestId("note-body")[0]).toHaveTextContent("see Beta");
-  });
-
-  it("shows how many notes a note links to", () => {
-    notes = [
-      note({ id: "a", title: "Alpha", content: "[[Beta]] and [[Gamma]]" }),
-      note({ id: "b", title: "Beta" }),
-    ];
-    render(<NotesPage />);
-    expect(screen.getByText("2")).toBeInTheDocument();
-  });
-
-  it("falls back to the plain card surface when a note has no colour", () => {
-    notes = [note({ id: "a", title: "Alpha", color: null })];
-    const { container } = render(<NotesPage />);
-    const filled = Array.from(
-      container.querySelectorAll<HTMLElement>("*"),
-    ).find((el) => el.style.background !== "");
-    expect(filled?.style.background).toBe("hsl(var(--card))");
-    expect(filled?.style.background).not.toContain("color-mix");
+    fireEvent.click(screen.getByRole("button", { name: /New note/ }));
+    fireEvent.change(await screen.findByLabelText("Note title"), {
+      target: { value: "Kept" },
+    });
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    await waitFor(() =>
+      expect(updateNote).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "new", title: "Kept" }),
+      ),
+    );
+    expect(deleteNote).not.toHaveBeenCalled();
   });
 });
 
-describe("untitled notes", () => {
-  /**
-   * "Untitled" was written over a note whose first line already said what it
-   * was, so a board of quick captures read "Untitled / Untitled / Untitled".
-   * The title column is genuinely optional here — a heading is often the last
-   * thing you add, if ever.
-   */
-  it("names an untitled note by its first line", async () => {
+describe("NotesPage — links", () => {
+  it("shows what links to a note, and what it links to", () => {
     notes = [
-      note({ id: "n1", title: "", content: "Call the letting agent\nMonday" }),
+      note({ id: "a", title: "Alpha", content: "see [[Beta]]" }),
+      note({ id: "b", title: "Beta" }),
     ];
     render(<NotesPage />);
-
-    expect(
-      await screen.findByText("Call the letting agent"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("Untitled")).toBeNull();
+    fireEvent.click(screen.getByLabelText("Open Beta"));
+    expect(screen.getByText("Linked from")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    expect(screen.getByText("Links to")).toBeInTheDocument();
   });
 
-  it("falls back only when a note is genuinely empty", async () => {
-    notes = [note({ id: "n1", title: "", content: "" })];
+  it("strips wikilink syntax from what it renders", () => {
+    notes = [
+      note({ id: "a", title: "Alpha", content: "see [[Beta]]" }),
+      note({ id: "b", title: "Beta" }),
+    ];
     render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    expect(screen.getByTestId("note-body")).toHaveTextContent("see [Beta](#note-b)");
+  });
 
-    // Scoped to the heading: the page's own "New note" button shares the text.
-    expect(
-      await screen.findByRole("heading", { name: "New note" }),
-    ).toBeInTheDocument();
+  it("offers to write a note a link points at", async () => {
+    notes = [note({ id: "a", title: "Alpha", content: "see [[Nowhere]]" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    expect(screen.getByText("Not written yet")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Nowhere/ }));
+    await waitFor(() => expect(addNote).toHaveBeenCalled());
+    expect(addNote.mock.calls[0]?.[0]).toMatchObject({ title: "Nowhere" });
+  });
+
+  /** A link typed right now shows up before the next save. */
+  it("follows the draft, not only what is saved", () => {
+    notes = [note({ id: "a", title: "Alpha" }), note({ id: "b", title: "Beta" })];
+    render(<NotesPage />);
+    fireEvent.click(screen.getByLabelText("Open Alpha"));
+    // An empty note opens straight into writing.
+    fireEvent.change(screen.getByLabelText("Note body"), {
+      target: { value: "now [[Beta]]" },
+    });
+    expect(screen.getByText("Links to")).toBeInTheDocument();
   });
 });

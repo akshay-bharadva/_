@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Archive, Plus, StickyNote } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NotebookPen } from "lucide-react";
 import { toast } from "sonner";
 import type { Note } from "@/types";
 import {
@@ -12,65 +12,45 @@ import {
   useUpdateNoteMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
-import {
-  EmptyState,
-  LoadingState,
-  ManagerWrapper,
-  PageHeader,
-} from "@/components/admin/shared";
+import { LoadingState, ManagerWrapper } from "@/components/admin/shared";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { distributeColumns, useColumnCount } from "@/hooks/use-column-count";
 import { getErrorMessage } from "@/lib/utils";
-import { noteLabel } from "./note-title";
-import { NoteCard } from "./note-card";
-import { NoteDetail } from "./note-detail";
-import {
-  DEFAULT_NOTE_FILTERS,
-  NoteToolbar,
-  type NoteFilters,
-  type NoteSortBy,
-} from "./note-toolbar";
+import { cn } from "@/lib/cn";
 import { buildLinkGraph } from "./note-links";
+import { NoteDocument } from "./note-document";
+import { NoteList } from "./note-list";
 
+/**
+ * Notes — a notebook: the list on the left, the open note on the right.
+ *
+ * The module was a Keep-style wall of cards that opened into a separate page
+ * with a separate edit form. Now the index and the note are on screen
+ * together, so moving between notes is one click and following a `[[link]]`
+ * keeps your place in the list. On a phone the two are one screen at a time.
+ *
+ * "New note" creates the row straight away and opens it to type in. A new
+ * note that is left with nothing in it is removed on the way out, so trying
+ * the button does not leave an empty note behind.
+ */
 export default function NotesPage() {
   const confirm = useConfirm();
-
-  const [openNote, setOpenNote] = useState<Note | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [filters, setFilters] = useState<NoteFilters>(DEFAULT_NOTE_FILTERS);
-  const [sortBy, setSortBy] = useState<NoteSortBy>("updated");
-  const [showArchived, setShowArchived] = useState(false);
-
   const { data: notes = [], isLoading } = useGetNotesQuery();
-  const [addNote] = useAddNoteMutation();
+  const [addNote, { isLoading: isCreating }] = useAddNoteMutation();
   const [updateNote] = useUpdateNoteMutation();
   const [archiveNote] = useArchiveNoteMutation();
   const [deleteNote] = useDeleteNoteMutation();
 
-  const columnCount = useColumnCount();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** The row just created, until the list refetches with it. */
+  const [created, setCreated] = useState<Note | null>(null);
+  /** A new note, and whether it is still blank. Only ever the open one. */
+  const fresh = useRef<{ id: string; empty: boolean } | null>(null);
 
-  const visible = useMemo(
-    () =>
-      notes.filter((n) => (showArchived ? !!n.archived_at : !n.archived_at)),
-    [notes, showArchived],
-  );
+  const selected =
+    (selectedId && notes.find((n) => n.id === selectedId)) ||
+    (selectedId && created?.id === selectedId ? created : null) ||
+    null;
 
-  const tagCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const note of visible) {
-      for (const tag of note.tags ?? []) {
-        counts.set(tag, (counts.get(tag) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [visible]);
-
-  const uniqueTags = useMemo(
-    () => Array.from(tagCounts.keys()).sort(),
-    [tagCounts],
-  );
-
-  /** Which notes take part in the link graph, for the "connected" filter. */
   const connectedIds = useMemo(() => {
     const graph = buildLinkGraph(notes);
     const ids = new Set<string>();
@@ -79,67 +59,39 @@ export default function NotesPage() {
     return ids;
   }, [notes]);
 
-  const filtered = useMemo(() => {
-    const term = filters.search.trim().toLowerCase();
+  const discardIfBlank = useCallback(() => {
+    const current = fresh.current;
+    fresh.current = null;
+    if (current?.empty) {
+      deleteNote(current.id)
+        .unwrap()
+        .catch(() => undefined);
+    }
+  }, [deleteNote]);
 
-    const matched = visible.filter((note) => {
-      if (filters.tag !== "all" && !note.tags?.includes(filters.tag))
-        return false;
-      if (filters.pinnedOnly && !note.is_pinned) return false;
-      if (filters.linkedOnly && !connectedIds.has(note.id)) return false;
-      if (!term) return true;
-      return (
-        note.title?.toLowerCase().includes(term) ||
-        note.content?.toLowerCase().includes(term) ||
-        note.tags?.some((tag) => tag.toLowerCase().includes(term))
-      );
-    });
+  // Leaving the module with a blank new note open.
+  const discardRef = useRef(discardIfBlank);
+  discardRef.current = discardIfBlank;
+  useEffect(() => () => discardRef.current(), []);
 
-    return [...matched].sort((a, b) => {
-      // Pinned always leads, whatever the sort.
-      if (!!a.is_pinned !== !!b.is_pinned) return a.is_pinned ? -1 : 1;
-      if (sortBy === "title") {
-        // Sorted by what the card actually shows, so A–Z matches the order
-        // your eye reads down the board.
-        return noteLabel(a).text.localeCompare(noteLabel(b).text);
-      }
-      const key = sortBy === "created" ? "created_at" : "updated_at";
-      return (b[key] ?? "").localeCompare(a[key] ?? "");
-    });
-  }, [visible, filters, sortBy, connectedIds]);
-
-  /**
-   * Round-robin into flex columns rather than `columns-*`.
-   *
-   * CSS multi-column fills a column to the bottom before starting the next, so
-   * a list sorted newest-first read down the entire left column before reaching
-   * the second-newest — which for a sorted list is simply wrong.
-   */
-  const columns = useMemo(
-    () => distributeColumns(filtered, columnCount),
-    [filtered, columnCount],
-  );
-
-  /** A blank note view — the same screen editing uses, with nothing in it. */
-  const openNew = () => {
-    setOpenNote({ id: "", title: "", content: "" } as Note);
-    setIsEditing(true);
+  const select = (id: string | null) => {
+    if (fresh.current && fresh.current.id !== id) discardIfBlank();
+    setSelectedId(id);
   };
 
-  const hasActiveFilters =
-    !!filters.search ||
-    filters.tag !== "all" ||
-    filters.pinnedOnly ||
-    filters.linkedOnly;
+  const reportEmpty = useCallback((empty: boolean) => {
+    if (fresh.current) fresh.current.empty = empty;
+  }, []);
 
-  const handleCreateLinked = async (title: string) => {
+  const handleNew = async (title?: string) => {
     try {
-      const created = await addNote({ title, content: "" }).unwrap();
-      setOpenNote(created);
-      setIsEditing(true);
-      toast.success(`Created "${title}"`);
+      const note = await addNote({ title: title ?? null, content: null }).unwrap();
+      setCreated(note);
+      select(note.id);
+      // A note created from a link already has its title; it is not blank.
+      if (!title) fresh.current = { id: note.id, empty: true };
     } catch (err) {
-      toast.error("Couldn't create that note", {
+      toast.error("Couldn't create a note", {
         description: getErrorMessage(err),
       });
     }
@@ -155,8 +107,9 @@ export default function NotesPage() {
     });
     if (!ok) return;
     try {
+      if (fresh.current?.id === note.id) fresh.current = null;
       await deleteNote(note.id).unwrap();
-      if (openNote?.id === note.id) setOpenNote(null);
+      setSelectedId(null);
       toast.success("Note deleted.");
     } catch (err) {
       toast.error("Couldn't delete the note", {
@@ -165,13 +118,10 @@ export default function NotesPage() {
     }
   };
 
-  const handleArchive = async (note: Note, archived: boolean) => {
+  const handleArchive = async (note: Note) => {
+    const archived = !note.archived_at;
     try {
       await archiveNote({ id: note.id, archived }).unwrap();
-      // Archiving from the reading view removes the note from the list behind
-      // it, so there is nothing to go back to. Restoring leaves you where you
-      // are, because the note is still there.
-      if (archived && openNote?.id === note.id) setOpenNote(null);
       toast.success(archived ? "Note archived." : "Note restored.");
     } catch (err) {
       toast.error("Couldn't update the note", {
@@ -198,128 +148,54 @@ export default function NotesPage() {
     );
   }
 
-  // Reading a note takes the whole page: the links are the point, and they need
-  // somewhere to live.
-  if (openNote) {
-    const current = notes.find((n) => n.id === openNote.id) ?? openNote;
-    return (
-      <ManagerWrapper>
-        <NoteDetail
-          note={current}
-          isEditing={isEditing}
-          notes={notes}
-          onBack={() => {
-            setOpenNote(null);
-            setIsEditing(false);
-          }}
-          onEdit={() => setIsEditing(true)}
-          onCancelEdit={() => {
-            // Abandoning a new note has nothing to fall back to, so it closes.
-            if (!current.id) setOpenNote(null);
-            setIsEditing(false);
-          }}
-          onSaved={(saved) => {
-            setOpenNote(saved);
-            setIsEditing(false);
-          }}
-          onOpenNote={(next) => {
-            setOpenNote(next);
-            setIsEditing(false);
-          }}
-          onTogglePin={() => handleTogglePin(current)}
-          onArchive={() => handleArchive(current, !current.archived_at)}
-          onDelete={() => handleDelete(current)}
-          onCreateLinked={handleCreateLinked}
-        />
-      </ManagerWrapper>
-    );
-  }
-
   return (
     <ManagerWrapper>
-      <PageHeader
-        title="Notes"
-        description="Write things down. Link them together."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={showArchived ? "secondary" : "outline"}
-              onClick={() => {
-                setShowArchived((v) => !v);
-                setFilters((f) => ({ ...f, tag: "all" }));
-              }}
-            >
-              <Archive className="mr-2 size-4" aria-hidden />
-              {showArchived ? "Back to notes" : "Archive"}
-            </Button>
-            <Button onClick={openNew}>
-              <Plus className="mr-2 size-4" aria-hidden /> New note
-            </Button>
-          </div>
-        }
-      />
-
-      <NoteToolbar
-        filters={filters}
-        onFiltersChange={setFilters}
-        sortBy={sortBy}
-        onSortByChange={setSortBy}
-        tags={uniqueTags}
-        tagCounts={tagCounts}
-      />
-
-      {filtered.length === 0 ? (
-        <EmptyState
-          icon={showArchived ? Archive : StickyNote}
-          variant="card"
-          title={
-            showArchived
-              ? "Nothing archived"
-              : hasActiveFilters
-                ? "No notes match"
-                : "No notes yet"
-          }
-          description={
-            showArchived
-              ? "Archived notes keep everything — they're just out of the way."
-              : hasActiveFilters
-                ? "Try a different search, or clear the filters."
-                : "A title is enough to start; the rest can come later."
-          }
-          action={
-            hasActiveFilters
-              ? {
-                  label: "Clear filters",
-                  onClick: () => setFilters(DEFAULT_NOTE_FILTERS),
-                }
-              : { label: "New note", onClick: openNew, icon: Plus }
-          }
+      <div className="grid items-start gap-6 md:grid-cols-[17rem_minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] lg:gap-10">
+        <NoteList
+          className={selected ? "hidden md:flex" : "flex"}
+          notes={notes}
+          selectedId={selected?.id ?? null}
+          onSelect={(note) => select(note.id)}
+          onNew={() => handleNew()}
+          isCreating={isCreating}
+          connectedIds={connectedIds}
         />
-      ) : (
-        <div className="flex items-start gap-4">
-          {columns.map((column, index) => (
-            <div key={index} className="flex min-w-0 flex-1 flex-col gap-4">
-              {column.map((note) => (
-                <NoteCard
-                  key={note.id}
-                  note={note}
-                  onOpen={() => {
-                    setOpenNote(note);
-                    setIsEditing(false);
-                  }}
-                  onEdit={() => {
-                    setOpenNote(note);
-                    setIsEditing(true);
-                  }}
-                  onDelete={() => handleDelete(note)}
-                  onArchive={() => handleArchive(note, !note.archived_at)}
-                  onTogglePin={() => handleTogglePin(note)}
-                />
-              ))}
+
+        <div className={cn("min-w-0", !selected && "hidden md:block")}>
+          {selected ? (
+            <NoteDocument
+              key={selected.id}
+              note={selected}
+              notes={notes}
+              onBack={() => select(null)}
+              onOpenNote={(note) => select(note.id)}
+              onCreateLinked={(title) => handleNew(title)}
+              onTogglePin={() => handleTogglePin(selected)}
+              onArchive={() => handleArchive(selected)}
+              onDelete={() => handleDelete(selected)}
+              onEmptyChange={reportEmpty}
+            />
+          ) : (
+            <div className="flex min-h-[24rem] flex-col items-center justify-center rounded-surface bg-secondary/30 p-8 text-center">
+              <NotebookPen
+                className="mb-3 size-8 text-muted-foreground"
+                aria-hidden
+              />
+              <p className="text-base font-medium text-foreground">
+                {notes.length > 0 ? "Pick a note to read or edit" : "No notes yet"}
+              </p>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                {notes.length > 0
+                  ? "Or start a new one. Link notes by typing [[a title]] in any of them."
+                  : "A title is enough to start; the rest can come later."}
+              </p>
+              <Button className="mt-4" onClick={() => handleNew()} disabled={isCreating}>
+                Start a note
+              </Button>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
     </ManagerWrapper>
   );
 }

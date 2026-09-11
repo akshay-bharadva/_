@@ -268,8 +268,33 @@ list, table, and a read-only timeline. Migration `001`.
 
 ## Notes
 
-**Is** — Keep-style cards on ordered masonry, wikilinks with backlinks, and
-editing in place on the note view. Migration `004`.
+**Was** — Keep-style cards on ordered masonry that opened into a separate
+page, where editing was a second mode with its own Save and Cancel, and the
+links sat in a side rail.
+
+**Is — rebuilt from scratch (2026-09-11)** as a notebook: the list and the
+open note on screen together (one at a time on a phone). Migration `004`.
+
+- **The list** is one line per note — name, when it was last written in, the
+  start of what it says — grouped Pinned, Today, Yesterday, Previous 7 days,
+  Previous 30 days, then by month (`note-groups.ts`). A wall of cards showed
+  a few notes well and the rest not at all. Search, scope (Notes / Pinned /
+  Linked / Archive) and tag chips sit above it; the Filters popover and the
+  sort menu are gone — recency is the order.
+- **The note saves itself.** No Save, no Cancel: the title and tags are always
+  editable, the body saves ~0.8 s after typing pauses, Ctrl + S saves at
+  once, leaving the note flushes anything pending, and `beforeunload` asks
+  while something is unsaved. Every write still validates against
+  `noteSchema`, with the reason shown and a Try again. The body keeps a
+  reading mode, because rendered `[[links]]` are only clickable when the text
+  is not being edited; clicking the text starts editing.
+- **New note creates the row at once** and opens it to type in. A new note
+  left blank is deleted on the way out (tracked by the page, not in the
+  document's unmount — strict mode's double mount would delete it on open).
+- **Connections sit under the note** (links to, linked from, not written
+  yet), built from the draft so a link appears as it is typed.
+- Tags are chips everywhere now: `components/ui/tag-input.tsx`, shared with
+  the Life updates composer (`addTags` lives in `lib/tag-input.ts`).
 
 **Carried forward:**
 
@@ -281,10 +306,10 @@ editing in place on the note view. Migration `004`.
   whatever is behind it. Mixing toward the theme's own surface keeps the text
   contrast the card was designed with; a flat tint made every colour converge on
   grey on a dark preset.
-- **One renderer for the card and the view** (`NoteBody`), so a note cannot look
-  like two different things depending on where you see it.
-- **A document wants the page, not a drawer.** Editing happens on the note view;
-  creating opens the same screen empty.
+- **One renderer for a note body** (`NoteBody`), code-split, so the ~290 kB
+  highlighter loads only when a note is read.
+- **A document wants the page, not a drawer.** Editing happens in the open
+  note itself; there is no separate form.
 
 ## Whiteboard
 

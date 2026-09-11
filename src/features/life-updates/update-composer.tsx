@@ -14,9 +14,11 @@ import { supabase } from "@/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { TagInput } from "@/components/ui/tag-input";
 import { lifeUpdateSchema } from "@/lib/schemas";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
-import { addTags, isKnownCategory } from "@/lib/life-update";
+import { isKnownCategory } from "@/lib/life-update";
+import { addTags } from "@/lib/tag-input";
 import { safeImageUrl } from "@/lib/safe-url";
 import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
@@ -355,48 +357,14 @@ export function UpdateComposer({
         />
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5" aria-label="Tags">
-        {tags.map((tag) => (
-          <span
-            key={tag}
-            className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2.5 pr-1 text-xs font-medium text-secondary-foreground"
-          >
-            #{tag}
-            <button
-              type="button"
-              aria-label={`Remove tag ${tag}`}
-              onClick={() => setTags(tags.filter((t) => t !== tag))}
-              className="rounded-full p-0.5 hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <X className="size-3" aria-hidden />
-            </button>
-          </span>
-        ))}
-        <input
-          aria-label="Add a tag"
-          value={tagDraft}
-          onChange={(event) => {
-            const value = event.target.value;
-            if (value.includes(",")) {
-              setTags(addTags(tags, value));
-              setTagDraft("");
-            } else {
-              setTagDraft(value);
-            }
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !(event.metaKey || event.ctrlKey)) {
-              event.preventDefault();
-              commitTagDraft();
-            } else if (event.key === "Backspace" && !tagDraft && tags.length) {
-              setTags(tags.slice(0, -1));
-            }
-          }}
-          onBlur={() => commitTagDraft()}
-          placeholder={tags.length ? "Add tag" : "#Add tags"}
-          className="min-w-[6rem] flex-1 bg-transparent py-1 text-xs text-foreground outline-none placeholder:text-muted-foreground"
-        />
-      </div>
+      <TagInput
+        tags={tags}
+        onTagsChange={setTags}
+        draft={tagDraft}
+        onDraftChange={setTagDraft}
+        placeholder="#Add tags"
+        className="mt-3"
+      />
 
       {error && (
         <p role="alert" className="mt-3 text-sm text-destructive">
