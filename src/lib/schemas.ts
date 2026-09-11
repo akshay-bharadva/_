@@ -1307,3 +1307,16 @@ export const financeCategorySchema = z.object({
 });
 
 export type FinanceCategoryValues = z.infer<typeof financeCategorySchema>;
+
+/**
+ * Re-anchoring an account from what it holds today. `opening_balance` is
+ * NUMERIC(18,4) and may be negative (a card or loan is stored as owed).
+ */
+export const accountReconcileSchema = z.object({
+  opening_balance: z
+    .number({ invalid_type_error: "Balance must be a number" })
+    .finite("Balance must be a number")
+    .min(-MONEY_MAX_18_4, "Balance is too large")
+    .max(MONEY_MAX_18_4, "Balance is too large"),
+  opening_date: dateString,
+});

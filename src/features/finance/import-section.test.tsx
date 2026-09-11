@@ -16,6 +16,7 @@ vi.mock("@/store/api/adminApi", () => ({
   useDeleteCategoryRuleMutation: () => [vi.fn()],
   useRecategoriseTransactionsMutation: () => [vi.fn(), { isLoading: false }],
   useSaveFinanceCategoryMutation: () => [vi.fn()],
+  useSaveFinanceAccountMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/store/api/publicApi", () => ({

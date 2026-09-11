@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Landmark, Plus } from "lucide-react";
 import type {
   FinanceAccount,
+  FinanceCategory,
   FinanceSettings,
   FxRateRow,
   RecurringTransaction,
@@ -25,6 +26,7 @@ import { formatMoney, rateFrom } from "@/lib/money";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./account-form";
 import { netWorth } from "./finance-insights";
+import { BalanceCheck } from "./balance-check-panel";
 
 /**
  * Accounts and what each one holds.
@@ -39,17 +41,21 @@ export function AccountsTab({
   rates,
   recurring,
   transactions,
+  categories = [],
 }: {
   settings: FinanceSettings;
   rates: FxRateRow[];
   recurring: RecurringTransaction[];
   transactions: Transaction[];
+  categories?: FinanceCategory[];
 }) {
   const { data: accounts = [], isLoading } = useGetFinanceAccountsQuery();
   const { data: balances = {} } = useGetAccountBalancesQuery();
 
   const [editing, setEditing] = useState<FinanceAccount | null>(null);
   const [creating, setCreating] = useState(false);
+  /** Pre-filled values when the balance check suggests an account to add. */
+  const [draft, setDraft] = useState<Partial<FinanceAccount> | null>(null);
 
   const base = settings.base_currency;
 
@@ -138,6 +144,18 @@ export function AccountsTab({
         </p>
       )}
 
+      <BalanceCheck
+        accounts={active}
+        balances={balances}
+        transactions={transactions}
+        categories={categories}
+        base={base}
+        onAddAccount={(values) => {
+          setDraft(values);
+          setCreating(true);
+        }}
+      />
+
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold text-foreground">Accounts</h2>
         <Button type="button" size="sm" onClick={() => setCreating(true)}>
@@ -175,6 +193,7 @@ export function AccountsTab({
           if (!open) {
             setCreating(false);
             setEditing(null);
+            setDraft(null);
           }
         }}
       >
@@ -189,11 +208,14 @@ export function AccountsTab({
           </SheetHeader>
           <div className="mt-4">
             <AccountForm
+              key={editing?.id ?? (draft ? "draft" : "new")}
               account={editing ?? undefined}
+              initial={draft ?? undefined}
               baseCurrency={base}
               onDone={() => {
                 setCreating(false);
                 setEditing(null);
+                setDraft(null);
               }}
             />
           </div>

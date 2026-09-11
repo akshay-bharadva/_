@@ -48,22 +48,25 @@ const today = () => toLocalISODate();
  */
 export function AccountForm({
   account,
+  initial,
   baseCurrency,
   onDone,
 }: {
   account?: FinanceAccount;
+  /** Pre-filled values for a new account — "add the investments you hold". */
+  initial?: Partial<FinanceAccount>;
   baseCurrency: string;
   onDone: () => void;
 }) {
   const [saveAccount, { isLoading }] = useSaveFinanceAccountMutation();
   const confirm = useConfirm();
 
-  const [name, setName] = useState(account?.name ?? "");
-  const [kind, setKind] = useState<AccountKind>(account?.kind ?? "chequing");
-  const [currency, setCurrency] = useState(account?.currency ?? baseCurrency);
+  const [name, setName] = useState(account?.name ?? initial?.name ?? "");
+  const [kind, setKind] = useState<AccountKind>(account?.kind ?? initial?.kind ?? "chequing");
+  const [currency, setCurrency] = useState(account?.currency ?? initial?.currency ?? baseCurrency);
   const [institution, setInstitution] = useState(account?.institution ?? "");
   const [balance, setBalance] = useState(
-    String(account?.opening_balance ?? "0"),
+    String(account?.opening_balance ?? initial?.opening_balance ?? "0"),
   );
   const [asOf, setAsOf] = useState(account?.opening_date ?? today());
   const [creditLimit, setCreditLimit] = useState(

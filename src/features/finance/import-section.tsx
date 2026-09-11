@@ -64,6 +64,7 @@ import {
   type Classification,
 } from "./import-classify";
 import { MissingCategories } from "./missing-categories";
+import { ReconcileControl } from "./balance-check-panel";
 import { TidyPanel } from "./import-tidy-panel";
 import {
   importHashes,
@@ -501,6 +502,22 @@ export function ImportSection({
               Import another account&apos;s statement next — transfers between
               the two are recognised once both sides are in.
             </p>
+            {/*
+              The export had no balances, so the account does not yet know what
+              it holds. Asking here, straight after the import, is the moment
+              the owner has their banking app open anyway.
+            */}
+            {account && (
+              <div className="mt-3 space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  What does {account.name} {account.kind === "credit" || account.kind === "loan" ? "owe" : "hold"} today?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Bank exports don&apos;t include balances. Enter the balance your banking app shows and everything before it is worked out.
+                </p>
+                <ReconcileControl account={account} transactions={transactions} />
+              </div>
+            )}
           </div>
           {done.batchIds.length > 0 && (
             <Button

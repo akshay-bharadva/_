@@ -403,6 +403,7 @@ export default function FinancePage() {
           {sectionId === "accounts" && (
             <AccountsSection
               settings={settings}
+              categories={categories}
               rates={fxRates}
               recurring={recurring}
               transactions={transactions}
