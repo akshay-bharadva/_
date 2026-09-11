@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SITE_IDENTITY_DEFAULTS } from "@/lib/site-identity-defaults";
 import type { SiteContent } from "@/types";
-import { FooterView, fitFontSize } from "./public-footer";
+import { FooterView, wordmarkCqw } from "./public-footer";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -84,10 +84,43 @@ describe("FooterView", () => {
    * cropped "akshay.dev" and left a short name filling part of the band.
    */
   it("fits the wordmark to the band from one measurement", () => {
-    expect(fitFontSize(500, 1000, 100)).toBe(197);
-    expect(fitFontSize(2000, 1000, 100)).toBe(49.25);
-    expect(fitFontSize(0, 1000, 100)).toBeNull();
-    expect(fitFontSize(500, 0, 100)).toBeNull();
+    // 500px wide at 100px: 19.7% of the band's width fills it.
+    expect(wordmarkCqw(500, 100)).toBe(19.7);
+    expect(wordmarkCqw(2000, 100)).toBe(4.92);
+    expect(wordmarkCqw(0, 100)).toBeNull();
+  });
+
+  /**
+   * The flicker: refitting on every resize of the band, when the refit itself
+   * resized the band, looped — the wordmark flipped between two sizes near the
+   * bottom of the page. It is now scaled by CSS container units from a single
+   * measurement, so nothing watches the band at all.
+   */
+  it("scales the wordmark with CSS instead of refitting it on resize", () => {
+    const created = vi.fn();
+    const original = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor() {
+        created();
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    const rect = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockReturnValue({ width: 500 } as DOMRect);
+
+    try {
+      const { container } = render(<FooterView identity={identity()} />);
+      const mark = container.querySelector<HTMLElement>("[data-wordmark]")!;
+      expect(mark.style.getPropertyValue("--wordmark-size")).toBe("19.7cqw");
+      expect(mark.parentElement?.className).toContain("[container-type:inline-size]");
+      expect(created).not.toHaveBeenCalled();
+    } finally {
+      rect.mockRestore();
+      globalThis.ResizeObserver = original;
+    }
   });
 
   /** The five-tap admin shortcut is behaviour, not decoration — it stays. */

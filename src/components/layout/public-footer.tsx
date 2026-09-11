@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
@@ -70,17 +76,16 @@ const useIsoLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
- * The font size that makes a line of text exactly fill a box, from one
- * measurement taken at a known size. A hair under the exact fit, so sub-pixel
- * rounding never clips the last glyph.
+ * The font size, in container-width units (`cqw`), that makes a line of text
+ * fill its box — from one measurement at a known size. A hair under the exact
+ * fit, so sub-pixel rounding never clips the last glyph.
+ *
+ * The answer depends only on the text and the face, never on the box, which
+ * is the point: see `Wordmark`.
  */
-export function fitFontSize(
-  textWidth: number,
-  boxWidth: number,
-  measuredAt: number,
-): number | null {
-  if (textWidth <= 0 || boxWidth <= 0) return null;
-  return Math.floor(((measuredAt * boxWidth) / textWidth) * 0.985 * 100) / 100;
+export function wordmarkCqw(textWidth: number, measuredAt: number): number | null {
+  if (textWidth <= 0 || measuredAt <= 0) return null;
+  return Math.floor((measuredAt / textWidth) * 0.985 * 100 * 100 + 1e-6) / 100;
 }
 
 /** First paint, before measurement: small enough never to clip. */
@@ -95,50 +100,68 @@ function wordmarkFallback(text: string): string {
  * ways: a bold display face has wide glyphs, so "akshay.dev" overran and lost
  * its last letter, while a short name stopped at the ceiling and filled only
  * part of the band. Measuring the rendered text once, at a known size, gives
- * the exact size for this face and this width; it is refitted when the band
- * resizes and again once web fonts finish loading.
+ * the exact size for this face.
+ *
+ * **It is scaled by CSS, not refitted by script.** The first version refitted
+ * on every resize of the band — and the refit changed the band. A
+ * `ResizeObserver` watching a box whose size its own callback changes is a
+ * feedback loop: near the bottom of the page the viewport's scrollbar came and
+ * went with the footer's height, the band's width flipped between two values,
+ * and the wordmark flickered between two sizes for as long as you looked at
+ * it. Now the measurement is taken once at a fixed size — which no layout can
+ * change — and turned into a fraction of the container's width; the browser
+ * applies it with `cqw` units on every resize, with no script in the loop.
+ * Re-measured only when something that changes the glyphs changes: the text,
+ * a web font finishing loading, or the typography preset (a class on <html>).
  */
 function Wordmark({ text }: { text: string }) {
-  const boxRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
-  const [size, setSize] = useState<number | null>(null);
+  const [cqw, setCqw] = useState<number | null>(null);
 
   useIsoLayoutEffect(() => {
-    const box = boxRef.current;
     const el = textRef.current;
-    if (!box || !el) return;
+    if (!el) return;
 
     const MEASURE_AT = 100;
-    const fit = () => {
+    const measure = () => {
       const previous = el.style.fontSize;
       el.style.fontSize = `${MEASURE_AT}px`;
-      const next = fitFontSize(
-        el.getBoundingClientRect().width,
-        box.clientWidth,
-        MEASURE_AT,
-      );
+      const next = wordmarkCqw(el.getBoundingClientRect().width, MEASURE_AT);
       el.style.fontSize = previous;
-      if (next !== null) setSize(next);
+      if (next !== null) setCqw((current) => (current === next ? current : next));
     };
 
-    fit();
-    let observer: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== "undefined") {
-      observer = new ResizeObserver(fit);
-      observer.observe(box);
-    }
-    void document.fonts?.ready.then(fit);
-    return () => observer?.disconnect();
+    measure();
+    const fonts = typeof document !== "undefined" ? document.fonts : undefined;
+    void fonts?.ready.then(measure);
+    fonts?.addEventListener?.("loadingdone", measure);
+    const presets =
+      typeof MutationObserver !== "undefined" ? new MutationObserver(measure) : undefined;
+    presets?.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    return () => {
+      fonts?.removeEventListener?.("loadingdone", measure);
+      presets?.disconnect();
+    };
   }, [text]);
 
   return (
-    <div ref={boxRef} className="w-full">
+    <div className="w-full [container-type:inline-size]">
       <span
         ref={textRef}
         aria-hidden
         data-wordmark
         className="pointer-events-none inline-block select-none whitespace-nowrap bg-gradient-to-b from-foreground/[0.14] via-foreground/[0.07] to-transparent bg-clip-text pb-[0.12em] font-heading font-bold leading-none tracking-tighter text-transparent"
-        style={{ fontSize: size !== null ? `${size}px` : wordmarkFallback(text) }}
+        style={
+          cqw !== null
+            ? ({
+                "--wordmark-size": `${cqw}cqw`,
+                fontSize: "var(--wordmark-size)",
+              } as CSSProperties)
+            : { fontSize: wordmarkFallback(text) }
+        }
       >
         {text}
       </span>

@@ -1752,6 +1752,31 @@ is the most misleading thing it could do.
 
 Not built: PDF statement import, which is what 2023 needs.
 
+## The footer wordmark flickered
+
+Reported on the deployed site: near the bottom of a page the footer's
+"akshay.dev" flickered between a large and a small size without stopping.
+
+The wordmark was fitted by a `ResizeObserver` on its band, and the callback
+changed the band — the text's size sets the footer's height. Near the bottom
+of the page the viewport's scrollbar came and went with that height, the
+band's width flipped between two values, and each flip refitted the text to
+the other one. A `ResizeObserver` whose callback changes the box it watches
+is a feedback loop waiting for a second input; the scrollbar was it.
+
+Fixed by taking the script out of the loop rather than damping it: the text
+is measured once at a fixed 100px — a measurement no layout can change — and
+applied as a fraction of the container's width in `cqw` units, which the
+browser recomputes on resize by itself. It is re-measured only when the
+glyphs could change: the text, a web font finishing loading, or the
+typography preset. The test asserts that no `ResizeObserver` is created, so
+the loop cannot quietly return.
+
+The same report said most animations were missing. Every animation in the
+site is deliberately absent when the operating system asks for reduced
+motion (`MotionConfig reducedMotion="user"`, a project contract), which is
+the likeliest explanation and was left as is.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an
