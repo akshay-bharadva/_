@@ -1653,6 +1653,23 @@ there. Visually: no grid lines — days are soft tiles, days outside the month
 recede, today is ringed; timed events are a dot, time and title, and only
 all-day events are filled. A "+" on each day starts an event on it at 09:00.
 
+## The calendar is the page; everything else is a panel
+
+**Too many controls above the grid.** The header carried eleven controls —
+step, today, three density options, four views, a calendars sheet and a
+new-event button — with the quick-add bar and the free-time banner stacked
+under it, so the grid began a third of the way down. The left column is now
+the calendar with a header that only moves you through it (step, today,
+title, view). New event, quick add, free time, hour size, calendars and the
+task rail are one column on the right, beside the grid from `xl` and one
+button away (a right-hand sheet) below it.
+
+**The week fits too.** Density gained **Fit**, now the default: the day's
+hours share the measured height (`fittedRowHeight`, the month's helper),
+floored at 32px an hour so a short window scrolls instead of reviving the
+~20px hours of the first percentage-based grid. The fixed sizes remain for
+reading rather than overview. Month no longer reads density at all.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

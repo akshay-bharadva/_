@@ -9,6 +9,14 @@ import { EntryBlock } from "./entry-block";
 import { decodeMove, ENTRY_MOVE_TYPE } from "./drag-move";
 import { AllDayRow } from "./all-day-row";
 import { HourGutter } from "./hour-gutter";
+import { fittedRowHeight } from "./month-layout";
+
+/**
+ * The floor for an hour in Fit mode. The first version of this grid shared the
+ * height by percentage and hours came out ~20px — technically rendered, not
+ * readable. Below this the grid scrolls, as the fixed sizes do.
+ */
+const MIN_FIT_HOUR_HEIGHT = 32;
 
 /**
  * The week (and day) grid.
@@ -32,7 +40,7 @@ export function WeekGrid({
   onDropTask,
   onMoveEntry,
   onMoveEntryToDay,
-  hourHeight,
+  hourHeight: fixedHourHeight,
 }: {
   days: Date[];
   entries: CalendarEntry[];
@@ -47,8 +55,8 @@ export function WeekGrid({
   onMoveEntry: (entryId: string, dropAt: Date, grabMinutes: number) => void;
   /** An all-day entry dragged to another day, keeping its clock time. */
   onMoveEntryToDay: (entryId: string, day: Date) => void;
-  /** Pixels per hour. */
-  hourHeight: number;
+  /** Pixels per hour, or null to fit the day's hours to the height given. */
+  hourHeight: number | null;
 }) {
   const { day_start_hour: startHour, day_end_hour: endHour } = settings;
   const hours = useMemo(
@@ -57,6 +65,32 @@ export function WeekGrid({
   );
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Fit: the day's hours share the height the page has, so the week is seen
+   * whole without scrolling — the same change the month view got. Measured
+   * rather than done in CSS because entry blocks need a pixel hour height to
+   * decide whether a second line fits.
+   */
+  const [available, setAvailable] = useState(0);
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (
+      !node ||
+      fixedHourHeight !== null ||
+      typeof ResizeObserver === "undefined"
+    )
+      return;
+    const observer = new ResizeObserver(([entry]) =>
+      setAvailable(entry.contentRect.height),
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fixedHourHeight]);
+
+  const hourHeight =
+    fixedHourHeight ??
+    fittedRowHeight(available, hours.length, 0, MIN_FIT_HOUR_HEIGHT);
 
   /**
    * Open near the current hour rather than at the top.
@@ -93,12 +127,12 @@ export function WeekGrid({
             key={day.toISOString()}
             className="min-w-0 flex-1 border-l border-border px-1 py-2.5 text-center"
           >
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className="text-xs font-medium text-muted-foreground">
               {format(day, "EEE")}
             </p>
             <p
               className={cn(
-                "mx-auto mt-1 flex size-8 items-center justify-center rounded-full text-[15px] font-medium tabular-nums",
+                "mx-auto mt-0.5 flex size-7 items-center justify-center rounded-full text-sm font-medium tabular-nums",
                 isToday(day)
                   ? "bg-primary text-primary-foreground"
                   : "text-foreground",

@@ -10,7 +10,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { CalendarEntry, Task } from "@/types";
 import {
@@ -316,8 +316,73 @@ export default function CalendarPage() {
           ? "Next 30 days"
           : `${format(days[0], "d MMM")} – ${format(days[6], "d MMM yyyy")}`;
 
-  const sidebar = (
+  const hasHours = view === "week" || view === "day";
+
+  /**
+   * Everything that is not the calendar itself, in one column on the right.
+   *
+   * The header used to carry eleven controls — step, today, density, four
+   * views, the calendars sheet, a new-event button — with the quick-add bar
+   * and the free-time banner stacked beneath it, so the grid started a third
+   * of the way down the screen. Now the left side is the calendar, the
+   * header is only what moves you through it, and the things you configure
+   * or type into live here: beside the grid on a wide screen, one button
+   * away on a narrow one.
+   */
+  const panel = (
     <div className="space-y-6">
+      <div className="space-y-3">
+        <Button
+          type="button"
+          className="w-full"
+          onClick={() => setDraftStart(new Date())}
+        >
+          <Plus className="mr-1.5 size-4" />
+          New event
+        </Button>
+        <QuickAddBar defaultCalendarId={defaultCalendarId} />
+      </div>
+
+      {hasHours && (
+        <FreeTimeBar
+          days={days}
+          entries={entries}
+          settings={settings}
+          className="px-3.5"
+        />
+      )}
+
+      {hasHours && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">
+            Hour size
+          </p>
+          <div
+            role="radiogroup"
+            aria-label="Density"
+            className="grid grid-cols-2 gap-0.5 rounded-control bg-secondary p-0.5"
+          >
+            {DENSITY_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={option.id === density}
+                onClick={() => setDensity(option.id)}
+                className={cn(
+                  "rounded-control px-2 py-1 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+                  option.id === density
+                    ? "bg-card text-foreground shadow-e1"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <CalendarList calendars={calendars} settings={settings} />
       <TaskRail tasks={tasks} scheduledTaskIds={scheduledTaskIds} />
     </div>
@@ -325,130 +390,88 @@ export default function CalendarPage() {
 
   return (
     <ManagerWrapper className="pb-4">
-      <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
-        <header className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => step(-1)}
-              aria-label="Previous"
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => step(1)}
-              aria-label="Next"
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setAnchor(new Date())}
-            >
-              Today
-            </Button>
-          </div>
-
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
-            {heading}
-          </h1>
-
-          {/*
-            Density was wired to the grid but never given a control, so the
-            setting existed and nothing could change it. Hidden in agenda,
-            which has no rows to size, and in month, whose rows now fill the
-            screen rather than taking a height from this.
-          */}
-          {(view === "week" || view === "day") && (
-            <div
-              role="radiogroup"
-              aria-label="Density"
-              className="hidden gap-1 sm:flex"
-            >
-              {DENSITY_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={option.id === density}
-                  onClick={() => setDensity(option.id)}
-                  className={cn(
-                    "rounded-control px-2.5 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
-                    option.id === density
-                      ? "bg-card text-foreground shadow-e2"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div role="tablist" aria-label="View" className="flex gap-1">
-            {VIEWS.map((entry) => (
-              <button
-                key={entry.id}
+      <div className="grid h-[calc(100vh-7rem)] gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          <header className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-0.5">
+              <Button
                 type="button"
-                role="tab"
-                aria-selected={entry.id === view}
-                onClick={() => setView(entry.id)}
-                className={cn(
-                  "rounded-control px-2.5 py-1.5 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
-                  entry.id === view
-                    ? "bg-card text-foreground shadow-e2"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
+                variant="ghost"
+                size="icon"
+                onClick={() => step(-1)}
+                aria-label="Previous"
               >
-                {entry.label}
-              </button>
-            ))}
-          </div>
-
-          <Sheet>
-            <SheetTrigger asChild>
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => step(1)}
+                aria-label="Next"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="xl:hidden"
+                onClick={() => setAnchor(new Date())}
               >
-                Calendars
+                Today
               </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-72 overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Calendar</SheetTitle>
-              </SheetHeader>
-              <div className="mt-4">{sidebar}</div>
-            </SheetContent>
-          </Sheet>
+            </div>
 
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setDraftStart(new Date())}
-          >
-            <Plus className="mr-1.5 size-3.5" />
-            Event
-          </Button>
-        </header>
+            <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
+              {heading}
+            </h1>
 
-        <QuickAddBar defaultCalendarId={defaultCalendarId} />
+            <div
+              role="tablist"
+              aria-label="View"
+              className="inline-flex rounded-control bg-secondary p-0.5"
+            >
+              {VIEWS.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={entry.id === view}
+                  onClick={() => setView(entry.id)}
+                  className={cn(
+                    "rounded-control px-2.5 py-1 text-xs font-medium transition-[box-shadow,color] duration-200 ease-enter",
+                    entry.id === view
+                      ? "bg-card text-foreground shadow-e1"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {entry.label}
+                </button>
+              ))}
+            </div>
 
-        {(view === "week" || view === "day") && (
-          <FreeTimeBar days={days} entries={entries} settings={settings} />
-        )}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="xl:hidden"
+                  aria-label="Open the calendar panel"
+                >
+                  <PanelRight className="size-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80 overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Calendar</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4">{panel}</div>
+              </SheetContent>
+            </Sheet>
+          </header>
 
-        <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]">
-          <div className="flex min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
             {isLoading && rows.length === 0 ? (
               <LoadingState variant="section" label="Loading" />
             ) : view === "agenda" ? (
@@ -461,8 +484,7 @@ export default function CalendarPage() {
                 onSelect={setSelected}
                 onMoveEntryToDay={moveEntryToDay}
                 onCreateOnDay={(day) => {
-                  // A new event on a day picked from the month starts at nine,
-                  // the same default a blank "Event" uses for the hour.
+                  // A new event on a day picked from the month starts at nine.
                   const start = new Date(day);
                   start.setHours(9, 0, 0, 0);
                   setDraftStart(start);
@@ -487,11 +509,14 @@ export default function CalendarPage() {
               />
             )}
           </div>
-
-          <aside className="hidden min-h-0 overflow-y-auto xl:block">
-            {sidebar}
-          </aside>
         </div>
+
+        <aside
+          aria-label="Calendar panel"
+          className="hidden min-h-0 overflow-y-auto pb-2 pr-1 xl:block"
+        >
+          {panel}
+        </aside>
       </div>
 
       <EventSheet

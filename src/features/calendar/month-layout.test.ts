@@ -207,3 +207,14 @@ describe("fittedRowHeight", () => {
     expect(fittedRowHeight(0, 5, 4, 88)).toBe(88);
   });
 });
+
+describe("fittedRowHeight for the week grid", () => {
+  /** Sixteen hours in 640px: forty pixels each, no scrolling. */
+  it("shares a day's hours across the height", () => {
+    expect(fittedRowHeight(640, 16, 0, 32)).toBe(40);
+  });
+
+  it("floors an hour so a short window scrolls rather than squashing", () => {
+    expect(fittedRowHeight(300, 16, 0, 32)).toBe(32);
+  });
+});
