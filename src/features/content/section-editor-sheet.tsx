@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye } from "lucide-react";
+import { AlignLeft, List } from "lucide-react";
 import {
   portfolioSectionSchema,
   type PortfolioSectionFormValues,
@@ -13,28 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormSheet } from "@/components/admin/shared";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Combobox } from "@/components/ui/combobox";
+import { cn } from "@/lib/cn";
 import type { PathOption } from "./content-types";
-import {
-  GROUP_BADGE,
-  LAYOUT_GROUPS,
-  LAYOUT_OPTIONS,
-  LayoutPreview,
-} from "./layout-registry";
+import { LAYOUT_GROUPS, LAYOUT_OPTIONS, LayoutPreview } from "./layout-registry";
 
 export interface SectionEditorSheetProps {
   section: Partial<PortfolioSection> | null;
@@ -43,14 +25,35 @@ export interface SectionEditorSheetProps {
   onClose: () => void;
 }
 
+const TYPES = [
+  {
+    value: "list_items",
+    label: "A list of items",
+    description: "Services, case studies, experience — laid out by a layout.",
+    icon: List,
+  },
+  {
+    value: "markdown",
+    label: "Written text",
+    description: "Paragraphs, headings and images, written in the editor.",
+    icon: AlignLeft,
+  },
+] as const;
+
+/**
+ * A section's settings: its title, the page it is on, what it holds, and how
+ * it is laid out.
+ *
+ * The layout is chosen by looking, not by name. It used to be a dropdown of
+ * twenty labels with a separate "Preview all" dialog; the previews are now the
+ * choices themselves.
+ */
 export function SectionEditorSheet({
   section,
   availablePaths,
   onSave,
   onClose,
 }: SectionEditorSheetProps) {
-  const [previewOpen, setPreviewOpen] = useState(false);
-
   const {
     register,
     control,
@@ -72,7 +75,7 @@ export function SectionEditorSheet({
   });
 
   const selectedLayout = watch("layout_style");
-  const selectedOption = LAYOUT_OPTIONS.find((o) => o.value === selectedLayout);
+  const selectedType = watch("type");
 
   const onSubmit = (values: PortfolioSectionFormValues) => {
     onSave({
@@ -86,232 +89,160 @@ export function SectionEditorSheet({
   };
 
   return (
-    <>
-      <FormSheet
-        open={true}
-        onOpenChange={(open) => !open && onClose()}
-        title={section?.id ? "Edit Section" : "Create New Section"}
-        description="Configure the section's properties and placement."
-      >
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex-1 space-y-4 overflow-y-auto"
-        >
-          <div className="space-y-1">
-            <Label htmlFor="title">Title *</Label>
-            <Input id="title" {...register("title")} />
-            {errors.title && (
-              <p className="text-xs text-destructive">{errors.title.message}</p>
-            )}
-          </div>
-          {/*
-            Some layouts carry their own heading, and a section title above
-            them reads as a label on a label. Hidden titles stay in the page
-            as screen-reader-only text, so the section keeps its name.
-          */}
+    <FormSheet
+      open={true}
+      onOpenChange={(open) => !open && onClose()}
+      title={section?.id ? "Section settings" : "New section"}
+      description="Where it goes, what it holds, and how it looks."
+      className="sm:max-w-xl"
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-6 overflow-y-auto pb-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="title">Title</Label>
+          <Input id="title" {...register("title")} placeholder="e.g. What I do" />
+          {errors.title && (
+            <p className="text-xs text-destructive">{errors.title.message}</p>
+          )}
+        </div>
+
+        {/* Some layouts carry their own heading; a hidden title stays in the
+            page as screen-reader text, so the section keeps its name. */}
+        <Controller
+          name="show_title"
+          control={control}
+          render={({ field }) => (
+            <div className="flex items-start justify-between gap-4 rounded-control bg-secondary/40 px-3.5 py-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="show_title">Show section title</Label>
+                <p className="text-xs text-muted-foreground">
+                  When off, the title is hidden on the page but still read by
+                  screen readers.
+                </p>
+              </div>
+              <Switch
+                id="show_title"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </div>
+          )}
+        />
+
+        <div className="space-y-1.5">
+          <Label>Page</Label>
           <Controller
-            name="show_title"
+            name="page_path"
             control={control}
             render={({ field }) => (
-              <div className="flex items-start justify-between gap-4 rounded-control bg-secondary/40 px-3 py-2.5">
-                <div className="space-y-0.5">
-                  <Label htmlFor="show_title">Show section title</Label>
-                  <p className="text-xs text-muted-foreground">
-                    When off, the title is hidden on the page but still read
-                    by screen readers.
-                  </p>
-                </div>
-                <Switch
-                  id="show_title"
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </div>
+              <Combobox
+                options={availablePaths}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Choose a page, or type a new path…"
+                searchPlaceholder="Search pages…"
+                emptyPlaceholder="No pages."
+              />
             )}
           />
-          <div className="space-y-1">
-            <Label>Page Path *</Label>
-            <Controller
-              name="page_path"
-              control={control}
-              render={({ field }) => (
-                <Combobox
-                  options={availablePaths}
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Select or create path..."
-                  searchPlaceholder="Search paths..."
-                  emptyPlaceholder="No paths."
-                />
-              )}
-            />
-            {errors.page_path && (
-              <p className="text-xs text-destructive">
-                {errors.page_path.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="type">Content Type</Label>
-            <Controller
-              name="type"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="markdown">Markdown</SelectItem>
-                    <SelectItem value="list_items">List of Items</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
+          {errors.page_path && (
+            <p className="text-xs text-destructive">{errors.page_path.message}</p>
+          )}
+        </div>
 
-          {/* Layout picker */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Layout Style</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 text-xs"
-                onClick={() => setPreviewOpen(true)}
-              >
-                <Eye className="size-3.5" /> Preview All
-              </Button>
-            </div>
-            <Controller
-              name="layout_style"
-              control={control}
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LAYOUT_GROUPS.map((group) => {
-                      const groupItems = LAYOUT_OPTIONS.filter(
-                        (o) => o.group === group,
-                      );
-                      return (
-                        <div key={group}>
-                          <div className="t-micro px-2 py-1.5">{group}</div>
-                          {groupItems.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              <span className="flex items-center gap-2">
-                                <opt.icon className="size-3.5 text-muted-foreground" />
-                                {opt.label}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-
-            {/* Inline preview */}
-            {selectedOption && (
-              <div className="space-y-2 rounded-surface border border-border/50 bg-secondary/20 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-                    <selectedOption.icon className="size-3.5 text-primary" />
-                    {selectedOption.label}
-                  </span>
-                  <span
-                    className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold ${GROUP_BADGE[selectedOption.group]}`}
-                  >
-                    {selectedOption.group}
-                  </span>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {selectedOption.description}
-                </p>
-                <div className="border-t border-border/30 pt-2">
-                  <LayoutPreview layout={selectedLayout} />
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit">Save Section</Button>
-          </div>
-        </form>
-      </FormSheet>
-
-      {/* Preview All dialog */}
-      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Layout Previews</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-8 pt-2">
-            {LAYOUT_GROUPS.map((group) => (
-              <div key={group}>
-                <div className="mb-4 flex items-center gap-3">
-                  <span
-                    className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold ${GROUP_BADGE[group]}`}
-                  >
-                    {group}
-                  </span>
-                  <div className="h-px flex-1 bg-border/40" />
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {LAYOUT_OPTIONS.filter((o) => o.group === group).map(
-                    (opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          setValue("layout_style", opt.value, {
-                            shouldDirty: true,
-                          });
-                          setPreviewOpen(false);
-                        }}
-                        className={`space-y-3 rounded-surface border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-e2 ${
-                          selectedLayout === opt.value
-                            ? "border-primary bg-primary/5 shadow-e1"
-                            : "border-border/50 bg-card hover:border-primary/30"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <opt.icon
-                            className={`size-4 ${selectedLayout === opt.value ? "text-primary" : "text-muted-foreground"}`}
-                          />
-                          <span className="text-sm font-medium">
-                            {opt.label}
-                          </span>
-                          {selectedLayout === opt.value && (
-                            <span className="ml-auto rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] text-primary">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          {opt.description}
-                        </p>
-                        <div className="border-t border-border/30 pt-3">
-                          <LayoutPreview layout={opt.value} />
-                        </div>
-                      </button>
-                    ),
+        <fieldset className="space-y-2">
+          <legend className="mb-2 text-sm font-medium">What it holds</legend>
+          <div role="radiogroup" aria-label="What it holds" className="grid gap-2 sm:grid-cols-2">
+            {TYPES.map((type) => {
+              const selected = selectedType === type.value;
+              const Icon = type.icon;
+              return (
+                <button
+                  key={type.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => setValue("type", type.value, { shouldDirty: true })}
+                  className={cn(
+                    "flex items-start gap-3 rounded-surface bg-card p-3.5 text-left transition-shadow",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    selected ? "shadow-e2 ring-2 ring-primary" : "shadow-e1 hover:shadow-e2",
                   )}
+                >
+                  <Icon
+                    className={cn("mt-0.5 size-4 shrink-0", selected ? "text-primary" : "text-muted-foreground")}
+                    aria-hidden
+                  />
+                  <span>
+                    <span className="block text-sm font-medium">{type.label}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {type.description}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {selectedType !== "markdown" && (
+          <fieldset>
+            <legend className="text-sm font-medium">Layout</legend>
+            {LAYOUT_GROUPS.map((group) => (
+              <div key={group} className="mt-4">
+                <p className="mb-2 text-xs font-medium text-muted-foreground">{group}</p>
+                <div
+                  role="radiogroup"
+                  aria-label={`${group} layouts`}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  {LAYOUT_OPTIONS.filter((o) => o.group === group).map((option) => {
+                    const selected = selectedLayout === option.value;
+                    const Icon = option.icon;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        title={option.description}
+                        onClick={() =>
+                          setValue("layout_style", option.value, { shouldDirty: true })
+                        }
+                        className={cn(
+                          "min-w-0 rounded-surface bg-card p-2.5 text-left transition-shadow",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          selected ? "shadow-e2 ring-2 ring-primary" : "shadow-e1 hover:shadow-e2",
+                        )}
+                      >
+                        <span
+                          aria-hidden
+                          className="pointer-events-none block h-[4.5rem] overflow-hidden rounded-control bg-background/60 p-2"
+                        >
+                          <LayoutPreview layout={option.value} />
+                        </span>
+                        <span className="mt-2 flex items-center gap-1.5 text-xs font-medium">
+                          <Icon
+                            className={cn("size-3.5 shrink-0", selected ? "text-primary" : "text-muted-foreground")}
+                            aria-hidden
+                          />
+                          <span className="truncate">{option.label}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          </fieldset>
+        )}
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit">Save section</Button>
+        </div>
+      </form>
+    </FormSheet>
   );
 }

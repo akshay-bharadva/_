@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Info, X } from "lucide-react";
+import { ChevronRight, Info, X } from "lucide-react";
 import { toast } from "sonner";
 import type { PortfolioItem } from "@/types";
 import { portfolioItemSchema } from "@/lib/schemas";
@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { TagInput } from "@/components/ui/tag-input";
+import { addTags } from "@/lib/tag-input";
+import { safeImageUrl } from "@/lib/safe-url";
+import { cn } from "@/lib/cn";
+import { LAYOUT_OPTIONS } from "./layout-registry";
 import NovelEditor from "@/components/admin/novel-editor";
 import {
   Sheet,
@@ -441,10 +445,15 @@ export function ItemEditorSheet({
     description: item?.description ?? "",
     link_url: item?.link_url ?? "",
     image_url: item?.image_url ?? "",
-    tags: item?.tags?.join(", ") ?? "",
     internal_notes: item?.internal_notes ?? "",
     merged_into_id: item?.merged_into_id ?? "",
   });
+  // Chips, like every other tag field — plus whatever is half-typed, which
+  // is kept on save rather than dropped.
+  const [tags, setTags] = useState<string[]>(() => item?.tags ?? []);
+  const [tagDraft, setTagDraft] = useState("");
+  const layoutLabel = LAYOUT_OPTIONS.find((o) => o.value === layoutStyle)?.label;
+  const previewImage = safeImageUrl(formData.image_url);
 
   const [notesOpen, setNotesOpen] = useState(!!item?.internal_notes);
 
@@ -465,10 +474,7 @@ export function ItemEditorSheet({
       description: formData.description || null,
       link_url: formData.link_url || null,
       image_url: formData.image_url || null,
-      tags: formData.tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
+      tags: addTags(tags, tagDraft),
       internal_notes: formData.internal_notes || null,
       // Empty string is "nothing selected" in a native select; the column
       // wants NULL, and an empty string would fail the foreign key.
@@ -503,9 +509,7 @@ export function ItemEditorSheet({
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b p-6">
           <SheetHeader className="text-left">
-            <SheetTitle>
-              {item?.id ? "Edit Item" : "Create New Item"}
-            </SheetTitle>
+            <SheetTitle>{item?.id ? "Edit item" : "New item"}</SheetTitle>
             <SheetDescription>
               {hints._description ||
                 "Fill in the details for this portfolio item."}
@@ -523,16 +527,14 @@ export function ItemEditorSheet({
           </SheetClose>
         </div>
 
-        {/* Layout badge */}
+        {/* Which layout these fields feed, by its name rather than its id. */}
         {layoutStyle && (
-          <div className="shrink-0 px-6 pt-4">
-            <Badge
-              variant="secondary"
-              className="border-transparent bg-primary/10 font-mono text-[10px] text-primary"
-            >
-              {layoutStyle}
-            </Badge>
-          </div>
+          <p className="shrink-0 px-6 pt-4 text-xs text-muted-foreground">
+            Shown as{" "}
+            <span className="font-medium text-foreground">
+              {layoutLabel ?? layoutStyle}
+            </span>
+          </p>
         )}
 
         {/* Scrollable form */}
@@ -652,10 +654,11 @@ export function ItemEditorSheet({
                   onChange={set("image_url")}
                   placeholder={hints.image_url?.placeholder ?? "https://..."}
                 />
-                {formData.image_url && (
-                  <div className="mt-2 aspect-video overflow-hidden rounded-surface border border-border/50 bg-secondary/20">
+                {previewImage && (
+                  <div className="mt-2 aspect-video overflow-hidden rounded-surface bg-secondary/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={formData.image_url}
+                      src={previewImage}
                       alt="Preview"
                       className="h-full w-full object-cover"
                       onError={(e) => {
@@ -663,6 +666,11 @@ export function ItemEditorSheet({
                       }}
                     />
                   </div>
+                )}
+                {formData.image_url.trim() && !previewImage && (
+                  <p className="text-xs text-destructive">
+                    The site only shows images from an http(s) address.
+                  </p>
                 )}
               </div>
             )}
@@ -689,29 +697,17 @@ export function ItemEditorSheet({
                   label={hints.tags?.label ?? "Tags (comma-separated)"}
                   tip={hints.tags?.tip}
                 />
-                <Input
-                  value={formData.tags}
-                  onChange={set("tags")}
-                  placeholder={hints.tags?.placeholder ?? "tag1, tag2, tag3"}
+                <TagInput
+                  tags={tags}
+                  onTagsChange={setTags}
+                  draft={tagDraft}
+                  onDraftChange={setTagDraft}
+                  placeholder={hints.tags?.placeholder ?? "Add a tag"}
+                  className="rounded-control bg-secondary/40 px-2 py-1.5"
                 />
-                {/* Live tag preview */}
-                {formData.tags && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {formData.tags
-                      .split(",")
-                      .map((t) => t.trim())
-                      .filter(Boolean)
-                      .map((t, i) => (
-                        <Badge
-                          key={i}
-                          variant="secondary"
-                          className="border-transparent bg-primary/10 font-mono text-[10px] text-primary"
-                        >
-                          {t}
-                        </Badge>
-                      ))}
-                  </div>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  Enter or a comma adds one.
+                </p>
               </div>
             )}
 
@@ -773,8 +769,14 @@ export function ItemEditorSheet({
                   size="sm"
                   className="-ml-1 h-7 gap-1.5 text-xs text-muted-foreground"
                 >
-                  <span>{notesOpen ? "▾" : "▸"}</span>
-                  Internal notes
+                  <ChevronRight
+                    className={cn(
+                      "size-3.5 transition-transform motion-reduce:transition-none",
+                      notesOpen && "rotate-90",
+                    )}
+                    aria-hidden
+                  />
+                  Notes to self
                   {formData.internal_notes && (
                     <span className="inline-block size-1.5 rounded-full bg-primary" />
                   )}

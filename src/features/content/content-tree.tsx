@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
+  Eye,
   EyeOff,
   GripVertical,
   Home,
@@ -40,11 +41,14 @@ export function ContentTree({
   onNewSection,
   onReorder,
   onMoveToPage,
+  onPreviewPage,
 }: {
   pages: TreePage[];
   selectedSectionId: string | null;
   onSelectSection: (id: string) => void;
   onNewSection: (path: string) => void;
+  /** Show the whole page as the site draws it. */
+  onPreviewPage: (path: string) => void;
   onReorder: (sectionId: string, targetSectionId: string) => void;
   onMoveToPage: (sectionId: string, path: string) => void;
 }) {
@@ -135,8 +139,19 @@ export function ContentTree({
                 variant="ghost"
                 size="icon"
                 className="size-7 shrink-0"
+                onClick={() => onPreviewPage(page.path)}
+                aria-label={`Preview ${page.label}`}
+                title="Preview the whole page"
+              >
+                <Eye className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 shrink-0"
                 onClick={() => onNewSection(page.path)}
                 aria-label={`New section on ${page.label}`}
+                title="New section on this page"
               >
                 <Plus className="size-3.5" />
               </Button>

@@ -12,8 +12,17 @@ import {
   useRescanAssetUsageMutation,
   useSavePortfolioItemMutation,
   useSaveSectionMutation,
+  useUpdateItemOrderMutation,
   useUpdateSectionOrderMutation,
 } from "@/store/api/adminApi";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import SectionRenderer from "@/features/sections/section-renderer";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -80,6 +89,8 @@ export default function ContentPage() {
   const [deleteItem] = useDeletePortfolioItemMutation();
   const [updateOrder] = useUpdateSectionOrderMutation();
   const [rescanUsage] = useRescanAssetUsageMutation();
+  const [updateItemOrder] = useUpdateItemOrderMutation();
+  const [previewPath, setPreviewPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (sections) setLocalSections(sections);
@@ -321,6 +332,53 @@ export default function ContentPage() {
     [confirm, deleteItem, rescanUsage],
   );
 
+  /** Swap an item with its neighbour, optimistically, in one database call. */
+  const handleMoveItem = useCallback(
+    async (itemId: string, direction: -1 | 1) => {
+      const owner = localSections.find((s) =>
+        (s.portfolio_items ?? []).some((i) => i.id === itemId),
+      );
+      if (!owner) return;
+      const ordered = [...(owner.portfolio_items ?? [])].sort(
+        (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
+      );
+      const from = ordered.findIndex((i) => i.id === itemId);
+      const to = from + direction;
+      if (from === -1 || to < 0 || to >= ordered.length) return;
+
+      const reordered = [...ordered];
+      [reordered[from], reordered[to]] = [reordered[to], reordered[from]];
+
+      const previous = localSections;
+      setLocalSections((current) =>
+        current.map((s) =>
+          s.id === owner.id
+            ? {
+                ...s,
+                portfolio_items: reordered.map((item, index) => ({
+                  ...item,
+                  display_order: index + 1,
+                })),
+              }
+            : s,
+        ),
+      );
+
+      try {
+        await updateItemOrder({
+          sectionId: owner.id,
+          itemIds: reordered.map((item) => item.id),
+        }).unwrap();
+      } catch (err) {
+        setLocalSections(previous);
+        toast.error("Couldn't reorder items", {
+          description: getErrorMessage(err),
+        });
+      }
+    },
+    [localSections, updateItemOrder],
+  );
+
   /* ── sheets ───────────────────────────────────────────────────────── */
 
   const sheet = (() => {
@@ -386,7 +444,52 @@ export default function ContentPage() {
       }}
       onReorder={handleReorderTo}
       onMoveToPage={handleMoveToPage}
+      onPreviewPage={(path) => {
+        setPreviewPath(path);
+        setTreeOpen(false);
+      }}
     />
+  );
+
+  const previewSections = previewPath
+    ? localSections
+        .filter((s) => s.page_path === previewPath && s.is_visible !== false)
+        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+    : [];
+
+  /** The whole page, as the site draws it — hidden sections left out. */
+  const pagePreview = (
+    <Dialog open={!!previewPath} onOpenChange={(open) => !open && setPreviewPath(null)}>
+      <DialogContent className="max-h-[88vh] max-w-5xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {previewPath === "/" ? "Home" : previewPath}, as visitors see it
+          </DialogTitle>
+          <DialogDescription>
+            Drawn by the site itself. Hidden sections are left out.{" "}
+            {previewPath && (
+              <a
+                href={previewPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline underline-offset-2"
+              >
+                Open the live page
+              </a>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-16 rounded-surface bg-background p-5 sm:p-8">
+          {previewSections.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No visible sections on this page yet.
+            </p>
+          ) : (
+            previewSections.map((s) => <SectionRenderer key={s.id} section={s} />)
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 
   if (isLoading) {
@@ -442,8 +545,8 @@ export default function ContentPage() {
   return (
     <ManagerWrapper>
       <PageHeader
-        title="Content"
-        description="Every public page is built from these sections."
+        title="Pages"
+        description="Every public page is built from sections. Pick one to edit it, or preview a whole page."
         actions={
           <Button onClick={() => setSheetState({ type: "new-section" })}>
             <Plus className="mr-2 size-4" aria-hidden /> New section
@@ -488,8 +591,7 @@ export default function ContentPage() {
           {openSection ? (
             <SectionDetail
               section={openSection}
-              isMobile={false}
-              onBack={() => setOpenSectionId(null)}
+              onMoveItem={handleMoveItem}
               onEditSection={(section) =>
                 setSheetState({ type: "edit-section", section })
               }
@@ -514,6 +616,7 @@ export default function ContentPage() {
       </div>
 
       {sheet}
+      {pagePreview}
     </ManagerWrapper>
   );
 }

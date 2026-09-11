@@ -49,6 +49,22 @@ export const portfolioApi = adminApi.injectEndpoints({
       },
       invalidatesTags: ["PortfolioContent"],
     }),
+    /** A section's items, in the order given. Migration 024. */
+    updateItemOrder: builder.mutation<
+      null,
+      { sectionId: string; itemIds: string[] }
+    >({
+      queryFn: async ({ sectionId, itemIds }) => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        const { error } = await supabase.rpc("update_item_order", {
+          section_uuid: sectionId,
+          item_ids: itemIds,
+        });
+        if (error) return { error };
+        return { data: null };
+      },
+      invalidatesTags: ["PortfolioContent"],
+    }),
   }),
 });
 
@@ -59,4 +75,5 @@ export const {
   useSavePortfolioItemMutation,
   useDeletePortfolioItemMutation,
   useUpdateSectionOrderMutation,
+  useUpdateItemOrderMutation,
 } = portfolioApi;

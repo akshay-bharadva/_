@@ -2584,6 +2584,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Items within one section, the same way (migration 024). Invoker rights, so
+-- row-level security on portfolio_items still decides who may write.
+CREATE OR REPLACE FUNCTION public.update_item_order(section_uuid UUID, item_ids UUID[])
+RETURNS void
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  FOR i IN 1..coalesce(array_length(item_ids, 1), 0) LOOP
+    UPDATE portfolio_items
+       SET display_order = i
+     WHERE id = item_ids[i]
+       AND section_id = section_uuid;
+  END LOOP;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.update_item_order(UUID, UUID[]) TO authenticated;
+
 -- Total Blog Views
 CREATE OR REPLACE FUNCTION get_total_blog_views()
 RETURNS BIGINT AS $$

@@ -39,7 +39,7 @@ describe("SectionEditorSheet — section title", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
 
     fireEvent.click(toggle);
-    fireEvent.click(screen.getByRole("button", { name: "Save Section" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save section" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0]).toMatchObject({ id: "s1", show_title: true });
@@ -48,7 +48,7 @@ describe("SectionEditorSheet — section title", () => {
   it("saves a hidden title as hidden", async () => {
     const onSave = renderSheet(true);
     fireEvent.click(screen.getByRole("switch", { name: "Show section title" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save Section" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save section" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave.mock.calls[0][0]).toMatchObject({ show_title: false });

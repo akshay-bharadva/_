@@ -3,50 +3,38 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  Calendar,
+  ArrowDown,
+  ArrowUp,
   Check,
   CloudOff,
-  Edit,
   ExternalLink,
   Eye,
   EyeOff,
+  ImageOff,
   Info,
-  Link as LinkIcon,
   LayoutTemplate,
+  Link as LinkIcon,
   Loader2,
-  Lock,
-  MoreVertical,
+  PenLine,
   Plus,
+  Settings2,
+  StickyNote,
   Trash2,
 } from "lucide-react";
 import type { PortfolioItem, PortfolioSection } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/admin/shared";
-import { Label } from "@/components/ui/label";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import NovelEditor from "@/components/admin/novel-editor";
-import { LAYOUT_OPTIONS } from "@/features/content/layout-registry";
+import SectionRenderer from "@/features/sections/section-renderer";
+import { LAYOUT_OPTIONS } from "./layout-registry";
 import { safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/cn";
 
 export interface SectionDetailProps {
   section: PortfolioSection | null;
-  isMobile: boolean;
-  /** Retained for callers that still present the editor as its own screen. */
-  onBack?: () => void;
   onEditSection: (section: PortfolioSection) => void;
   onDeleteSection: (id: string) => void;
-  /**
-   * Show or hide the section on the public site. The page has always counted
-   * hidden sections; until now there was no way to make one.
-   */
+  /** Show or hide the section on the public site. */
   onToggleVisible: (section: PortfolioSection) => void;
   onSaveContent: (
     data: { id: string; content: string },
@@ -55,6 +43,8 @@ export interface SectionDetailProps {
   onNewItem: (sectionId: string) => void;
   onEditItem: (item: PortfolioItem) => void;
   onDeleteItem: (itemId: string) => void;
+  /** Swap an item with its neighbour. */
+  onMoveItem: (itemId: string, direction: -1 | 1) => void;
 }
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -62,110 +52,108 @@ type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
 const AUTOSAVE_DELAY = 1200;
 
 /**
- * What each shared item field means in a given layout.
- *
- * The item editor has five generic fields — title, subtitle, description,
- * dates, image — and every layout uses them differently. In `testimonials`
- * the title IS the quote; in `stats-grid` the title is a number. Authors were
- * expected to know this from the layout name alone. Now the section says so.
+ * What each shared item field means in a given layout. The item editor has
+ * five generic fields and every layout reads them differently; the section
+ * says so rather than leaving it to the layout's name.
  */
 const FIELD_HINTS: Record<string, string> = {
-  "stats-grid":
-    "Title = the number. Subtitle = its label. Description is unused.",
-  "impact-numbers":
-    "Title = the number. Subtitle = its label. Description is unused.",
+  "stats-grid": "Title = the number. Subtitle = its label.",
+  "impact-numbers": "Title = the number. Subtitle = its label.",
   testimonials:
     "Title = the quote. Subtitle = who said it. Description = their role. Image = avatar.",
   "work-experience":
     "Title = role. Subtitle = company. Image = company logo. Dates drive the range.",
-  "case-study":
-    "Description carries the write-up — markdown is supported. Image = hero.",
-  services: "Tags render as a feature checklist, not as metadata chips.",
+  "case-study": "Description carries the write-up — markdown works. Image = hero.",
+  services: "Tags render as a checklist of what's included.",
+  process: "Title = the step. Subtitle = how long it takes. Description = what happens.",
+  faq: "Title = the question. Description = the answer.",
   uses: "Subtitle is the group heading — items sharing one are grouped together.",
   "client-logos": "Image = the logo. Without one, the title is shown as text.",
-  "open-source": "Title = repo name (mono). Subtitle = the star/meta line.",
-  speaking: "Subtitle = the type badge (Talk, Podcast, Workshop…).",
-  "compact-cards":
-    "Only title and subtitle render. Everything else is ignored.",
-  "press-awards": "Only title and subtitle render.",
+  "open-source": "Title = repository name. Subtitle = the star or meta line.",
+  speaking: "Subtitle = the kind (Talk, Podcast, Workshop…).",
+  "compact-cards": "Only title and subtitle are shown.",
+  "press-awards": "Only title and subtitle are shown.",
   "now-page": "Subtitle = the category label above each entry.",
-  masonry: "Image-led. Items without one get a placeholder tile.",
-  "cards-with-image":
-    "Image sits above the text. Missing images get a numbered placeholder.",
+  masonry: "Led by images. Items without one get a placeholder tile.",
+  "cards-with-image": "The image sits above the text.",
   "feature-alternating": "Subtitle doubles as the eyebrow above the title.",
-  "github-grid":
-    "This layout fetches repositories from GitHub. Items here are ignored.",
+  "github-grid": "Fetches your repositories from GitHub. Items here are ignored.",
   highlight:
-    "Shows one of your public Library highlights, chosen at random on each visit. Mark lines public in Library; items here are ignored.",
+    "Shows one of your public Library highlights at random. Items here are ignored.",
 };
 
 function SaveIndicator({ state }: { state: SaveState }) {
   const map = {
     idle: { icon: Check, text: "Saved", className: "text-muted-foreground" },
-    dirty: {
-      icon: Loader2,
-      text: "Unsaved changes",
-      className: "text-chart-3",
-    },
-    saving: {
-      icon: Loader2,
-      text: "Saving…",
-      className: "text-muted-foreground",
-    },
-    saved: {
-      icon: Check,
-      text: "Saved",
-      className: "text-chart-2",
-    },
+    dirty: { icon: Loader2, text: "Unsaved", className: "text-chart-3" },
+    saving: { icon: Loader2, text: "Saving…", className: "text-muted-foreground" },
+    saved: { icon: Check, text: "Saved", className: "text-chart-2" },
     error: {
       icon: CloudOff,
-      text: "Save failed — retrying on next edit",
+      text: "Couldn't save — retrying on your next edit",
       className: "text-destructive",
     },
   } as const;
-
   const { icon: Icon, text, className } = map[state];
-
   return (
     <span
-      className={cn("flex items-center gap-1.5 font-mono text-xs", className)}
+      className={cn("flex items-center gap-1.5 text-xs", className)}
       role="status"
       aria-live="polite"
     >
-      <Icon className={cn("size-3.5", state === "saving" && "animate-spin")} />
+      <Icon className={cn("size-3.5", state === "saving" && "animate-spin")} aria-hidden />
       {text}
     </span>
   );
 }
 
-function MetaBadge({
+function Notice({
+  tone,
+  icon: Icon,
   children,
-  tone = "default",
-  title,
 }: {
+  tone: "warn" | "danger" | "info";
+  icon: typeof Info;
   children: React.ReactNode;
-  tone?: "default" | "warn" | "danger";
-  title?: string;
 }) {
   return (
-    <span
-      title={title}
+    <div
       className={cn(
-        "inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[0.6875rem]",
-        tone === "default" && "bg-secondary text-muted-foreground",
-        tone === "warn" && "bg-chart-3/10 text-chart-3",
-        tone === "danger" && "bg-destructive/10 text-destructive",
+        "flex items-start gap-2.5 rounded-control px-3.5 py-3 text-sm",
+        tone === "warn" && "bg-chart-3/10",
+        tone === "danger" && "bg-destructive/10",
+        tone === "info" && "bg-secondary/60",
       )}
     >
-      {children}
-    </span>
+      <Icon
+        className={cn(
+          "mt-0.5 size-4 shrink-0",
+          tone === "warn" && "text-chart-3",
+          tone === "danger" && "text-destructive",
+          tone === "info" && "text-muted-foreground",
+        )}
+        aria-hidden
+      />
+      <p className="min-w-0 text-muted-foreground">{children}</p>
+    </div>
   );
 }
 
+function pageLabel(path: string): string {
+  return path === "/" ? "Home" : path;
+}
+
+/**
+ * One section of a public page: what it is, its content or items, and — one
+ * click away — how it looks on the site, drawn by the site's own renderer.
+ *
+ * The preview is the point. Choosing a layout and filling five generic fields
+ * used to mean saving, opening the site in another tab, and finding the
+ * section; now the same component the visitor sees renders here, from what is
+ * being edited.
+ */
 export function SectionDetail({
   section,
-  isMobile,
-  onBack: _onBack,
   onEditSection,
   onDeleteSection,
   onToggleVisible,
@@ -173,28 +161,21 @@ export function SectionDetail({
   onNewItem,
   onEditItem,
   onDeleteItem,
+  onMoveItem,
 }: SectionDetailProps) {
   const [content, setContent] = useState(section?.content ?? "");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [view, setView] = useState<"edit" | "preview">("edit");
 
-  /**
-   * BUG FIX — the autosave effect used to depend on `content`, `section` and
-   * `onSaveContent`. The parent recreated `onSaveContent` on every render, so
-   * the effect tore down and re-armed its timer constantly; combined with a
-   * 2s debounce it could fire on every keystroke burst, or not at all. The
-   * callback now lives in a ref, so the effect depends only on real inputs.
-   */
+  // The callback lives in a ref so the autosave timer depends only on content.
   const saveRef = useRef(onSaveContent);
   useEffect(() => {
     saveRef.current = onSaveContent;
   }, [onSaveContent]);
 
-  // Last value known to be persisted. Compared against `content` to decide
-  // whether there is anything to save — prevents a save on mere selection.
   const savedRef = useRef(section?.content ?? "");
   const sectionIdRef = useRef(section?.id);
 
-  /* ── reset editor state when the selected section changes ─────────── */
   useEffect(() => {
     if (section?.id === sectionIdRef.current) return;
     sectionIdRef.current = section?.id;
@@ -208,12 +189,8 @@ export function SectionDetail({
     if (!id) return;
     const pending = content;
     if (pending === savedRef.current) return;
-
     setSaveState("saving");
     try {
-      // `silent: true` is the fix for the toast storm: the parent's success
-      // handler also closed any open sheet, so autosaving while an item sheet
-      // was open used to slam it shut mid-edit.
       await saveRef.current({ id, content: pending }, { silent: true });
       savedRef.current = pending;
       setSaveState("saved");
@@ -222,7 +199,6 @@ export function SectionDetail({
     }
   }, [content]);
 
-  /* ── debounced autosave ───────────────────────────────────────────── */
   useEffect(() => {
     if (!section || section.type !== "markdown") return;
     if (content === savedRef.current) return;
@@ -231,7 +207,7 @@ export function SectionDetail({
     return () => clearTimeout(handle);
   }, [content, flush, section]);
 
-  /* ── never lose a pending edit ────────────────────────────────────── */
+  // Never lose a pending edit — on a closed tab, or on switching sections.
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
       if (content !== savedRef.current) {
@@ -242,13 +218,10 @@ export function SectionDetail({
     window.addEventListener("beforeunload", warn);
     return () => {
       window.removeEventListener("beforeunload", warn);
-      // Flush on unmount — switching sections used to discard anything typed
-      // inside the debounce window.
       void flush();
     };
   }, [content, flush]);
 
-  /* ── "Saved" fades back to neutral ────────────────────────────────── */
   useEffect(() => {
     if (saveState !== "saved") return;
     const handle = setTimeout(() => setSaveState("idle"), 2000);
@@ -262,14 +235,12 @@ export function SectionDetail({
 
   if (!section) {
     return (
-      <div className="flex h-full items-center justify-center bg-muted/5 p-8 text-center text-muted-foreground">
-        <div className="max-w-xs">
-          <LayoutTemplate className="mx-auto mb-4 size-12 opacity-20" />
-          <p className="text-sm">
-            Select a section to edit its content and items.
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        variant="card"
+        icon={LayoutTemplate}
+        title="Choose a section"
+        description="Pick a section from the pages on the left to edit it."
+      />
     );
   }
 
@@ -278,401 +249,326 @@ export function SectionDetail({
   const items = [...(section.portfolio_items ?? [])].sort(
     (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0),
   );
-  const hint = section.layout_style
-    ? FIELD_HINTS[section.layout_style]
-    : undefined;
+  const hint = section.layout_style ? FIELD_HINTS[section.layout_style] : undefined;
   const unknownLayout = !isMarkdown && !layoutMeta;
-  const livePath = section.page_path === "/" ? "/" : section.page_path;
+  const kind = isMarkdown ? "Written text" : (layoutMeta?.label ?? section.layout_style);
 
   return (
-    <div className="flex flex-col rounded-surface bg-card shadow-e1">
-      {/* ── header ─────────────────────────────────────────────────── */}
-      <div className="border-b">
-        <div className="flex items-start justify-between gap-4 p-4">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="min-w-0">
-              <h2 className="truncate font-heading text-xl font-bold tracking-tight">
-                {section.title}
-              </h2>
-              {/*
-                The old header showed type and layout on desktop only, so on a
-                phone you could not tell a gallery from a markdown block. These
-                wrap instead of disappearing.
-              */}
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <MetaBadge>{section.type.replace("_", " ")}</MetaBadge>
-                {!isMarkdown && (
-                  <MetaBadge tone={unknownLayout ? "danger" : "default"}>
-                    {unknownLayout && <AlertTriangle className="size-3" />}
-                    {layoutMeta?.label ?? section.layout_style}
-                  </MetaBadge>
-                )}
-                <MetaBadge title="Page path">{section.page_path}</MetaBadge>
-                {isHidden && (
-                  <MetaBadge
-                    tone="warn"
-                    title="Not rendered on the public site"
-                  >
-                    <EyeOff className="size-3" /> hidden
-                  </MetaBadge>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="rounded-surface bg-card shadow-e1">
+      <header className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">
+            {pageLabel(section.page_path)} · {kind}
+          </p>
+          <h2 className="mt-1 break-words font-heading text-2xl font-semibold tracking-tight">
+            {section.title}
+          </h2>
+          {isHidden && (
+            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-chart-3/10 px-2.5 py-0.5 text-xs font-medium text-chart-3">
+              <EyeOff className="size-3" aria-hidden /> Hidden from the site
+            </span>
+          )}
+        </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {isMobile ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Section actions"
-                  >
-                    <MoreVertical className="size-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => onEditSection(section)}>
-                    <Edit className="mr-2 size-4" /> Edit details
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a
-                      href={livePath}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="mr-2 size-4" /> View on site
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onToggleVisible(section)}>
-                    {section.is_visible === false ? (
-                      <>
-                        <Eye className="mr-2 size-4" /> Show on site
-                      </>
-                    ) : (
-                      <>
-                        <EyeOff className="mr-2 size-4" /> Hide from site
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => onDeleteSection(section.id)}
-                  >
-                    <Trash2 className="mr-2 size-4" /> Delete section
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+        <div className="flex flex-wrap items-center gap-1">
+          <div
+            role="group"
+            aria-label="View"
+            className="mr-1 flex rounded-control bg-secondary p-0.5"
+          >
+            {(["edit", "preview"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={view === mode}
+                onClick={() => setView(mode)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-[calc(var(--r-control)-2px)] px-3 py-1.5 text-sm font-medium transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  view === mode
+                    ? "bg-card text-foreground shadow-e1"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {mode === "edit" ? (
+                  <PenLine className="size-3.5" aria-hidden />
+                ) : (
+                  <Eye className="size-3.5" aria-hidden />
+                )}
+                {mode === "edit" ? "Edit" : "Preview"}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            aria-label={isHidden ? "Show on the site" : "Hide from the site"}
+            title={isHidden ? "Show on the site" : "Hide from the site"}
+            onClick={() => onToggleVisible(section)}
+          >
+            {isHidden ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" className="size-9" asChild>
+            <a
+              href={section.page_path}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open the page on the site"
+              title="Open the page on the site"
+            >
+              <ExternalLink className="size-4" />
+            </a>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-9"
+            aria-label="Section settings"
+            title="Title, page and layout"
+            onClick={() => onEditSection(section)}
+          >
+            <Settings2 className="size-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Delete section"
+            title="Delete section"
+            className="size-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => onDeleteSection(section.id)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      </header>
+
+      <div className="space-y-5 px-5 pb-6 sm:px-6">
+        {isHidden && (
+          <Notice tone="warn" icon={EyeOff}>
+            Hidden sections are not drawn on {pageLabel(section.page_path)}.
+            Their items can still be read through the public API.
+          </Notice>
+        )}
+        {unknownLayout && (
+          <Notice tone="danger" icon={AlertTriangle}>
+            The layout “{section.layout_style}” has no renderer, so the site
+            falls back to a plain list. Choose one in Section settings.
+          </Notice>
+        )}
+
+        {view === "preview" ? (
+          <div className="rounded-surface bg-background p-5 sm:p-8">
+            <p className="mb-6 text-xs text-muted-foreground">
+              As it looks on {pageLabel(section.page_path)} — drawn by the site
+              itself{isHidden ? ", though hidden for now" : ""}.
+            </p>
+            <SectionRenderer
+              section={{ ...section, content, portfolio_items: items }}
+            />
+          </div>
+        ) : isMarkdown ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium">Content</p>
+              <SaveIndicator state={saveState} />
+            </div>
+            {/* No fixed height and not clipped: the editor grows with the
+                section, and its block handle sits in the left padding. */}
+            <div className="rounded-control bg-background/60 px-4 py-3 md:pl-14">
+              <NovelEditor
+                value={content}
+                onChange={setContent}
+                placeholder="Write this section — '/' for blocks…"
+                minHeight="18rem"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Saves as you type. Raw HTML is escaped on the public site.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {hint && (
+              <Notice tone="info" icon={Info}>
+                {hint}
+              </Notice>
+            )}
+
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="flex items-baseline gap-2 text-base font-semibold">
+                Items{" "}
+                <span className="text-sm font-normal tabular-nums text-muted-foreground">
+                  {items.length}
+                </span>
+              </h3>
+              <Button size="sm" onClick={() => onNewItem(section.id)}>
+                <Plus className="mr-1.5 size-4" aria-hidden />
+                Add item
+              </Button>
+            </div>
+
+            {items.length === 0 ? (
+              <EmptyState
+                size="compact"
+                variant="bordered"
+                icon={LayoutTemplate}
+                title="No items yet"
+                description={`This section shows as ${
+                  layoutMeta?.label ?? section.layout_style
+                } once it has an item. Until then the site skips it.`}
+                action={{
+                  label: "Add the first item",
+                  onClick: () => onNewItem(section.id),
+                  icon: Plus,
+                }}
+              />
             ) : (
-              <>
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={livePath} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="mr-2 size-4" /> View
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEditSection(section)}
-                >
-                  <Edit className="mr-2 size-4" /> Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Delete section"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => onDeleteSection(section.id)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </>
+              <ol className="space-y-1">
+                {items.map((item, index) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    first={index === 0}
+                    last={index === items.length - 1}
+                    onEdit={() => onEditItem(item)}
+                    onDelete={() => onDeleteItem(item.id)}
+                    onMove={(direction) => onMoveItem(item.id, direction)}
+                  />
+                ))}
+              </ol>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* ── body ───────────────────────────────────────────────────── */}
-      <div>
-        <div className="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-8">
-          {isHidden && (
-            <div className="flex items-start gap-2 rounded-surface border border-chart-3/30 bg-chart-3/5 px-3 py-2.5 text-sm">
-              <EyeOff className="mt-0.5 size-4 shrink-0 text-chart-3" />
-              <p className="text-muted-foreground">
-                This section is hidden, so it does not render on{" "}
-                <span className="font-mono text-foreground">
-                  {section.page_path}
-                </span>
-                . Its items are still readable through the public API.
-              </p>
-            </div>
-          )}
-
-          {unknownLayout && (
-            <div className="flex items-start gap-2 rounded-surface border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-              <p className="text-muted-foreground">
-                Layout{" "}
-                <span className="font-mono text-foreground">
-                  {section.layout_style}
-                </span>{" "}
-                has no renderer, so the public site falls back to a plain list.
-                Pick a layout in{" "}
-                <span className="whitespace-nowrap">Edit → Layout</span>.
-              </p>
-            </div>
-          )}
-
-          {isMarkdown && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="text-base">Content</Label>
-                <SaveIndicator state={saveState} />
-              </div>
-              {/* Not clipped, and no fixed height: the editor grows with the
-                  section, and its block handle sits in the left padding. */}
-              <div className="w-full rounded-surface border px-4 py-3 md:pl-14">
-                <NovelEditor
-                  value={content}
-                  onChange={setContent}
-                  placeholder="Write your section content here, or press '/' for commands…"
-                  minHeight="20rem"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Saves automatically. Raw HTML is escaped when rendered on the
-                public site.
-              </p>
-            </div>
-          )}
-
-          {(section.type === "list_items" || section.type === "gallery") && (
-            <div className="space-y-4">
-              {hint && (
-                <div className="flex items-start gap-2 rounded-surface border bg-muted/30 px-3 py-2.5 text-sm">
-                  <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                  <p className="text-muted-foreground">{hint}</p>
-                </div>
-              )}
-
-              {/*
-                A sticky bar has to occlude the content scrolling under it, so
-                it needs a fill — and the fill must be its *container's*. This
-                was `bg-background/95` inside a `bg-card` panel, which is a
-                different token on nearly every preset, so the Items header
-                read as a foreign strip laid across the panel.
-              */}
-              <div className="sticky top-0 z-10 -mx-1 flex items-center justify-between gap-3 bg-card/95 px-1 py-2 backdrop-blur-sm">
-                <h3 className="flex items-center gap-2 text-lg font-semibold">
-                  Items
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-normal tabular-nums text-muted-foreground">
-                    {items.length}
-                  </span>
-                </h3>
-                <Button size="sm" onClick={() => onNewItem(section.id)}>
-                  <Plus className="mr-2 size-4" />
-                  Add<span className="ml-1 hidden sm:inline">item</span>
-                </Button>
-              </div>
-
-              {items.length === 0 ? (
-                <EmptyState
-                  size="compact"
-                  variant="bordered"
-                  icon={LayoutTemplate}
-                  title="No items yet"
-                  description={`This section renders as ${
-                    layoutMeta?.label ?? section.layout_style
-                  } and needs at least one item. Until then it is skipped on the public site.`}
-                  action={{
-                    label: "Add the first item",
-                    onClick: () => onNewItem(section.id),
-                    icon: Plus,
-                  }}
-                />
-              ) : (
-                <ul className="grid gap-3">
-                  {items.map((item, index) => {
-                    const image = safeImageUrl(item.image_url);
-                    const link = safeLinkUrl(item.link_url);
-                    const linkIsUnsafe = !!item.link_url && !link;
-
-                    return (
-                      <li key={item.id}>
-                        <Card className="group relative flex flex-col gap-4 overflow-hidden p-4 transition-shadow duration-200 ease-enter hover:shadow-e2 sm:flex-row">
-                          {/* Ordinal — display_order is otherwise invisible in the admin. */}
-                          <span className="absolute left-0 top-0 rounded-br bg-secondary px-1.5 py-0.5 font-mono text-[0.625rem] text-muted-foreground">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-
-                          {(image || item.image_url) && (
-                            <div className="h-32 w-full shrink-0 overflow-hidden rounded-md bg-secondary sm:h-24 sm:w-24">
-                              {image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={image}
-                                  alt=""
-                                  loading="lazy"
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div
-                                  className="flex h-full w-full items-center justify-center text-destructive"
-                                  title="Unsafe or unsupported image URL — blocked"
-                                >
-                                  <Lock className="size-4" />
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="min-w-0 flex-1 space-y-1.5 pt-2 sm:pt-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                {/*
-                                  FIX: this was `truncate text-wrap`, two rules
-                                  that cancel each other out — the result was
-                                  neither truncated nor properly wrapped. Long
-                                  titles now clamp to two lines.
-                                */}
-                                <p className="line-clamp-2 text-base font-semibold leading-tight [overflow-wrap:anywhere]">
-                                  {item.title}
-                                </p>
-                                {item.subtitle && (
-                                  <p className="line-clamp-1 text-sm text-muted-foreground">
-                                    {item.subtitle}
-                                  </p>
-                                )}
-                              </div>
-
-                              {isMobile && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      aria-label={`Actions for ${item.title}`}
-                                      className="-mr-2 -mt-1 size-8 shrink-0"
-                                    >
-                                      <MoreVertical className="size-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() => onEditItem(item)}
-                                    >
-                                      <Edit className="mr-2 size-4" /> Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-destructive"
-                                      onClick={() => onDeleteItem(item.id)}
-                                    >
-                                      <Trash2 className="mr-2 size-4" /> Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                              {(item.date_from || item.date_to) && (
-                                <span className="flex items-center gap-1 rounded bg-secondary/50 px-1.5 py-0.5">
-                                  <Calendar className="size-3" />
-                                  {item.date_from
-                                    ? `${item.date_from} — ${item.date_to ?? "Present"}`
-                                    : `Until ${item.date_to}`}
-                                </span>
-                              )}
-                              {link && (
-                                <a
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-1 transition-colors hover:text-primary"
-                                >
-                                  <LinkIcon className="size-3" /> Link
-                                </a>
-                              )}
-                              {linkIsUnsafe && (
-                                <span
-                                  className="flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-destructive"
-                                  title={`Blocked: ${item.link_url}`}
-                                >
-                                  <Lock className="size-3" /> unsafe link
-                                </span>
-                              )}
-                              {item.internal_notes && (
-                                <span
-                                  className="flex items-center gap-1 rounded bg-secondary/50 px-1.5 py-0.5"
-                                  title={item.internal_notes}
-                                >
-                                  <Info className="size-3" /> notes
-                                </span>
-                              )}
-                            </div>
-
-                            {item.tags && item.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 pt-0.5">
-                                {item.tags
-                                  .slice(0, isMobile ? 3 : 6)
-                                  .map((tag, i) => (
-                                    <span
-                                      key={`${tag}-${i}`}
-                                      className="max-w-[10rem] truncate rounded-sm border bg-background/50 px-1.5 text-[10px]"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                {item.tags.length > (isMobile ? 3 : 6) && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    +{item.tags.length - (isMobile ? 3 : 6)}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/*
-                            Desktop actions. `focus-within` added alongside
-                            `group-hover` — previously these buttons were
-                            reachable by Tab but rendered at opacity 0, so
-                            keyboard users were operating blind.
-                          */}
-                          {!isMobile && (
-                            <div className="ml-2 flex shrink-0 flex-col justify-center gap-1 border-l pl-2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Edit ${item.title}`}
-                                className="size-8"
-                                onClick={() => onEditItem(item)}
-                              >
-                                <Edit className="size-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`Delete ${item.title}`}
-                                className="size-8 hover:text-destructive"
-                                onClick={() => onDeleteItem(item.id)}
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </Card>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function ItemRow({
+  item,
+  first,
+  last,
+  onEdit,
+  onDelete,
+  onMove,
+}: {
+  item: PortfolioItem;
+  first: boolean;
+  last: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onMove: (direction: -1 | 1) => void;
+}) {
+  const image = safeImageUrl(item.image_url);
+  const link = safeLinkUrl(item.link_url);
+  const blockedImage = !!item.image_url && !image;
+  const blockedLink = !!item.link_url && !link;
+  const dates =
+    item.date_from || item.date_to
+      ? item.date_from
+        ? `${item.date_from} – ${item.date_to || "Present"}`
+        : `Until ${item.date_to}`
+      : null;
+  const tags = item.tags?.filter(Boolean) ?? [];
+
+  return (
+    <li className="flex items-center gap-3 rounded-control px-2 py-2 transition-colors hover:bg-secondary/40">
+      <div className="flex shrink-0 flex-col">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          disabled={first}
+          aria-label={`Move ${item.title} up`}
+          onClick={() => onMove(-1)}
+        >
+          <ArrowUp className="size-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-6"
+          disabled={last}
+          aria-label={`Move ${item.title} down`}
+          onClick={() => onMove(1)}
+        >
+          <ArrowDown className="size-3.5" />
+        </Button>
+      </div>
+
+      {(image || blockedImage) && (
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-control bg-secondary">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="" loading="lazy" className="size-full object-cover" />
+          ) : (
+            <ImageOff
+              className="size-4 text-destructive"
+              aria-label="Image address blocked — not an http(s) image"
+            />
+          )}
+        </span>
+      )}
+
+      <button
+        type="button"
+        onClick={onEdit}
+        className="min-w-0 flex-1 rounded-control text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="line-clamp-1 break-words font-medium text-foreground">
+          {item.title}
+        </span>
+        {item.subtitle && (
+          <span className="line-clamp-1 text-sm text-muted-foreground">
+            {item.subtitle}
+          </span>
+        )}
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          {dates && <span>{dates}</span>}
+          {link && (
+            <span className="inline-flex items-center gap-1">
+              <LinkIcon className="size-3" aria-hidden /> Link
+            </span>
+          )}
+          {blockedLink && (
+            <span className="inline-flex items-center gap-1 text-destructive">
+              <LinkIcon className="size-3" aria-hidden /> Link blocked
+            </span>
+          )}
+          {tags.length > 0 && (
+            <span>
+              {tags.length} {tags.length === 1 ? "tag" : "tags"}
+            </span>
+          )}
+          {item.internal_notes && (
+            <span className="inline-flex items-center gap-1" title={item.internal_notes}>
+              <StickyNote className="size-3" aria-hidden /> Notes
+            </span>
+          )}
+        </span>
+      </button>
+
+      <div className="flex shrink-0 items-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label={`Edit ${item.title}`}
+          onClick={onEdit}
+        >
+          <PenLine className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground hover:text-destructive"
+          aria-label={`Delete ${item.title}`}
+          onClick={onDelete}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+    </li>
   );
 }
