@@ -26,6 +26,7 @@ import {
   useUndoImportMutation,
 } from "@/store/api/adminApi";
 import type { ImportRulePayload } from "@/store/api/admin/importApi";
+import { useGetSiteIdentityQuery } from "@/store/api/publicApi";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -58,9 +59,12 @@ import {
 import {
   classify,
   historyFrom,
+  isGenericPattern,
   KIND_LABELS,
   type Classification,
 } from "./import-classify";
+import { MissingCategories } from "./missing-categories";
+import { TidyPanel } from "./import-tidy-panel";
 import {
   importHashes,
   rowStatuses,
@@ -144,6 +148,11 @@ export function ImportSection({
 }) {
   const { data: rules = [] } = useGetCategoryRulesQuery();
   const { data: batches = [] } = useGetImportBatchesQuery();
+  // The owner's own name, so e-Transfers between their own banks read as
+  // transfers. From the site profile — the one place the name is kept.
+  const { data: identity } = useGetSiteIdentityQuery();
+  const ownerName = identity?.profile_data?.name?.trim();
+  const ownerNames = useMemo(() => (ownerName ? [ownerName] : []), [ownerName]);
   const [importTransactions, { isLoading: importing }] =
     useImportTransactionsMutation();
   const [undoImport] = useUndoImportMutation();
@@ -225,9 +234,10 @@ export function ImportSection({
           categories,
           rules,
           history,
+          ownerNames,
         }),
       ),
-    [rows, account?.kind, categories, rules, history],
+    [rows, account?.kind, categories, rules, history, ownerNames],
   );
   const accountCurrency = useMemo(
     () => new Map(accounts.map((entry) => [entry.id, entry.currency])),
@@ -289,6 +299,15 @@ export function ImportSection({
   const transfers = toImport.filter((d) => d.isTransfer);
   const paired = toImport.filter((d) => d.pairWith).length;
   const needsCategory = toImport.filter((d) => !d.isTransfer && d.categoryId === null);
+  const missingNeeded = (() => {
+    const counts = new Map<string, number>();
+    for (const d of needsCategory) {
+      if (d.cls.categoryName) counts.set(d.cls.categoryName, (counts.get(d.cls.categoryName) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  })();
   const dates = rows.map((row) => row.date).sort();
 
   const visible = decisions.filter((d) => {
@@ -497,6 +516,16 @@ export function ImportSection({
         </section>
       )}
 
+      {!file && (
+        <TidyPanel
+          accounts={accounts}
+          categories={categories}
+          transactions={transactions}
+          rules={rules}
+          ownerNames={ownerNames}
+        />
+      )}
+
       {!file ? (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <section className="space-y-5 rounded-surface bg-card p-5 shadow-e1">
@@ -645,6 +674,8 @@ export function ImportSection({
             />
           </section>
 
+          <MissingCategories missing={missingNeeded} categories={categories} />
+
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Tile label="To import" value={String(toImport.length)} detail={`${money(moneyIn, true)} in · ${money(moneyOut, true)} out`} />
             <Tile label="Already here" value={String(alreadyThere)} detail="Skipped — imported before" />
@@ -785,7 +816,17 @@ export function ImportSection({
             <ul className="grid gap-1.5 sm:grid-cols-2">
               {rules.map((rule) => (
                 <li key={rule.id} className="group flex items-center gap-2 rounded-control bg-secondary/50 px-3 py-2 text-xs">
-                  <span className="min-w-0 flex-1 truncate font-medium text-foreground">{rule.pattern}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+                    {rule.pattern}
+                    {isGenericPattern(rule.pattern) && (
+                      <span
+                        className="ml-1.5 font-normal text-chart-3"
+                        title="Learned from a bank's channel words, so it would match everything from that bank. It is ignored — delete it."
+                      >
+                        too broad, ignored
+                      </span>
+                    )}
+                  </span>
                   <span className="shrink-0 text-muted-foreground">
                     {rule.kind === "transfer"
                       ? "Transfer"

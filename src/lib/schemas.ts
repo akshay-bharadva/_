@@ -1295,3 +1295,15 @@ export const importRowSchema = z.object({
 });
 
 export type ImportRowValues = z.infer<typeof importRowSchema>;
+
+/**
+ * A finance category. Mirrors `finance_categories`: the name is 1–80
+ * characters and unique per owner, the bucket is the `category_bucket` enum.
+ */
+export const financeCategorySchema = z.object({
+  name: boundedRequiredString(FINANCE_LIMITS.CATEGORY_NAME, "Category name"),
+  bucket: z.enum(["income", "need", "want", "save", "transfer"]),
+  is_essential: z.boolean().default(false),
+});
+
+export type FinanceCategoryValues = z.infer<typeof financeCategorySchema>;

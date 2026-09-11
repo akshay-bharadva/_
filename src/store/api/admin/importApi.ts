@@ -18,6 +18,15 @@ export interface ImportRulePayload {
   kind: "expense" | "income" | "transfer";
 }
 
+/** One approved fix to an imported row. Absent keys leave a column alone. */
+export interface RecategoriseUpdate {
+  id: string;
+  category_id?: string | null;
+  description?: string;
+  merchant?: string;
+  pair_with?: string;
+}
+
 export interface ImportResult {
   batch_id: string;
   inserted: number;
@@ -95,6 +104,26 @@ export const importApi = adminApi.injectEndpoints({
       invalidatesTags: ["Transactions", "FinanceSetup", "Imports", "Calendar"],
     }),
 
+    /**
+     * Apply the fixes the owner approved in "Improve imported transactions":
+     * categories, readable names and transfer pairings, in one transaction.
+     * Migration 022.
+     */
+    recategoriseTransactions: builder.mutation<
+      { updated: number; paired: number },
+      RecategoriseUpdate[]
+    >({
+      queryFn: async (updates) => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        const { data, error } = await supabase.rpc("recategorise_transactions", {
+          p_updates: updates,
+        });
+        if (error) return { error };
+        return { data: data as { updated: number; paired: number } };
+      },
+      invalidatesTags: ["Transactions", "FinanceSetup", "Calendar"],
+    }),
+
     deleteCategoryRule: builder.mutation<{ id: string }, string>({
       queryFn: deleteQueryFn("finance_category_rules"),
       invalidatesTags: ["Imports"],
@@ -108,4 +137,5 @@ export const {
   useImportTransactionsMutation,
   useUndoImportMutation,
   useDeleteCategoryRuleMutation,
+  useRecategoriseTransactionsMutation,
 } = importApi;

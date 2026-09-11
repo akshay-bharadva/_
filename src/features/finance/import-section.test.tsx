@@ -14,6 +14,12 @@ vi.mock("@/store/api/adminApi", () => ({
   useImportTransactionsMutation: () => [importMock, { isLoading: false }],
   useUndoImportMutation: () => [vi.fn()],
   useDeleteCategoryRuleMutation: () => [vi.fn()],
+  useRecategoriseTransactionsMutation: () => [vi.fn(), { isLoading: false }],
+  useSaveFinanceCategoryMutation: () => [vi.fn()],
+}));
+
+vi.mock("@/store/api/publicApi", () => ({
+  useGetSiteIdentityQuery: () => ({ data: { profile_data: { name: "Jordan Maplewood" } } }),
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({

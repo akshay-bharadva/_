@@ -133,6 +133,7 @@ const EXPECTED_HOOKS = [
   "useImportTransactionsMutation",
   "useUndoImportMutation",
   "useDeleteCategoryRuleMutation",
+  "useRecategoriseTransactionsMutation",
 ] as const;
 
 describe("adminApi barrel", () => {

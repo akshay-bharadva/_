@@ -1777,6 +1777,64 @@ site is deliberately absent when the operating system asks for reduced
 motion (`MotionConfig reducedMotion="user"`, a project contract), which is
 the likeliest explanation and was left as is.
 
+## The importer, taught by a real year of statements
+
+The owner imported every CIBC and RBC export they had and sent back the
+result. Measured against their ~320 distinct bank descriptions, the first
+importer left most of the ledger mislabelled in ways the tests had not
+anticipated, because the tests were written from guesses about the formats.
+
+**What the real data showed.**
+
+- CIBC prefixes nearly every line with how the money moved — "Internet
+  Banking", "Electronic Funds Transfer PAY", "Branch Transaction", "Point of
+  Sale - Interac RETAIL PURCHASE <ref>". The normaliser took those words as
+  the merchant, so the owner's salary, car insurance, phone bill and
+  remittances were all "Electronic Funds", and history — keyed on merchant —
+  spread one guess across all four. `stripChannel` now removes the channel
+  and keeps the counterparty.
+- Categories the owner did not have (Transport, Insurance, Phone &
+  internet, Healthcare, Entertainment) made correct guesses land blank.
+  Import and the new tidy panel both offer to create what is missing.
+- e-Transfers between the owner's own banks read as income on one side and
+  spending on the other. The owner's name comes from the site profile;
+  `isOwnName` accepts first name plus surname, a bank-truncated surname, or
+  the first name alone, and RBC's trailing reference codes are dropped first.
+- Two outright bugs of mine: "\bRESTO" was "RESTO", so every PRESTO fare was
+  dining; Costco Gas was checked as groceries before fuel. Fees were checked
+  after e-Transfers, so "E-TRANSFER NETWORK FEE" was a payment to a person.
+- Missing wording: fee rebates, "TO CARD" card payments, "INTERNET DEPOSIT",
+  "FULFILL REQUEST" to Remitly or Coinbase, "DEPOSIT CANADA", GIC and RSP
+  deposits, Uber payouts as gig income, cashback, foreign-currency lines.
+- ~90 named brands now fix both the category and the name ("JIM'S NO FRILLS
+  #3771" and "ROB'S NF #7076" are No Frills; "HM CA0094" is H&M), city names
+  are stripped whole ("RICHMOND HILL" is two words), and six categories a
+  Canadian statement needs were added: Education, Government fees, Personal
+  care, Alcohol & vape, Pets, Cashback & rewards (migration 022, seed only —
+  existing owners create them from the prompt).
+
+**Learning from imported rows was a mistake.** History now ignores rows with
+an import fingerprint: their categories are the classifier's own guesses
+(corrections become rules instead), and learning from them made each wrong
+guess permanent. Rules whose pattern is a channel word ("INTERNET BANKING")
+are ignored and flagged in the rules list as too broad.
+
+**Improving what is already imported.** A better classifier does nothing for
+rows imported before it, so the Import page opens with "Improve imported
+transactions": the current classifier re-run over every imported row,
+proposing category, transfer, clearer-name and pairing changes, each shown
+and tickable, written by `recategorise_transactions` (AAL2-checked, verifies
+ownership of every row, category and partner). Rows already categorised are
+only re-filed when asked, since the classifier cannot tell its own old guess
+from the owner's choice.
+
+**Measured, not assumed.** The classifier was run over the owner's distinct
+descriptions, kept outside the repository and deleted after: 93% now
+classify, and every assignment was read by hand. The remaining 7% are
+numbered companies and local shops no rule could know — which is what the
+learned rules are for. Tests use the same shapes with invented names; the
+repository is public.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an
@@ -1786,9 +1844,8 @@ the likeliest explanation and was left as is.
   upload progress shipped.)
 - Library: no public bookshelf — only the random highlight is public, by
   choice. A shelf page would be a second public function, not a table policy.
-- **Migration 021 is unapplied** (018–020 were applied on 2026-09-11). Until it
-  is, the Import section fails to save and Reports works on what is already in
-  the ledger.
+- **Migration 022 is unapplied** (021 was applied). Until it is, "Improve
+  imported transactions" cannot save.
 - Loans: no link from a loan to the ledger — EMIs actually paid are recorded as
   ordinary transactions, and the schedule assumes every instalment was paid on
   its date.
