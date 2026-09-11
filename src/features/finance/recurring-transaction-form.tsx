@@ -7,7 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { FinanceCategory, RecurringTransaction } from "@/types";
+import type {
+  FinanceAccount,
+  FinanceCategory,
+  RecurringTransaction,
+} from "@/types";
 import { useSaveRecurringMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,15 +49,20 @@ import { toLocalISODate } from "@/lib/date-utils";
 interface RecurringTransactionFormProps {
   recurringTransaction: Partial<RecurringTransaction> | null;
   categories: FinanceCategory[];
+  /** Accounts the rule can move money through. */
+  accounts?: FinanceAccount[];
   onSuccess: () => void;
 }
 
 /** A select needs a value for "no category"; Radix reserves the empty string. */
 const NO_CATEGORY = "none";
+/** The same, for "no account". */
+const NO_ACCOUNT = "no-account";
 
 export function RecurringTransactionForm({
   recurringTransaction,
   categories,
+  accounts = [],
   onSuccess,
 }: RecurringTransactionFormProps) {
   const [saveRecurring, { isLoading }] = useSaveRecurringMutation();
@@ -80,6 +89,14 @@ export function RecurringTransactionForm({
 
   const frequency = form.watch("frequency");
   const type = form.watch("type");
+  const currency = form.watch("currency");
+  const accountId = form.watch("account_id");
+
+  // An archived account stays listed only for a rule already pointing at it,
+  // so editing that rule does not silently blank the field.
+  const liveAccounts = accounts.filter(
+    (account) => !account.archived_at || account.id === accountId,
+  );
 
   /**
    * Income categories for income, spending categories for spending — the same
@@ -188,7 +205,9 @@ export function RecurringTransactionForm({
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount *</FormLabel>
+                <FormLabel>
+                  Amount{currency ? ` (${currency})` : ""} *
+                </FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
@@ -271,6 +290,52 @@ export function RecurringTransactionForm({
                   </FormItem>
                 </RadioGroup>
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/*
+          Which account the money moves through. The rule takes that
+          account's currency, so a payment from a rupee account is projected
+          in rupees and converted — not counted as if it were dollars.
+        */}
+        <FormField
+          control={form.control}
+          name="account_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{type === "earning" ? "Paid into" : "Paid from"}</FormLabel>
+              <Select
+                value={field.value ?? NO_ACCOUNT}
+                onValueChange={(value) => {
+                  const id = value === NO_ACCOUNT ? null : value;
+                  field.onChange(id);
+                  form.setValue(
+                    "currency",
+                    accounts.find((entry) => entry.id === id)?.currency ?? null,
+                  );
+                }}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="No account" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent className="max-h-72">
+                  <SelectItem value={NO_ACCOUNT}>No account</SelectItem>
+                  {liveAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name} · {account.currency}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                {currency
+                  ? `The rule is in ${currency}, this account's currency.`
+                  : "With no account, the rule is in your base currency."}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

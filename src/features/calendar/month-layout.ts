@@ -31,6 +31,24 @@ export function visibleChipCount(
 }
 
 /**
+ * How tall a week row comes out when the weeks share the space they are given.
+ *
+ * The month used fixed row heights and scrolled; now the rows fill the
+ * measured height, and this is the arithmetic. Floored at `min` so a phone
+ * gets legible rows and a scroll rather than six slivers. Before the first
+ * measurement `available` is 0, which also lands on `min`.
+ */
+export function fittedRowHeight(
+  available: number,
+  weeks: number,
+  gap: number,
+  min: number,
+): number {
+  if (weeks <= 0 || available <= 0) return min;
+  return Math.max(min, Math.floor((available - gap * (weeks - 1)) / weeks));
+}
+
+/**
  * Bucket entries by the day they belong to, in one pass.
  *
  * The alternative — filtering the whole entry list inside each cell — is

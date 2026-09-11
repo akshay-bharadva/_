@@ -521,6 +521,7 @@ export default function FinancePage() {
         <RecurringTransactionForm
           recurringTransaction={editingRule}
           categories={categories}
+          accounts={accounts}
           onSuccess={() => {
             setAddingRule(false);
             setEditingRule(null);
@@ -541,6 +542,7 @@ export default function FinancePage() {
       >
         <FinancialGoalForm
           goal={editingGoal}
+          accounts={accounts}
           onSuccess={() => {
             setAddingGoal(false);
             setEditingGoal(null);

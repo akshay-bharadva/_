@@ -357,6 +357,22 @@ export interface FinancialGoal {
   updated_at?: string;
 }
 
+/**
+ * Money moved into (positive) or out of (negative) a goal. An earmark, not a
+ * transfer — see db/migrations/014.
+ */
+export interface FinanceGoalContribution {
+  id: string;
+  user_id?: string;
+  goal_id: string;
+  account_id?: string | null;
+  amount: number;
+  occurred_on: string;
+  note?: string | null;
+  transaction_id?: string | null;
+  created_at?: string;
+}
+
 // =============================================================================
 // FINANCE — accounts, currency, budgets, scenarios
 // =============================================================================

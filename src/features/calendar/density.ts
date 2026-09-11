@@ -27,21 +27,6 @@ export const HOUR_HEIGHT: Record<Density, number> = {
   spacious: 88,
 };
 
-/**
- * How tall a month cell is, at the same three settings.
- *
- * The month grid had a single fixed height that fitted exactly two events
- * before it started reporting "+2 more", which is not enough to see a day at a
- * glance — the count was doing most of the work. These are sized so the three
- * settings show roughly two, four and six events, and the grid scrolls when
- * six rows no longer fit.
- */
-export const MONTH_ROW_HEIGHT: Record<Density, number> = {
-  compact: 116,
-  comfortable: 160,
-  spacious: 204,
-};
-
 export const DENSITY_OPTIONS: { id: Density; label: string }[] = [
   { id: "compact", label: "Compact" },
   { id: "comfortable", label: "Comfortable" },

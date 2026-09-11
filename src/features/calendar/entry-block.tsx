@@ -14,12 +14,15 @@ import { ENTRY_MOVE_TYPE, encodeMove, isMovable } from "./drag-move";
  * palette. They looked right on exactly one theme and wrong on the other 51,
  * and the v3 rules forbid them for that reason.
  */
-const TOKEN_CLASSES: Record<string, { bg: string; border: string }> = {
-  "chart-1": { bg: "bg-chart-1/15", border: "border-l-chart-1" },
-  "chart-2": { bg: "bg-chart-2/15", border: "border-l-chart-2" },
-  "chart-3": { bg: "bg-chart-3/15", border: "border-l-chart-3" },
-  "chart-4": { bg: "bg-chart-4/15", border: "border-l-chart-4" },
-  "chart-5": { bg: "bg-chart-5/15", border: "border-l-chart-5" },
+const TOKEN_CLASSES: Record<
+  string,
+  { bg: string; border: string; dot: string }
+> = {
+  "chart-1": { bg: "bg-chart-1/15", border: "border-l-chart-1", dot: "bg-chart-1" },
+  "chart-2": { bg: "bg-chart-2/15", border: "border-l-chart-2", dot: "bg-chart-2" },
+  "chart-3": { bg: "bg-chart-3/15", border: "border-l-chart-3", dot: "bg-chart-3" },
+  "chart-4": { bg: "bg-chart-4/15", border: "border-l-chart-4", dot: "bg-chart-4" },
+  "chart-5": { bg: "bg-chart-5/15", border: "border-l-chart-5", dot: "bg-chart-5" },
 };
 
 export function entryClasses(token: string | null | undefined) {

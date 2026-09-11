@@ -1,5 +1,10 @@
 import { supabase } from "@/supabase/client";
-import type { FinancialGoal, RecurringTransaction, Transaction } from "@/types";
+import type {
+  FinanceGoalContribution,
+  FinancialGoal,
+  RecurringTransaction,
+  Transaction,
+} from "@/types";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR, saveQueryFn, deleteQueryFn } from "./query-helpers";
 
@@ -99,6 +104,24 @@ export const financeApi = adminApi.injectEndpoints({
       },
       invalidatesTags: ["Goals", "Transactions", "FinanceSetup"],
     }),
+    /**
+     * Every movement into and out of every goal, newest first — the history
+     * that makes a withdrawal visible after it happens.
+     */
+    getGoalContributions: builder.query<FinanceGoalContribution[], void>({
+      queryFn: async () => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        const { data, error } = await supabase
+          .from("finance_goal_contributions")
+          .select("*")
+          .order("occurred_on", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (error) return { error };
+        return { data: (data ?? []) as FinanceGoalContribution[] };
+      },
+      providesTags: ["Goals"],
+    }),
     deleteGoal: builder.mutation<{ id: string }, string>({
       queryFn: deleteQueryFn("financial_goals"),
       invalidatesTags: ["Goals"],
@@ -114,5 +137,6 @@ export const {
   useDeleteRecurringMutation,
   useSaveGoalMutation,
   useRecordGoalContributionMutation,
+  useGetGoalContributionsQuery,
   useDeleteGoalMutation,
 } = financeApi;

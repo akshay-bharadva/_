@@ -38,22 +38,30 @@ const panel = (rules: RecurringTransaction[]) =>
   );
 
 describe("CategoryForecastPanel", () => {
-  it("opens grouped, with money in, money out, and net", () => {
+  it("opens grouped, with the three totals and a line per group", () => {
     panel([
       rule({}),
       rule({ id: "s", description: "Salary", amount: 5000, type: "earning", category_id: "salary" }),
     ]);
-    expect(screen.getByRole("rowheader", { name: "Income" })).toBeInTheDocument();
-    expect(screen.getByRole("rowheader", { name: "Needs" })).toBeInTheDocument();
-    expect(screen.getByRole("rowheader", { name: "Loan repayments" })).toBeInTheDocument();
-    expect(screen.getByRole("rowheader", { name: "Net" })).toBeInTheDocument();
+    expect(screen.getByText("Left over")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Income/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Needs/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Loan repayments/ })).toBeInTheDocument();
   });
 
   it("switches to categories", () => {
     panel([rule({})]);
     fireEvent.click(screen.getByRole("tab", { name: "By category" }));
-    expect(screen.getByRole("rowheader", { name: "Rent" })).toBeInTheDocument();
-    expect(screen.queryByRole("rowheader", { name: "Needs" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Rent/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Needs/ })).not.toBeInTheDocument();
+  });
+
+  it("opens a line to its months", () => {
+    panel([rule({})]);
+    const needs = screen.getByRole("button", { name: /^Needs/ });
+    expect(needs).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(needs);
+    expect(needs).toHaveAttribute("aria-expanded", "true");
   });
 
   it("names what it left out for want of a rate", () => {

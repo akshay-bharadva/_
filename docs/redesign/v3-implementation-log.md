@@ -1613,6 +1613,46 @@ principal depend on having Indian taxable income and on the regime filed under,
 and Canada taxes residents on worldwide income. A calculator here would be
 confidently wrong for exactly the person it was built for. The guide says so.
 
+## Accounts on rules and goals, withdrawing from a goal, and a month that fits
+
+**Recurring rules had an account column and no field for it.** `account_id`
+and `currency` were added to `recurring_transactions` in migration 009, the
+form carried `account_id` in its default values — and never rendered a
+control, so every rule was created with no account. The form now has "Paid
+from" / "Paid into", and choosing an account sets the rule's currency to that
+account's. That matters more since the loans work: the forecast converts rules
+by their currency, so a rule paid from a rupee account is now projected in
+rupees and converted rather than read as dollars.
+
+**Goals: withdrawing was possible and invisible.** `record_goal_contribution`
+has accepted negative amounts since migration 014, floored at what the goal
+holds, and the card had a "Take out" button — a ghost button, enabled only
+once an amount was typed, next to "Put in". Nobody finds the way out of an
+emergency fund through that. Direction is now the first choice (Add money /
+Withdraw), the account defaults to where the goal is kept, withdrawing more
+than the goal holds is refused in the card before the database has to, a note
+says why, and recent movements are listed — which needed the one new endpoint,
+`getGoalContributions`. A goal can now say which account it is kept in
+(`financial_goals.account_id`, also from 009, also never on the form). No
+migration.
+
+**The category forecast stopped being a spreadsheet.** Twelve columns of
+figures was the right data in the wrong shape. It now leads with three totals
+(coming in, going out, left over), draws each month as in-above/out-below bars
+with the tight months in the destructive colour, and ranks each line by share
+with the committed part solid and the estimated part faded. The month figures
+are one tap into a line.
+
+**The month view fitted nothing.** Rows took a fixed height from the density
+setting — 160px at comfortable, so six weeks were ~960px and the month had to
+be scrolled, which defeats the one view whose job is seeing the month. Rows
+now share the measured height (`fittedRowHeight`, floored at 88px so a phone
+scrolls rather than showing slivers), and the chips a day shows come from the
+height it actually got. Density no longer applies to month and is hidden
+there. Visually: no grid lines — days are soft tiles, days outside the month
+recede, today is ringed; timed events are a dot, time and title, and only
+all-day events are filled. A "+" on each day starts an event on it at 09:00.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { FinancialGoal } from "@/types";
+import type { FinanceAccount, FinancialGoal } from "@/types";
 import { useSaveGoalMutation } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn, getErrorMessage, parseLocalDate } from "@/lib/utils";
 import {
   financialGoalSchema,
@@ -32,10 +39,18 @@ import {
 
 interface FinancialGoalFormProps {
   goal: Partial<FinancialGoal> | null;
+  accounts?: FinanceAccount[];
   onSuccess: () => void;
 }
 
-export function FinancialGoalForm({ goal, onSuccess }: FinancialGoalFormProps) {
+/** Radix reserves the empty string, so "no account" needs its own value. */
+const NO_ACCOUNT = "none";
+
+export function FinancialGoalForm({
+  goal,
+  accounts = [],
+  onSuccess,
+}: FinancialGoalFormProps) {
   const [saveGoal, { isLoading }] = useSaveGoalMutation();
 
   const form = useForm<FinancialGoalFormValues>({
@@ -49,6 +64,7 @@ export function FinancialGoalForm({ goal, onSuccess }: FinancialGoalFormProps) {
       // Funds", and the schema's `.default(0)` would otherwise write a zero
       // back over the saved amount every time the goal was edited.
       current_amount: goal?.current_amount ?? 0,
+      account_id: goal?.account_id ?? null,
     },
   });
 
@@ -90,6 +106,45 @@ export function FinancialGoalForm({ goal, onSuccess }: FinancialGoalFormProps) {
               <FormControl>
                 <Textarea {...field} rows={3} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="account_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Kept in</FormLabel>
+              <Select
+                value={field.value ?? NO_ACCOUNT}
+                onValueChange={(value) =>
+                  field.onChange(value === NO_ACCOUNT ? null : value)
+                }
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value={NO_ACCOUNT}>No particular account</SelectItem>
+                  {accounts
+                    .filter(
+                      (account) =>
+                        !account.archived_at || account.id === field.value,
+                    )
+                    .map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name} · {account.currency}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Where the money sits. Adding or withdrawing starts from this
+                account; you can pick another each time.
+              </p>
               <FormMessage />
             </FormItem>
           )}

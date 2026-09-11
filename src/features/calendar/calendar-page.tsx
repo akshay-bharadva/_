@@ -46,12 +46,7 @@ import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
 import { FreeTimeBar } from "./free-time-bar";
-import {
-  DENSITY_OPTIONS,
-  HOUR_HEIGHT,
-  MONTH_ROW_HEIGHT,
-  useDensity,
-} from "./density";
+import { DENSITY_OPTIONS, HOUR_HEIGHT, useDensity } from "./density";
 
 type View = "day" | "week" | "month" | "agenda";
 
@@ -368,9 +363,10 @@ export default function CalendarPage() {
           {/*
             Density was wired to the grid but never given a control, so the
             setting existed and nothing could change it. Hidden in agenda,
-            which has no rows to size.
+            which has no rows to size, and in month, whose rows now fill the
+            screen rather than taking a height from this.
           */}
-          {view !== "agenda" && (
+          {(view === "week" || view === "day") && (
             <div
               role="radiogroup"
               aria-label="Density"
@@ -464,7 +460,13 @@ export default function CalendarPage() {
                 entries={entries}
                 onSelect={setSelected}
                 onMoveEntryToDay={moveEntryToDay}
-                rowHeight={MONTH_ROW_HEIGHT[density]}
+                onCreateOnDay={(day) => {
+                  // A new event on a day picked from the month starts at nine,
+                  // the same default a blank "Event" uses for the hour.
+                  const start = new Date(day);
+                  start.setHours(9, 0, 0, 0);
+                  setDraftStart(start);
+                }}
                 onPickDay={(day) => {
                   setAnchor(day);
                   setView("day");

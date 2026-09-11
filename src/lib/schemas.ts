@@ -441,9 +441,23 @@ export const financialGoalSchema = z.object({
     .max(MONEY_MAX_12_2, "Current amount is too large")
     .default(0),
   target_date: optionalString,
+  /** Where the goal's money is kept; moving money defaults to it. */
+  account_id: z.string().uuid().nullish(),
 });
 
 export type FinancialGoalFormValues = z.infer<typeof financialGoalSchema>;
+
+/**
+ * Money moved into or out of a goal. The amount is always positive here; the
+ * direction decides the sign sent to `record_goal_contribution`. The note is
+ * bounded to the column's CHECK (300).
+ */
+export const goalMovementSchema = z.object({
+  direction: z.enum(["in", "out"]),
+  amount: money(MONEY_MAX_12_2),
+  account_id: z.string().uuid().nullish(),
+  note: boundedOptionalString(300, "Note"),
+});
 
 // =============================================================================
 // HABIT SCHEMAS

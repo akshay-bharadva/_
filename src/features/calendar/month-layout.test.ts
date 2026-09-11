@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { addDays, startOfDay } from "date-fns";
 import type { CalendarEntry } from "@/types";
 import { bucketByDay, visibleChipCount } from "./month-layout";
-import { MONTH_ROW_HEIGHT } from "./density";
+import { fittedRowHeight } from "./month-layout";
 
 const at = (y: number, m: number, d: number, h = 9, min = 0) =>
   new Date(y, m - 1, d, h, min);
@@ -36,17 +36,14 @@ describe("visibleChipCount", () => {
   });
 
   /**
-   * The month row height is driven by the density control. If two settings
-   * produced the same chip count the control would appear to do nothing in
-   * month view — which is exactly what it did before the heights were split
-   * out, when the row was a single hard-coded 116.
+   * The month's rows now fill the screen instead of taking a fixed height
+   * from the density setting, so a taller window must show more events per
+   * day — the reason the view no longer has to be scrolled to see the month.
    */
-  it("shows a different number of events at each density", () => {
-    const counts = (["compact", "comfortable", "spacious"] as const).map(
-      (density) => visibleChipCount(MONTH_ROW_HEIGHT[density], 22, 34),
+  it("shows more events per day as the window grows", () => {
+    const counts = [520, 760, 1000].map((height) =>
+      visibleChipCount(fittedRowHeight(height, 5, 4, 88), 20, 30),
     );
-    expect(new Set(counts).size).toBe(3);
-    // And in the order the labels imply.
     expect(counts[0]).toBeLessThan(counts[1]);
     expect(counts[1]).toBeLessThan(counts[2]);
   });
@@ -193,5 +190,20 @@ describe("bucketByDay", () => {
       entry({ start: at(2026, 8, 1), end: at(2099, 8, 1) }),
     ]);
     expect(map.get(key(at(2026, 8, 1)))).toHaveLength(1);
+  });
+});
+
+describe("fittedRowHeight", () => {
+  /** Five weeks share 700px with 4px gaps: (700 - 16) / 5. */
+  it("shares the height between the weeks", () => {
+    expect(fittedRowHeight(700, 5, 4, 88)).toBe(136);
+  });
+
+  it("stops shrinking at the minimum, so a phone scrolls instead", () => {
+    expect(fittedRowHeight(300, 6, 4, 88)).toBe(88);
+  });
+
+  it("uses the minimum before anything has been measured", () => {
+    expect(fittedRowHeight(0, 5, 4, 88)).toBe(88);
   });
 });
