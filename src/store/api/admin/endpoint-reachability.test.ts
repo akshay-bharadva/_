@@ -34,9 +34,10 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   useDeleteFinanceAccountMutation:
     "accounts archive instead; see account-form.tsx",
 
-  // Dashboard is the last module still on v2 and is being rebuilt; its
-  // analytics query is dead until that lands.
-  useGetAnalyticsDataQuery: "dashboard still on v2, rebuild pending",
+  // The dashboard was rebuilt around the day and reads getDashboardData;
+  // Analytics fetches its own series. This aggregate is what is left of the
+  // v2 dashboard and is called by nothing.
+  useGetAnalyticsDataQuery: "superseded — Analytics uses its own queries",
 };
 
 const slices = globSync("src/store/api/admin/!(*.test).ts", {

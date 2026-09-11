@@ -210,10 +210,12 @@ export const MOCK_SECTIONS: PortfolioSection[] = [
   // --- SHOWCASE PAGE (/showcase) ---
   {
     id: "showcase-deep",
-    title: "Deep Dives",
+    title: "Selected work",
     type: "list_items",
     page_path: "/showcase",
-    layout_style: "grid-2-col",
+    // The case-study layout, as on the home page: problem, approach, outcome
+    // — not a two-column grid of equal tiles.
+    layout_style: "case-study",
     is_visible: true,
     display_order: 1,
     portfolio_items: buildItems("showcase-deep", config.showcase),

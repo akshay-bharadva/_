@@ -2047,6 +2047,43 @@ it restores the site's theme on Reset or on leaving, and each swatch carries
 its preset class, so it is drawn in its own colours. `kit` is reserved and a
 built-in route.
 
+## The buyer's first ten minutes, and the last v2 screens (2026-09-11)
+
+Asked what was left after the selling pass, the honest answer was: the
+screens a *new owner* meets first. They were the least finished in the app.
+
+**Sign-in was still v2 in full** — `01 / access` mono step labels, a
+terminal status line, uppercase mono errors, a card with both a border and a
+shadow. Rebuilt as a two-pane stage (what the workspace is, beside the
+form), plain language, a first-run stepper, show/hide passwords, one box per
+code digit and a ring for the 30-second window. The security routing (aal1
+never reaches `/admin`) is untouched and still tested.
+
+**Nothing said why sign-in could not work.** `checkAdminExists` swallowed
+every failure and answered "yes", so an install whose schema had never been
+run offered a login form that could not succeed. `getSetupStatus` +
+`lib/setup-status.ts` classify the failure, and a gate in the auth layout
+shows the steps — keys, `db/schema.sql`, the storage bucket — instead of the
+form.
+
+**A new owner landed on an empty dashboard.** "Get your site ready" is seven
+steps read from the data (`setup-checklist.ts`), each linking to where it is
+done, gone once complete, hideable per browser. The storage bucket is
+probed, because the schema cannot create one — and an unverifiable bucket is
+not nagged about.
+
+**The page builder had no preview**, which is what it is sold on. Each
+section now has Edit/Preview drawn by the *public* renderer from what is
+being edited, the tree previews a whole page, layouts are chosen from
+visual cards rather than a dropdown plus a dialog, and items can finally be
+reordered — migration **024** `update_item_order`, invoker rights so RLS
+still decides, mirrored in `schema.sql`.
+
+**The monospace ratchet finally did its job.** The budget went from 20 files
+to 6. What is left is the legitimate half of the rule — storage paths,
+serial numbers, URL paths, hex colours, code blocks — and every entry says
+which. `<code>` and `<kbd>` lost a `font-mono` class they never needed.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

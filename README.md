@@ -8,7 +8,7 @@
 
 A developer portfolio template + personal CMS. Clone it, edit one config file, deploy. Optionally connect Supabase to unlock a full admin dashboard — blog, tasks, finance, habits, learning, calendar, and more.
 
-**One config file. 32 themes. Zero lock-in.**
+**One config file. 56 themes. Zero lock-in.**
 
 ---
 
@@ -65,7 +65,7 @@ Foliokit auto-detects its mode at runtime based on environment variables.
 
 Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` and you unlock:
 
-- `/admin` dashboard (15 protected routes)
+- `/admin` dashboard (20 protected routes)
 - Portfolio CMS, blog editor, life updates feed
 - Task manager, habit tracker, finance tracker, learning hub, calendar, notes, inventory
 - Asset manager with storage bucket browser
@@ -85,8 +85,11 @@ The public site stays statically exported — all data fetching happens client-s
 | `name`, `title`, `description` | Hero identity                                                      |
 | `bio`                          | About-page paragraphs                                              |
 | `logo.{main,highlight}`        | Two-tone header logo                                               |
-| `defaultTheme`                 | One of 32 themes                                                   |
-| `typographyPreset`             | One of 8 font pairings                                             |
+| `headline`, `proof`            | The home page's promise, and the results under it                  |
+| `process`                      | "How I work" steps                                                 |
+| `product`                      | The `/kit` product page and its plans                              |
+| `defaultTheme`                 | One of 56 themes                                                   |
+| `typographyPreset`             | One of 14 font pairings                                            |
 | `portfolioMode`                | `"multi-page"` or `"single-page"`                                  |
 | `statusPanel`                  | Right-side hero widget — `minimal`, `terminal`, or `bento` variant |
 | `socialLinks`                  | GitHub, LinkedIn, email, Twitter, etc.                             |
@@ -125,7 +128,7 @@ Two parts of the config exist to sell — you, and the kit itself.
 
 ## Themes
 
-32 curated themes, all CSS-variable based. Visitors can switch live; your default is just the starting point.
+56 curated themes, all CSS-variable based and each gated at WCAG AA. Visitors can switch live; your default is just the starting point.
 
 ```typescript
 defaultTheme: "theme-nord",
@@ -148,7 +151,7 @@ Want custom colors? Dynamic mode ships a `theme-custom` option that takes 6 hex 
 
 ## Typography
 
-8 font-pair presets. Set via `typographyPreset` in config, or live-switch in admin settings.
+14 font-pair presets. Set via `typographyPreset` in config, or live-switch in admin settings.
 
 `typo-default`, `typo-editorial`, `typo-modern-tech`, `typo-elegant`, `typo-bold-quirky`, `typo-futuristic`, `typo-classic-pro`, `typo-geometric`
 
@@ -195,10 +198,15 @@ Want the admin dashboard? Four steps:
 
 1. Create a free project at [supabase.com](https://supabase.com)
 2. Copy `.env.example` to `.env.local` and fill in keys
-3. Run `db/schema.sql` in the Supabase SQL editor (creates 23 tables + RLS policies + seed)
+3. Run `db/schema.sql` in the Supabase SQL editor (creates 50 tables + RLS policies + seed)
 4. Create a public storage bucket named `assets`
 
 Then visit `/admin/signup` to create your admin account. You'll be prompted to enroll TOTP MFA on first login.
+
+If a step is missing, the sign-in screen says which: without Supabase keys, or
+with keys but no schema, it shows the remaining steps instead of a login form.
+Once you're in, **Get your site ready** on the dashboard walks you through the
+rest — identity, headline, theme, links, pages, a first post, and the bucket.
 
 Single-admin and MFA are enforced in the database, not just the client: write policies
 require an AAL2 session, and a trigger on `auth.users` rejects further signups once an
@@ -208,14 +216,18 @@ admin exists. The client-side guard is UX, not the security boundary.
 
 ## Admin Dashboard
 
-15 protected routes. The `(protected)` route group's layout runs the guard once
+20 protected routes. The `(protected)` route group's layout runs the guard once
 (`useAdminGuard`, requires AAL2 / MFA) and wraps every module in the admin shell.
 
 | Route                 | Feature                                                            |
 | --------------------- | ------------------------------------------------------------------ |
 | `/admin`              | Dashboard overview (tasks, finance, habits, learning KPIs)         |
 | `/admin/blog`         | Blog post editor (Tiptap/Novel)                                    |
-| `/admin/content`      | Portfolio CMS — sections + items per page                          |
+| `/admin/content`      | Pages — sections + items per page, with live preview                |
+| `/admin/analytics`    | Visitors and what they read — no IP address stored                 |
+| `/admin/inbox`        | Contact-form messages, with optional Discord alerts                |
+| `/admin/library`      | Books and articles, with highlights                                |
+| `/admin/discover`     | Markets, the job market and the news                               |
 | `/admin/life-updates` | `/updates` feed editor                                             |
 | `/admin/tasks`        | Task manager — Kanban / Table / Tree views, sub-tasks              |
 | `/admin/finance`      | Income, expenses, recurring transactions, goals, monthly analytics |
@@ -243,7 +255,7 @@ foliokit/
 │   ├── next-deploy.yml           # GH Pages deploy on push to main
 │   └── keep-supabase-active.yml  # Daily Supabase heartbeat ping
 ├── db/
-│   ├── schema.sql                # 23 tables + RLS + seed
+│   ├── schema.sql                # 50 tables + RLS + seed
 │   └── john-doe.sample.sql       # Demo persona seed
 ├── public/                       # Static assets
 └── src/
@@ -259,7 +271,7 @@ foliokit/
     │   │                         #   admin: tasks, notes, habits, learning,
     │   │                         #   calendar, finance, inventory, assets,
     │   │                         #   content, settings, security, dashboard…
-    │   └── sections/             # 20 CMS layouts + markdown/list fallback
+    │   └── sections/             # 24 CMS layouts + markdown/list fallback
     ├── components/
     │   ├── layout/               # Shared public + admin chrome
     │   ├── admin/                # Shared admin infra (patterns, editor, spinner)
@@ -280,7 +292,7 @@ foliokit/
     ├── supabase/client.ts        # Nullable Supabase client
     ├── styles/
     │   ├── globals.css           # Tailwind, base token scale, prose, motifs
-    │   └── themes.css            # 32 theme + 8 typography presets (unlayered)
+    │   └── themes.css            # 56 theme + 14 typography presets (unlayered)
     ├── test/setup.ts             # Vitest + Testing Library setup
     └── types/index.ts            # Central TypeScript interfaces
 ```
