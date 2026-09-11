@@ -131,7 +131,7 @@ export default function StatCard({
       <CardContent className={cn(size === "compact" && "pb-3 px-4")}>
         <div
           className={cn(
-            "font-mono font-bold tabular-nums tracking-tight",
+            "font-heading font-bold tabular-nums tracking-tight",
             size === "compact" ? "text-xl" : "text-2xl",
           )}
         >

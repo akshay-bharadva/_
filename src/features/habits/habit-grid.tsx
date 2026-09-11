@@ -84,7 +84,7 @@ export function HabitGrid({
                     className="h-12 w-11 min-w-[44px] p-0 text-center align-middle font-normal"
                   >
                     <div className="flex flex-col items-center justify-center gap-0.5">
-                      <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                      <span className="text-[10px] uppercase text-muted-foreground">
                         {format(date, "EEE")}
                       </span>
                       <span

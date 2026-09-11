@@ -103,7 +103,7 @@ export function WebhookSettings({
         <p className="text-xs leading-relaxed text-muted-foreground">
           Stored in an admin-only table and sent by the database, so the URL
           never reaches the public site. Requires migration{" "}
-          <code className="font-mono">{migration}</code>.
+          <code>{migration}</code>.
         </p>
       </div>
 

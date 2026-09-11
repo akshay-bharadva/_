@@ -123,7 +123,7 @@ export function SocialLinksSection({ form }: { form: SettingsForm }) {
                             {...field}
                             aria-label={`Link ${index + 1} id`}
                             placeholder="id"
-                            className="h-8 font-mono text-xs"
+                            className="h-8 text-xs"
                           />
                         </FormControl>
                         <FormMessage />

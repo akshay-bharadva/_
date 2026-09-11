@@ -251,26 +251,14 @@ describe("v3 design system", () => {
  * The list shrinks as each module is swept. It must never grow.
  */
 const MONO_BUDGET = [
-  "components/admin/shared/SearchInput.tsx",
-  "components/admin/shared/StatCard.tsx",
-  "components/ui/chart.tsx",
-  "features/admin-shell/learning-pill.tsx",
-  "features/analytics/analytics-page.tsx",
-  "features/assets/asset-details-sheet.tsx",
-  "features/assets/asset-views.tsx",
-  "features/focus/focus-timer.tsx",
-  "features/habits/habit-grid.tsx",
-  "features/habits/habit-row.tsx",
-  "features/integrations/webhook-settings.tsx",
-  "features/inventory/inventory-table.tsx",
-  "features/learning/session-tracker.tsx",
-  "features/learning/topic-editor.tsx",
-  "features/navigation/nav-link-form.tsx",
-  "features/navigation/navigation-page.tsx",
-  "features/settings/hero-section.tsx",
-  "features/settings/social-links-section.tsx",
-  "features/settings/theme-section.tsx",
-  "styles/globals.css",
+  // What is left is the legitimate half of the rule: strings read character by
+  // character, where a proportional face makes 1, l and I the same shape.
+  "features/assets/asset-details-sheet.tsx", // storage paths and ids
+  "features/inventory/inventory-table.tsx", // serial numbers
+  "features/navigation/nav-link-form.tsx", // URL paths, as typed
+  "features/navigation/navigation-page.tsx", // the same paths, listed
+  "features/settings/theme-section.tsx", // hex colour values
+  "styles/globals.css", // code and pre
 ];
 
 describe("monospace budget", () => {

@@ -125,7 +125,7 @@ const ResourceCard = ({
         <div className="mb-0.5 flex items-center gap-2">
           <Badge
             variant="secondary"
-            className="h-4 rounded-[4px] px-1 font-mono text-[9px] font-normal uppercase tracking-wider text-muted-foreground/80"
+            className="h-4 rounded-[4px] px-1 text-[9px] font-normal uppercase tracking-wider text-muted-foreground/80"
           >
             {type}
           </Badge>
@@ -356,13 +356,13 @@ export function TopicEditor({
                 {topic.title}
               </h1>
               {isSaving && (
-                <span className="animate-pulse font-mono text-[10px] text-primary">
-                  SAVING...
+                <span className="animate-pulse text-[11px] text-primary">
+                  Saving…
                 </span>
               )}
             </div>
-            <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
-              EDITED: {formatDate(new Date(topic.updated_at || new Date()))}
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Edited {formatDate(new Date(topic.updated_at || new Date()))}
             </p>
           </div>
         </div>

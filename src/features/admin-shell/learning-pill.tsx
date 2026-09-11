@@ -47,7 +47,7 @@ export function LearningPill() {
       {elapsedTime === null ? (
         <Loader2 className="size-4 animate-spin" aria-hidden />
       ) : (
-        <span className="font-mono text-sm tabular-nums">
+        <span className="text-sm tabular-nums">
           {formatElapsed(elapsedTime)}
         </span>
       )}

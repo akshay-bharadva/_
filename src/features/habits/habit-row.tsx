@@ -97,7 +97,7 @@ export const HabitRow = React.memo(
             <p className="truncate text-sm font-semibold text-foreground">
               {habit.title}
             </p>
-            <p className="font-mono text-[10px] text-muted-foreground">
+            <p className="text-[10px] tabular-nums text-muted-foreground">
               {/* Nullable column — without a fallback this read as "/wk". */}
               {habit.target_per_week ?? 7}/wk • {rate}%
             </p>
@@ -130,7 +130,7 @@ export const HabitRow = React.memo(
           <div className="flex items-center justify-center gap-1">
             <div
               className={cn(
-                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[10px] font-bold",
+                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
                 streak > 0
                   ? "border-chart-3/20 bg-chart-3/15 text-chart-3"
                   : "border-transparent bg-muted/50 text-muted-foreground",

@@ -280,9 +280,9 @@ export default function AnalyticsPage() {
               />
               <span>
                 Visitor counts are unavailable: the request IP is not reaching
-                Postgres, so no <code className="font-mono">visitor_hash</code>{" "}
+                Postgres, so no <code>visitor_hash</code>{" "}
                 could be derived. Page views are unaffected. This usually means
-                the <code className="font-mono">x-forwarded-for</code> header is
+                the <code>x-forwarded-for</code> header is
                 absent — check that migration 008 ran.
               </span>
             </p>

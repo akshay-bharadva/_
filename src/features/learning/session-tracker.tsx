@@ -139,7 +139,7 @@ export function SessionTracker({ topic }: SessionTrackerProps) {
       </h4>
       {isCurrentTopicSessionActive ? (
         <div className="flex items-center justify-between rounded-md bg-background p-3">
-          <p className="font-mono text-2xl font-bold tracking-wider text-primary">
+          <p className="text-2xl font-bold tabular-nums tracking-wider text-primary">
             {formatTime(elapsedTime || 0)}
           </p>
           <div className="flex gap-2">

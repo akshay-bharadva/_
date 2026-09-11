@@ -65,7 +65,7 @@ export function HeroSection({ form }: { form: SettingsForm }) {
               <Input {...field} placeholder="Software Engineer" />
             </FormControl>
             <FormDescription>
-              Separate with <code className="font-mono">|</code> to rotate
+              Separate with <code>|</code> to rotate
               through several.
             </FormDescription>
             <FormMessage />

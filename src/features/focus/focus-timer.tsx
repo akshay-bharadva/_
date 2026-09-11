@@ -121,7 +121,7 @@ export function FocusTimer() {
             <span className="t-micro">
               {mode === "work" ? "Focusing" : "Break"}
             </span>
-            <span className="font-mono text-xl font-bold tabular-nums">
+            <span className="text-xl font-bold tabular-nums">
               {formatTime(timeLeft)}
             </span>
           </div>
@@ -182,7 +182,7 @@ export function FocusTimer() {
             <h2 className="animate-pulse text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">
               {mode === "work" ? "Deep Work Mode" : "Rest & Recover"}
             </h2>
-            <div className="font-mono text-8xl font-black tabular-nums tracking-tighter text-foreground">
+            <div className="font-heading text-8xl font-black tabular-nums tracking-tighter text-foreground">
               {formatTime(timeLeft)}
             </div>
             {taskTitle && (

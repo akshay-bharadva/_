@@ -287,7 +287,7 @@ export function AssetTable({
               <TableCell className="hidden text-xs uppercase text-muted-foreground md:table-cell">
                 {asset.mime_type?.split("/")[1] || "File"}
               </TableCell>
-              <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
+              <TableCell className="hidden text-xs tabular-nums text-muted-foreground sm:table-cell">
                 {asset.size_kb ? `${asset.size_kb.toFixed(0)} KB` : "N/A"}
               </TableCell>
               <TableCell>
