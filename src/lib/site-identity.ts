@@ -104,6 +104,23 @@ function normalizeSocialLinks(value: unknown): SiteContent["social_links"] {
   });
 }
 
+/**
+ * The hero's results. Each entry is repaired to two strings, and one with no
+ * figure is dropped — a label under an empty number is not a result.
+ */
+function normalizeProof(list: unknown): SiteContent["profile_data"]["proof"] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((entry) => {
+      const item = (entry ?? {}) as Record<string, unknown>;
+      return {
+        value: typeof item.value === "string" ? item.value.trim() : "",
+        label: typeof item.label === "string" ? item.label.trim() : "",
+      };
+    })
+    .filter((item) => item.value !== "");
+}
+
 export function normalizeSiteContent(row: Partial<SiteContent>): SiteContent {
   const merged = mergeDefaults(
     SITE_IDENTITY_DEFAULTS as unknown as SiteContent,
@@ -119,6 +136,7 @@ export function normalizeSiteContent(row: Partial<SiteContent>): SiteContent {
       // The seeded default is `[""]`, so this also turns a never-configured
       // site into an empty list rather than one blank paragraph.
       bio: withoutBlanks(merged.profile_data.bio),
+      proof: normalizeProof(merged.profile_data.proof),
       status_panel: {
         ...panel,
         currently_exploring: {

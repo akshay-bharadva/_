@@ -21,6 +21,8 @@ import {
   Trophy,
   Wrench,
   Zap,
+  CircleHelp,
+  ListOrdered,
 } from "lucide-react";
 
 // ─── Layout registry ──────────────────────────────────
@@ -133,6 +135,21 @@ export const LAYOUT_OPTIONS = [
     icon: Quote,
     group: "Must-haves",
     description: "Attributed quotes with avatar, name, and role",
+  },
+  {
+    value: "process",
+    label: "Process",
+    icon: ListOrdered,
+    group: "Must-haves",
+    description:
+      "Numbered steps — how working with you goes (step, how long, what happens)",
+  },
+  {
+    value: "faq",
+    label: "FAQ",
+    icon: CircleHelp,
+    group: "Must-haves",
+    description: "Questions that open to their answers; title is the question",
   },
   // ── high signal ──
   {
@@ -612,6 +629,34 @@ export function LayoutPreview({ layout }: { layout: string }) {
                   </div>
                 ))}
               </div>
+            </div>
+          ))}
+        </div>
+      );
+    case "process":
+      return (
+        <div className="grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className={`${block} space-y-1.5 p-2`}>
+              <div className="flex size-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground">
+                {n}
+              </div>
+              <div className={`${bar} w-3/4`} />
+              <div className={`${sbar} w-full`} />
+            </div>
+          ))}
+        </div>
+      );
+    case "faq":
+      return (
+        <div className="space-y-1.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className={`${block} flex items-center justify-between p-2.5`}
+            >
+              <div className={`${bar} w-2/3`} />
+              <div className="size-2 rotate-45 border-b border-r border-muted-foreground/40" />
             </div>
           ))}
         </div>

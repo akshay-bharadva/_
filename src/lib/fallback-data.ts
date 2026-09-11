@@ -19,6 +19,8 @@ export const MOCK_SITE_IDENTITY: SiteContent = {
     name: config.name,
     title: config.title,
     description: config.description,
+    headline: config.headline,
+    proof: config.proof,
     profile_picture_url: config.profilePicture,
     show_profile_picture: config.showProfilePicture,
     default_theme: config.defaultTheme,
@@ -127,14 +129,61 @@ function buildItems(
 
 export const MOCK_SECTIONS: PortfolioSection[] = [
   // --- HOME PAGE (/) ---
+  // Ordered as a pitch rather than a CV: what I do, proof that it works, how
+  // working together goes — then the track record and the toolkit behind it.
+  {
+    id: "home-services",
+    title: "What I do",
+    type: "list_items",
+    page_path: "/",
+    layout_style: "services",
+    is_visible: true,
+    display_order: 1,
+    portfolio_items: buildItems(
+      "home-services",
+      config.services.map((s) => ({
+        title: s.title,
+        subtitle: s.subtitle,
+        description: s.description,
+        tags: s.tags,
+      })),
+    ),
+  },
+  {
+    id: "home-work",
+    title: "Selected work",
+    type: "list_items",
+    page_path: "/",
+    layout_style: "case-study",
+    is_visible: true,
+    display_order: 2,
+    portfolio_items: buildItems("home-work", config.showcase),
+  },
+  {
+    id: "home-process",
+    title: "How I work",
+    type: "list_items",
+    page_path: "/",
+    layout_style: "process",
+    is_visible: true,
+    display_order: 3,
+    portfolio_items: buildItems(
+      "home-process",
+      config.process.map((p) => ({
+        title: p.title,
+        subtitle: p.duration,
+        description: p.description,
+      })),
+    ),
+  },
   {
     id: "home-exp",
     title: "Experience",
     type: "list_items",
     page_path: "/",
-    layout_style: "timeline",
+    layout_style: "work-experience",
     is_visible: true,
-    display_order: 1,
+    display_order: 4,
     portfolio_items: buildItems(
       "home-exp",
       config.experience.map((e) => ({
@@ -149,23 +198,13 @@ export const MOCK_SECTIONS: PortfolioSection[] = [
   },
   {
     id: "home-tech",
-    title: "Tech Stack",
+    title: "Toolkit",
     type: "list_items",
     page_path: "/",
-    layout_style: "default",
+    layout_style: "compact-cards",
     is_visible: true,
-    display_order: 2,
+    display_order: 5,
     portfolio_items: buildItems("home-tech", config.techStack),
-  },
-  {
-    id: "home-tools",
-    title: "Tools",
-    type: "list_items",
-    page_path: "/",
-    layout_style: "default",
-    is_visible: true,
-    display_order: 3,
-    portfolio_items: buildItems("home-tools", config.tools),
   },
 
   // --- SHOWCASE PAGE (/showcase) ---
@@ -219,6 +258,17 @@ export const MOCK_SECTIONS: PortfolioSection[] = [
         tags: e.tags,
       })),
     ),
+  },
+
+  {
+    id: "about-tools",
+    title: "Security tooling",
+    type: "list_items",
+    page_path: "/about",
+    layout_style: "compact-cards",
+    is_visible: true,
+    display_order: 3,
+    portfolio_items: buildItems("about-tools", config.tools),
   },
 
   // --- PROJECTS PAGE (/projects) ---

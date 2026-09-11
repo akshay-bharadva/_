@@ -18,6 +18,7 @@ import {
   TestimonialsLayout,
   WorkExperienceLayout,
 } from "./layouts-showcase";
+import { FaqLayout, ProcessLayout } from "./layouts-sales";
 import {
   ClientLogosLayout,
   NowPageLayout,
@@ -71,6 +72,9 @@ export const SECTION_LAYOUTS: Record<string, LayoutComponent> = {
   "client-logos": ClientLogosLayout,
   "now-page": NowPageLayout,
   uses: UsesLayout,
+  // Selling
+  process: ProcessLayout,
+  faq: FaqLayout,
 };
 
 /** Layouts that render their own data source and ignore `portfolio_items`. */

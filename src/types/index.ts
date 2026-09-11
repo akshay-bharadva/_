@@ -663,6 +663,10 @@ export interface SiteContent {
         href: string;
       };
     };
+    /** The home page's main heading. Empty: the name leads instead. */
+    headline: string;
+    /** Results under the hero — `value` is the figure, `label` what it measures. */
+    proof: { value: string; label: string }[];
     bio: string[];
     github_projects_config: {
       username: string;

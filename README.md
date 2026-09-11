@@ -105,6 +105,24 @@ The public site stays statically exported — all data fetching happens client-s
 
 ---
 
+## Selling with it
+
+Two parts of the config exist to sell — you, and the kit itself.
+
+- **`headline` and `proof`** turn the home page into a pitch: the headline
+  becomes the main heading with your name as the byline, and `proof` (up to
+  four figures) closes the hero as a results strip. Both are editable later in
+  **Admin → Settings → Hero**. Leave them empty and the hero leads with your
+  name, as before.
+- **`process`** feeds the "How I work" section. In dynamic mode, add a section
+  with the **Process** or **FAQ** layout to any page from **Admin → Pages**.
+- **`product`** powers `/kit`, a product page for Foliokit: figures counted
+  from the code, the workspace, a live theme preview, your plans, getting
+  started and an FAQ. Prices are yours to set. Set `show: false` to remove
+  `/kit` and the footer's "Built with" credit.
+
+---
+
 ## Themes
 
 32 curated themes, all CSS-variable based. Visitors can switch live; your default is just the starting point.

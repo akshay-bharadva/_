@@ -2010,6 +2010,43 @@ already installed; no new dependency.
 **Known limit:** the handle works on top-level blocks, so a list moves as one
 block rather than item by item.
 
+## Selling it — the home page and /kit (2026-09-11)
+
+The site had two things to sell and sold neither. The home page read as a CV
+— a name, then an experience timeline, a tech stack and a tools list — and
+the product it is built with, Foliokit, existed only as a README.
+
+**Home, as a pitch.** The hero leads with a **headline** (the promise) when
+the owner writes one; the name and role become the byline, and a **results**
+strip closes the band with figures the owner entered. Both are new
+`profile_data` keys (`headline`, `proof`) — JSONB, so no migration — with
+defaults in `site-identity-defaults.ts`, repair in `normalizeSiteContent`,
+bounds in `siteSettingsSchema` (`SITE_LIST_LIMITS.PROOF_POINTS`), and an
+editor in Settings → Hero. Without a headline the name leads, as before; with
+no results there is no strip — never a default row of flattering numbers.
+The calls to action are "Start a project" and "See case studies". The
+fallback home is reordered as a pitch: What I do (services) → Selected work
+(case studies) → How I work (process) → Experience → Toolkit; Tools moved to
+About. The closing contact section is unchanged — the owner had rejected a
+banner there.
+
+**Two new section layouts**, `process` and `faq` (`layouts-sales.tsx`),
+registered for the renderer and the admin, so any page can carry them.
+`layout_style` is unconstrained TEXT, so no migration. FAQ answers are
+native `<details>` — in the page, and open without JavaScript.
+
+**/kit — Foliokit as a product.** Promise → figures → two ways to run it →
+the workspace → a live theme preview → security → plans → getting started →
+FAQ. The figures are counted from the code (`THEME_PRESETS.length`, the
+admin module list), and `product-content.test.ts` holds the copy to the code
+in both directions: every admin module is described, none that does not
+exist. Plans come from `portfolio.config.ts → product` — the owner's offer,
+not site content, so it is not in the database — and `show: false` removes
+/kit and the footer's "Built with" credit. The theme preview is a preview:
+it restores the site's theme on Reset or on leaving, and each swatch carries
+its preset class, so it is drawn in its own colours. `kit` is reserved and a
+built-in route.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

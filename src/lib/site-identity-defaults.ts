@@ -19,6 +19,8 @@ export const SITE_IDENTITY_DEFAULTS = {
     name: "",
     title: "",
     description: "",
+    headline: "",
+    proof: [] as { value: string; label: string }[],
     profile_picture_url: "",
     // Must track the app default; this was pinned to "theme-blueprint" long
     // after the v2 identity moved to Ink, so a fresh settings form offered a

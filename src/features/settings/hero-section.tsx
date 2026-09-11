@@ -1,5 +1,6 @@
 "use client";
 
+import { useFieldArray } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -20,19 +21,40 @@ import {
 } from "./settings-controls";
 
 /**
- * Hero copy and the About bio.
+ * The home page's pitch — headline, supporting line, results — and the About
+ * bio.
  *
- * The bio used to be two `Textarea`s bound to `bio.0` and `bio.1`, with the
- * page padding the stored array to exactly two on load. So a site could have
- * one bio paragraph or two, and never three — a limit that existed nowhere in
- * the schema or the database, only in how many inputs happened to be drawn.
- * The ceiling now comes from `SITE_LIST_LIMITS`.
+ * The bio's ceiling comes from `SITE_LIST_LIMITS`, not from how many inputs
+ * happen to be drawn; so does the results strip's.
  */
 export function HeroSection({ form }: { form: SettingsForm }) {
   const bio = useStringList(form, "profile_data.bio");
 
   return (
     <div className="space-y-6">
+      <FormField
+        control={form.control}
+        name="profile_data.headline"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Headline</FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                value={field.value ?? ""}
+                placeholder="I build AI systems that make it to production."
+              />
+            </FormControl>
+            <FormDescription>
+              The one line a visitor should leave with — the home page&apos;s
+              main heading, with your name as the byline. Leave empty to lead
+              with your name.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       <FormField
         control={form.control}
         name="profile_data.title"
@@ -56,15 +78,19 @@ export function HeroSection({ form }: { form: SettingsForm }) {
         name="profile_data.description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Hero description</FormLabel>
+            <FormLabel>Supporting line</FormLabel>
             <FormControl>
               <Textarea {...field} rows={3} />
             </FormControl>
-            <FormDescription>Markdown. Shown under your name.</FormDescription>
+            <FormDescription>
+              Markdown. What you do and for whom, under the headline.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
+
+      <ProofEditor form={form} />
 
       <FieldGroup
         title="About bio"
@@ -121,5 +147,82 @@ export function HeroSection({ form }: { form: SettingsForm }) {
         </div>
       </FieldGroup>
     </div>
+  );
+}
+
+/** The results strip under the hero: a figure and what it measures. */
+function ProofEditor({ form }: { form: SettingsForm }) {
+  const proof = useFieldArray({ control: form.control, name: "profile_data.proof" });
+
+  return (
+    <FieldGroup
+      title="Results"
+      description="Figures you can stand behind, shown in a strip under the hero. A number a client can check beats an adjective. Leave empty to hide the strip."
+    >
+      <div className="space-y-3">
+        {proof.fields.map((entry, index) => (
+          <ListRow
+            key={entry.id}
+            position={`result ${index + 1}`}
+            removeLabel={`Remove result ${index + 1}`}
+            onRemove={() => proof.remove(index)}
+            onMoveUp={index > 0 ? () => proof.swap(index, index - 1) : undefined}
+            onMoveDown={
+              index < proof.fields.length - 1
+                ? () => proof.swap(index, index + 1)
+                : undefined
+            }
+          >
+            <div className="grid gap-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+              <FormField
+                control={form.control}
+                name={`profile_data.proof.${index}.value`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        aria-label={`Result ${index + 1} figure`}
+                        placeholder="30%"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`profile_data.proof.${index}.label`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        aria-label={`Result ${index + 1} label`}
+                        placeholder="less time on routine support tickets"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </ListRow>
+        ))}
+
+        {proof.fields.length === 0 && (
+          <p className="rounded-surface bg-card p-4 text-sm text-muted-foreground shadow-e1">
+            No results yet — the hero ends at your links.
+          </p>
+        )}
+
+        <AddRowButton
+          label="Add result"
+          onClick={() => proof.append({ value: "", label: "" })}
+          count={proof.fields.length}
+          max={SITE_LIST_LIMITS.PROOF_POINTS}
+        />
+      </div>
+    </FieldGroup>
   );
 }

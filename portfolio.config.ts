@@ -11,7 +11,20 @@ const portfolioConfig = {
   name: "Akshay Bharadva",
   title: "AI Engineer",
   description:
-    "Most AI projects never leave a Jupyter notebook. I build the ones that do — production RAG & LLM systems, full-stack products, and security-aware engineering.",
+    "Production RAG & LLM systems, full-stack products and security-aware engineering — from first prototype to deployed, and used by the people it was built for.",
+
+  // The one line a visitor should leave with: the home page's main heading,
+  // with your name as the byline under it. Leave empty to lead with your name.
+  headline: "Most AI projects never leave a notebook. I build the ones that do.",
+
+  // Results you can stand behind, shown as a strip under the hero (up to 4).
+  // A figure a client can check beats any adjective.
+  proof: [
+    { value: "30%", label: "less time on routine tasks with the “Hey Ami!” assistant" },
+    { value: "20%", label: "Q1 revenue growth from a flagship feature I led" },
+    { value: "3 yrs", label: "shipping full-stack products before moving into AI" },
+    { value: "2", label: "postgraduate certificates — AI and cybersecurity" },
+  ],
   profilePicture: "https://github.com/akshay-bharadva.png",
   showProfilePicture: true,
 
@@ -101,6 +114,7 @@ const portfolioConfig = {
     { label: "Projects", href: "/projects" },
     { label: "Blog", href: "/blog" },
     { label: "Updates", href: "/updates" },
+    { label: "Foliokit", href: "/kit" },
     { label: "Contact", href: "/contact" },
   ],
 
@@ -269,6 +283,36 @@ const portfolioConfig = {
   ],
 
   // ---------------------------------------------------------------------------
+  // PROCESS — "How I work" on the home page
+  // ---------------------------------------------------------------------------
+  process: [
+    {
+      title: "Discovery call",
+      duration: "30 minutes",
+      description:
+        "What you're trying to change, what you have today, and whether AI is the right tool for it at all.",
+    },
+    {
+      title: "Scoped proposal",
+      duration: "A few days",
+      description:
+        "A written plan: the smallest version worth shipping, what it takes, and how we'll know it worked.",
+    },
+    {
+      title: "Build in the open",
+      duration: "Weekly demos",
+      description:
+        "Working software every week against your real data, so you can steer while changes are still cheap.",
+    },
+    {
+      title: "Ship and hand over",
+      duration: "Launch",
+      description:
+        "Deployed, monitored and documented — with your team able to run it without me.",
+    },
+  ],
+
+  // ---------------------------------------------------------------------------
   // BLOG POSTS
   // ---------------------------------------------------------------------------
   blogPosts: [
@@ -315,6 +359,52 @@ const portfolioConfig = {
       isPinned: false,
     },
   ],
+
+  // ---------------------------------------------------------------------------
+  // PRODUCT — the /kit page that sells Foliokit itself
+  // ---------------------------------------------------------------------------
+  // `show: false` removes /kit and the footer credit — what a site built *with*
+  // Foliokit usually wants. Prices are yours to set; nothing here is invented.
+  product: {
+    show: true,
+    name: "Foliokit",
+    repoUrl: "https://github.com/akshay-bharadva/foliokit",
+    plans: [
+      {
+        name: "Open source",
+        price: "Free",
+        period: "MIT licence",
+        description:
+          "Everything in the repository, to run on your own accounts.",
+        features: [
+          "Portfolio, blog and page builder",
+          "The whole private workspace",
+          "Every theme and type pairing",
+          "Free static hosting",
+        ],
+        cta: {
+          label: "Get it on GitHub",
+          href: "https://github.com/akshay-bharadva/foliokit",
+        },
+        highlighted: false,
+      },
+      {
+        name: "Done for you",
+        price: "Let's talk",
+        period: "one-off setup",
+        description:
+          "I set it up on your domain with your content, theme and Supabase, and walk you through it.",
+        features: [
+          "Deployed on your domain",
+          "Your content moved in",
+          "Supabase, storage and two-factor configured",
+          "A walkthrough of the workspace",
+        ],
+        cta: { label: "Book a setup", href: "/contact" },
+        highlighted: true,
+      },
+    ],
+  },
 };
 
 export default portfolioConfig;

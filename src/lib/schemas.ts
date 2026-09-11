@@ -931,6 +931,8 @@ export const SITE_LIST_LIMITS = {
   BIO_PARAGRAPHS: 6,
   EXPLORING_ITEMS: 8,
   SOCIAL_LINKS: 12,
+  /** The hero's results strip reads as a row; four is a row. */
+  PROOF_POINTS: 4,
 } as const;
 
 /**
@@ -964,6 +966,27 @@ export const siteSettingsSchema = z.object({
       })
       .optional(),
     description: boundedRequiredString(LIMITS.SUMMARY, "Hero description"),
+    headline: z.string().max(LIMITS.TITLE, "Headline is too long").default(""),
+    proof: z
+      .array(
+        z.object({
+          value: z
+            .string()
+            .trim()
+            .min(1, "Add the figure")
+            .max(24, "Keep the figure to 24 characters"),
+          label: z
+            .string()
+            .trim()
+            .min(1, "Say what the figure measures")
+            .max(LIMITS.TITLE, "Label is too long"),
+        }),
+      )
+      .max(
+        SITE_LIST_LIMITS.PROOF_POINTS,
+        `At most ${SITE_LIST_LIMITS.PROOF_POINTS} results`,
+      )
+      .default([]),
     profile_picture_url: urlOrEmpty,
     show_profile_picture: z.boolean(),
     // Optional because a fresh install has neither, and a required field in one

@@ -11,12 +11,19 @@ import { Button } from "@/components/ui/button";
 import { socialIcon } from "@/lib/social-icons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Band } from "@/components/layout/band";
-import { EASE } from "@/components/layout/motion";
-import { isInternalUrl, safeLinkUrl } from "@/lib/safe-url";
+import { CountUp, EASE } from "@/components/layout/motion";
+import { isInternalUrl, safeImageUrl, safeLinkUrl } from "@/lib/safe-url";
 import { cn } from "@/lib/cn";
 import { StatusPanel } from "./status-panel";
 
 const ROTATE_MS = 3200;
+
+/** The largest type on the site, for the one centred composition. */
+const CENTERED_NAME =
+  "font-heading text-[clamp(2.75rem,1.6rem+5vw,6rem)] font-bold leading-[1.02] tracking-tighter";
+/** A headline is a sentence, not a name, so it runs a step smaller. */
+const CENTERED_HEADLINE =
+  "font-heading text-[clamp(2.25rem,1.3rem+3.8vw,4.75rem)] font-bold leading-[1.04] tracking-tight";
 
 /**
  * The name, rising word by word out of a mask. The words stay real text
@@ -130,13 +137,13 @@ function SocialRow({
               aria-label={link.label}
               title={link.label}
               className={cn(
-                "flex size-11 items-center justify-center rounded-full bg-card text-muted-foreground shadow-e1",
+                "flex size-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-e1",
                 "transition-[box-shadow,transform,color] duration-200 ease-enter",
                 "hover:-translate-y-0.5 hover:text-primary hover:shadow-e2 motion-reduce:hover:translate-y-0",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               )}
             >
-              <Icon className="size-[1.125rem]" aria-hidden />
+              <Icon className="size-4" aria-hidden />
             </a>
           </li>
         );
@@ -145,12 +152,16 @@ function SocialRow({
   );
 }
 
+/**
+ * Two ways forward, in the order a buyer takes them: start the conversation,
+ * or look at the evidence first.
+ */
 function Actions({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-3", className)}>
       <Button asChild size="lg" className="group rounded-full px-7">
         <Link href="/contact">
-          Get in touch
+          Start a project
           <ArrowRight
             aria-hidden
             className="ml-2 size-4 transition-transform duration-200 ease-enter group-hover:translate-x-0.5 motion-reduce:transition-none"
@@ -158,9 +169,89 @@ function Actions({ className }: { className?: string }) {
         </Link>
       </Button>
       <Button asChild size="lg" variant="outline" className="rounded-full px-7">
-        <Link href="/projects">See my work</Link>
+        <Link href="/showcase">See case studies</Link>
       </Button>
     </div>
+  );
+}
+
+/** Who is making the promise in the headline — the founder line of a SaaS hero. */
+function Byline({
+  name,
+  title,
+  picture,
+  centered,
+}: {
+  name: string;
+  title: string;
+  picture: string | null;
+  centered: boolean;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3", centered && "justify-center")}>
+      {picture && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={picture}
+          alt=""
+          className="size-10 shrink-0 rounded-full object-cover shadow-e1"
+        />
+      )}
+      <p className="min-w-0 text-base leading-snug text-muted-foreground sm:text-lg">
+        <span className="font-semibold text-foreground">{name}</span>
+        {title.trim() && (
+          <>
+            <span aria-hidden className="mx-2 text-muted-foreground/60">
+              ·
+            </span>
+            <RotatingTitle title={title} />
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
+const PROOF_COLUMNS: Record<number, string> = {
+  1: "lg:grid-cols-1",
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+};
+
+/**
+ * Results, set as large figures across the foot of the hero — the proof a
+ * SaaS page puts right under its promise. Each figure counts up once; under
+ * reduced motion it is simply there. Only what the owner entered appears:
+ * there is no default row of flattering numbers.
+ */
+function ProofStrip({
+  items,
+  centered,
+}: {
+  items: { value: string; label: string }[];
+  centered: boolean;
+}) {
+  return (
+    <ul
+      aria-label="Results"
+      className={cn(
+        "mt-16 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-border/60 pt-10 sm:mt-20",
+        PROOF_COLUMNS[items.length] ?? "lg:grid-cols-4",
+        centered && "text-center",
+      )}
+    >
+      {items.map((item, index) => (
+        <li key={`${item.value}-${index}`} className="min-w-0">
+          <CountUp
+            value={item.value}
+            className="block font-heading text-3xl font-semibold tracking-tight tabular-nums text-foreground [overflow-wrap:anywhere] sm:text-4xl"
+          />
+          <p className="mt-2 text-pretty text-sm leading-snug text-muted-foreground">
+            {item.label}
+          </p>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -193,28 +284,32 @@ export function Hero() {
 }
 
 /**
- * The band itself, over identity passed in rather than fetched, so the
- * settings preview renders the real hero against unsaved form values.
+ * The opening of the home page, built like the top of a product page.
  *
- * **Two compositions, chosen by what exists** — never one composition with a
- * hole in it.
+ * **It leads with the promise, not the name.** A visitor decides in a few
+ * seconds whether this person solves their problem; "Ada Lovelace" answers a
+ * question they have not asked yet. When the owner writes a headline it is the
+ * `h1`, the name and role become the byline under it, and the results strip
+ * closes the band with evidence. Without a headline the name leads, as before.
  *
- *  - **With the status panel**: the asymmetric two-column band. One descending
- *    path on the left; the panel, the only raised object on the band, beside
- *    it.
- *  - **Without it**: one centred column — the hero standing alone as a
- *    composition. It is the one centred block on the site; everywhere else
- *    runs down the left edge. A left column beside a void and a split row
- *    were both tried and rejected by the owner.
+ * **Two compositions, chosen by what exists** — never one with a hole in it:
+ * beside the status panel the copy runs down the left; without it, the hero
+ * is the one centred composition on the site.
  *
- * **The light.** It rises from above the band, behind the header, to the top
- * of the page. It used to start at the band's own top edge with its brightest
- * point on that edge, which drew a hard line under the header.
+ * Takes identity rather than fetching it, so the settings preview renders the
+ * real hero against unsaved values.
  */
 export function HeroView({ identity }: { identity: SiteContent }) {
   const reduceMotion = useReducedMotion();
   const { profile_data, social_links } = identity;
   const panel = profile_data.status_panel;
+  const showPanel = Boolean(panel.show);
+  const centered = !showPanel;
+  const headline = profile_data.headline?.trim() ?? "";
+  const proof = (profile_data.proof ?? []).filter((item) => item.value?.trim());
+  const picture = profile_data.show_profile_picture
+    ? safeImageUrl(profile_data.profile_picture_url)
+    : null;
 
   const rise = (delay: number) =>
     reduceMotion
@@ -225,33 +320,76 @@ export function HeroView({ identity }: { identity: SiteContent }) {
           transition: { duration: 0.6, ease: EASE, delay },
         };
 
-  const showPanel = Boolean(panel.show);
+  const heading = headline ? (
+    <div className="min-w-0 space-y-6">
+      <motion.h1
+        id="hero-name"
+        {...rise(0.05)}
+        className={cn(
+          centered ? CENTERED_HEADLINE : "t-display",
+          "text-balance [overflow-wrap:anywhere]",
+        )}
+      >
+        {headline}
+      </motion.h1>
+      <motion.div {...rise(0.2)}>
+        <Byline
+          name={profile_data.name}
+          title={profile_data.title ?? ""}
+          picture={picture}
+          centered={centered}
+        />
+      </motion.div>
+    </div>
+  ) : (
+    <div className="min-w-0">
+      <h1
+        id="hero-name"
+        className={cn(
+          centered ? CENTERED_NAME : "t-display",
+          "text-balance [overflow-wrap:anywhere]",
+        )}
+      >
+        <AnimatedName name={profile_data.name} />
+      </h1>
+      {profile_data.title?.trim() && (
+        <motion.p
+          {...rise(0.3)}
+          className={cn("t-title text-balance", centered ? "mt-4" : "mt-3")}
+        >
+          <RotatingTitle title={profile_data.title} />
+        </motion.p>
+      )}
+    </div>
+  );
 
-  const availability = panel.availability && (
-    <motion.div {...rise(0)}>
-      <AvailabilityPill label={panel.availability} />
-    </motion.div>
-  );
-  const role = Boolean(profile_data.title?.trim()) && (
-    <motion.p {...rise(0.3)} className="t-title text-balance">
-      <RotatingTitle title={profile_data.title} />
-    </motion.p>
-  );
-  const details = (
+  const copy = (
     <>
+      {panel.availability && (
+        <motion.div {...rise(0)}>
+          <AvailabilityPill label={panel.availability} />
+        </motion.div>
+      )}
+      {heading}
       {profile_data.description && (
         <motion.div
-          {...rise(0.4)}
-          className="t-lead max-w-prose text-pretty [&_p]:m-0"
+          {...rise(0.35)}
+          className={cn(
+            "t-lead max-w-prose text-pretty [&_p]:m-0",
+            centered && "mx-auto",
+          )}
         >
           <Markdown>{profile_data.description}</Markdown>
         </motion.div>
       )}
-      <motion.div {...rise(0.5)}>
-        <Actions />
+      <motion.div {...rise(0.45)}>
+        <Actions className={centered ? "justify-center" : undefined} />
       </motion.div>
-      <motion.div {...rise(0.6)}>
-        <SocialRow links={social_links ?? []} />
+      <motion.div {...rise(0.55)}>
+        <SocialRow
+          links={social_links ?? []}
+          className={centered ? "justify-center" : undefined}
+        />
       </motion.div>
     </>
   );
@@ -277,19 +415,7 @@ export function HeroView({ identity }: { identity: SiteContent }) {
           data-composition="panel"
           className="grid gap-16 lg:grid-cols-[1.35fr_1fr] lg:items-center"
         >
-          <div className="flex min-w-0 flex-col items-start gap-7">
-            {availability}
-            <div className="min-w-0">
-              <h1
-                id="hero-name"
-                className="t-display text-balance [overflow-wrap:anywhere]"
-              >
-                <AnimatedName name={profile_data.name} />
-              </h1>
-              {role && <div className="mt-3">{role}</div>}
-            </div>
-            {details}
-          </div>
+          <div className="flex min-w-0 flex-col items-start gap-7">{copy}</div>
           <motion.div
             className="min-w-0"
             {...(reduceMotion
@@ -304,42 +430,15 @@ export function HeroView({ identity }: { identity: SiteContent }) {
           </motion.div>
         </div>
       ) : (
-        /*
-          Without the panel the hero stands alone, so it centres — the one
-          place on the site that does. Everything else runs down the left
-          edge; a standalone opener with nothing beside it reads as a
-          composition rather than as a column with a void.
-        */
         <div
           data-composition="centered"
           className="mx-auto flex max-w-4xl flex-col items-center gap-7 text-center"
         >
-          {availability}
-          <div className="min-w-0">
-            <h1
-              id="hero-name"
-              className="font-heading text-[clamp(2.75rem,1.6rem+5vw,6rem)] font-bold leading-[1.02] tracking-tighter text-balance [overflow-wrap:anywhere]"
-            >
-              <AnimatedName name={profile_data.name} />
-            </h1>
-            {role && <div className="mt-4">{role}</div>}
-          </div>
-          {profile_data.description && (
-            <motion.div
-              {...rise(0.4)}
-              className="t-lead mx-auto max-w-prose text-pretty [&_p]:m-0"
-            >
-              <Markdown>{profile_data.description}</Markdown>
-            </motion.div>
-          )}
-          <motion.div {...rise(0.5)}>
-            <Actions className="justify-center" />
-          </motion.div>
-          <motion.div {...rise(0.6)}>
-            <SocialRow links={social_links ?? []} className="justify-center" />
-          </motion.div>
+          {copy}
         </div>
       )}
+
+      {proof.length > 0 && <ProofStrip items={proof} centered={centered} />}
     </Band>
   );
 }

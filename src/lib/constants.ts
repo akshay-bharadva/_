@@ -579,6 +579,7 @@ export const RESERVED_SEGMENTS = [
   "showcase",
   "experience",
   "updates",
+  "kit",
   "404",
   "500",
 ] as const;
@@ -600,4 +601,5 @@ export const BUILTIN_ROUTES = [
   "/projects",
   "/showcase",
   "/updates",
+  "/kit",
 ] as const;
