@@ -114,8 +114,41 @@ Three bugs worth remembering:
 
 ## Updates (public + admin)
 
-**Is** — a scrapbook wall of ordered masonry, and an admin board sharing the
-same ordering.
+**Was** — a scrapbook: tilted polaroids with washi tape and a handwriting
+face on the public page, and in the admin a board of the same polaroids (or a
+list) with a side sheet for writing. Every update got the same keepsake
+treatment whether it was a milestone or a passing thought, the script face
+was unreadable at the sizes a date and a tag need, and posting meant opening
+a panel with a Select, a Published switch and a comma-separated tag string.
+
+**Is — rebuilt from scratch (2026-09-11).**
+
+- **Public `/updates`**: pinned updates lead as a feature (the first large,
+  image beside the text; the rest at entry size), because a pin means "true
+  for a while". The feed below is everything else, in the arrangement chosen
+  in Settings — **Journal** (one reading column, a month at a time, the day
+  number and weekday in the margin; no rail) or **Wall** (ordered masonry).
+  The stored values are still `timeline` / `scrapbook`, so no settings data
+  moved; only the tile names and notes changed. Filtering narrows the feed
+  and leaves the pinned block alone, so typing a search never makes the page
+  jump — and, filtered, the feed includes pinned matches, since a search that
+  skipped them would look broken. Tags are buttons into the feed. The end of
+  the feed says how far back it goes instead of a handwritten sign-off
+  between two rules.
+- **Admin**: a composer first — pick a kind, write, Publish. Publishing is a
+  button rather than a switch (**Publish / Save draft**, or **Save / Move to
+  drafts** for a live update), tags are chips (Enter or comma; a typed `#` is
+  dropped), a photo can be attached, dropped or pasted, and Ctrl + Enter
+  publishes. Below it the stream mirrors the site's order: Pinned, then month
+  by month, drafts in place on a flat tinted fill. Editing swaps an entry for
+  the composer in place. Every action is always on screen — the old ones sat
+  in a hover menu, which on a phone meant nowhere.
+- **One set of display rules**: `src/lib/life-update.ts` (category fallback,
+  headline from the first line, month grouping, tag parsing, search). The
+  public and admin sides each had their own copy with different fallbacks for
+  the same unknown category.
+- Writes still validate against `lifeUpdateSchema`; a category outside the
+  five is shown flagged "(unrecognised)" and refused, not silently replaced.
 
 **Carried forward — the masonry rule.** CSS `columns-*` fills each column to the
 bottom before starting the next, so a newest-first feed reads down the entire

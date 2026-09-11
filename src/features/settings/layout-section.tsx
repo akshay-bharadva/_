@@ -113,15 +113,15 @@ export function LayoutSection({ form }: { form: SettingsForm }) {
                   <ChoiceTile
                     value="scrapbook"
                     icon={BookImage}
-                    title="Scrapbook"
-                    note="Polaroid cards with washi tape, dealt into ordered columns."
+                    title="Wall"
+                    note="Every update at a glance, in columns, newest across the top."
                     selected={(updates || "scrapbook") === "scrapbook"}
                   />
                   <ChoiceTile
                     value="timeline"
                     icon={Clock}
-                    title="Timeline"
-                    note="Chronological feed grouped by month."
+                    title="Journal"
+                    note="One reading column, a month at a time, dated in the margin."
                     selected={updates === "timeline"}
                   />
                 </RadioGroup>

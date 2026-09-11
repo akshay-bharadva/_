@@ -7,7 +7,8 @@ import {
   useGetSiteIdentityQuery,
 } from "@/store/api/publicApi";
 import { LIFE_UPDATE_CATEGORY_OPTIONS } from "@/lib/constants";
-import type { LifeUpdate, LifeUpdateCategory } from "@/types";
+import { matchesSearch, monthLabel } from "@/lib/life-update";
+import type { LifeUpdateCategory } from "@/types";
 import { Band } from "@/components/layout/band";
 import { PageHeader } from "@/components/layout/page-header";
 import { Input } from "@/components/ui/input";
@@ -15,163 +16,191 @@ import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DynamicPageContent } from "@/features/sections/dynamic-page-content";
 import { FeedEnd } from "./feed-end";
-import { ScrapbookLayout } from "./scrapbook-layout";
-import { TimelineLayout } from "./timeline-layout";
+import { JournalFeed, PinnedUpdates, WallFeed } from "./update-feeds";
 
-function matches(update: LifeUpdate, term: string): boolean {
-  const haystack = [update.title, update.content, ...(update.tags ?? [])]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(term);
-}
-
+/**
+ * /updates — what the owner is up to.
+ *
+ * Pinned updates lead as a feature, because a pin means "this is true for a
+ * while"; the feed below is everything else, newest first, in the arrangement
+ * chosen in Settings (journal or wall). Filtering narrows the feed and leaves
+ * the pinned block where it is, so typing a search never makes the page jump.
+ * Tags are links into the feed rather than decoration.
+ */
 export function UpdatesPage() {
   const { data: updates, isLoading } = useGetPublishedLifeUpdatesQuery();
   const { data: identity } = useGetSiteIdentityQuery();
   const [searchTerm, setSearchTerm] = useState("");
   const [category, setCategory] = useState<LifeUpdateCategory | "all">("all");
+  const [tag, setTag] = useState<string | null>(null);
 
   const layout = identity?.profile_data.updates_layout ?? "scrapbook";
+  const all = useMemo(() => updates ?? [], [updates]);
+  const filtering = category !== "all" || !!searchTerm.trim() || !!tag;
 
-  const activeCategories = useMemo(() => {
-    const present = new Set((updates ?? []).map((update) => update.category));
-    return LIFE_UPDATE_CATEGORY_OPTIONS.filter((option) =>
-      present.has(option.value),
-    );
-  }, [updates]);
+  const pinned = useMemo(() => all.filter((u) => u.is_pinned), [all]);
 
-  const filtered = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    return (updates ?? []).filter(
-      (update) =>
-        (category === "all" || update.category === category) &&
-        (!term || matches(update, term)),
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const update of all) {
+      counts.set(update.category, (counts.get(update.category) ?? 0) + 1);
+    }
+    return counts;
+  }, [all]);
+
+  const presentCategories = LIFE_UPDATE_CATEGORY_OPTIONS.filter((option) =>
+    categoryCounts.has(option.value),
+  );
+
+  /**
+   * Unfiltered, the feed leaves out what is already pinned above it. Filtered,
+   * it is a result list and includes every match — a search that silently
+   * skipped pinned updates would look broken.
+   */
+  const feed = useMemo(() => {
+    if (!filtering) return all.filter((u) => !u.is_pinned);
+    return all.filter(
+      (u) =>
+        (category === "all" || u.category === category) &&
+        (!tag || (u.tags ?? []).includes(tag)) &&
+        matchesSearch(u, searchTerm),
     );
-  }, [updates, searchTerm, category]);
+  }, [all, filtering, category, tag, searchTerm]);
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setCategory("all");
+    setTag(null);
+  };
+
+  const toggleTag = (next: string) =>
+    setTag((current) => (current === next ? null : next));
+
+  const oldest = all[all.length - 1]?.created_at;
+  const Feed = layout === "timeline" ? JournalFeed : WallFeed;
 
   return (
     <Band weight="content">
       <PageHeader
-        kicker="Field notes"
+        kicker="Now & then"
         title="Updates"
-        subheading="Milestones, experiments, and what I'm up to — straight from the workbench."
+        subheading="What I'm working on, watching and thinking about — the small news between projects."
       />
 
-      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search
-            aria-hidden
-            className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search updates…"
-            aria-label="Search updates"
-            className="h-11 rounded-full bg-card pl-11 shadow-e1"
-          />
-        </div>
-
-        {/*
-          Same FilterChip the admin module uses, so a visitor and the owner are
-          looking at one filter vocabulary. The chips carry counts, and the
-          monospace pill styling is gone — mono is for code, not for labels.
-        */}
-        {activeCategories.length > 1 && (
-          <FilterBar label="Filter by category">
-            <FilterChip
-              active={category === "all"}
-              count={updates?.length}
-              onClick={() => setCategory("all")}
-            >
-              All
-            </FilterChip>
-            {activeCategories.map((option) => (
-              <FilterChip
-                key={option.value}
-                active={category === option.value}
-                count={
-                  (updates ?? []).filter((u) => u.category === option.value)
-                    .length
-                }
-                onClick={() => setCategory(option.value)}
-              >
-                <span aria-hidden>{option.emoji}</span>
-                {option.label}
-              </FilterChip>
-            ))}
-          </FilterBar>
-        )}
-      </div>
-
       {isLoading ? (
-        /* Shaped like the layout it is standing in for, rather than a generic
-           three-column grid that matched neither the masonry scrapbook nor the
-           single-column timeline. */
-        layout === "timeline" ? (
-          <div className="space-y-6" aria-busy>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-28 rounded-surface" />
+        <div className="space-y-5" aria-busy>
+          <Skeleton className="h-64 rounded-surface" />
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-40 rounded-surface" />
             ))}
           </div>
-        ) : (
-          /* Mirrors the scrapbook's flex columns, with staggered heights so the
-             skeleton reads as masonry rather than as a uniform grid the real
-             layout would then jump away from. */
-          <div className="flex items-start gap-5" aria-busy>
-            {Array.from({ length: 3 }).map((_, col) => (
-              <div key={col} className="flex min-w-0 flex-1 flex-col gap-5">
-                {Array.from({ length: 2 }).map((_, row) => (
-                  <Skeleton
-                    key={row}
-                    className="rounded-surface"
-                    style={{ height: `${10 + ((col + row) % 3) * 4}rem` }}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        )
-      ) : filtered.length === 0 ? (
+        </div>
+      ) : all.length === 0 ? (
         <div className="rounded-surface bg-card px-6 py-16 text-center shadow-e1">
-          <p className="t-lead">No updates match.</p>
-          {(searchTerm || category !== "all") && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTerm("");
-                setCategory("all");
-              }}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <X className="size-3.5" aria-hidden />
-              Clear filters
-            </button>
-          )}
+          <p className="t-lead">Nothing posted yet.</p>
         </div>
       ) : (
         <>
-          {layout === "timeline" ? (
-            <TimelineLayout updates={filtered} />
-          ) : (
-            <ScrapbookLayout updates={filtered} />
+          <PinnedUpdates updates={pinned} onTag={toggleTag} activeTag={tag} />
+
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {presentCategories.length > 1 ? (
+              <FilterBar label="Filter by category" className="min-w-0">
+                <FilterChip
+                  active={category === "all"}
+                  count={all.length}
+                  onClick={() => setCategory("all")}
+                >
+                  All
+                </FilterChip>
+                {presentCategories.map((option) => (
+                  <FilterChip
+                    key={option.value}
+                    active={category === option.value}
+                    count={categoryCounts.get(option.value)}
+                    onClick={() => setCategory(option.value)}
+                  >
+                    <span aria-hidden>{option.emoji}</span>
+                    {option.label}
+                  </FilterChip>
+                ))}
+              </FilterBar>
+            ) : (
+              <span />
+            )}
+
+            <div className="relative w-full shrink-0 sm:max-w-xs">
+              <Search
+                aria-hidden
+                className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search updates…"
+                aria-label="Search updates"
+                className="h-11 rounded-full bg-card pl-11 shadow-e1"
+              />
+            </div>
+          </div>
+
+          {tag && (
+            <div className="-mt-4 mb-8 flex items-center gap-2 text-sm text-muted-foreground">
+              Tagged
+              <button
+                type="button"
+                onClick={() => setTag(null)}
+                aria-label={`Stop filtering by ${tag}`}
+                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                #{tag}
+                <X className="size-3.5" aria-hidden />
+              </button>
+            </div>
           )}
-          {/*
-            Shown for a filtered view too. "That's all" is as true of a
-            filtered feed as of the whole one, and hiding it there would leave
-            the reader wondering whether the filter had cut the list short or
-            failed.
-          */}
-          <FeedEnd />
+
+          {feed.length === 0 ? (
+            filtering ? (
+              <div className="rounded-surface bg-card px-6 py-16 text-center shadow-e1">
+                <p className="t-lead">No updates match.</p>
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="size-3.5" aria-hidden />
+                  Clear filters
+                </button>
+              </div>
+            ) : null
+          ) : (
+            <>
+              <Feed updates={feed} onTag={toggleTag} activeTag={tag} />
+              {/*
+                Shown for a filtered view too: "that's everything" is as true
+                of a filtered feed, and hiding it would leave the reader
+                wondering whether the filter cut the list short.
+              */}
+              <FeedEnd
+                label={filtering ? "That's every match" : "You're all caught up"}
+                detail={
+                  filtering
+                    ? `${feed.length} of ${all.length} updates`
+                    : oldest
+                      ? `${all.length} ${all.length === 1 ? "update" : "updates"} since ${monthLabel(oldest)}`
+                      : undefined
+                }
+              />
+            </>
+          )}
         </>
       )}
 
       {/*
         CMS sections for /updates, the way Contact, About and Home already
-        have them. Added so the Library's random highlight can be placed here
-        from Content rather than hard-coded — and anything else can be too.
+        have them — the Library's random highlight among them.
       */}
       <DynamicPageContent pagePath="/updates" className="mt-16" />
     </Band>
