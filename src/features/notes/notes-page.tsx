@@ -19,6 +19,7 @@ import { cn } from "@/lib/cn";
 import { buildLinkGraph } from "./note-links";
 import { NoteDocument } from "./note-document";
 import { NoteList } from "./note-list";
+import { loadNovelEditor } from "@/components/admin/novel-editor/load-editor";
 
 /**
  * Notes — a notebook: the list on the left, the open note on the right.
@@ -58,6 +59,11 @@ export default function NotesPage() {
     graph.backlinks.forEach((_sources, id) => ids.add(id));
     return ids;
   }, [notes]);
+
+  // Every open note is the editor, so fetch its chunk while the list is read.
+  useEffect(() => {
+    void loadNovelEditor();
+  }, []);
 
   const discardIfBlank = useCallback(() => {
     const current = fresh.current;

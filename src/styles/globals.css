@@ -544,6 +544,16 @@
   .novel-editor .ProseMirror .ProseMirror-gapcursor::after {
     @apply border-t-2 border-foreground;
   }
+
+  /* `[[Links]]` between pages, clickable while writing. A link to a page that
+     does not exist yet is quieter, and following it creates the page. */
+  .novel-editor .ProseMirror .wikilink {
+    @apply cursor-pointer rounded-[0.2rem] text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary;
+  }
+
+  .novel-editor .ProseMirror .wikilink-missing {
+    @apply text-muted-foreground decoration-muted-foreground/40;
+  }
 }
 
 /* =============================================================================

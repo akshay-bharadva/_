@@ -2,29 +2,41 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
-import type { BlockCommand } from "./slash-commands";
+
+/** One row of a suggestion menu — a block type, or a page to link. */
+export interface MenuEntry {
+  id: string;
+  group: string;
+  title: string;
+  description?: string;
+  icon: LucideIcon;
+  shortcut?: string;
+}
 
 /**
- * The "/" menu: every block type with what it is for and its markdown
- * shortcut, filtered as you type after the slash. Keyboard handling lives in
- * the editor (arrows, Enter, Escape), so the text never loses focus.
+ * The menu that opens at the cursor: block types for `/`, pages for `[[`.
+ * Filtered as you type after the trigger. Keyboard handling lives in the
+ * editor (arrows, Enter, Escape), so the text never loses focus.
  */
-export function SlashMenu({
+export function SuggestionMenu({
   editor,
   at,
+  label,
   items,
   index,
   onHover,
   onPick,
 }: {
   editor: Editor;
-  /** Document position of the slash. */
+  /** Document position of the trigger; the menu anchors here. */
   at: number;
-  items: BlockCommand[];
+  label: string;
+  items: MenuEntry[];
   index: number;
   onHover: (index: number) => void;
-  onPick: (command: BlockCommand) => void;
+  onPick: (entry: MenuEntry) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [, setTick] = useState(0);
@@ -67,7 +79,7 @@ export function SlashMenu({
     <div
       ref={listRef}
       role="listbox"
-      aria-label="Insert a block"
+      aria-label={label}
       style={style}
       // Keeps the editor focused while the menu is clicked.
       onMouseDown={(event) => event.preventDefault()}
@@ -100,10 +112,14 @@ export function SlashMenu({
                 <Icon className="size-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium">{item.title}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {item.description}
+                <span className="block truncate text-sm font-medium">
+                  {item.title}
                 </span>
+                {item.description && (
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {item.description}
+                  </span>
+                )}
               </span>
               {item.shortcut && (
                 <kbd className="shrink-0 text-xs text-muted-foreground">

@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import { Markdown, type MarkdownStorage } from "tiptap-markdown";
 import { Loader2 } from "lucide-react";
@@ -12,13 +19,24 @@ import {
   TURN_INTO_COMMANDS,
   filterCommands,
   slashQuery,
-  type BlockCommand,
   type SlashMatch,
 } from "./slash-commands";
-import { SlashMenu } from "./slash-menu";
+import { SuggestionMenu, type MenuEntry } from "./slash-menu";
 import { BubbleToolbar } from "./bubble-toolbar";
 import { BlockHandle } from "./block-handle";
 import { blockOfSelection, moveBlock } from "./block-actions";
+import {
+  NEW_LINK_PREFIX,
+  linkEntries,
+  wikiLinkQuery,
+  wikiLinksKey,
+  type LinkTarget,
+} from "./wiki-links";
+
+/** What a page can do to the editor from outside it. */
+export interface NovelEditorHandle {
+  focus: (at?: "start" | "end") => void;
+}
 
 export interface NovelEditorProps {
   /** Markdown in, markdown out. */
@@ -34,9 +52,18 @@ export interface NovelEditorProps {
   measure?: "full" | "prose";
   /** `page` is part of the surface it sits on; `field` is framed like an input, for forms. */
   variant?: "page" | "field";
+  /**
+   * Pages `[[Title]]` may link to. When given, links are live in the text —
+   * decorated, and followed on click — and typing `[[` offers the titles.
+   */
+  links?: { targets: LinkTarget[]; onOpen: (title: string) => void };
+  /** Filled in once the editor exists, for focusing it from outside. */
+  handleRef?: MutableRefObject<NovelEditorHandle | null>;
   editable?: boolean;
   className?: string;
 }
+
+type Suggest = { kind: "slash" | "link"; match: SlashMatch };
 
 function getMarkdown(editor: Editor): string {
   return (
@@ -48,14 +75,12 @@ function getMarkdown(editor: Editor): string {
  * The block editor, in the manner of Notion.
  *
  * No toolbar and no frame: the text is the interface. Type `/` for any block
- * type, select text for formatting, and use the handle in the margin to add,
- * convert, move or drag a block. Markdown shortcuts (`#`, `-`, `[]`, `>`,
- * ` ``` `, `---`) work as you type.
+ * type, `[[` to link a page (where the caller supplies pages), select text for
+ * formatting, and use the handle in the margin to add, convert, move or drag
+ * a block. Markdown shortcuts (`#`, `-`, `[]`, `>`, ` ``` `, `---`) work as
+ * you type.
  *
- * It grows with what is written — the page scrolls, never the editor. The old
- * one was a bordered box with a sticky bar of thirty buttons and its own
- * scroll area, which read as an attachment sitting on the page rather than
- * the page itself.
+ * It grows with what is written — the page scrolls, never the editor.
  */
 export default function NovelEditor({
   value,
@@ -65,6 +90,8 @@ export default function NovelEditor({
   minHeight = "12rem",
   measure = "full",
   variant = "page",
+  links,
+  handleRef,
   editable = true,
   className,
 }: NovelEditorProps) {
@@ -72,11 +99,11 @@ export default function NovelEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<Editor | null>(null);
 
-  const [slash, setSlash] = useState<SlashMatch | null>(null);
-  const [slashIndex, setSlashIndex] = useState(0);
-  const slashRef = useRef(slash);
-  slashRef.current = slash;
-  /** The slash the user dismissed with Escape, so it does not reopen. */
+  const [suggest, setSuggest] = useState<Suggest | null>(null);
+  const [suggestIndex, setSuggestIndex] = useState(0);
+  const suggestRef = useRef(suggest);
+  suggestRef.current = suggest;
+  /** The trigger the user dismissed with Escape, so it does not reopen. */
   const dismissedAt = useRef<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -84,16 +111,30 @@ export default function NovelEditor({
   onChangeRef.current = onChange;
   const uploadRef = useRef(onImageUpload);
   uploadRef.current = onImageUpload;
+  const linksRef = useRef(links);
+  linksRef.current = links;
+
+  const titleSet = useMemo(
+    () =>
+      new Set((links?.targets ?? []).map((t) => t.title.trim().toLowerCase())),
+    [links?.targets],
+  );
+  const titleSetRef = useRef(titleSet);
+  titleSetRef.current = titleSet;
 
   const commands = onImageUpload
     ? BLOCK_COMMANDS
     : BLOCK_COMMANDS.filter((c) => c.id !== "image");
-  const items = slash ? filterCommands(commands, slash.query) : [];
-  const activeIndex = Math.min(slashIndex, Math.max(items.length - 1, 0));
+  const items: MenuEntry[] = !suggest
+    ? []
+    : suggest.kind === "slash"
+      ? filterCommands(commands, suggest.match.query)
+      : linkEntries(links?.targets ?? [], suggest.match.query);
+  const activeIndex = Math.min(suggestIndex, Math.max(items.length - 1, 0));
 
   // The editor's key handler is created once; it reads the menu from here.
-  const menu = useRef({ open: false, items: [] as BlockCommand[], index: 0 });
-  menu.current = { open: !!slash && items.length > 0, items, index: activeIndex };
+  const menu = useRef({ open: false, items: [] as MenuEntry[], index: 0 });
+  menu.current = { open: !!suggest && items.length > 0, items, index: activeIndex };
 
   const insertImage = useCallback(async (file: File, at?: number) => {
     const upload = uploadRef.current;
@@ -118,42 +159,62 @@ export default function NovelEditor({
   const insertImageRef = useRef(insertImage);
   insertImageRef.current = insertImage;
 
-  const runCommand = (command: BlockCommand) => {
+  const pick = (entry: MenuEntry) => {
     const editor = editorRef.current;
-    const match = slashRef.current;
-    if (!editor) return;
-    if (match) {
-      editor.chain().focus().deleteRange({ from: match.from, to: match.to }).run();
+    const current = suggestRef.current;
+    if (!editor || !current) return;
+    const { from, to } = current.match;
+    setSuggest(null);
+
+    if (current.kind === "link") {
+      const title = entry.id.startsWith(NEW_LINK_PREFIX)
+        ? entry.id.slice(NEW_LINK_PREFIX.length)
+        : entry.title;
+      editor
+        .chain()
+        .focus()
+        .insertContentAt({ from, to }, { type: "text", text: `[[${title}]]` })
+        .run();
+      return;
     }
-    setSlash(null);
-    if (command.id === "image") {
+
+    editor.chain().focus().deleteRange({ from, to }).run();
+    if (entry.id === "image") {
       fileInputRef.current?.click();
       return;
     }
-    command.run(editor);
+    BLOCK_COMMANDS.find((c) => c.id === entry.id)?.run(editor);
   };
-  const runCommandRef = useRef(runCommand);
-  runCommandRef.current = runCommand;
+  const pickRef = useRef(pick);
+  pickRef.current = pick;
 
-  const syncSlash = (editor: Editor) => {
-    const match = editor.isEditable ? slashQuery(editor.state) : null;
+  const syncSuggest = (editor: Editor) => {
+    const link =
+      editor.isEditable && linksRef.current ? wikiLinkQuery(editor.state) : null;
+    const slash = !link && editor.isEditable ? slashQuery(editor.state) : null;
+    const match = link ?? slash;
     if (!match) {
       dismissedAt.current = null;
-      setSlash(null);
+      setSuggest(null);
       return;
     }
     if (dismissedAt.current === match.from) {
-      setSlash(null);
+      setSuggest(null);
       return;
     }
-    setSlash(match);
-    setSlashIndex(0);
+    setSuggest({ kind: link ? "link" : "slash", match });
+    setSuggestIndex(0);
   };
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      ...getExtensions(placeholder),
+      ...getExtensions(placeholder, {
+        enabled: () => !!linksRef.current,
+        isResolved: (target) =>
+          titleSetRef.current.has(target.trim().toLowerCase()),
+        onOpen: (target) => linksRef.current?.onOpen(target),
+      }),
       Markdown.configure({
         html: true,
         transformPastedText: true,
@@ -170,19 +231,19 @@ export default function NovelEditor({
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
             const step = event.key === "ArrowDown" ? 1 : -1;
-            setSlashIndex((m.index + step + m.items.length) % m.items.length);
+            setSuggestIndex((m.index + step + m.items.length) % m.items.length);
             return true;
           }
           if (event.key === "Enter" || event.key === "Tab") {
             event.preventDefault();
-            const command = m.items[m.index];
-            if (command) runCommandRef.current(command);
+            const entry = m.items[m.index];
+            if (entry) pickRef.current(entry);
             return true;
           }
           if (event.key === "Escape") {
             event.preventDefault();
-            dismissedAt.current = slashRef.current?.from ?? null;
-            setSlash(null);
+            dismissedAt.current = suggestRef.current?.match.from ?? null;
+            setSuggest(null);
             return true;
           }
         }
@@ -224,10 +285,10 @@ export default function NovelEditor({
     },
     onUpdate: ({ editor: current }) => {
       onChangeRef.current(getMarkdown(current));
-      syncSlash(current);
+      syncSuggest(current);
     },
-    onSelectionUpdate: ({ editor: current }) => syncSlash(current),
-    onBlur: () => setSlash(null),
+    onSelectionUpdate: ({ editor: current }) => syncSuggest(current),
+    onBlur: () => setSuggest(null),
   });
   editorRef.current = editor;
 
@@ -241,6 +302,21 @@ export default function NovelEditor({
   useEffect(() => {
     if (editor && editor.isEditable !== editable) editor.setEditable(editable);
   }, [editor, editable]);
+
+  // A page added or renamed elsewhere: redraw which links resolve.
+  const titlesKey = (links?.targets ?? []).map((t) => t.title).join("\n");
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.view.dispatch(editor.state.tr.setMeta(wikiLinksKey, titlesKey));
+  }, [editor, titlesKey]);
+
+  useEffect(() => {
+    if (!handleRef || !editor) return;
+    handleRef.current = { focus: (at = "start") => editor.commands.focus(at) };
+    return () => {
+      handleRef.current = null;
+    };
+  }, [editor, handleRef]);
 
   if (!editor) {
     return (
@@ -306,14 +382,15 @@ export default function NovelEditor({
 
       <EditorContent editor={editor} />
 
-      {slash && items.length > 0 && (
-        <SlashMenu
+      {suggest && items.length > 0 && (
+        <SuggestionMenu
           editor={editor}
-          at={slash.from}
+          at={suggest.match.from}
+          label={suggest.kind === "link" ? "Link to a note" : "Insert a block"}
           items={items}
           index={activeIndex}
-          onHover={setSlashIndex}
-          onPick={(command) => runCommandRef.current(command)}
+          onHover={setSuggestIndex}
+          onPick={(entry) => pickRef.current(entry)}
         />
       )}
 

@@ -11,6 +11,7 @@ import { Image } from "@tiptap/extension-image";
 import { Typography } from "@tiptap/extension-typography";
 import { CharacterCount } from "@tiptap/extension-character-count";
 import { TextAlign } from "@tiptap/extension-text-align";
+import { WikiLinks, type WikiLinkOptions } from "./wiki-links";
 
 /**
  * The editor's schema. Styling lives in `globals.css` under `.novel-editor`,
@@ -20,7 +21,11 @@ import { TextAlign } from "@tiptap/extension-text-align";
  * StarterKit 3 already bundles Link and Underline; they are configured here
  * rather than registered a second time.
  */
-export const getExtensions = (placeholder: string = "Start writing…") => [
+export const getExtensions = (
+  placeholder: string = "Start writing…",
+  wikiLinks: Partial<WikiLinkOptions> = {},
+) => [
+  WikiLinks.configure(wikiLinks),
   StarterKit.configure({
     // Six levels are kept so existing posts with an h4–h6 still load intact;
     // the menus offer three, as Notion does.

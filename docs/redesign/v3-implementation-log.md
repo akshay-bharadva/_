@@ -94,9 +94,31 @@ as the reference implementation of drag-to-reorder with a visible scope.
 
 ## Blog
 
-**Is** — a single `PostList`/`PostRow`, previously a `PostsTable` and a
-`PostCards` hidden from each other by a breakpoint, with publish/unpublish on
-the row.
+**Was** — one list of identical rows, and an editor that was a card holding a
+title field and a framed editor, with the subtitle, tags and cover behind a
+sheet laid over the text and a manual Save for everything.
+
+**Is — the admin module rebuilt (2026-09-11).**
+
+- **The list** leads with the latest draft as "Continue writing", then lists
+  Drafts and Published apart — work in progress and a record with readers
+  are different things. A published row carries its views in its own column
+  so the numbers line up. Publishing from a row follows the editor's rule (a
+  post needs a body).
+- **The post is the page**: cover, title, subtitle (the excerpt — part of the
+  post, not a setting) and body in one reading column on the page ground.
+  Settings sit beside it on a wide screen (`xl`, via `useMediaQuery`, so the
+  Sheet only mounts where it is used), with a live search-result preview.
+- **Saving follows what a post is.** A draft saves itself once it has a
+  title. A published post's edits wait for **Update** — they would be live the
+  moment they were written — and leaving asks before discarding them.
+- **`published_at` is kept across updates** (`recordFromDraft`). The editor
+  restamped it on every save of a published post, so fixing a typo moved an
+  old post to the top of the blog as if it were new.
+- The slug follows the title until it is edited or the post has ever been
+  public; a taken slug (`23505`) is explained where the slug is.
+- Every write validates against `blogPostSchema` (`postProblems`), not a
+  hand-picked subset of its fields.
 
 **Carried forward** — `post-content.tsx` now holds only what is specific to a
 post (every link opens a new tab); the markdown pipeline moved to
@@ -285,9 +307,17 @@ open note on screen together (one at a time on a phone). Migration `004`.
   editable, the body saves ~0.8 s after typing pauses, Ctrl + S saves at
   once, leaving the note flushes anything pending, and `beforeunload` asks
   while something is unsaved. Every write still validates against
-  `noteSchema`, with the reason shown and a Try again. The body keeps a
-  reading mode, because rendered `[[links]]` are only clickable when the text
-  is not being edited; clicking the text starts editing.
+  `noteSchema`, with the reason shown and a Try again. 
+- **The open note is a page, not a card** (second pass, same day). The first
+  version put it in a tinted box with seven buttons across the top and a
+  Read/Edit switch — a form you operated. Now it sits on the page ground at a
+  reading width: a thin bar (breadcrumb, save status, Pin, a More menu for
+  colour, archive and delete), the colour as a cover band, a large title, a
+  properties block (tags, edited, created), then the body.
+- **No reading mode.** It existed only because `[[links]]` were inert while
+  editing. The editor now decorates them in place and follows them on click,
+  and typing `[[` offers every other note (or a new one) — see the block
+  editor entry. `note-body.tsx` went with the reading mode.
 - **New note creates the row at once** and opens it to type in. A new note
   left blank is deleted on the way out (tracked by the page, not in the
   document's unmount — strict mode's double mount would delete it on open).
@@ -1971,6 +2001,11 @@ already installed; no new dependency.
   block adds the line instead.
 - Styles are theme tokens in `globals.css` under `.novel-editor`; the
   highlight was a literal yellow.
+- **`[[Links]]` are live in the text** when a page passes `links` (Notes
+  does): a ProseMirror decoration marks each one — a missing page quieter —
+  and a click follows it; typing `[[` opens the same menu as `/` with the
+  page titles, plus "New note" when nothing matches exactly. The text stays
+  plain `[[Title]]`, so storage and `note-links.ts` are unchanged.
 
 **Known limit:** the handle works on top-level blocks, so a list moves as one
 block rather than item by item.

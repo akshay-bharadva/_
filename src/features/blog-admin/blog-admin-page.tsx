@@ -1,184 +1,183 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { FileText, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { BlogPost } from "@/types";
 import {
-  useAddBlogPostMutation,
   useDeleteBlogPostMutation,
   useGetAdminBlogPostsQuery,
   useUpdateBlogPostMutation,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterBar, FilterChip } from "@/components/ui/filter-chip";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
 import {
   EmptyState,
+  LoadingState,
   ManagerWrapper,
   PageHeader,
-  LoadingState,
 } from "@/components/admin/shared";
 import { getErrorMessage } from "@/lib/utils";
-import { cn } from "@/lib/cn";
-import { PostList } from "./post-list";
+import { draftFromPost, postProblems, recordFromDraft } from "./post-draft";
+import { ContinueWriting, PostSection } from "./post-list";
 
-// The editor pulls in the full TipTap/Novel suite — load it only when a post
-// is actually opened for editing, so the list view stays light.
+// The editor pulls in TipTap — loaded only when a post is opened, so the list
+// stays light.
 const BlogEditor = dynamic(() => import("./blog-editor"), {
   ssr: false,
-  loading: () => <LoadingState />,
+  loading: () => <LoadingState label="Opening the editor" />,
 });
 
-interface BlogAdminPageProps {
-  startInCreateMode?: boolean;
-  onActionHandled?: () => void;
-}
+type Status = "all" | "draft" | "published";
 
-export default function BlogAdminPage({
-  startInCreateMode,
-  onActionHandled,
-}: BlogAdminPageProps) {
+const time = (iso?: string | null) => (iso ? new Date(iso).getTime() || 0 : 0);
+
+/**
+ * The blog: what you are writing, then what is out and how it is doing.
+ *
+ * The latest draft leads as "Continue writing", because coming back to it is
+ * the usual reason to open this page. Drafts and published posts are listed
+ * apart — one is work in progress, the other is a record with readers — and a
+ * published row carries its views in a column of its own.
+ */
+export default function BlogAdminPage() {
   const confirm = useConfirm();
-
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<
-    "all" | "published" | "draft"
-  >("all");
-
   const { data: posts = [], isLoading } = useGetAdminBlogPostsQuery();
-  const [addBlogPost] = useAddBlogPostMutation();
   const [updateBlogPost] = useUpdateBlogPostMutation();
   const [deleteBlogPost] = useDeleteBlogPostMutation();
 
-  useEffect(() => {
-    if (startInCreateMode) {
-      handleCreatePost();
-      onActionHandled?.();
-    }
-  }, [startInCreateMode, onActionHandled]);
+  /**
+   * The open editor. Keyed once when opened, not by post id, so a new post's
+   * first save — which gives it an id — does not remount the editor under
+   * the person typing in it.
+   */
+  const [session, setSession] = useState<{ key: number; id: string | null } | null>(
+    null,
+  );
+  const [status, setStatus] = useState<Status>("all");
+  const [search, setSearch] = useState("");
 
-  const filteredPosts = useMemo(() => {
-    return posts
-      .filter((post) => {
-        if (filterStatus === "published") return post.published;
-        if (filterStatus === "draft") return !post.published;
-        return true;
-      })
-      .filter((post) =>
-        (post.title || "").toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-  }, [posts, searchTerm, filterStatus]);
+  const open = (post: BlogPost | null) =>
+    setSession({ key: Date.now(), id: post?.id ?? null });
 
-  const handleCreatePost = () => {
-    setIsCreating(true);
-    setEditingPost(null);
-  };
-
-  const handleEditPost = (post: BlogPost) => {
-    setEditingPost(post);
-    setIsCreating(false);
-  };
-
-  const handleCancel = () => {
-    setIsCreating(false);
-    setEditingPost(null);
-  };
-
-  const handleDeletePost = async (post: BlogPost) => {
+  const handleDelete = async (post: BlogPost) => {
     const ok = await confirm({
-      title: `Delete "${post.title}"?`,
-      description: "This action cannot be undone.",
+      title: `Delete "${post.title || "Untitled"}"?`,
+      description: post.published
+        ? "It comes off the blog straight away, with its views. This can't be undone — unpublishing keeps it instead."
+        : "This can't be undone.",
       variant: "destructive",
+      confirmText: "Delete",
     });
     if (!ok) return;
-
     try {
       await deleteBlogPost(post).unwrap();
-      toast.success("Post deleted successfully.");
+      if (session?.id === post.id) setSession(null);
+      toast.success("Post deleted.");
     } catch (err) {
-      toast.error("Failed to delete post", {
+      toast.error("Couldn't delete the post", {
         description: getErrorMessage(err),
       });
     }
   };
 
-  /**
-   * Saving keeps you in the editor.
-   *
-   * Every save used to call `handleCancel()`, so writing a post and pressing
-   * Save threw you back to the list — you then had to find the post and
-   * reopen it to carry on. A create now switches the editor onto the record it
-   * just made, so the next save is an update rather than a second insert.
-   * Leaving is the explicit "Posts" control.
-   */
-  const handleSavePost = async (postData: Partial<BlogPost>) => {
-    try {
-      if (isCreating || !editingPost?.id) {
-        const created = await addBlogPost(postData).unwrap();
-        setIsCreating(false);
-        setEditingPost(created);
-        toast.success("Post created.");
-      } else {
-        const updated = await updateBlogPost({
-          ...postData,
-          id: editingPost.id,
-        }).unwrap();
-        setEditingPost(updated);
-        toast.success("Post saved.");
+  /** Publishing from the list follows the editor's rules: a post needs a body. */
+  const handleToggle = async (post: BlogPost) => {
+    const publishing = !post.published;
+    if (publishing) {
+      const problems = postProblems(
+        recordFromDraft(draftFromPost(post), true, post),
+        true,
+      );
+      if (Object.keys(problems).length > 0) {
+        toast.error("Not ready to publish", {
+          description: `${Object.values(problems)[0]} Open the post to finish it.`,
+        });
+        return;
       }
-    } catch (err) {
-      toast.error("Failed to save post", {
-        description: getErrorMessage(err),
-      });
     }
-  };
-
-  const togglePostStatus = async (post: BlogPost) => {
     try {
       await updateBlogPost({
         id: post.id,
-        published: !post.published,
-        published_at: !post.published ? new Date().toISOString() : null,
+        published: publishing,
+        published_at: publishing ? new Date().toISOString() : null,
       }).unwrap();
-      toast.success(`Post ${!post.published ? "published" : "unpublished"}.`);
+      toast.success(publishing ? "Published." : "Moved back to drafts.");
     } catch (err) {
-      toast.error("Failed to update status", {
+      toast.error("Couldn't update the post", {
         description: getErrorMessage(err),
       });
     }
   };
 
-  /* ── editor ───────────────────────────────────────────────────────── */
+  const term = search.trim().toLowerCase();
+  const matching = useMemo(
+    () =>
+      posts.filter(
+        (post) =>
+          !term ||
+          [post.title, post.excerpt, ...(post.tags ?? [])]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(term),
+      ),
+    [posts, term],
+  );
 
-  if (isCreating || editingPost) {
+  if (session) {
+    const post = session.id
+      ? (posts.find((p) => p.id === session.id) ?? null)
+      : null;
     return (
       <BlogEditor
-        post={editingPost}
-        onSave={handleSavePost}
-        onCancel={handleCancel}
+        key={session.key}
+        post={post}
+        onClose={() => setSession(null)}
+        onCreated={(created) =>
+          setSession((s) => (s ? { ...s, id: created.id } : s))
+        }
+        onDelete={handleDelete}
       />
     );
   }
 
-  /* ── list ─────────────────────────────────────────────────────────── */
-
+  const drafts = matching
+    .filter((p) => !p.published)
+    .sort((a, b) => time(b.updated_at ?? b.created_at) - time(a.updated_at ?? a.created_at));
+  const live = matching
+    .filter((p) => p.published)
+    .sort((a, b) => time(b.published_at) - time(a.published_at));
   const counts = {
     all: posts.length,
-    published: posts.filter((p) => p.published).length,
     draft: posts.filter((p) => !p.published).length,
+    published: posts.filter((p) => p.published).length,
+  };
+  const featured = status === "all" && !term ? drafts[0] : undefined;
+  const draftRows = featured ? drafts.slice(1) : drafts;
+  const showDrafts = status !== "published";
+  const showLive = status !== "draft";
+  const nothing =
+    !featured &&
+    (!showDrafts || draftRows.length === 0) &&
+    (!showLive || live.length === 0);
+
+  const actions = {
+    onEdit: open,
+    onToggleStatus: handleToggle,
+    onDelete: handleDelete,
   };
 
   return (
     <ManagerWrapper>
       <PageHeader
         title="Blog"
-        description="Write, publish and manage your posts."
+        description="What you're writing, and how published posts are doing."
         actions={
-          <Button onClick={handleCreatePost}>
+          <Button onClick={() => open(null)}>
             <Plus className="mr-2 size-4" aria-hidden /> New post
           </Button>
         }
@@ -192,88 +191,77 @@ export default function BlogAdminPage({
           icon={FileText}
           title="No posts yet"
           description="Write your first post — it stays a draft until you publish it."
-          action={{ label: "New post", onClick: handleCreatePost, icon: Plus }}
+          action={{ label: "New post", onClick: () => open(null), icon: Plus }}
         />
       ) : (
-        <div className="space-y-4">
-          {/*
-            Status, filter and search in one bar directly above the list they
-            act on. Previously the search sat in the page header, the status
-            filter beside it, and the count nowhere — so nothing told you how
-            much the filter had hidden.
-          */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div
-              role="tablist"
-              aria-label="Filter by status"
-              className="flex gap-1"
-            >
-              {(["all", "published", "draft"] as const).map((status) => (
-                <button
-                  key={status}
-                  role="tab"
-                  aria-selected={filterStatus === status}
-                  onClick={() => setFilterStatus(status)}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium capitalize transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    filterStatus === status
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-                  )}
-                >
-                  {status === "all" ? "All" : status}
-                  <span
-                    className={cn(
-                      "rounded-full px-1.5 text-xs tabular-nums",
-                      filterStatus === status
-                        ? "bg-primary-foreground/20"
-                        : "bg-secondary",
-                    )}
-                  >
-                    {counts[status]}
-                  </span>
-                </button>
-              ))}
-            </div>
+        <div className="space-y-8">
+          {featured && (
+            <ContinueWriting post={featured} onOpen={() => open(featured)} />
+          )}
 
-            <div className="relative sm:w-72">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <FilterBar label="Filter by status" className="min-w-0">
+              <FilterChip
+                active={status === "all"}
+                count={counts.all}
+                onClick={() => setStatus("all")}
+              >
+                All
+              </FilterChip>
+              <FilterChip
+                active={status === "draft"}
+                count={counts.draft}
+                onClick={() => setStatus("draft")}
+              >
+                Drafts
+              </FilterChip>
+              <FilterChip
+                active={status === "published"}
+                count={counts.published}
+                onClick={() => setStatus("published")}
+              >
+                Published
+              </FilterChip>
+            </FilterBar>
+            <div className="relative w-full shrink-0 sm:w-64">
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
               />
               <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search posts…"
-                aria-label="Search posts by title"
+                aria-label="Search posts"
                 className="h-9 pl-8"
               />
             </div>
           </div>
 
-          {filteredPosts.length === 0 ? (
+          {nothing ? (
             <EmptyState
               variant="card"
               size="compact"
               icon={Search}
               title="No matches"
-              description="No posts match the current filter and search."
+              description="No posts match this filter and search."
               action={{
                 label: "Clear filters",
                 onClick: () => {
-                  setSearchTerm("");
-                  setFilterStatus("all");
+                  setSearch("");
+                  setStatus("all");
                 },
               }}
             />
           ) : (
-            <PostList
-              posts={filteredPosts}
-              onEdit={handleEditPost}
-              onToggleStatus={togglePostStatus}
-              onDelete={handleDeletePost}
-            />
+            <>
+              {showDrafts && (
+                <PostSection title="Drafts" posts={draftRows} {...actions} />
+              )}
+              {showLive && (
+                <PostSection title="Published" posts={live} {...actions} />
+              )}
+            </>
           )}
         </div>
       )}

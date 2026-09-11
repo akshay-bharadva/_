@@ -262,8 +262,6 @@ const MONO_BUDGET = [
   "features/analytics/analytics-page.tsx",
   "features/assets/asset-details-sheet.tsx",
   "features/assets/asset-views.tsx",
-  "features/blog-admin/post-list.tsx",
-  "features/blog-admin/post-settings-sheet.tsx",
   "features/content/item-editor-sheet.tsx",
   "features/content/layout-registry.tsx",
   "features/content/section-detail.tsx",
