@@ -9,6 +9,7 @@ import {
   Repeat,
   Settings2,
   Target,
+  Upload,
   Eye,
   EyeOff,
 } from "lucide-react";
@@ -117,6 +118,15 @@ const FinancialGoalForm = dynamic(
 
 const GuideSection = dynamic(
   () => import("./guide-section").then((mod) => mod.GuideSection),
+  { ssr: false, loading: sectionLoader },
+);
+
+const ImportSection = dynamic(
+  () => import("./import-section").then((mod) => mod.ImportSection),
+  { ssr: false, loading: sectionLoader },
+);
+const ReportsSection = dynamic(
+  () => import("./reports-section").then((mod) => mod.ReportsSection),
   { ssr: false, loading: sectionLoader },
 );
 
@@ -367,6 +377,10 @@ export default function FinancePage() {
                     <Target className="mr-2 size-4" />
                     Goal
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setSectionId("import")}>
+                    <Upload className="mr-2 size-4" />
+                    Import a statement
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -424,6 +438,24 @@ export default function FinancePage() {
               accounts={accounts}
               settings={settings}
               onEditGoal={setEditingGoal}
+            />
+          )}
+
+          {sectionId === "reports" && (
+            <ReportsSection
+              transactions={transactions}
+              categories={categories}
+              settings={settings}
+              onImport={() => setSectionId("import")}
+            />
+          )}
+
+          {sectionId === "import" && (
+            <ImportSection
+              accounts={accounts}
+              categories={categories}
+              transactions={transactions}
+              settings={settings}
             />
           )}
 

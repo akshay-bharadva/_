@@ -1274,3 +1274,24 @@ export const financeLoanEventSchema = z
   });
 
 export type FinanceLoanEventFormValues = z.infer<typeof financeLoanEventSchema>;
+
+// ─── Statement import ────────────────────────────────────────────────────────
+
+/**
+ * One row as `import_transactions` receives it. Mirrors the columns: the
+ * description is capped at 200 by the RPC, the bank's wording at 500, the
+ * merchant at 200, and the amount is NUMERIC(10,2).
+ */
+export const importRowSchema = z.object({
+  date: dateString,
+  description: boundedRequiredString(LIMITS.TITLE, "Description"),
+  raw_description: z.string().max(500).nullable(),
+  merchant: z.string().max(200).nullable(),
+  amount: money(MONEY_MAX_10_2),
+  type: z.enum([TRANSACTION_TYPE.EXPENSE, TRANSACTION_TYPE.EARNING]),
+  category_id: z.string().uuid().nullable(),
+  import_hash: z.string().min(1).max(64),
+  pair_with: z.string().uuid().nullable(),
+});
+
+export type ImportRowValues = z.infer<typeof importRowSchema>;

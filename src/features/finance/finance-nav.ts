@@ -4,9 +4,11 @@ import {
   HandCoins,
   Landmark,
   LayoutDashboard,
+  PieChart,
   Receipt,
   Target,
   TrendingUp,
+  Upload,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,6 +42,12 @@ export const FINANCE_SECTIONS: readonly FinanceSection[] = [
     icon: LayoutDashboard,
   },
   {
+    id: "reports",
+    label: "Reports",
+    description: "What came in, what went out, and where — over any stretch of time.",
+    icon: PieChart,
+  },
+  {
     id: "accounts",
     label: "Accounts",
     description: "What each account holds, and moving money between them.",
@@ -50,6 +58,12 @@ export const FINANCE_SECTIONS: readonly FinanceSection[] = [
     label: "Activity",
     description: "Everything that happened, and the rules that repeat.",
     icon: Receipt,
+  },
+  {
+    id: "import",
+    label: "Import",
+    description: "Bring in the CSV your bank exports, sorted for you.",
+    icon: Upload,
   },
   {
     id: "plan",

@@ -1685,6 +1685,73 @@ one toolbar — search, an In/Out/Transfers switch, an Account dropdown — that
 wraps rather than scrolls. The filtering itself is `filterLedger`, pure and
 tested without driving a dropdown in jsdom.
 
+## Bank statement import, and Reports
+
+The owner banks with CIBC and RBC and wanted to see everything since 2023:
+earned, spent, and where it went. Both banks export CSV per account, so the
+module learned to read them.
+
+**What the banks give you, found by research before building.** Neither bank
+documents its export. CIBC's CSV reaches back about 13 months and RBC's about
+180 days (less for some cards); anything older exists only in the PDF
+eStatements. So the importer is built to be run often over overlapping windows,
+and the design assumes nothing about a format it cannot recognise:
+
+- RBC is recognised by its header ("Account Type", "Account Number",
+  "Transaction Date", "Cheque Number", "Description 1", "Description 2",
+  "CAD$", "USD$"), M/D/Y dates, one file possibly holding several accounts —
+  so the review asks which account number is the one being imported, and
+  remembers its last four digits (`finance_accounts.import_ref`).
+- CIBC has no header: date, description, money out, money in, plus the masked
+  card number on card exports.
+- Anything else is mapped column by column, by header names when there are
+  any and by shape when there are not.
+- Every import shows a **sign check** with real lines from the file ("Loblaws
+  −$82.14, money out") and a swap switch — pre-set when card payments or pay
+  read backwards — because a file read with inverted signs turns a year of
+  groceries into a year of income.
+
+**Classification, strongest first** (`import-classify.ts`): your rules (learned
+from your corrections), then the bank's wording — card payments ("PAYMENT
+THANK YOU / PAIEMENT MERCI", or a VISA payment out of chequing), transfers
+between your own accounts, Interac e-Transfers (with the recipient, from RBC's
+second description), ATM cash, fees and interest charges, interest earned,
+pay, government deposits, investing, remittances, loan payments — then your
+history (what you called this merchant before), then about two hundred
+Canadian merchants. Merchants are normalised to at most two words with store
+numbers, terminal ids and the trailing city and province stripped, so a rule
+learned at one Loblaws applies to the next. Every guess shows its reason.
+
+**Transfers are confirmed by pairing, not by wording** (`import-match.ts`).
+The same amount the other way, in another of your accounts in the same
+currency, within three days, unpaired — closest date wins, each leg claimed
+once. An e-Transfer to yourself from CIBC to RBC therefore becomes a transfer
+the moment the second account is imported, weeks later or not.
+
+**Safe to re-run** (migration 021). Each imported row carries a fingerprint —
+date, amount, the bank's wording, and which occurrence of an identical line
+it is, so two identical coffees are two rows — under a unique index per
+account. The import is one SECURITY DEFINER RPC that re-checks AAL2, verifies
+the account, every category and every transfer partner belong to the caller,
+and writes the batch, the rows, the pairings and the learned rules together;
+`undo_import` removes a batch and unpairs what it paired. A hand-entered row
+with the same amount within two days is flagged "maybe already entered" and
+left out unless ticked. Six categories a statement needs were added (Interest,
+Government benefits, Money received, Bank fees, Cash, Payments to people),
+for existing setups and in `seed_finance_defaults`.
+
+**Reports** (`reports.ts`, a new section): any range — this year, last year,
+the last 12 months, since three years ago, all time, custom — as earned, spent,
+saved & invested, and kept; year by year; month by month with the months that
+overspent in red; spending by category with refunds netted in; the merchants
+you spent most at; where income came from. From frozen base amounts, with
+transfers and pending rows left out and unconverted rows counted rather than
+guessed. A range starting before the ledger does says so and links to Import,
+because a report that silently covers eight months while claiming three years
+is the most misleading thing it could do.
+
+Not built: PDF statement import, which is what 2023 needs.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an
@@ -1694,9 +1761,9 @@ tested without driving a dropdown in jsdom.
   upload progress shipped.)
 - Library: no public bookshelf — only the random highlight is public, by
   choice. A shelf page would be a second public function, not a table policy.
-- **Migrations 018, 019 and 020 are unapplied.** Until 018 is, the Library
-  admin errors on load and the public widget shows nothing; until 020 is, the
-  Loans section says so and the forecast carries no EMIs.
+- **Migration 021 is unapplied** (018–020 were applied on 2026-09-11). Until it
+  is, the Import section fails to save and Reports works on what is already in
+  the ledger.
 - Loans: no link from a loan to the ledger — EMIs actually paid are recorded as
   ordinary transactions, and the schedule assumes every instalment was paid on
   its date.

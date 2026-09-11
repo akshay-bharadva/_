@@ -309,6 +309,12 @@ export interface Transaction {
   created_at?: string;
   updated_at?: string;
   recurring_transaction_id?: string | null;
+  /** Fingerprint of an imported row; unique per account. Migration 021. */
+  import_hash?: string | null;
+  /** The import that wrote this row, so a whole import can be undone. */
+  import_batch_id?: string | null;
+  /** The bank's own wording, verbatim; `description` is the cleaned form. */
+  raw_description?: string | null;
 }
 
 export interface RecurringTransaction {
@@ -409,6 +415,8 @@ export interface FinanceAccount {
   payment_due_day?: number | null;
   /** Counted in "safe to spend"; a locked retirement account is not. */
   is_liquid: boolean;
+  /** Last digits of the account number, to route rows in a bank export. */
+  import_ref?: string | null;
   color?: string | null;
   sort_order: number;
   archived_at?: string | null;
@@ -1084,4 +1092,31 @@ export interface FinanceLoanEvent {
   effect?: LoanEffect | null;
   note?: string | null;
   created_at?: string;
+}
+
+/** One statement import, undoable as a whole. Migration 021. */
+export interface FinanceImportBatch {
+  id: string;
+  user_id?: string;
+  account_id?: string | null;
+  file_name?: string | null;
+  format: string;
+  rows_in_file: number;
+  rows_imported: number;
+  rows_skipped: number;
+  date_from?: string | null;
+  date_to?: string | null;
+  created_at?: string;
+}
+
+/** A category learned from a correction during an import. Migration 021. */
+export interface FinanceCategoryRule {
+  id: string;
+  user_id?: string;
+  /** A normalised merchant key: "LOBLAWS", "ETRANSFER JOHN DOE". */
+  pattern: string;
+  category_id?: string | null;
+  kind: "expense" | "income" | "transfer";
+  created_at?: string;
+  updated_at?: string;
 }

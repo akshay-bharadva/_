@@ -127,6 +127,12 @@ const EXPECTED_HOOKS = [
   "useDeleteFinanceLoanMutation",
   "useSaveLoanEventMutation",
   "useDeleteLoanEventMutation",
+  // statement import
+  "useGetImportBatchesQuery",
+  "useGetCategoryRulesQuery",
+  "useImportTransactionsMutation",
+  "useUndoImportMutation",
+  "useDeleteCategoryRuleMutation",
 ] as const;
 
 describe("adminApi barrel", () => {
