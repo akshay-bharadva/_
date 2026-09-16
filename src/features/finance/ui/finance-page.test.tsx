@@ -16,6 +16,7 @@ const BUILT_SECTIONS = new Set([
   "accounts",
   "activity",
   "reports",
+  "forecast",
   "plan",
 ]);
 
@@ -112,6 +113,11 @@ vi.mock("@/store/api/adminApi", () => ({
   useDeleteFinCommitmentMutation: () => [vi.fn(), { isLoading: false }],
   useSkipFinOccurrenceMutation: () => [vi.fn(), { isLoading: false }],
   useUnskipFinOccurrenceMutation: () => [vi.fn(), { isLoading: false }],
+  // The forecast section owns its saved scenarios, as the forms own their
+  // mutations.
+  useGetFinScenariosQuery: () => ({ data: [] }),
+  useSaveFinScenarioMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinScenarioMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
@@ -176,10 +182,28 @@ describe("the finance workspace", () => {
     expect(unbuilt).toBeGreaterThan(0);
   });
 
+  /**
+   * The section it clicks is derived, not named.
+   *
+   * This used to click "Forecast" — correct until Forecast was rebuilt, at
+   * which point the test failed for a reason that had nothing to do with the
+   * behaviour it describes. Naming another unbuilt section would buy a week and
+   * rot the same way. What it means is "any section without v2 content says so",
+   * so it asks the list which one that is.
+   */
   it("says plainly that a section is not rebuilt, rather than showing nothing", () => {
-    render(<FinanceV2Page />);
+    const notRebuilt = FINANCE_SECTIONS.find(
+      (section) => !BUILT_SECTIONS.has(section.id),
+    );
+    expect(
+      notRebuilt,
+      "every section is built — retire this test",
+    ).toBeDefined();
 
-    fireEvent.click(screen.getByRole("button", { name: /Forecast/ }));
+    render(<FinanceV2Page />);
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp(notRebuilt!.label) }),
+    );
 
     expect(screen.getByText("Not rebuilt yet")).toBeInTheDocument();
     expect(screen.queryByText("Net worth")).toBeNull();

@@ -926,6 +926,59 @@ construction, and pass even if the nav rendered nothing.
 
 ---
 
+## 7m. The forecast slice
+
+The screen the reported bug was filed against, rebuilt onto a domain where three
+of the four original defects are unrepresentable rather than fixed.
+
+**Most of v1's warnings are gone because their conditions cannot occur.** That
+screen checked for one debt entered as both a loan and a recurring rule, for
+transfer rules counted as spending, and for rules whose currency had no rate.
+Loans *are* commitments now; `transferEffect` nets a transfer by which side of
+the counted-accounts line each end sits on; and `buildForecast` returns
+`unconvertible` and `unpriced` itself rather than the screen recomputing them
+alongside. `loanRuleClashes`, `selfTransferRules`, `unconvertibleRules` and
+`unconvertedInWindow` all retired with the defects they described.
+
+**What survived, because it still says something the line cannot.** The
+`unpriced` count is the one that matters: when the run-rate window is entirely
+unpriced the rate is exactly zero and "Expected" *becomes* "Commitments only" —
+the two-identical-lines symptom that began this rebuild. Without that notice a
+reader concludes they spend nothing. It now has a test.
+
+**`unreconciled`** is new, in `ledger/balance.ts`. v1's `checkAccount` had no v2
+equivalent, and the warning it drove is worth keeping: a line drawn from an
+anchor nobody set is confidently wrong, and bank exports carry transactions but
+no balances, so an unanchored account is the normal state after an import rather
+than an edge case. Two conditions, reported and never corrected — what an account
+held on a date is a fact only the owner has.
+
+**Scenarios** are rewritten against `FinScenarioAdjustment`: `amount` became
+`amount_minor`, `recurring_delta` became `commitment_delta`. `fromAdjustments`
+still reports `exact: false` when a stored scenario is richer than four controls
+can show, because showing the sliders as though they described it would be a
+quiet lie.
+
+### Two lessons, both about tests that were true when written
+
+`expect(getAllByText("soon").length).toBeGreaterThan(5)` and a test that clicked
+"Forecast" as its example of an unbuilt section both passed until the rebuild
+moved past them — the first at five sections, the second the moment Forecast was
+built. Neither was testing anything wrong; both had pinned an example instead of
+stating an intent. They now derive from the same list the component renders: one
+counts the unbuilt sections, the other asks which section is unbuilt. A test that
+needs hand-editing every time the work advances is a test that will eventually be
+edited without thought.
+
+Also: `scenario-io`'s round-trip test compared `Number(...)` with `toBeCloseTo`
+and passed while the field reopened reading "1250.5" for a scenario saved from
+"1250.50". The value round-tripped and the text did not, and the text is what the
+reader sees. Fixed with `toInputValue`; the assertion is now the exact string.
+
+**The gate: 17 entries, 15 finance v2.** Counted from the file.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification

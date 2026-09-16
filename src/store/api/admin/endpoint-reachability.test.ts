@@ -86,9 +86,8 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
     "finance v2 data layer; UI lands in phase 7",
   useDeleteFinGoalContributionMutation:
     "finance v2 data layer; UI lands in phase 7",
-  useGetFinScenariosQuery: "finance v2 data layer; UI lands in phase 7",
-  useSaveFinScenarioMutation: "finance v2 data layer; UI lands in phase 7",
-  useDeleteFinScenarioMutation: "finance v2 data layer; UI lands in phase 7",
+  // Scenarios are reached by ui/forecast-section.tsx, which owns its saved
+  // what-ifs the way the forms own their mutations.
 };
 
 const slices = globSync("src/store/api/admin/!(*.test).ts", {

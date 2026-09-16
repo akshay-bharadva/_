@@ -1,6 +1,8 @@
-import type { FinAccount, FinAccountBalance } from "@/types";
+import type { FinAccount, FinAccountBalance, FinTransaction } from "@/types";
 import { money, sum, zero, type Money } from "../money/minor-units";
 import { convertVia, type RateTable } from "../money/rates";
+// `flows.ts` imports nothing from here, so this direction introduces no cycle.
+import { postingsOf } from "./flows";
 
 /**
  * What you are worth, and what you can actually reach.
@@ -125,6 +127,73 @@ export function utilisation(
   // A card's balance is negative when money is owed.
   const owed = Math.max(0, -balance.balance_minor);
   return owed / account.credit_limit_minor;
+}
+
+export interface Unreconciled {
+  account: FinAccount;
+  /**
+   * `never-anchored` — postings exist but the opening balance is still zero, so
+   * the balance is the sum of what happens to have been entered rather than
+   * what the account holds.
+   *
+   * `history-predates-anchor` — transactions are dated before the
+   * reconciliation date, so they fall outside the balance entirely.
+   */
+  reason: "never-anchored" | "history-predates-anchor";
+}
+
+/**
+ * Accounts whose balance is not a statement of fact.
+ *
+ * A balance is the anchor plus every posting since. That is exact when the
+ * anchor is real and worthless when it is not — and a forecast drawn from a
+ * zero opening balance on an account that plainly has money in it is
+ * confidently wrong, which is worse than one that admits it does not know.
+ *
+ * Bank exports do not carry balances, so an imported account is the common
+ * case: a year of transactions and an anchor nobody ever set.
+ *
+ * Reported, never corrected. What an account actually held on a date is a fact
+ * only the owner has.
+ */
+export function unreconciled(
+  accounts: FinAccount[],
+  transactions: FinTransaction[],
+): Unreconciled[] {
+  const postedTo = new Map<string, string>();
+
+  for (const transaction of transactions) {
+    // `postingsOf`, not `transaction.fin_posting ?? []`. Where a transaction's
+    // postings live is a question with one answer, and re-deriving it here
+    // would be a second place to change if that ever stopped being true.
+    for (const posting of postingsOf(transaction)) {
+      if (!posting.account_id) continue;
+      const earliest = postedTo.get(posting.account_id);
+      if (!earliest || transaction.date < earliest) {
+        postedTo.set(posting.account_id, transaction.date);
+      }
+    }
+  }
+
+  const found: Unreconciled[] = [];
+
+  for (const account of accounts) {
+    if (account.archived_at) continue;
+
+    const earliest = postedTo.get(account.id);
+    if (!earliest) continue;
+
+    if (account.opening_balance_minor === 0) {
+      found.push({ account, reason: "never-anchored" });
+      continue;
+    }
+
+    if (earliest < account.opening_date) {
+      found.push({ account, reason: "history-predates-anchor" });
+    }
+  }
+
+  return found;
 }
 
 export interface AccountView {

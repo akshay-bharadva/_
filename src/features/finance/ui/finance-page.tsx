@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   ArrowRightLeft,
   Eye,
@@ -47,6 +48,8 @@ import { getErrorMessage } from "@/lib/utils";
 import { FINANCE_SECTIONS, findSection } from "../finance-nav";
 import { usePrivateFigures } from "../use-private-figures";
 import { tableFrom } from "../money/rates";
+import { netWorth } from "../ledger/balance";
+
 import { AccountsSection } from "./accounts-section";
 import { ActivitySection } from "./activity-section";
 import { CommitmentForm } from "./commitment-form";
@@ -56,6 +59,16 @@ import { PlanSection } from "./plan-section";
 import { ReportsSection } from "./reports-section";
 import { TransactionForm } from "./transaction-form";
 import { TransferForm } from "./transfer-form";
+
+/**
+ * Behind a dynamic boundary because it pulls Recharts, and the module does not
+ * open on it. A static import would put a charting library into the first load
+ * of a route that lands on Accounts.
+ */
+const ForecastSection = dynamic(
+  () => import("./forecast-section").then((mod) => mod.ForecastSection),
+  { ssr: false, loading: () => <LoadingState variant="section" /> },
+);
 
 /**
  * The finance module, rebuilt.
@@ -73,7 +86,14 @@ import { TransferForm } from "./transfer-form";
  */
 
 /** Sections with v2 content. Grows until it covers the nav. */
-const BUILT = new Set(["overview", "accounts", "activity", "reports", "plan"]);
+const BUILT = new Set([
+  "overview",
+  "accounts",
+  "activity",
+  "reports",
+  "forecast",
+  "plan",
+]);
 
 /**
  * Where the module opens.
@@ -320,6 +340,34 @@ export default function FinanceV2Page() {
               transactions={transactions}
               categories={categories}
               base={base}
+            />
+          )}
+
+          {sectionId === "forecast" && (
+            <ForecastSection
+              // What the line is drawn over: money you can actually reach.
+              // An RRSP is real money that will not help next month, and
+              // counting it would hide a shortfall — which also lets
+              // `transferEffect` tell moving money from moving it *away*.
+              startingMinor={
+                netWorth(accounts, balances, rates, base).liquid.minor
+              }
+              countedAccountIds={
+                new Set(
+                  accounts
+                    .filter(
+                      (account) => !account.archived_at && account.is_liquid,
+                    )
+                    .map((account) => account.id),
+                )
+              }
+              commitments={commitments}
+              transactions={transactions}
+              categories={categories}
+              accounts={accounts}
+              rates={rates}
+              base={base}
+              onGo={setSectionId}
             />
           )}
 
