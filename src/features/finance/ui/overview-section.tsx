@@ -34,6 +34,7 @@ export function OverviewSection({
   balances,
   rates,
   base,
+  today,
 }: {
   commitments: FinCommitment[];
   transactions: FinTransaction[];
@@ -42,6 +43,8 @@ export function OverviewSection({
   balances: FinAccountBalance[];
   rates: RateTable;
   base: string;
+  /** Passed through to the queue so a test can pin the clock. */
+  today?: Date;
 }) {
   const worth = useMemo(
     () => netWorth(accounts, balances, rates, base),
@@ -59,6 +62,7 @@ export function OverviewSection({
         accounts={accounts}
         rates={rates}
         base={base}
+        today={today}
       />
 
       {active.length > 0 && (

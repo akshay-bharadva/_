@@ -55,6 +55,7 @@ export function ConfirmQueue({
   accounts,
   rates,
   base,
+  today,
   className,
 }: {
   commitments: FinCommitment[];
@@ -63,11 +64,18 @@ export function ConfirmQueue({
   accounts: FinAccount[];
   rates: RateTable;
   base: string;
+  /**
+   * Injectable so a test can pin it. Without this the queue reads the real
+   * clock, and a fixture starting in June yields four occurrences today and
+   * sixteen next year — a suite that passes right up until it quietly does not.
+   * The domain layer already takes `today` for the same reason.
+   */
+  today?: Date;
   className?: string;
 }) {
   const queue = useMemo(
-    () => buildConfirmQueue({ commitments, transactions, skips }),
-    [commitments, transactions, skips],
+    () => buildConfirmQueue({ commitments, transactions, skips, today }),
+    [commitments, transactions, skips, today],
   );
 
   if (queue.length === 0) {
