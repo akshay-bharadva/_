@@ -1124,3 +1124,382 @@ export interface FinanceCategoryRule {
   created_at?: string;
   updated_at?: string;
 }
+
+// =============================================================================
+// FINANCE v2 — migrations 025 to 029
+// =============================================================================
+//
+// The types above describe v1 and stay until 029 has been run. Everything
+// below mirrors the v2 tables, and three conventions run through all of it:
+//
+// 1. **Every amount is an integer of minor units**, and every such field is
+//    named `_minor` so the boundary is unmissable at the call site. 1234 is
+//    $12.34. Pair one with its `currency` and hand it to `Money` from
+//    `features/finance/money` before doing arithmetic — never add two of these
+//    directly, because nothing here proves they share a currency.
+//
+//    `BIGINT` arrives from PostgREST as a JSON number, so anything past 2^53
+//    would lose precision on the way in. That is why `MAX_MINOR` rejects it at
+//    the other end rather than letting it round silently.
+//
+// 2. **A field is optional or nullable exactly where its column is**, so the
+//    compiler disagrees with the database in as few places as possible.
+//
+// 3. **Direction is never a column.** It is the sign of a posting's amount, or
+//    which of a commitment's two account fields is set. v1's `earning`/
+//    `expense` type is gone, and with it the trap of confusing it with the
+//    `income` bucket, which classifies a *category* rather than a movement.
+
+/** A currency and how many minor units it has. Seeded by migration 025. */
+export interface FinCurrency {
+  code: string;
+  /** 0 for JPY and VND, 3 for the Gulf dinars, 2 for almost everything. */
+  exponent: number;
+  name: string;
+}
+
+export interface FinSettings {
+  user_id?: string;
+  base_currency: string;
+  /** The corridor money is actually sent along, for the FX view's default. */
+  home_currency?: string | null;
+  needs_target_pct: number;
+  wants_target_pct: number;
+  save_target_pct: number;
+  runway_target_months: number;
+  updated_at?: string;
+}
+
+/** A rate is a ratio, not an amount, so it stays a decimal. */
+export interface FinRate {
+  base: string;
+  quote: string;
+  as_of: string;
+  rate: number;
+  source?: string | null;
+}
+
+export type FinAccountKind =
+  | "chequing"
+  | "savings"
+  | "credit"
+  | "cash"
+  | "investment"
+  | "loan";
+
+export interface FinAccount {
+  id: string;
+  user_id?: string;
+  name: string;
+  kind: FinAccountKind;
+  currency: string;
+  institution?: string | null;
+  /**
+   * The reconciliation anchor: what this account really held on
+   * `opening_date`. Signed — a card or a loan is stored as what is owed — and
+   * everything after it is derived from postings.
+   */
+  opening_balance_minor: number;
+  opening_date: string;
+  credit_limit_minor?: number | null;
+  statement_day?: number | null;
+  payment_due_day?: number | null;
+  /** Counted in "safe to spend"; a locked retirement account is not. */
+  is_liquid: boolean;
+  import_ref?: string | null;
+  color?: string | null;
+  sort_order: number;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Classifies a *category* for 50/30/20. Not a movement's direction. */
+export type FinBucket = "income" | "need" | "want" | "save" | "transfer";
+
+export interface FinCategory {
+  id: string;
+  user_id?: string;
+  name: string;
+  bucket: FinBucket;
+  icon?: string | null;
+  color?: string | null;
+  /** Still payable if income stopped tomorrow — the basis of runway. */
+  is_essential: boolean;
+  sort_order: number;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * What kind of thing happened, for display and for the calendar. The
+ * arithmetic never reads it: direction comes from each posting's sign.
+ */
+export type FinTransactionKind = "spend" | "earn" | "transfer" | "adjustment";
+
+export interface FinTransaction {
+  id: string;
+  user_id?: string;
+  /** When it hit the account, which is not necessarily when it was due. */
+  date: string;
+  description: string;
+  /** The bank's own wording; `description` is the cleaned form. */
+  raw_description?: string | null;
+  merchant?: string | null;
+  notes?: string | null;
+  kind: FinTransactionKind;
+  /** Not yet cleared; excluded from "what do I actually have". */
+  is_pending: boolean;
+  commitment_id?: string | null;
+  /**
+   * The date the occurrence was *due*, which is not `date`: a salary due
+   * Friday and entered Monday is still Friday's occurrence. Unique per
+   * commitment, which is what stops the queue proposing it twice.
+   */
+  occurrence_date?: string | null;
+  import_hash?: string | null;
+  import_batch_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  /** Joined on read, as `finance_loan_events` was in v1. */
+  fin_posting?: FinPosting[];
+}
+
+/**
+ * One movement, against one account.
+ *
+ * A spend has a single posting — its counterparty is the outside world. A
+ * transfer has two that must balance, which is what makes a half transfer
+ * impossible rather than merely discouraged.
+ */
+export interface FinPosting {
+  id: string;
+  user_id?: string;
+  transaction_id: string;
+  /** Null once the account is closed; the movement itself is kept. */
+  account_id?: string | null;
+  category_id?: string | null;
+  /** Signed. Negative leaves the account, positive arrives. Never zero. */
+  amount_minor: number;
+  currency: string;
+  /** What the transfer cost — a wire fee or an FX margin. Charged to the sender. */
+  fee_minor?: number | null;
+  /**
+   * Frozen at the transaction, which stops a historical report re-pricing
+   * itself when the market moves. Null when no rate was available — reported
+   * as unconverted, never counted at parity, never read as zero.
+   */
+  fx_rate?: number | null;
+  base_amount_minor?: number | null;
+  created_at?: string;
+}
+
+/** What `fin_account_balances()` returns: one row per live account. */
+export interface FinAccountBalance {
+  account_id: string;
+  balance_minor: number;
+  currency: string;
+}
+
+export type FinFrequency =
+  | "daily"
+  | "weekly"
+  | "bi-weekly"
+  | "monthly"
+  | "yearly";
+
+/** 'fixed' carries an amount; 'amortising' derives one from its terms. */
+export type FinCommitmentKind = "fixed" | "amortising";
+
+/** Tenure: keep the instalment, move the end date. EMI: the reverse. */
+export type FinRateEffect = "tenure" | "emi";
+
+/**
+ * Something that repeats — a subscription, a salary, a mortgage.
+ *
+ * One table for what v1 split across `recurring_transactions` and
+ * `finance_loans`, so the same debt cannot be described twice and counted
+ * twice by the forecast.
+ */
+export interface FinCommitment {
+  id: string;
+  user_id?: string;
+  name: string;
+  kind: FinCommitmentKind;
+  /**
+   * Where the money moves. Both set is a transfer between your own accounts —
+   * the case v1 could not express at all, which made the forecast fall by the
+   * transferred amount every period, forever.
+   */
+  from_account_id?: string | null;
+  to_account_id?: string | null;
+  category_id?: string | null;
+  currency: string;
+  /** Fixed commitments only. */
+  amount_minor?: number | null;
+  /** Amortising commitments only. */
+  principal_minor?: number | null;
+  annual_rate?: number | null;
+  tenure_months?: number | null;
+  rate_type?: "fixed" | "floating" | null;
+  on_rate_change?: FinRateEffect | null;
+  lender?: string | null;
+  frequency: FinFrequency;
+  start_date: string;
+  end_date?: string | null;
+  /**
+   * Day-of-week (0–6) for weekly and bi-weekly, day-of-month (1–31) for
+   * monthly, unused otherwise — and the database now enforces that, where v1
+   * left it to the form.
+   */
+  occurrence_day?: number | null;
+  last_posted_date?: string | null;
+  /** Off by default: an occurrence is a proposal until it is confirmed. */
+  auto_post: boolean;
+  is_estimate: boolean;
+  /** "The mortgage replaced the tenancy", recorded rather than inferred. */
+  supersedes_id?: string | null;
+  notes?: string | null;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  /** Joined on read. */
+  fin_commitment_event?: FinCommitmentEvent[];
+}
+
+export type FinCommitmentEventKind =
+  | "rate_change"
+  | "prepayment"
+  | "amount_change"
+  | "ended";
+
+export interface FinCommitmentEvent {
+  id: string;
+  user_id?: string;
+  commitment_id: string;
+  kind: FinCommitmentEventKind;
+  effective_date: string;
+  rate?: number | null;
+  amount_minor?: number | null;
+  effect?: FinRateEffect | null;
+  note?: string | null;
+  created_at?: string;
+}
+
+/** An occurrence deliberately passed over. The queue is otherwise derived. */
+export interface FinCommitmentSkip {
+  commitment_id: string;
+  user_id?: string;
+  due_date: string;
+  reason?: string | null;
+  created_at?: string;
+}
+
+export interface FinBudget {
+  id: string;
+  user_id?: string;
+  category_id: string;
+  /** The first of the month, so a budget is addressable without a range query. */
+  period: string;
+  amount_minor: number;
+  currency: string;
+  /** Underspend carries forward rather than evaporating. */
+  rollover: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type FinGoalKind = "save" | "payoff" | "buffer";
+
+/**
+ * Money earmarked for something.
+ *
+ * Note what is missing: there is no `current_amount`. What a goal holds is the
+ * sum of its contributions, derived — v1 stored it and updated it by
+ * read-then-add, which lost a contribution whenever two raced.
+ */
+export interface FinGoal {
+  id: string;
+  user_id?: string;
+  name: string;
+  description?: string | null;
+  /** Strictly positive. A target of zero produced "NaN%" in v1. */
+  target_minor: number;
+  currency: string;
+  target_date?: string | null;
+  account_id?: string | null;
+  kind?: FinGoalKind | null;
+  archived_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Money set aside, or taken back. Positive puts aside, negative reclaims.
+ *
+ * An earmark writes no ledger row: the money is still in the account, and
+ * recording a transaction for it would double-count against whatever earned or
+ * spent it. v1 said exactly that in a comment and then wrote one anyway.
+ */
+export interface FinGoalContribution {
+  id: string;
+  user_id?: string;
+  goal_id: string;
+  account_id?: string | null;
+  amount_minor: number;
+  occurred_on: string;
+  note?: string | null;
+  created_at?: string;
+}
+
+/**
+ * One adjustment in a what-if.
+ *
+ * Its own type rather than a reuse of v1's `ScenarioAdjustment`, which carries
+ * `amount` as a float in major units. Reusing it here would have put decimal
+ * money inside the one part of the module whose entire premise is that money
+ * is an integer — and it would have done so in the forecast, which is where
+ * every rounding error would then compound daily over a seven-year horizon.
+ */
+export type FinScenarioAdjustment =
+  | { kind: "category_delta"; category_id: string; percent: number }
+  | { kind: "commitment_delta"; commitment_id: string; amount_minor: number }
+  | { kind: "one_off"; label: string; amount_minor: number; date: string }
+  | { kind: "income_delta"; percent: number };
+
+export interface FinScenario {
+  id: string;
+  user_id?: string;
+  name: string;
+  description?: string | null;
+  adjustments: FinScenarioAdjustment[];
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface FinImportBatch {
+  id: string;
+  user_id?: string;
+  account_id?: string | null;
+  file_name?: string | null;
+  format: string;
+  rows_in_file: number;
+  rows_imported: number;
+  rows_skipped: number;
+  date_from?: string | null;
+  date_to?: string | null;
+  created_at?: string;
+}
+
+export interface FinCategoryRule {
+  id: string;
+  user_id?: string;
+  /** A normalised merchant key: "LOBLAWS", "ETRANSFER JOHN DOE". */
+  pattern: string;
+  category_id?: string | null;
+  kind: "expense" | "income" | "transfer";
+  created_at?: string;
+  updated_at?: string;
+}

@@ -1343,3 +1343,476 @@ export const accountReconcileSchema = z.object({
     .max(MONEY_MAX_18_4, "Balance is too large"),
   opening_date: dateString,
 });
+
+// ─── Finance v2 ──────────────────────────────────────────────────────────────
+
+/**
+ * Mirrors the CHECK constraints in db/migrations/025, 026 and 027, and the
+ * matching FINANCE v2 section of db/schema.sql.
+ *
+ * `FINANCE_LIMITS` above is reused wherever v2 kept v1's width — account name
+ * and institution at 120, category name at 80, its icon at 40, scenario name at
+ * 120 and description at 2,000 — so those are deliberately absent here. What
+ * follows is only the bounds v1 had no equivalent for.
+ */
+export const FIN_LIMITS = {
+  COMMITMENT_NAME: 200,
+  LENDER: 120,
+  NOTES: 2_000,
+  EVENT_NOTE: 300,
+  TRANSACTION_DESCRIPTION: 200,
+  RAW_DESCRIPTION: 500,
+  MERCHANT: 200,
+  GOAL_NAME: 200,
+  GOAL_DESCRIPTION: 2_000,
+  CONTRIBUTION_NOTE: 300,
+  SKIP_REASON: 200,
+  RULE_PATTERN_MIN: 2,
+  RULE_PATTERN_MAX: 120,
+  IMPORT_FILE_NAME: 255,
+  IMPORT_FORMAT: 40,
+  RATE_MAX: 100,
+  TENURE_MIN: 1,
+  TENURE_MAX: 600,
+} as const;
+
+/**
+ * The ceiling on any single amount, in minor units.
+ *
+ * The column is BIGINT and would accept far more, but a minor amount is a
+ * JavaScript number on its way through the client, so anything past 2^53−1
+ * cannot round-trip: it would read back as a *different* number with nothing to
+ * indicate it had changed. Rejecting it is strictly better than storing it.
+ *
+ * Restated here rather than imported from
+ * `src/features/finance/money/minor-units.ts`. This file is shared
+ * infrastructure that `publicApi` can reach, and the module's dependency
+ * direction is `ui → domain → money` — never back out into `lib`.
+ * `src/lib/schemas-fin.test.ts` asserts the two constants agree, which is the
+ * same arrangement the currency table uses.
+ */
+export const FIN_MINOR_MAX = 9_007_199_254_740_991;
+
+/**
+ * A signed amount in whole minor units. 1234 is $12.34.
+ *
+ * Deliberately **not** `money()` above, which refines to two decimal places —
+ * true of every v1 NUMERIC(_,2) column and wrong for a module that supports the
+ * yen (no minor unit) and the Kuwaiti dinar (three). By the time a value reaches
+ * here it has already been through `fromDecimal` in the money layer, which is
+ * the only place that knows a currency's exponent, so what is left to check is
+ * that the integer is one both the column and the client can hold exactly.
+ */
+export const finMinor = (label = "Amount") =>
+  z.coerce
+    .number({ invalid_type_error: `${label} must be a number` })
+    .int(`${label} must be a whole number of minor units`)
+    .min(-FIN_MINOR_MAX, `${label} is too large`)
+    .max(FIN_MINOR_MAX, `${label} is too large`);
+
+/** Minor units that must be more than nothing, per the column's `> 0` CHECK. */
+export const finMinorPositive = (label = "Amount") =>
+  z.coerce
+    .number({ invalid_type_error: `${label} must be a number` })
+    .int(`${label} must be a whole number of minor units`)
+    .positive(`${label} must be more than zero`)
+    .max(FIN_MINOR_MAX, `${label} is too large`);
+
+/**
+ * `CHAR(3) REFERENCES fin_currency(code)` — an ISO 4217 code, never a symbol.
+ * CHAR(3) truncates rather than rejecting, so a longer value would be stored
+ * silently mangled, which is worse than an error.
+ */
+export const finCurrency = z
+  .string()
+  .trim()
+  .regex(/^[A-Z]{3}$/, "Currency must be a three-letter code, like CAD");
+
+export const FIN_ACCOUNT_KINDS = [
+  "chequing",
+  "savings",
+  "credit",
+  "cash",
+  "investment",
+  "loan",
+] as const;
+
+export const FIN_BUCKETS = [
+  "income",
+  "need",
+  "want",
+  "save",
+  "transfer",
+] as const;
+
+/**
+ * An account, including its reconciliation anchor.
+ *
+ * Supersedes `accountReconcileSchema` for v2 — and that schema's existence is
+ * worth a note, because v1's account form never used it: it validated the same
+ * two fields by hand against `MONEY_MAX_18_4` and checked nothing else at all,
+ * so a name past the column's 120 characters reached Postgres and came back as
+ * an opaque failed save. Every field the form collects is bounded here.
+ */
+export const finAccountSchema = z.object({
+  name: boundedRequiredString(FINANCE_LIMITS.ACCOUNT_NAME, "Name"),
+  kind: z.enum(FIN_ACCOUNT_KINDS),
+  currency: finCurrency,
+  institution: boundedOptionalString(FINANCE_LIMITS.INSTITUTION, "Bank"),
+  // Signed: a card or a loan is stored as what is owed, so the ledger
+  // arithmetic stays uniform and net worth need not know which kind it holds.
+  opening_balance_minor: finMinor("Balance"),
+  opening_date: dateString,
+  // The column is `credit_limit_minor > 0`, so zero is not "no limit" — null
+  // is, and a blank field must become null rather than coercing to 0.
+  credit_limit_minor: z.preprocess(
+    blankToNull,
+    finMinorPositive("Credit limit").nullable(),
+  ),
+  statement_day: optionalInt(1, 31, "Statement day"),
+  payment_due_day: optionalInt(1, 31, "Payment day"),
+  is_liquid: z.boolean(),
+});
+
+export type FinAccountFormValues = z.infer<typeof finAccountSchema>;
+
+/**
+ * A v2 category. `bucket` classifies the category for 50/30/20; it is not a
+ * direction, which comes from the sign of each posting.
+ */
+export const finCategorySchema = z.object({
+  name: boundedRequiredString(FINANCE_LIMITS.CATEGORY_NAME, "Category name"),
+  bucket: z.enum(FIN_BUCKETS),
+  icon: boundedOptionalString(FINANCE_LIMITS.CATEGORY_ICON, "Icon"),
+  color: z.preprocess(blankToNull, hexColor.nullable()),
+  // Essential in the runway sense — still payable if income stopped tomorrow —
+  // and deliberately distinct from the `need` bucket, which is about budgeting.
+  is_essential: z.boolean().default(false),
+});
+
+export type FinCategoryFormValues = z.infer<typeof finCategorySchema>;
+
+/**
+ * Whether a string is a decimal figure at all.
+ *
+ * The grammar matches `fromDecimal`'s in the money layer — an optional sign,
+ * digits with an optional fractional part, and separators (space, comma,
+ * underscore) ignored — so a form built on this can neither reject something the
+ * parser would have accepted nor accept something it would throw on.
+ *
+ * Deliberately silent about how many decimal places are allowed. That depends on
+ * the currency: the yen has no minor unit and the Kuwaiti dinar has three. That
+ * knowledge lives in `src/features/finance/money`, which converts and rounds on
+ * submit, and restating it here would put a second rounding rule in a second
+ * place — the class of defect this rewrite exists to remove.
+ */
+const looksLikeDecimal = (value: string) =>
+  /^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(value.replace(/[\s,_]/g, ""));
+
+/** A decimal figure as typed, required. */
+export const decimalText = (label = "Amount") =>
+  z
+    .string()
+    .trim()
+    .min(1, `${label} is required`)
+    .refine(looksLikeDecimal, `${label} must be a number`);
+
+/** The same, where blank means "not set" rather than zero. */
+export const optionalDecimalText = (label = "Amount") =>
+  z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || looksLikeDecimal(value),
+      `${label} must be a number`,
+    );
+
+/**
+ * What the account form collects, before the money layer converts it.
+ *
+ * `finAccountSchema` above is the *column* contract and speaks in minor units;
+ * this is the form's own shape, with the two money fields as typed text. Both
+ * live here rather than one being declared inside the component, so there is a
+ * single place to look for what an account is allowed to be.
+ *
+ * On submit the component converts `balance` and `credit_limit` with
+ * `fromDecimal` and validates the assembled row against `finAccountSchema`, so
+ * the column's bounds are enforced at the write and not merely at the keyboard.
+ */
+export const finAccountFormSchema = z.object({
+  name: boundedRequiredString(FINANCE_LIMITS.ACCOUNT_NAME, "Name"),
+  kind: z.enum(FIN_ACCOUNT_KINDS),
+  currency: finCurrency,
+  institution: boundedOptionalString(FINANCE_LIMITS.INSTITUTION, "Bank"),
+  /**
+   * Entered as a positive figure for a card or a loan — "1,200" means you owe
+   * 1,200 — and the component applies the sign, so the ledger stays uniform.
+   */
+  balance: decimalText("Balance"),
+  opening_date: dateString,
+  credit_limit: optionalDecimalText("Credit limit"),
+  statement_day: optionalInt(1, 31, "Statement day"),
+  payment_due_day: optionalInt(1, 31, "Payment day"),
+  is_liquid: z.boolean(),
+});
+
+export type FinAccountFormInput = z.infer<typeof finAccountFormSchema>;
+
+/**
+ * One transaction, as the form collects it.
+ *
+ * `direction` replaces v1's `type` of earning-or-expense, and it is a *form*
+ * field rather than a stored one: v2 reads direction from the sign of a posting,
+ * so this decides which way the amount is written and then stops existing. The
+ * `kind` column that does get stored is for display and the calendar only, and
+ * no arithmetic reads it.
+ */
+export const finTransactionFormSchema = z.object({
+  direction: z.enum(["out", "in"]),
+  description: boundedRequiredString(
+    FIN_LIMITS.TRANSACTION_DESCRIPTION,
+    "Description",
+  ),
+  amount: decimalText("Amount"),
+  date: dateString,
+  /**
+   * Nullable, and that is a real state rather than an oversight: a posting with
+   * no account still shows in the ledger but moves no balance, which is what an
+   * import row looks like before it is assigned.
+   */
+  account_id: z.string().uuid().nullable(),
+  category_id: z.string().uuid().nullable(),
+  /**
+   * The posting's own currency — usually the account's, and different only for a
+   * foreign purchase on a card issued elsewhere. Stated explicitly because v1
+   * left it null and had a database trigger infer it, which meant two places had
+   * an opinion about the same value.
+   */
+  currency: finCurrency,
+  notes: boundedOptionalString(FIN_LIMITS.NOTES, "Note"),
+  is_pending: z.boolean(),
+});
+
+export type FinTransactionFormInput = z.infer<typeof finTransactionFormSchema>;
+
+/**
+ * A transfer between the owner's own accounts, as the form collects it.
+ *
+ * Note what is **not** enforced here: whether `amount_in` is required. That
+ * depends on whether the two accounts share a currency — derived when they do,
+ * observed when they do not — and a field schema cannot see the accounts.
+ * `buildTransfer` in `features/finance/ledger/transfer.ts` owns that rule, and
+ * restating it here would put one rule in two places that can disagree.
+ */
+export const finTransferFormSchema = z
+  .object({
+    from_account_id: z.string().uuid("Choose the account the money leaves"),
+    to_account_id: z.string().uuid("Choose the account it arrives in"),
+    /** In the sending account's currency. */
+    amount_out: decimalText("Amount sent"),
+    /** What actually arrived, from the confirmation. Blank when same-currency. */
+    amount_in: optionalDecimalText("Amount received"),
+    /** Charged by the provider, in the sending currency. Blank means none. */
+    fee: optionalDecimalText("Fee"),
+    date: dateString,
+    description: boundedOptionalString(
+      FIN_LIMITS.TRANSACTION_DESCRIPTION,
+      "Note",
+    ),
+  })
+  .superRefine((value, ctx) => {
+    // Mirrors `fin_commitment_distinct_accounts` and the transfer trigger's
+    // "two different accounts" check, so the form says it rather than the
+    // database refusing the write opaquely.
+    if (value.from_account_id === value.to_account_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["to_account_id"],
+        message: "A transfer needs two different accounts",
+      });
+    }
+  });
+
+export type FinTransferFormInput = z.infer<typeof finTransferFormSchema>;
+
+export const FIN_FREQUENCIES = [
+  "daily",
+  "weekly",
+  "bi-weekly",
+  "monthly",
+  "yearly",
+] as const;
+
+export const FIN_COMMITMENT_KINDS = ["fixed", "amortising"] as const;
+
+/** A percentage rate, `NUMERIC(6,3)` bounded 0–100 by the column. */
+const finRate = z.preprocess(
+  blankToNull,
+  z.coerce
+    .number({ invalid_type_error: "Rate must be a number" })
+    .min(0, "Rate cannot be negative")
+    .max(FIN_LIMITS.RATE_MAX, "Rate must be 100% or less")
+    .nullable(),
+);
+
+/**
+ * Something that repeats — a subscription, a salary, a mortgage.
+ *
+ * One schema for what v1 split across a recurring rule and a loan, because the
+ * database now has one table for them. Every refinement below mirrors a CHECK in
+ * migration 026 rather than approximating it: a form looser than its column
+ * produces an opaque failed save, and one stricter refuses rows the database
+ * would have accepted.
+ *
+ * Money is typed text here and converted by `fromDecimal` on submit, as in the
+ * account and transaction forms — the money layer owns exponents.
+ */
+export const finCommitmentFormSchema = z
+  .object({
+    name: boundedRequiredString(FIN_LIMITS.COMMITMENT_NAME, "Name"),
+    kind: z.enum(FIN_COMMITMENT_KINDS),
+    currency: finCurrency,
+
+    /**
+     * Direction, read from the accounts rather than a type column. Both set is
+     * a transfer between the owner's own accounts — the case v1 could not
+     * express, so its forecast watched money leave and never arrive.
+     */
+    from_account_id: z.string().uuid().nullable(),
+    to_account_id: z.string().uuid().nullable(),
+    category_id: z.string().uuid().nullable(),
+
+    /** Fixed commitments only. */
+    amount: optionalDecimalText("Amount"),
+
+    /** Amortising commitments only. */
+    principal: optionalDecimalText("Principal"),
+    annual_rate: finRate,
+    tenure_months: optionalInt(
+      FIN_LIMITS.TENURE_MIN,
+      FIN_LIMITS.TENURE_MAX,
+      "Tenure",
+    ),
+    rate_type: z.enum(["fixed", "floating"]).nullable(),
+    on_rate_change: z.enum(["tenure", "emi"]).nullable(),
+    lender: boundedOptionalString(FIN_LIMITS.LENDER, "Lender"),
+
+    frequency: z.enum(FIN_FREQUENCIES),
+    start_date: dateString,
+    end_date: z.preprocess(blankToNull, dateString.nullable()),
+    /**
+     * Overloaded by frequency: day-of-week for weekly and bi-weekly,
+     * day-of-month for monthly, unused otherwise. Nullable rather than
+     * optional, because Sunday is `0` and an undefined makes the field
+     * uncontrolled.
+     */
+    occurrence_day: optionalInt(0, 31, "Occurrence day"),
+
+    auto_post: z.boolean(),
+    is_estimate: z.boolean(),
+
+    /** "The mortgage replaced the tenancy", recorded rather than remembered. */
+    supersedes_id: z.string().uuid().nullable(),
+    notes: boundedOptionalString(FIN_LIMITS.NOTES, "Notes"),
+  })
+  .superRefine((value, ctx) => {
+    // `fin_commitment_has_an_account`: money has to move somewhere.
+    if (!value.from_account_id && !value.to_account_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["from_account_id"],
+        message: "Choose where the money comes from, goes to, or both",
+      });
+    }
+
+    // `fin_commitment_distinct_accounts`.
+    if (
+      value.from_account_id &&
+      value.to_account_id &&
+      value.from_account_id === value.to_account_id
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["to_account_id"],
+        message: "A transfer needs two different accounts",
+      });
+    }
+
+    // `fin_commitment_shape`: each kind carries its own fields and not the
+    // other's. A fixed commitment with a principal would be rejected by the
+    // column, and the reader would see only that the save failed.
+    if (value.kind === "fixed") {
+      if (!value.amount) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["amount"],
+          message: "How much is it each time?",
+        });
+      }
+    } else {
+      if (!value.principal) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["principal"],
+          message: "How much was borrowed?",
+        });
+      }
+      if (value.annual_rate === null || value.annual_rate === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["annual_rate"],
+          message: "What rate is it at?",
+        });
+      }
+      if (value.tenure_months === null || value.tenure_months === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["tenure_months"],
+          message: "Over how many months?",
+        });
+      }
+    }
+
+    // `fin_commitment_occurrence_day_fits_frequency`. v1 left this to Zod alone
+    // and said so in a comment; the column enforces it now, so the form has to
+    // agree with it exactly.
+    const day = value.occurrence_day;
+    if (day !== null && day !== undefined) {
+      if (value.frequency === "daily" || value.frequency === "yearly") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["occurrence_day"],
+          message: "A daily or yearly commitment has no particular day",
+        });
+      }
+      if (
+        (value.frequency === "weekly" || value.frequency === "bi-weekly") &&
+        day > 6
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["occurrence_day"],
+          message: "Pick a day of the week",
+        });
+      }
+      if (value.frequency === "monthly" && day < 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["occurrence_day"],
+          message: "Pick a day of the month, from 1 to 31",
+        });
+      }
+    }
+
+    // `fin_commitment_ends_after_it_starts`. A rule that ends before it begins
+    // projects nothing and silently does nothing, which is worse than refused.
+    if (value.end_date && value.end_date < value.start_date) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end_date"],
+        message: "It cannot end before it starts",
+      });
+    }
+  });
+
+export type FinCommitmentFormInput = z.infer<typeof finCommitmentFormSchema>;

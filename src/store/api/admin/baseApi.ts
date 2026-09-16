@@ -47,6 +47,30 @@ export const adminApi = createApi({
     "Library",
     "Loans",
     "Imports",
+
+    /*
+      Finance v2 — migrations 025 to 029.
+
+      Deliberately a separate set of tags rather than a reuse of the nine v1
+      finance ones above. Both schemas exist at once until 029 has been run, and
+      sharing a tag would mean a v2 write invalidating a v1 query (and the
+      reverse) — two caches quietly refetching each other's data while the
+      module is half-migrated. Separate namespaces keep the transition legible,
+      and the v1 tags disappear with the v1 slices.
+
+      Split along the lines things actually change on: reference data (accounts,
+      categories, currencies) is edited rarely and read by everything, so it
+      must not be invalidated by every saved transaction — which is the same
+      reasoning that split `FinanceSetup` from `Transactions` in v1.
+    */
+    "FinV2Setup",
+    "FinV2Rates",
+    "FinV2Ledger",
+    "FinV2Commitments",
+    "FinV2Budgets",
+    "FinV2Goals",
+    "FinV2Scenarios",
+    "FinV2Imports",
   ],
   endpoints: () => ({}),
 });

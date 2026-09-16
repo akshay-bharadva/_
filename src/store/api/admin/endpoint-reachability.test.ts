@@ -38,6 +38,57 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   // Analytics fetches its own series. This aggregate is what is left of the
   // v2 dashboard and is called by nothing.
   useGetAnalyticsDataQuery: "superseded — Analytics uses its own queries",
+
+  /*
+    Finance v2 — the data layer for migrations 025–030.
+
+    These are unused because the screens that will call them have not been
+    written yet: the rebuild lands the schema, then the data layer, then the
+    domain logic, then the UI. Each entry goes as its screen arrives, and
+    **the rebuild is not finished while any of them remain** — an allowlist
+    nobody empties is exactly the quiet failure this test exists to catch.
+
+    See docs/redesign/finance-rebuild-plan.md, phase 7.
+  */
+  useGetFinCurrenciesQuery: "finance v2 data layer; UI lands in phase 7",
+  useSaveFinSettingsMutation: "finance v2 data layer; UI lands in phase 7",
+  // Five hooks have left this list, which is how the phase is measured:
+  // ui/finance-page.tsx reads settings, accounts, balances and rates, and
+  // ui/account-form.tsx writes an account. The rebuild is not finished until
+  // the rest follow.
+  useDeleteFinAccountMutation: "finance v2 data layer; UI lands in phase 7",
+  // The three category hooks have gone too: ui/categories-section.tsx manages
+  // them and the workspace reads them for the plan section.
+  useCacheFinRatesMutation: "finance v2 data layer; UI lands in phase 7",
+  // Every ledger hook is reached now: the workspace reads the ledger and
+  // deletes, ui/transaction-form.tsx records and updates, and
+  // ui/transfer-form.tsx records the two-posting pair.
+  useGetFinCommitmentsQuery: "finance v2 data layer; UI lands in phase 7",
+  // Saving and deleting a commitment are reached: ui/commitment-form.tsx and
+  // ui/commitments-section.tsx. The two *queries* behind them are still listed,
+  // because the workspace has not wired them yet — the components take their
+  // data as props.
+  useSaveFinCommitmentEventMutation:
+    "finance v2 data layer; UI lands in phase 7",
+  useDeleteFinCommitmentEventMutation:
+    "finance v2 data layer; UI lands in phase 7",
+  useGetFinCommitmentSkipsQuery: "finance v2 data layer; UI lands in phase 7",
+  // Skip and unskip are reached by ui/confirm-queue.tsx — the Undo on a skip
+  // being the reason both exist rather than just the one.
+  useGetFinBudgetsQuery: "finance v2 data layer; UI lands in phase 7",
+  useSaveFinBudgetMutation: "finance v2 data layer; UI lands in phase 7",
+  useDeleteFinBudgetMutation: "finance v2 data layer; UI lands in phase 7",
+  useGetFinGoalsQuery: "finance v2 data layer; UI lands in phase 7",
+  useSaveFinGoalMutation: "finance v2 data layer; UI lands in phase 7",
+  useDeleteFinGoalMutation: "finance v2 data layer; UI lands in phase 7",
+  useGetFinGoalContributionsQuery: "finance v2 data layer; UI lands in phase 7",
+  useRecordFinGoalContributionMutation:
+    "finance v2 data layer; UI lands in phase 7",
+  useDeleteFinGoalContributionMutation:
+    "finance v2 data layer; UI lands in phase 7",
+  useGetFinScenariosQuery: "finance v2 data layer; UI lands in phase 7",
+  useSaveFinScenarioMutation: "finance v2 data layer; UI lands in phase 7",
+  useDeleteFinScenarioMutation: "finance v2 data layer; UI lands in phase 7",
 };
 
 const slices = globSync("src/store/api/admin/!(*.test).ts", {
