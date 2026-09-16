@@ -1,14 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRightLeft, Eye, EyeOff, Plus, Receipt } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Eye,
+  EyeOff,
+  Plus,
+  Receipt,
+  Repeat,
+} from "lucide-react";
 import { toast } from "sonner";
-import type { FinTransaction } from "@/types";
+import type { FinCommitment, FinTransaction } from "@/types";
 import {
   useDeleteFinTransactionMutation,
   useGetFinAccountBalancesQuery,
   useGetFinAccountsQuery,
   useGetFinCategoriesQuery,
+  useGetFinCommitmentSkipsQuery,
+  useGetFinCommitmentsQuery,
   useGetFinLedgerQuery,
   useGetFinRatesQuery,
   useGetFinSettingsQuery,
@@ -33,10 +42,6 @@ import {
   LoadingState,
   ManagerWrapper,
 } from "@/components/admin/shared";
-// `cn` from its own module, not from `utils`. `utils.ts` re-exports
-// `date-utils`, and the package is not marked `sideEffects: false`, so reaching
-// `cn` through it drags date-fns into this route's chunk. It compiles either
-// way, which is precisely why the rule needs stating.
 import { cn } from "@/lib/cn";
 import { getErrorMessage } from "@/lib/utils";
 import { FINANCE_SECTIONS, findSection } from "../finance-nav";
@@ -44,6 +49,9 @@ import { usePrivateFigures } from "../use-private-figures";
 import { tableFrom } from "../money/rates";
 import { AccountsSection } from "./accounts-section";
 import { ActivitySection } from "./activity-section";
+import { CommitmentForm } from "./commitment-form";
+import { CommitmentsSection } from "./commitments-section";
+import { OverviewSection } from "./overview-section";
 import { PlanSection } from "./plan-section";
 import { ReportsSection } from "./reports-section";
 import { TransactionForm } from "./transaction-form";
@@ -52,43 +60,29 @@ import { TransferForm } from "./transfer-form";
 /**
  * The finance module, rebuilt.
  *
- * **This is the one place the module talks to the database.** Every section below
- * receives what it needs as props, already converted. v1 spread its queries
- * across the page and the sections — `finance-page.tsx` and `accounts-tab.tsx`
- * both fetched accounts and balances, and each wrote its own "convert every
- * balance to base" loop — so two screens could disagree about the same figure and
- * nothing would fail. One fetch, one rate table, one conversion.
+ * **This is the one place the module talks to the database.** Every section
+ * below receives what it needs as props, already converted. v1 spread its
+ * queries across the page and the sections — `finance-page.tsx` and
+ * `accounts-tab.tsx` both fetched accounts and balances, and each wrote its own
+ * "convert every balance to base" loop — so two screens could disagree about the
+ * same figure and nothing would fail. One fetch, one rate table, one conversion.
  *
- * Not yet routed. The admin route still renders v1's `finance-page.tsx`; this
- * grows a section at a time and the route swaps once, when `BUILT` covers
- * everything. A half-rebuilt module behind a live route is the outcome worth
- * refusing.
- *
- * The section list comes from `finance-nav.ts` rather than being restated here,
- * so the nav cannot drift from what exists. Sections not yet rebuilt say so,
- * plainly, instead of rendering an empty panel that looks broken.
+ * Not yet routed at `/admin/finance`, which still renders v1. `/admin/finance-v2`
+ * previews this while it is unfinished; the route swaps once `BUILT` covers the
+ * nav. A half-rebuilt module behind the live route is the outcome worth refusing.
  */
 
-/**
- * Sections with v2 content. Grows until it covers the nav.
- *
- * "Plan" is in here while being only partly rebuilt — it carries categories but
- * not budgets or goals. A coarse nav plus a precise notice on the screen beats
- * marking a reachable section "soon", which would suggest there is nothing there.
- */
-const BUILT = new Set(["accounts", "activity", "reports", "plan"]);
+/** Sections with v2 content. Grows until it covers the nav. */
+const BUILT = new Set(["overview", "accounts", "activity", "reports", "plan"]);
 
 /**
  * Where the module opens.
  *
- * Stated, not derived. This was `FINANCE_SECTIONS.find(BUILT.has)` — the first
- * built section in nav order — and adding Reports to `BUILT` silently moved the
- * landing screen off Accounts, because Reports sits earlier in the nav. The
- * screen you open on is a decision; it should not be a side effect of which
- * sections happen to be finished.
- *
- * Accounts until Overview exists, since "what do I have" is the question the
- * module gets opened for.
+ * Stated, not derived. This was "the first built section in nav order", and
+ * adding Reports to `BUILT` silently moved the landing screen off Accounts. The
+ * screen you open on is a decision, not a side effect of which sections happen
+ * to be finished — so adding Overview here changes nothing until it is changed
+ * on purpose.
  */
 const DEFAULT_V2_SECTION = "accounts";
 
@@ -104,6 +98,8 @@ export default function FinanceV2Page() {
   const { data: balances = [] } = useGetFinAccountBalancesQuery();
   const { data: categories = [] } = useGetFinCategoriesQuery();
   const { data: transactions = [] } = useGetFinLedgerQuery();
+  const { data: commitments = [] } = useGetFinCommitmentsQuery();
+  const { data: skips = [] } = useGetFinCommitmentSkipsQuery();
   const [deleteTransaction] = useDeleteFinTransactionMutation();
   const confirm = useConfirm();
 
@@ -114,10 +110,9 @@ export default function FinanceV2Page() {
   });
 
   /**
-   * One rate table for the whole module, newest quote per currency.
-   *
-   * Built here so every figure on every screen is priced identically. The rule
-   * that "newest" means newest lives in `tableFrom`, not in the query's ordering.
+   * One rate table for the whole module, newest quote per currency, so every
+   * figure on every screen is priced identically. The rule that "newest" means
+   * newest lives in `tableFrom`, not in the query's ordering.
    */
   const rates = useMemo(() => tableFrom(rateRows, base), [rateRows, base]);
 
@@ -125,6 +120,9 @@ export default function FinanceV2Page() {
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [transferring, setTransferring] = useState(false);
+  const [addingCommitment, setAddingCommitment] = useState(false);
+  const [editingCommitment, setEditingCommitment] =
+    useState<FinCommitment | null>(null);
   const { hidden, toggle } = usePrivateFigures();
 
   const removeTransaction = async (transaction: FinTransaction) => {
@@ -245,11 +243,6 @@ export default function FinanceV2Page() {
                 {hidden ? "Show" : "Hide"} amounts
               </Button>
 
-              {/*
-                Adding money movements is a module-wide action rather than one
-                section's, which is where v1 had it too — you reach for it from
-                wherever you happen to be standing.
-              */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button type="button" size="sm">
@@ -266,10 +259,26 @@ export default function FinanceV2Page() {
                     <ArrowRightLeft className="mr-2 size-4" />
                     Transfer
                   </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setAddingCommitment(true)}>
+                    <Repeat className="mr-2 size-4" />
+                    Something that repeats
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
           </header>
+
+          {sectionId === "overview" && (
+            <OverviewSection
+              commitments={commitments}
+              transactions={transactions}
+              skips={skips}
+              accounts={accounts}
+              balances={balances}
+              rates={rates}
+              base={base}
+            />
+          )}
 
           {sectionId === "accounts" && (
             <AccountsSection
@@ -280,16 +289,30 @@ export default function FinanceV2Page() {
             />
           )}
 
+          {/*
+            The ledger and the things that repeat, together — which is where v1
+            kept them too. What happened and what is going to happen are the same
+            question asked twice.
+          */}
           {sectionId === "activity" && (
-            <ActivitySection
-              transactions={transactions}
-              accounts={accounts}
-              categories={categories}
-              base={base}
-              onEdit={setEditing}
-              onDelete={(transaction) => void removeTransaction(transaction)}
-              onAdd={() => setAdding(true)}
-            />
+            <div className="space-y-8">
+              <ActivitySection
+                transactions={transactions}
+                accounts={accounts}
+                categories={categories}
+                base={base}
+                onEdit={setEditing}
+                onDelete={(transaction) => void removeTransaction(transaction)}
+                onAdd={() => setAdding(true)}
+              />
+              <CommitmentsSection
+                commitments={commitments}
+                accounts={accounts}
+                base={base}
+                onEdit={setEditingCommitment}
+                onAdd={() => setAddingCommitment(true)}
+              />
+            </div>
           )}
 
           {sectionId === "reports" && (
@@ -297,9 +320,6 @@ export default function FinanceV2Page() {
               transactions={transactions}
               categories={categories}
               base={base}
-              // No `onImport` yet: the import screen is not rebuilt, and the
-              // gap notice would otherwise offer a button leading to a panel
-              // that says so.
             />
           )}
 
@@ -332,8 +352,6 @@ export default function FinanceV2Page() {
         description="One movement of money, in or out."
       >
         <TransactionForm
-          // Remounted per transaction, so the form's defaults are rebuilt rather
-          // than a previous row's figures lingering into the next one.
           key={editing?.id ?? "new"}
           transaction={editing ?? undefined}
           accounts={accounts}
@@ -359,6 +377,35 @@ export default function FinanceV2Page() {
           rates={rates}
           base={base}
           onDone={() => setTransferring(false)}
+        />
+      </FormSheet>
+
+      <FormSheet
+        open={addingCommitment || editingCommitment !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAddingCommitment(false);
+            setEditingCommitment(null);
+          }
+        }}
+        title={
+          editingCommitment
+            ? `Edit ${editingCommitment.name}`
+            : "Something that repeats"
+        }
+        description="A subscription, a salary, a loan — anything that comes round."
+      >
+        <CommitmentForm
+          key={editingCommitment?.id ?? "new"}
+          commitment={editingCommitment ?? undefined}
+          commitments={commitments}
+          accounts={accounts}
+          categories={categories}
+          base={base}
+          onDone={() => {
+            setAddingCommitment(false);
+            setEditingCommitment(null);
+          }}
         />
       </FormSheet>
     </ManagerWrapper>

@@ -1,6 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import FinanceV2Page from "./finance-page";
+import { FINANCE_SECTIONS } from "../finance-nav";
+
+/**
+ * The sections the workspace has rebuilt, restated here on purpose.
+ *
+ * `BUILT` is private to the component, and exporting it so a test could import
+ * it would let the test agree with the implementation by construction — it
+ * would pass even if the nav rendered nothing at all. Two independent lists
+ * that must agree is the point.
+ */
+const BUILT_SECTIONS = new Set([
+  "overview",
+  "accounts",
+  "activity",
+  "reports",
+  "plan",
+]);
 
 /**
  * What this page is for, and therefore what is worth testing: it is the only
@@ -87,6 +104,14 @@ vi.mock("@/store/api/adminApi", () => ({
   useUpdateFinTransactionMutation: () => [vi.fn(), { isLoading: false }],
   useGetFinLedgerQuery: () => ({ data: [] }),
   useDeleteFinTransactionMutation: () => [vi.fn(), { isLoading: false }],
+  // Commitments reach the workspace now: Overview derives the confirm queue
+  // from them, and Activity lists them underneath the ledger.
+  useGetFinCommitmentsQuery: () => ({ data: [] }),
+  useGetFinCommitmentSkipsQuery: () => ({ data: [] }),
+  useSaveFinCommitmentMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinCommitmentMutation: () => [vi.fn(), { isLoading: false }],
+  useSkipFinOccurrenceMutation: () => [vi.fn(), { isLoading: false }],
+  useUnskipFinOccurrenceMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
@@ -138,7 +163,17 @@ describe("the finance workspace", () => {
     expect(
       screen.getByRole("button", { name: /Forecast/ }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText("soon").length).toBeGreaterThan(5);
+    // Derived, not a hard-coded threshold. This was `> 5`, written when three
+    // sections were built; the fifth section made it false, and nudging the
+    // number would only push the same rot one section further out. What the
+    // test actually means is "every unbuilt section is marked, and no built one
+    // is" — so it counts the unbuilt ones.
+    const unbuilt = FINANCE_SECTIONS.filter(
+      (section) => !BUILT_SECTIONS.has(section.id),
+    ).length;
+
+    expect(screen.getAllByText("soon")).toHaveLength(unbuilt);
+    expect(unbuilt).toBeGreaterThan(0);
   });
 
   it("says plainly that a section is not rebuilt, rather than showing nothing", () => {

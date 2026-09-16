@@ -869,6 +869,63 @@ when that section is not yet built.
 
 ---
 
+## 7l. The commitments slice
+
+The largest of the rebuild, and the one everything else was waiting on: the
+forecast, the loans screen and Overview's queue all sit on it.
+
+**One table, one form, one list.** `fin_commitment` absorbed v1's
+`recurring_transactions` *and* `finance_loans`, so a subscription and a mortgage
+are the same kind of thing with a different `kind`. That is the fix for "one
+obligation described twice" — the Loans screen used to ask the owner to
+_remember_ to archive the duplicate rule, and remembering is not a mechanism.
+`fin_commitment_shape` makes a row carrying both shapes unrepresentable, and
+`finCommitmentFormSchema` mirrors every one of 026's CHECKs so a mistake is a
+message rather than an opaque failed save.
+
+**The confirm queue is derived, never stored** — commitments, minus what was
+posted, minus explicit skips. Three things in `commitments/pending.ts` are worth
+keeping:
+
+- Occurrences are keyed by the date they were **due**, not the date they were
+  paid. A salary due Friday and entered Monday is still Friday's occurrence;
+  matching on the paid date re-proposes it whenever the two differ.
+- `effectiveEnd` means a superseded commitment stops proposing the day its
+  replacement begins, without anyone having set an end date on an unrelated row.
+  This is the bug the whole rebuild started from.
+- An amortising commitment proposes the instalment **read off its schedule**,
+  not `paymentFor(principal, rate, tenure)`. A floating-rate loan that has
+  re-priced no longer pays what it started at, and asking the owner to confirm
+  the opening figure would be wrong in a way that still looks like a number.
+
+A commitment naming both accounts confirms as **two balanced postings** — the
+recurring transfer v1 could not express at all, which is why its forecast watched
+money leave for savings every fortnight and never arrive.
+
+**Overview leads with the queue**, deliberately. Every figure above it is
+conditional on it being empty: an unconfirmed paycheque from three weeks ago does
+not make the balances approximate, it makes them wrong. A screen showing totals
+first would be inviting you to trust them.
+
+**The gate: 20 entries, 18 finance v2.** Counted from the file. The four
+commitment mutations went when their components were written; the two queries
+only when the workspace actually wired them — a hook reachable by grep is not
+reached, and the stale half of that test has now corrected this count three
+times.
+
+### The lesson: a threshold that was true when it was written
+
+`expect(getAllByText("soon").length).toBeGreaterThan(5)` passed when three
+sections were built and failed at five, having asserted nothing meaningful in
+between. Nudging it to `> 4` would have bought one section before rotting again.
+What the test means is "every unbuilt section is marked and no built one is", so
+it now counts the unbuilt sections and compares. The list of built sections is
+restated in the test rather than imported from the component — importing the
+private `BUILT` would let the test agree with the implementation by
+construction, and pass even if the nav rendered nothing.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification

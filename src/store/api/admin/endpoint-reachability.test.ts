@@ -63,7 +63,8 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   // Every ledger hook is reached now: the workspace reads the ledger and
   // deletes, ui/transaction-form.tsx records and updates, and
   // ui/transfer-form.tsx records the two-posting pair.
-  useGetFinCommitmentsQuery: "finance v2 data layer; UI lands in phase 7",
+  // Commitments and their skips are read by the workspace now — Overview
+  // derives the confirm queue from them, Activity lists them under the ledger.
   // Saving and deleting a commitment are reached: ui/commitment-form.tsx and
   // ui/commitments-section.tsx. The two *queries* behind them are still listed,
   // because the workspace has not wired them yet — the components take their
@@ -72,7 +73,6 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
     "finance v2 data layer; UI lands in phase 7",
   useDeleteFinCommitmentEventMutation:
     "finance v2 data layer; UI lands in phase 7",
-  useGetFinCommitmentSkipsQuery: "finance v2 data layer; UI lands in phase 7",
   // Skip and unskip are reached by ui/confirm-queue.tsx — the Undo on a skip
   // being the reason both exist rather than just the one.
   useGetFinBudgetsQuery: "finance v2 data layer; UI lands in phase 7",
