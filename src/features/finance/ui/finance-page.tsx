@@ -54,6 +54,7 @@ import { AccountsSection } from "./accounts-section";
 import { ActivitySection } from "./activity-section";
 import { CommitmentForm } from "./commitment-form";
 import { CommitmentsSection } from "./commitments-section";
+import { LoansSection } from "./loans-section";
 import { OverviewSection } from "./overview-section";
 import { PlanSection } from "./plan-section";
 import { ReportsSection } from "./reports-section";
@@ -91,6 +92,7 @@ const BUILT = new Set([
   "accounts",
   "activity",
   "reports",
+  "loans",
   "forecast",
   "plan",
 ]);
@@ -340,6 +342,21 @@ export default function FinanceV2Page() {
               transactions={transactions}
               categories={categories}
               base={base}
+            />
+          )}
+
+          {/*
+            A loan is an amortising commitment, so this screen creates nothing —
+            it reuses the commitment sheet for both adding and editing. Two ways
+            to make the same row would be two places for them to disagree.
+          */}
+          {sectionId === "loans" && (
+            <LoansSection
+              commitments={commitments}
+              rates={rates}
+              base={base}
+              onEdit={setEditingCommitment}
+              onAdd={() => setAddingCommitment(true)}
             />
           )}
 

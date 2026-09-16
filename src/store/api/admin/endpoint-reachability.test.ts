@@ -69,10 +69,9 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   // ui/commitments-section.tsx. The two *queries* behind them are still listed,
   // because the workspace has not wired them yet — the components take their
   // data as props.
-  useSaveFinCommitmentEventMutation:
-    "finance v2 data layer; UI lands in phase 7",
-  useDeleteFinCommitmentEventMutation:
-    "finance v2 data layer; UI lands in phase 7",
+  // Rate changes and prepayments are recorded from ui/loans-section.tsx, which
+  // is where a loan's events belong — the schedule is derived from the terms
+  // plus these, so recording one rebuilds every figure on that screen.
   // Skip and unskip are reached by ui/confirm-queue.tsx — the Undo on a skip
   // being the reason both exist rather than just the one.
   useGetFinBudgetsQuery: "finance v2 data layer; UI lands in phase 7",

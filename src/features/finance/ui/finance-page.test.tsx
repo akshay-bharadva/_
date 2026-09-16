@@ -16,6 +16,7 @@ const BUILT_SECTIONS = new Set([
   "accounts",
   "activity",
   "reports",
+  "loans",
   "forecast",
   "plan",
 ]);
@@ -118,6 +119,9 @@ vi.mock("@/store/api/adminApi", () => ({
   useGetFinScenariosQuery: () => ({ data: [] }),
   useSaveFinScenarioMutation: () => [vi.fn(), { isLoading: false }],
   useDeleteFinScenarioMutation: () => [vi.fn(), { isLoading: false }],
+  // Loans record rate changes and prepayments as commitment events.
+  useSaveFinCommitmentEventMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinCommitmentEventMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({

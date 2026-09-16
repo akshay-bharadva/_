@@ -979,6 +979,54 @@ reader sees. Fixed with `toInputValue`; the assertion is now the exact string.
 
 ---
 
+## 7n. The loans slice
+
+A loan is an amortising commitment, so this section **creates nothing**. The
+commitment form makes and edits the row; what lives here is what a loan *does* —
+the schedule, what is outstanding, and the two events that change it. A second
+way to create the same row would be a second place for the two to disagree, so
+"Add a loan" and "Edit terms" both open the commitment sheet the workspace
+already owns.
+
+**Every figure is in the loan's own currency first**, with base beside it at
+today's rate. That is the shape of the problem the module exists for — an Indian
+home loan serviced from a Canadian salary — and the two figures are not
+interchangeable: the bank's number is fixed and the cost in dollars moves every
+month. Saying "at today's rate" beside each converted figure is how the screen
+stays honest about which one is which. A loan whose currency has no cached rate
+is **named and excluded** from the across-loans total rather than added at
+parity, the same rule the rest of the module follows.
+
+The schedule is derived from the terms plus the events, never stored, so a figure
+here cannot go stale against one there. That is also why deleting an event says
+"the schedule is rebuilt without it, so every figure on this screen changes" —
+it is not a soft warning, it is what happens.
+
+Two things the tests caught, both of the same kind — an assertion that was true
+before the behaviour existed:
+
+- `getByText(/removes/)` for the prepayment result also matched the section's own
+  standing blurb, "see what it removes". Both the positive and the negative case
+  passed vacuously. They now assert the outcome line.
+- The warning fixture used a 12-month loan and could never have fired. At that
+  tenure the instalment covers the interest at *any* rate the column permits
+  (0–100), so the "instalment no longer covers the monthly interest" branch is
+  unreachable — it needs a long tenure, where the payment is small against the
+  balance. The fixture is now 240 months and the assertion names the warning
+  text instead of matching `/instalment/i`, which the StatCard title satisfied
+  regardless.
+
+`getByText("Instalment")` also matched two elements — the StatCard title and the
+schedule's column header. Scoped to `getByRole("heading")`.
+
+**The gate: 15 entries, 13 finance v2.** Counted from the file, not added up —
+and the count script's first regex classified `useDeleteFinanceAccountMutation`
+(v1) as finance v2, which is the fourth time arithmetic on this list has been
+wrong. What remains: settings, currencies and cache-rates (exchange), delete
+account, three budget hooks, three goal hooks, three goal-contribution hooks.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification
