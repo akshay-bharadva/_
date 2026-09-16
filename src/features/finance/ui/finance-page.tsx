@@ -54,6 +54,7 @@ import { AccountsSection } from "./accounts-section";
 import { ActivitySection } from "./activity-section";
 import { CommitmentForm } from "./commitment-form";
 import { CommitmentsSection } from "./commitments-section";
+import { ExchangeSection } from "./exchange-section";
 import { LoansSection } from "./loans-section";
 import { OverviewSection } from "./overview-section";
 import { PlanSection } from "./plan-section";
@@ -95,6 +96,7 @@ const BUILT = new Set([
   "loans",
   "forecast",
   "plan",
+  "exchange",
 ]);
 
 /**
@@ -389,6 +391,22 @@ export default function FinanceV2Page() {
           )}
 
           {sectionId === "plan" && <PlanSection categories={categories} />}
+
+          {/*
+            The raw rate rows, not the table. Everywhere else in the module wants
+            one rate per currency and does not care when it was quoted; this is
+            the one screen whose subject *is* the dates — how old today's quote
+            is, what the last ninety days looked like, and what the rate was on
+            the day a transfer actually happened.
+          */}
+          {sectionId === "exchange" && (
+            <ExchangeSection
+              rateRows={rateRows}
+              base={base}
+              home={settings?.home_currency ?? null}
+              transactions={transactions}
+            />
+          )}
 
           {!BUILT.has(sectionId) && (
             <div className="rounded-surface bg-card p-6 shadow-e1">

@@ -19,6 +19,7 @@ const BUILT_SECTIONS = new Set([
   "loans",
   "forecast",
   "plan",
+  "exchange",
 ]);
 
 /**
@@ -122,6 +123,11 @@ vi.mock("@/store/api/adminApi", () => ({
   // Loans record rate changes and prepayments as commitment events.
   useSaveFinCommitmentEventMutation: () => [vi.fn(), { isLoading: false }],
   useDeleteFinCommitmentEventMutation: () => [vi.fn(), { isLoading: false }],
+  // Exchange owns the currency list and the two writes that belong to it —
+  // caching fetched rates, and which currencies the module works in.
+  useGetFinCurrenciesQuery: () => ({ data: [] }),
+  useCacheFinRatesMutation: () => [vi.fn(), { isLoading: false }],
+  useSaveFinSettingsMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({

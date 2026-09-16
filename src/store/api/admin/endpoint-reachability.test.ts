@@ -50,8 +50,9 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
 
     See docs/redesign/finance-rebuild-plan.md, phase 7.
   */
-  useGetFinCurrenciesQuery: "finance v2 data layer; UI lands in phase 7",
-  useSaveFinSettingsMutation: "finance v2 data layer; UI lands in phase 7",
+  // The currency list, the settings write and the rate cache all belong to
+  // ui/exchange-section.tsx: which currencies the module works in, and the
+  // quotes every other screen converts with, are the same subject.
   // Five hooks have left this list, which is how the phase is measured:
   // ui/finance-page.tsx reads settings, accounts, balances and rates, and
   // ui/account-form.tsx writes an account. The rebuild is not finished until
@@ -59,7 +60,6 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   useDeleteFinAccountMutation: "finance v2 data layer; UI lands in phase 7",
   // The three category hooks have gone too: ui/categories-section.tsx manages
   // them and the workspace reads them for the plan section.
-  useCacheFinRatesMutation: "finance v2 data layer; UI lands in phase 7",
   // Every ledger hook is reached now: the workspace reads the ledger and
   // deletes, ui/transaction-form.tsx records and updates, and
   // ui/transfer-form.tsx records the two-posting pair.

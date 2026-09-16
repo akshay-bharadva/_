@@ -1027,6 +1027,57 @@ account, three budget hooks, three goal hooks, three goal-contribution hooks.
 
 ---
 
+## 7o. The exchange slice
+
+The rate is the number this module is most exposed to and controls least, so the
+screen is built around three admissions rather than around a chart:
+
+1. **A cached quote has a date, and that date is a fact about every screen.**
+   Everything else in the module converts from the newest cached quote, so "how
+   old is it" is not a question about Exchange — it is a question about the net
+   worth figure on Overview. Stated here, in days, rather than implied.
+2. **"Is 61 a good rate" is unanswerable on its own.** `ratePercentile` refuses
+   to score fewer than ten samples, and the screen says why instead of showing a
+   confident number derived from three days of noise.
+3. **The margin is the cost; the fee is not.** A zero-fee provider quoting 58
+   against a market of 61 has taken 5%, and nothing else in the module would
+   show it.
+
+**It does not touch the network to open.** History is loaded by asking. A screen
+that fetches in order to render is a screen that fails to render on a bad
+connection, and rates are an enhancement to a ledger that has to keep working
+without them — the feed being down means figures show in their own currency and
+totals say they are incomplete. There is a test whose whole job is that the two
+fetch functions are not called on mount.
+
+`fx/remittances.ts` is new, and deliberately **recognises** remittances rather
+than flagging them: a remittance is just a cross-currency transfer between two
+accounts you own, which the ledger already stores as one transaction with two
+postings. Detecting it from the postings means a transfer recorded a year ago
+appears on this screen, and there is no flag that can drift from the data. Two
+rules carried over from the money layer: the margin is **null, not zero**, when
+no rate was cached for that day (an unknowable cost reported as nothing makes the
+worst provider look free), and `rateOn` resolves the rate **as of the transfer's
+date**, never today's — re-pricing a May transfer at September's rate would
+report a margin that has nothing to do with what was on offer. It also never
+reaches forward for a quote published after the event.
+
+This is where `hiddenMargin` finally gets a caller — the function whose exponent
+bug was green under its own tests until CAD→JPY was tried.
+
+**A real test gap, stated rather than papered over.** Choosing a currency is the
+path that calls `saveFinSettings`, and Radix's `Select` does not open under jsdom
+even with the pointer-capture and `scrollIntoView` shims. There is no precedent
+in this repo for driving one in a test. Clicking a trigger that never opens
+asserts nothing, so that case was removed rather than left passing for the wrong
+reason; the corridor-unset branch is covered instead.
+
+**The gate: 12 entries, 10 finance v2.** Counted. What is left is one delete and
+the plan section's nine — three budget hooks, three goal hooks, three goal
+contributions.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification
