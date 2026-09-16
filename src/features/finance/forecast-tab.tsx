@@ -46,7 +46,10 @@ import { cn } from "@/lib/cn";
 import {
   buildForecast,
   forecastDrivers,
+  loanRuleClashes,
   readForecast,
+  selfTransferRules,
+  unconvertedInWindow,
   unconvertibleRules,
   type ForecastExtraFlow,
 } from "./forecast";
@@ -146,6 +149,24 @@ export function ForecastTab({
     ...unpricedRules.map((rule) => rule.description),
     ...unpricedLoans,
   ];
+
+  /**
+   * Three things that make this line wrong in ways the line itself cannot
+   * show: one debt described twice, money the run-rate could not price, and
+   * rules left out because they only move money you already have.
+   */
+  const doubleCounted = useMemo(
+    () => loanRuleClashes(rules, loanFlows.map((flow) => flow.label)),
+    [rules, loanFlows],
+  );
+  const movedNotSpent = useMemo(
+    () => selfTransferRules(rules, categories),
+    [rules, categories],
+  );
+  const unpricedRows = useMemo(
+    () => unconvertedInWindow(transactions, 90, new Date()),
+    [transactions],
+  );
 
   const [horizon, setHorizon] = useState<number>(180);
   const [spendDelta, setSpendDelta] = useState(0);
@@ -373,6 +394,65 @@ export function ForecastTab({
           because there is no exchange rate for their currency yet:{" "}
           {leftOut.join(", ")}. Fetch rates under Exchange — counting them at
           face value would be wrong by the whole exchange rate.
+        </p>
+      )}
+
+      {/*
+        One real debt described by two records subtracts twice, every month,
+        from the day the loan starts — which looks exactly like a forecast that
+        turns down for no reason. Named rather than resolved: which record is
+        the real one is the owner's call, not this module's.
+      */}
+      {doubleCounted.length > 0 && (
+        <p className="flex items-start gap-2.5 rounded-surface bg-destructive/10 p-4 text-sm">
+          <TriangleAlert
+            className="mt-0.5 size-4 shrink-0 text-destructive"
+            aria-hidden
+          />
+          <span>
+            <strong className="font-semibold text-foreground">
+              {doubleCounted.length === 1
+                ? "One commitment is counted twice."
+                : `${doubleCounted.length} commitments are counted twice.`}
+            </strong>{" "}
+            <span className="text-muted-foreground">
+              {doubleCounted
+                .map(
+                  (clash) =>
+                    `“${clash.rule.description}” is a recurring rule and “${clash.loanLabel}” is a loan`,
+                )
+                .join("; ")}
+              . Both are in this line, so the instalment comes out twice a
+              month. Archive whichever one is not the real record — under
+              Repeating, or on the loan.
+            </span>
+          </span>
+        </p>
+      )}
+
+      {unpricedRows > 0 && (
+        <p className="rounded-surface bg-chart-3/10 p-3 text-xs text-foreground">
+          <strong className="font-medium">
+            {unpricedRows} recent{" "}
+            {unpricedRows === 1 ? "transaction has" : "transactions have"} no
+            exchange rate
+          </strong>{" "}
+          for their date, so they count as nothing in the day-to-day run-rate.
+          If that is most of your recent history, the two lines below sit on top
+          of each other because the run-rate works out to zero — not because you
+          spend nothing. Fetch rates under Exchange.
+        </p>
+      )}
+
+      {movedNotSpent.length > 0 && (
+        <p className="rounded-surface bg-secondary/60 p-3 text-xs text-muted-foreground">
+          <strong className="font-medium text-foreground">
+            Left out as moving money, not spending it:
+          </strong>{" "}
+          {movedNotSpent.map((entry) => entry.description).join(", ")}. A rule
+          names one account, so if the money lands somewhere this line does not
+          count — a locked retirement account — the real figure is lower than
+          what is drawn.
         </p>
       )}
 

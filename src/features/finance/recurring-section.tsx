@@ -116,6 +116,19 @@ export function RecurringSection({
                 <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                   <span className="capitalize">{rule.frequency}</span>
                   <span>· next {format(next, "d MMM")}</span>
+                  {/*
+                    When a rule stops, said plainly. Without it the list cannot
+                    show the difference between a tenancy that ends in March and
+                    one that runs forever beside the mortgage that replaced it —
+                    which is the difference between a forecast that levels off
+                    and one that falls for the rest of the year.
+                  */}
+                  {rule.end_date && (
+                    <span>
+                      · until{" "}
+                      {format(parseLocalDate(rule.end_date), "d MMM yyyy")}
+                    </span>
+                  )}
                   {account && <span>· {account.name}</span>}
                   {rule.auto_post ? (
                     <span

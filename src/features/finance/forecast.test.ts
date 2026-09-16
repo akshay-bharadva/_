@@ -7,7 +7,10 @@ import type {
 import {
   buildForecast,
   discretionaryDailyRate,
+  loanRuleClashes,
   readForecast,
+  selfTransferRules,
+  unconvertedInWindow,
   unconvertibleRules,
 } from "./forecast";
 
@@ -355,6 +358,173 @@ describe("currency", () => {
       extraFlows: [{ date: "2026-09-05", amount: -700, label: "Home loan — EMI" }],
     });
     expect(points[points.length - 1].committed).toBe(4300);
+  });
+});
+
+describe("money moved between your own accounts", () => {
+  /**
+   * The balance line was the one surface that counted a transfer as spending.
+   * A fortnightly rule moving money to savings subtracted every two weeks and
+   * never added it back, so the projection fell forever *because* you save.
+   */
+  it("does not drain the balance with a transfer-category rule", () => {
+    const toSavings = rule({
+      id: "rrsp",
+      description: "To RRSP",
+      amount: 500,
+      frequency: "bi-weekly",
+      occurrence_day: null,
+      category_id: "xfer",
+    });
+    const points = forecast({ horizonDays: 60, rules: [toSavings] });
+    expect(points.at(-1)!.committed).toBe(5000);
+  });
+
+  /** Left out, but named — the far side may be an account this line ignores. */
+  it("names the rules it left out rather than dropping them silently", () => {
+    const rules = [
+      rule({ id: "rrsp", description: "To RRSP", category_id: "xfer" }),
+      rule({ id: "rent", description: "Rent", category_id: "food" }),
+    ];
+    const left = selfTransferRules(rules, categories);
+    expect(left.map((entry) => entry.id)).toEqual(["rrsp"]);
+  });
+});
+
+describe("transactions with no exchange rate", () => {
+  it("counts the rows the run-rate could not price, inside the window", () => {
+    const rows = [
+      txn({ id: "a", date: "2026-08-10", base_amount: null }),
+      txn({ id: "b", date: "2026-08-10", base_amount: 90 }),
+      // Outside the 90-day window.
+      txn({ id: "c", date: "2026-01-01", base_amount: null }),
+    ];
+    expect(unconvertedInWindow(rows, 90, TODAY)).toBe(1);
+  });
+
+  /**
+   * The reported symptom: two lines identical at every point. `base_amount`
+   * is null when the trigger could not price the row, it was read as
+   * `?? 0`, and a window of unpriced rows makes the run-rate exactly zero —
+   * so "Expected" silently becomes "Commitments only".
+   */
+  it("collapses onto the committed line when nothing could be priced", () => {
+    const rows = [
+      txn({ id: "a", date: "2026-08-10", base_amount: null, amount: 300 }),
+      txn({ id: "b", date: "2026-08-12", base_amount: null, amount: 420 }),
+    ];
+    const points = forecast({ transactions: rows, lookbackDays: 90 });
+    const last = points.at(-1)!;
+    expect(last.expected).toBe(last.committed);
+    expect(unconvertedInWindow(rows, 90, TODAY)).toBe(2);
+  });
+});
+
+describe("one debt counted twice", () => {
+  /**
+   * A loan and a recurring rule are two tables that can describe one debt.
+   * The Loans screen asks the owner to remember to archive the rule; this is
+   * the check that does not rely on remembering.
+   */
+  it("finds a loan that is also a recurring rule", () => {
+    const rules = [
+      rule({ id: "hl", description: "Home Loan EMI", amount: 2200 }),
+      rule({ id: "gym", description: "Gym", amount: 60 }),
+    ];
+    const clashes = loanRuleClashes(rules, ["Home Loan — EMI"]);
+    expect(clashes).toHaveLength(1);
+    expect(clashes[0].rule.id).toBe("hl");
+    expect(clashes[0].loanLabel).toBe("Home Loan — EMI");
+  });
+
+  it("reports a rule once however many instalments the loan has", () => {
+    const rules = [rule({ id: "hl", description: "Home Loan" })];
+    const clashes = loanRuleClashes(rules, [
+      "Home Loan — EMI",
+      "Home Loan — EMI and prepayment",
+    ]);
+    expect(clashes).toHaveLength(1);
+  });
+
+  it("ignores earnings and archived rules", () => {
+    const rules = [
+      rule({ id: "a", description: "Home Loan", type: "earning" }),
+      rule({ id: "b", description: "Home Loan", archived_at: "2026-01-01" }),
+    ];
+    expect(loanRuleClashes(rules, ["Home Loan"])).toHaveLength(0);
+  });
+});
+
+/**
+ * The shape this module exists to get right: income above outgoings must not
+ * produce a line that falls. Both cases below run a full year, because the
+ * reported bug only appeared months out, after a new commitment started.
+ */
+describe("a year out, with income above outgoings", () => {
+  const salary = rule({
+    id: "pay",
+    description: "Salary",
+    amount: 5000,
+    type: "earning",
+    occurrence_day: 1,
+  });
+
+  it("does not slope down", () => {
+    const points = forecast({
+      horizonDays: 365,
+      rules: [salary, rule({ id: "rent", description: "Rent", amount: 1800 })],
+    });
+    expect(points.at(-1)!.committed).toBeGreaterThan(points[0].committed);
+  });
+
+  /**
+   * A superseding commitment: the mortgage starts the day the tenancy ends.
+   * Ending the old rule is the whole mechanism, and this is what it buys.
+   */
+  it("stays level when the new commitment supersedes the old one", () => {
+    const points = forecast({
+      horizonDays: 365,
+      rules: [
+        salary,
+        rule({
+          id: "rent",
+          description: "Rent",
+          amount: 1800,
+          end_date: "2027-03-31",
+        }),
+        rule({
+          id: "loan",
+          description: "Home Loan",
+          amount: 3500,
+          start_date: "2027-04-01",
+        }),
+      ],
+    });
+    const handover = points.find((point) => point.date === "2027-03-31")!;
+    expect(points.at(-1)!.committed).toBeGreaterThanOrEqual(handover.committed);
+  });
+
+  /**
+   * And this is what its absence costs — the reported shape exactly: a line
+   * that climbs to the handover and falls for months afterwards, while income
+   * still exceeds either commitment on its own.
+   */
+  it("falls after the handover when the old rule was never ended", () => {
+    const points = forecast({
+      horizonDays: 365,
+      rules: [
+        salary,
+        rule({ id: "rent", description: "Rent", amount: 1800 }),
+        rule({
+          id: "loan",
+          description: "Home Loan",
+          amount: 3500,
+          start_date: "2027-04-01",
+        }),
+      ],
+    });
+    const handover = points.find((point) => point.date === "2027-03-31")!;
+    expect(points.at(-1)!.committed).toBeLessThan(handover.committed);
   });
 });
 

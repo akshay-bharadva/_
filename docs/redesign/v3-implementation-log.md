@@ -2084,6 +2084,60 @@ to 6. What is left is the legitimate half of the rule — storage paths,
 serial numbers, URL paths, hex colours, code blocks — and every entry says
 which. `<code>` and `<kbd>` lost a `font-mono` class they never needed.
 
+## The forecast counted the same money twice (2026-09-15)
+
+A reported symptom — the projected balance climbing to March and falling for
+months afterwards, while income still exceeded outgoings — with a second
+detail that turned out to matter more: "Commitments only" and "Expected"
+showed identical values at every point checked.
+
+Audited against the ledger rather than guessed at. The schedule maths is
+sound: monthly rules re-anchor on `occurrence_day` each step, so a rule on the
+31st goes 31 Jan → 28 Feb → **31 Mar** without drifting, and biweekly rules
+step a fixed 14 days. `end_date` is honoured by both the forecast and the
+confirm queue. Three real defects, none of them in the arithmetic:
+
+- **Transfers drained the balance.** `scheduledFlows` was the only surface in
+  the module that counted a transfer-category rule as spending — the run-rate
+  skips them, `buildCategoryForecast` skips them, "found what repeats" skips
+  them, `get_calendar_data` excludes both legs. So a fortnightly rule moving
+  money to savings subtracted every two weeks and never added it back: a line
+  that falls forever *because* you save. Now excluded — and **named**, because
+  a rule carries one `account_id` and is therefore only ever half a transfer;
+  if the far side is an account this line does not count, leaving it out makes
+  the projection optimistic, and the reader is told so.
+- **The run-rate silently priced unconvertible rows at zero.** `base_amount`
+  is null when the trigger could not find a rate, and it was read as
+  `?? 0` — counted as costing nothing while still dividing the window. With a
+  window of unpriced rows the rate is exactly zero and "Expected" *becomes*
+  "Commitments only", which is the identical-lines report. `finance-health`
+  and `finance-insights` already count and report these rows; the forecast was
+  the one screen staying silent. `unconvertedInWindow` gives it the same count
+  and the chart now says why its two lines coincide.
+- **One debt, two records.** A loan and a recurring rule can describe the same
+  mortgage — migration 020's own note says a loan "used to be representable
+  only as a recurring expense with an end date" — and both feed the same
+  `flows` array, so the instalment comes out twice from the day the loan
+  starts. The Loans screen already asked the owner to *remember* to archive the
+  rule. `loanRuleClashes` checks instead, and reports rather than resolves:
+  which record is the real one is the owner's call, not this module's.
+
+**Not built, deliberately.** No detector can know that a home loan supersedes
+rent — the two descriptions share nothing, and a matcher loose enough to pair
+them would pair unrelated rules. So the superseding case gets the mechanism
+made visible instead: `end_date` already existed and worked, and the Repeating
+list now says "until 31 Mar 2027" so an open-ended rule running beside its
+replacement is something you can see. Two regression tests hold the pair — a
+superseded commitment must not bend the line down, and an un-ended one must,
+so the class of bug cannot return unnoticed.
+
+**Flagged, not fixed:** money is floating-point end to end (`NUMERIC` columns
+read into JS numbers, `roundMoney` correcting at the edges) rather than
+integer minor units; an occurrence already confirmed and posted *today* is
+counted once in the opening balance and again as a flow on day zero; and
+`finance-utils.ts` still holds a dead second forecast (`buildForecastData`,
+float money, a hard-coded `$`) reachable only from its own test.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

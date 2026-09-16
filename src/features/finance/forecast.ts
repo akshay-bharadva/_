@@ -62,6 +62,7 @@ function scheduledFlows(
   adjustments: ScenarioAdjustment[],
   base: string,
   rates: RateTable | undefined,
+  transferCategories: Set<string>,
 ): DatedFlow[] {
   const flows: DatedFlow[] = [];
 
@@ -78,6 +79,25 @@ function scheduledFlows(
 
   for (const rule of rules) {
     if (rule.archived_at) continue;
+
+    /**
+     * Money moving between your own accounts is not a flow.
+     *
+     * Every other surface already agrees on this: the run-rate below skips
+     * the transfer bucket, `buildCategoryForecast` skips these rules, "found
+     * what repeats" skips them, and `get_calendar_data` excludes both legs of
+     * a transfer. This line was the lone dissenter, so a biweekly rule moving
+     * money to savings subtracted from the balance every fortnight and never
+     * added it back — a projection that falls forever because you save.
+     *
+     * A rule carries one `account_id`, so it is only ever half a transfer and
+     * the destination is unknowable here. That cuts the other way too: if the
+     * money lands somewhere this line does not count (a locked retirement
+     * account is not liquid), leaving the rule out overstates what you will
+     * have. Excluded *and named* for that reason — see `selfTransferRules` —
+     * rather than silently dropped.
+     */
+    if (rule.category_id && transferCategories.has(rule.category_id)) continue;
 
     /**
      * A rule in another currency is converted to the base before it is
@@ -202,6 +222,152 @@ export function unscheduledIncomeDailyRate(
   return total / lookbackDays;
 }
 
+/** The ids of every category that means "moving my own money". */
+const transferCategoryIds = (categories: FinanceCategory[]): Set<string> =>
+  new Set(
+    categories
+      .filter((category) => category.bucket === "transfer")
+      .map((category) => category.id),
+  );
+
+/**
+ * Rules left out because they only move money between your own accounts.
+ *
+ * Named rather than silently dropped: a rule is half a transfer (it has one
+ * account), so if the far side is an account this line does not count, leaving
+ * it out makes the projection optimistic. The reader is told which rules those
+ * are and can judge.
+ */
+export function selfTransferRules(
+  rules: RecurringTransaction[],
+  categories: FinanceCategory[],
+): RecurringTransaction[] {
+  const transfers = transferCategoryIds(categories);
+  return rules.filter(
+    (rule) =>
+      !rule.archived_at && !!rule.category_id && transfers.has(rule.category_id),
+  );
+}
+
+/**
+ * Transactions the run-rate had to ignore, because no exchange rate was
+ * available for them on their date.
+ *
+ * The run-rate reads `base_amount`, which the database trigger leaves null
+ * when it could not price the row. Those rows were being read as
+ * `base_amount ?? 0` — counted as having cost nothing, and still dividing the
+ * window. With every row unpriced the rate is exactly zero, the expected line
+ * becomes the committed line, and the chart quietly draws two identical lines
+ * while claiming one of them includes your spending.
+ *
+ * `finance-health` and `finance-insights` both already count and report these.
+ * This is the same count, so the forecast can say the same thing instead of
+ * being the one screen that stays silent about it.
+ */
+export function unconvertedInWindow(
+  transactions: Transaction[],
+  lookbackDays: number,
+  today: Date,
+): number {
+  if (lookbackDays <= 0) return 0;
+  const since = addDays(startOfDay(today), -lookbackDays);
+  let count = 0;
+  for (const transaction of transactions) {
+    if (transaction.transfer_group || transaction.recurring_transaction_id) {
+      continue;
+    }
+    if (
+      transaction.base_amount !== null &&
+      transaction.base_amount !== undefined
+    ) {
+      continue;
+    }
+    const date = parseLocalDate(transaction.date);
+    if (isAfter(since, date) || isAfter(date, today)) continue;
+    count += 1;
+  }
+  return count;
+}
+
+/**
+ * The same obligation counted twice.
+ *
+ * A loan and a recurring rule are two different tables that can describe one
+ * real debt. Migration 020's own note says a loan "used to be representable
+ * only as a recurring expense with an end date" — so anyone who modelled a
+ * mortgage that way before loans existed, and added the real loan afterwards,
+ * now has both, and the forecast subtracts the instalment twice from the day
+ * the loan starts. The Loans screen already asks the owner to remember to
+ * archive the rule; remembering is not a mechanism.
+ *
+ * Reported, never resolved automatically: which of the two is the real one is
+ * the owner's call, and silently dropping either would be this module guessing
+ * about money.
+ *
+ * Matching is deliberately narrow — the loan's name against the rule's
+ * description, ignoring the words a schedule adds ("EMI", "payment"). It is
+ * not `normaliseMerchant`, which strips channels, cities and provinces from
+ * *bank* wording and collapses to two tokens; run over a name the owner chose
+ * it would mangle it.
+ */
+const commitmentKey = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter(
+      (word) =>
+        word !== "" &&
+        ![
+          "emi",
+          "instalment",
+          "installment",
+          "payment",
+          "repayment",
+          "monthly",
+          "the",
+          "my",
+        ].includes(word),
+    )
+    .join(" ");
+
+export interface DoubleCount {
+  rule: RecurringTransaction;
+  /** The loan whose instalments the rule appears to repeat. */
+  loanLabel: string;
+}
+
+export function loanRuleClashes(
+  rules: RecurringTransaction[],
+  loanLabels: string[],
+): DoubleCount[] {
+  const loans = loanLabels
+    .map((label) => ({ label, key: commitmentKey(label) }))
+    .filter((entry) => entry.key !== "");
+
+  const clashes: DoubleCount[] = [];
+  const seen = new Set<string>();
+
+  for (const rule of rules) {
+    if (rule.archived_at || rule.type !== "expense") continue;
+    const key = commitmentKey(rule.description);
+    if (key === "") continue;
+
+    for (const loan of loans) {
+      const matches =
+        key === loan.key || key.includes(loan.key) || loan.key.includes(key);
+      if (!matches) continue;
+      // One line per rule: a loan produces many labelled instalments.
+      if (seen.has(rule.id)) break;
+      seen.add(rule.id);
+      clashes.push({ rule, loanLabel: loan.label });
+      break;
+    }
+  }
+
+  return clashes;
+}
+
 /** Rules whose currency has no rate, so the forecast leaves them out. */
 export function unconvertibleRules(
   rules: RecurringTransaction[],
@@ -278,7 +444,15 @@ export function forecastDrivers({
   const start = startOfDay(today);
   const window = 90;
   const end = addDays(start, window);
-  const flows = scheduledFlows(rules, start, end, adjustments, currency, rates);
+  const flows = scheduledFlows(
+    rules,
+    start,
+    end,
+    adjustments,
+    currency,
+    rates,
+    transferCategoryIds(categories),
+  );
   for (const extra of extraFlows) {
     const date = parseLocalDate(extra.date);
     if (isAfter(start, date) || isAfter(date, end)) continue;
@@ -324,7 +498,15 @@ export function buildForecast({
   const start = startOfDay(today);
   const end = addDays(start, horizonDays);
 
-  const flows = scheduledFlows(rules, start, end, adjustments, currency, rates);
+  const flows = scheduledFlows(
+    rules,
+    start,
+    end,
+    adjustments,
+    currency,
+    rates,
+    transferCategoryIds(categories),
+  );
   for (const extra of extraFlows) {
     const date = parseLocalDate(extra.date);
     if (isAfter(start, date) || isAfter(date, end)) continue;
