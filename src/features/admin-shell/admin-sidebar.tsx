@@ -28,6 +28,21 @@ function SidebarLink({
   const pathname = usePathname() ?? "";
   const active = isActiveNavHref(pathname, item.href);
 
+  /*
+    The active item is filled with the accent, not tinted with it.
+
+    It was `bg-primary/10` — a ten-percent wash — while an inactive item hovered
+    to `bg-secondary`, a full fill. So *pointing at* a module read as louder than
+    *being in* it, and across 56 themes that wash is often indistinguishable from
+    the rail itself. Two states competing like that leave a reader unable to
+    answer "where am I", which is the only question this rail exists to answer.
+
+    A solid fill cannot be out-shouted by a hover, survives the collapsed rail
+    where the label is gone, and pairs `primary` with `primary-foreground` — the
+    one pairing the contrast test already guarantees in every preset. It also
+    replaces the 2px rule that used to mark the active row: at that width, on a
+    rail that scrolls, it was doing none of the work its comment claimed.
+  */
   const link = (
     <Link
       href={item.href}
@@ -37,18 +52,10 @@ function SidebarLink({
         "group relative flex items-center gap-3 rounded-control px-3 py-2 text-sm transition-colors",
         collapsed && "justify-center px-2",
         active
-          ? "bg-primary/10 font-medium text-primary"
+          ? "bg-primary font-medium text-primary-foreground shadow-e1 hover:bg-primary/90"
           : "text-muted-foreground hover:bg-secondary hover:text-foreground",
       )}
     >
-      {/* A solid rule against the rail edge, rather than a dot floated to the
-          right — it survives the collapsed state, where the label is gone. */}
-      {active && (
-        <span
-          aria-hidden
-          className="absolute inset-y-1 -left-3 w-0.5 rounded-full bg-primary"
-        />
-      )}
       <item.icon className="size-4 shrink-0" aria-hidden />
       {!collapsed && <span className="truncate">{item.name}</span>}
     </Link>

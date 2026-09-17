@@ -161,8 +161,11 @@ function LauncherTile({
       className={cn(
         "flex flex-col items-center gap-1.5 rounded-control px-1 py-3 text-center transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        // Filled, not tinted — and the same fill the rail uses, because the two
+        // are the same answer to the same question and must not disagree about
+        // what "you are here" looks like. See the note in admin-sidebar.tsx.
         active
-          ? "bg-primary/10 text-primary"
+          ? "bg-primary font-medium text-primary-foreground shadow-e1 hover:bg-primary/90"
           : "text-muted-foreground hover:bg-secondary hover:text-foreground",
       )}
     >

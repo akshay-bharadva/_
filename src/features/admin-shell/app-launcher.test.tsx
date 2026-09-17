@@ -38,6 +38,28 @@ describe("AppLauncher", () => {
   });
 
   /**
+   * `aria-current` is the contract, but it is not what anyone sees.
+   *
+   * The active tile was a ten-percent accent wash while an inactive tile
+   * hovered to a full `bg-secondary` fill — so pointing at a module looked
+   * stronger than being in it, and on many of the 56 themes the wash was
+   * indistinguishable from the panel. The tile was correctly marked and still
+   * unreadable, which is why marking it is not enough to assert.
+   */
+  it("fills the current module with the accent, not a wash of it", () => {
+    render(<AppLauncher />);
+    open();
+
+    const current = screen.getByRole("link", { name: "Tasks" });
+    const other = screen.getByRole("link", { name: "Notes" });
+
+    expect(current.className).toContain("bg-primary ");
+    // Not an alpha variant: `bg-primary/10` is the treatment this replaced.
+    expect(current.className).not.toContain("bg-primary/1");
+    expect(other.className).not.toContain("bg-primary ");
+  });
+
+  /**
    * The dashboard is the one entry a trailing slash used to break, and the
    * launcher reads the same `isActiveNavHref` that fixed it — so this is the
    * regression that matters most here.
