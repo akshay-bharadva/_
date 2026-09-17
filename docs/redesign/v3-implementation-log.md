@@ -2138,6 +2138,9 @@ counted once in the opening balance and again as a flow on day zero; and
 `finance-utils.ts` still holds a dead second forecast (`buildForecastData`,
 float money, a hard-coded `$`) reachable only from its own test.
 
+**Resolved by the rebuild below.** All three were v1's, and v1 is gone:
+`finance-utils.ts` was deleted with it, having ended up with no importer at all.
+
 ## Finance, rebuilt from the schema up (2026-09-17)
 
 The module that the forecast bug above was a symptom of. Rewritten whole —
