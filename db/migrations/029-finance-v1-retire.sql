@@ -23,13 +23,21 @@
 --
 -- These are yours to confirm, because no query can see them:
 --
---   * `src/store/api/admin/dashboardApi.ts` still queries `transactions`,
---     `recurring_transactions` and `financial_goals` DIRECTLY — not through
---     the finance module. Dropping those tables turns the dashboard into an
---     error state until it is ported.
---   * The finance UI must be running against v2.
+--   * ~~`dashboardApi.ts` still queries `transactions`,
+--     `recurring_transactions` and `financial_goals` directly~~ — DONE.
+--     Migration 031 added `fin_day_money()`, the dashboard now calls it, and
+--     the other two reads were deleted rather than ported: both were fetched on
+--     every dashboard load and rendered by nothing.
+--   * ~~The finance UI must be running against v2~~ — DONE. `/admin/finance`
+--     renders the rebuilt module, and v1's UI and its four API slices have been
+--     deleted. Nothing in `src/` reads a v1 finance table any more.
 --   * You have a restorable backup, and have restored it somewhere once to
---     prove it restores. A backup nobody has tested is a hope.
+--     prove it restores. A backup nobody has tested is a hope. **This one is
+--     still yours**, and it is the reason not to run this today.
+--
+-- So the code-side prerequisites are met. The advice above still stands: the
+-- right moment is weeks of real use later, not the afternoon the cutover
+-- landed. Nothing breaks by waiting, and the v1 tables cost only disk.
 
 
 -- ── 1. The guard ────────────────────────────────────────────────────────────

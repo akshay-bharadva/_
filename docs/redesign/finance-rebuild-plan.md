@@ -1187,6 +1187,51 @@ either one alone.
 
 ---
 
+## 7r. Phase 8 — the cutover, as done
+
+`/admin/finance` now renders the rebuilt module and `/admin/finance-v2` is gone.
+The order mattered: **the readers moved first**, because swapping the route while
+the dashboard and calendar still read v1's `transactions` would have left two
+live modules writing to two different ledgers — worse than either alone.
+
+Deleted: 64 v1 files under `src/features/finance/`, four API slices
+(`financeApi`, `financeSetupApi`, `loansApi`, `importApi`), and the preview
+route. Kept from the flat directory: `finance-guide.ts` (writing, not code, and
+already written for v2), `finance-nav.ts`, `use-private-figures.ts` and the CSS
+guard `figures-hidden.test.ts`.
+
+Three screens outside finance — the dashboard, the calendar overlay and Discover
+— read the base currency from v1's `useGetFinanceSettingsQuery`. They now use
+`useGetFinSettingsQuery`; the field is the same.
+
+**Deleting the reference implementation destroys the evidence, unless the
+evidence is kept first.** Two v2 test files compared themselves against v1
+directly — `import/match.test.ts` proving the import hash matches **byte for
+byte** (migration 028 carries every `import_hash` across, so a changed hash would
+make every imported row read as new and silently duplicate a year of
+transactions), and `import/classify.test.ts` comparing the copied classifier
+across sixteen real statement descriptions. Both said "this goes when v1 does".
+
+Neither claim was dropped. v1's actual output was **generated on the commit that
+deleted it** and frozen — the hashes as literals, the classifier's behaviour as
+`import/v1-behaviour.json`. The tests still pass against it, which is the proof
+that the copy is faithful. **That file must never be regenerated**: refreshed
+from the code it checks, it would assert only that the code equals itself.
+
+The reachability gate did its job one last time. Deleting v1's UI made 30-odd v1
+endpoints unreachable and the suite said so, endpoint by endpoint — which is
+exactly how the slices came to be deleted rather than left behind. The allowlist
+now holds **one** entry, `useGetAnalyticsDataQuery`, which predates all of this.
+
+**What is left is not code.** Migrations 025–031 have to be applied. Migration
+029 — which drops the v1 tables — is deliberately not run: its code-side
+prerequisites are now met, and its own advice is to wait weeks of real use with a
+backup someone has actually restored. Its stale note claiming the dashboard still
+queries `transactions` has been corrected, because a prerequisite list that is
+wrong is worse than none.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification

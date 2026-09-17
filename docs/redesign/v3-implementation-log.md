@@ -2138,6 +2138,79 @@ counted once in the opening balance and again as a flow on day zero; and
 `finance-utils.ts` still holds a dead second forecast (`buildForecastData`,
 float money, a hard-coded `$`) reachable only from its own test.
 
+## Finance, rebuilt from the schema up (2026-09-17)
+
+The module that the forecast bug above was a symptom of. Rewritten whole —
+tables, RPCs, RLS, domain logic and every screen — rather than patched, because
+the defects kept turning out to be the same two decisions: **money as floats**
+and **a transaction that knows one account**.
+
+**Integer minor units, everywhere.** `Money { minor, currency }`, BIGINT columns,
+exponents from `fin_currency` rather than `Intl`, half-away-from-zero rounding,
+largest-remainder allocation, and mixed-currency arithmetic as a *type error*.
+Decimal text becomes an integer in exactly one place — `fromDecimal`, which reads
+the digits rather than the float, because `1.005` is really 1.00499999999999989
+and `Math.round(x * 100)` rounds it down.
+
+**A transaction is a header plus postings.** One posting for a spend, two for a
+transfer, enforced by a DEFERRABLE constraint trigger and written by
+`fin_record_transaction` — both halves or neither. v1 wrote the two legs as
+separate rows one after another, with a branch that apologised when the second
+failed: "only half the transfer was recorded". That is a data-integrity hole
+handled by apology.
+
+**A missing rate is null, never 1.** Defaulting to parity reports ₹60,000 as
+$60,000 — the most expensive way this module could be wrong and the kind that
+looks plausible on screen. Every total that cannot include something **names**
+it: "not counted, because no CAD rate is cached yet: Home savings".
+
+Other decisions worth reusing:
+
+- **A goal is an earmark, not a transfer.** v1's own table comment said so and
+  its RPC wrote a ledger row anyway, counting the same money twice. The balance
+  is derived from contributions, never stored — v1 kept a `current_amount`
+  updated by read-then-add, which loses a contribution whenever two race.
+- **Budgets lead with the pace, not the total.** 60% of the grocery money is fine
+  on the 20th and alarming on the 8th.
+- **Direction comes from the sign of a posting; `kind` is for display.** So a row
+  mislabelled at entry still behaves, in TypeScript and in SQL alike.
+- **The workspace owns every query**; sections take props. v1 had the page and
+  the accounts tab each fetch accounts and balances and each write their own
+  "convert to base" loop — two sources for one number is how two screens come to
+  disagree about your net worth.
+
+**The guard that ran the rebuild** was `endpoint-reachability.test.ts`: every
+admin endpoint must be reachable from the UI or be listed as a deliberate
+exception, checked in *both* directions so a stale entry fails too. The finance
+v2 slice landed as ~40 allowlisted entries and the phase was finished when that
+list was empty. It corrected the work four times, including twice when my own
+count of it was wrong.
+
+**Traps paid for, worth not repeating:**
+
+- A green test can be wrong. `hiddenMargin` passed its tests while being right
+  only for currency pairs sharing an exponent; CAD→JPY would have reported a 3%
+  margin as 99%.
+- A fixture regenerated from the code it checks asserts only that the code equals
+  itself. When v1's classifier was deleted, its output was **frozen first**, on
+  the commit that removed it.
+- `CREATE OR REPLACE` cannot change a function's OUT columns — which is how a
+  draft migration that had quietly rewritten `get_calendar_data` from SECURITY
+  DEFINER to INVOKER, dropping its `is_aal2()` guard, was caught. Copy a function
+  you mean to keep; do not paraphrase it.
+- `db/schema.sql` could not run top to bottom: `finance_goal_contributions`
+  referenced `finance_accounts` 1,100 lines before it was created, so a fresh
+  install silently lost that table *and* its RLS. Pre-existing, found by a
+  clean-room Docker install, now guarded by `schema-order.test.ts`.
+
+**Where it stands.** `/admin/finance` serves the rebuilt module; v1's UI, its
+four API slices and 64 files are deleted. Nothing in `src/` reads a v1 finance
+table. **Migrations 025–031 must be applied**; until they are, the screens render
+their empty states and the dashboard's money card degrades — by design, since the
+dashboard degrades rather than blanks. Migration **029 drops the v1 tables and is
+deliberately not run yet**: its own advice is to wait weeks of real use, and a
+tested backup is the one prerequisite no query can check.
+
 ## Still open
 
 - Learning's certification layer — timed mock exams, per-exam progress, an

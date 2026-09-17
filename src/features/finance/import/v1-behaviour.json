@@ -1,0 +1,585 @@
+{
+  "classify": [
+    {
+      "key": "PAYROLL DEPOSIT ACME CORP|2500|chequing|",
+      "result": {
+        "kind": "income",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Salary",
+        "categoryId": "c0",
+        "merchantKey": "PAYROLL DEPOSIT",
+        "merchant": "Payroll Deposit Acme",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Looks like pay."
+      }
+    },
+    {
+      "key": "Electronic Funds Transfer PAY ACME CORP|2500|chequing|",
+      "result": {
+        "kind": "income",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Salary",
+        "categoryId": "c0",
+        "merchantKey": "ACME",
+        "merchant": "Acme",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Looks like pay."
+      }
+    },
+    {
+      "key": "INTERAC E-TRF- 1234|-450|chequing|JOHN DOE",
+      "result": {
+        "kind": "etransfer_out",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Payments to people",
+        "categoryId": "c4",
+        "merchantKey": "ETRANSFER JOHN DOE",
+        "merchant": "e-Transfer to John Doe",
+        "counterparty": "JOHN DOE",
+        "source": "bank",
+        "reason": "Interac e-Transfer to John Doe."
+      }
+    },
+    {
+      "key": "INTERAC E-TRANSFER RECEIVED JANE ROE|60|chequing|",
+      "result": {
+        "kind": "own_transfer",
+        "type": "earning",
+        "isTransfer": true,
+        "categoryName": "Transfer",
+        "categoryId": "c8",
+        "merchantKey": "ETRANSFER JANE ROE",
+        "merchant": "e-Transfer from Jane Roe",
+        "counterparty": "JANE ROE",
+        "source": "bank",
+        "reason": "An e-Transfer from yourself — money moving between your own banks."
+      }
+    },
+    {
+      "key": "Internet Banking INTERNET TRANSFER 000000123456|-500|chequing|",
+      "result": {
+        "kind": "own_transfer",
+        "type": "expense",
+        "isTransfer": true,
+        "categoryName": "Transfer",
+        "categoryId": "c8",
+        "merchantKey": "INTERNET BANKING",
+        "merchant": "Between your accounts",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "The bank calls this a transfer between accounts."
+      }
+    },
+    {
+      "key": "PAYMENT - CIBC VISA|-600|chequing|",
+      "result": {
+        "kind": "card_payment",
+        "type": "expense",
+        "isTransfer": true,
+        "categoryName": "Transfer",
+        "categoryId": "c8",
+        "merchantKey": "PAYMENT CIBC",
+        "merchant": "Credit card payment",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Paying a credit card bill — the spending is on the card itself."
+      }
+    },
+    {
+      "key": "PAYMENT THANK YOU/PAIEMENT MERCI|600|credit|",
+      "result": {
+        "kind": "card_payment",
+        "type": "earning",
+        "isTransfer": true,
+        "categoryName": "Transfer",
+        "categoryId": "c8",
+        "merchantKey": "PAYMENT THANK",
+        "merchant": "Credit card payment",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "A payment towards this card — money moving, not spending."
+      }
+    },
+    {
+      "key": "ATM WITHDRAWAL 1234 MAIN ST|-100|chequing|",
+      "result": {
+        "kind": "cash",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Cash",
+        "categoryId": "c6",
+        "merchantKey": "ATM WITHDRAWAL",
+        "merchant": "Atm Withdrawal Main",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Cash out of the bank — counted as spent when it leaves."
+      }
+    },
+    {
+      "key": "MONTHLY FEE|-16.95|chequing|",
+      "result": {
+        "kind": "fee",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Bank fees",
+        "categoryId": "c7",
+        "merchantKey": "MONTHLY FEE",
+        "merchant": "Monthly Fee",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "A fee charged by the bank."
+      }
+    },
+    {
+      "key": "SERVICE CHARGE DISCOUNT|16.95|chequing|",
+      "result": {
+        "kind": "refund",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Bank fees",
+        "categoryId": "c7",
+        "merchantKey": "SERVICE CHARGE",
+        "merchant": "Service Charge Discount",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "A fee the bank gave back — it reduces what fees cost you."
+      }
+    },
+    {
+      "key": "DEPOSIT INTEREST|1.42|chequing|",
+      "result": {
+        "kind": "interest",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Interest",
+        "categoryId": "c15",
+        "merchantKey": "DEPOSIT INTEREST",
+        "merchant": "Interest",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Interest the bank paid you."
+      }
+    },
+    {
+      "key": "CASHBACK REMISE EN ARGENT|12|credit|",
+      "result": {
+        "kind": "income",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Cashback & rewards",
+        "categoryId": "c16",
+        "merchantKey": "CASHBACK REMISE",
+        "merchant": "Cashback Remise En",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Cashback or a reward."
+      }
+    },
+    {
+      "key": "CANADA FED CARBON REBATE|140|chequing|",
+      "result": {
+        "kind": "government",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Government benefits",
+        "categoryId": "c13",
+        "merchantKey": "FED CARBON",
+        "merchant": "Fed Carbon Rebate",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "A deposit from government."
+      }
+    },
+    {
+      "key": "DOORDASH PAYOUT|180|chequing|",
+      "result": {
+        "kind": "income",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Freelance",
+        "categoryId": "c14",
+        "merchantKey": "DOORDASH PAYOUT",
+        "merchant": "Doordash Payout",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "A payout from a gig platform."
+      }
+    },
+    {
+      "key": "WEALTHSIMPLE RRSP CONTRIBUTION|-500|chequing|",
+      "result": {
+        "kind": "investment",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Investments",
+        "categoryId": "c11",
+        "merchantKey": "WEALTHSIMPLE RRSP",
+        "merchant": "Wealthsimple Rrsp Contribution",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Money into investing — saved, not spent."
+      }
+    },
+    {
+      "key": "REMITLY TRANSFER|-1000|chequing|",
+      "result": {
+        "kind": "remittance",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Family support",
+        "categoryId": "c12",
+        "merchantKey": "REMITLY",
+        "merchant": "Remitly",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "Sent abroad. If it went to your own account, the other side's import will pair it as a transfer."
+      }
+    },
+    {
+      "key": "MORTGAGE PAYMENT|-2200|chequing|",
+      "result": {
+        "kind": "loan_payment",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Debt repayment",
+        "categoryId": "c17",
+        "merchantKey": "MORTGAGE PAYMENT",
+        "merchant": "Mortgage Payment",
+        "counterparty": null,
+        "source": "bank",
+        "reason": "A loan or mortgage payment."
+      }
+    },
+    {
+      "key": "Point of Sale - Interac RETAIL PURCHASE 000001 LOBLAWS #1089 TORONTO ON|-82.14|chequing|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Groceries",
+        "categoryId": "c1",
+        "merchantKey": "LOBLAWS",
+        "merchant": "Loblaws",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Loblaws is usually groceries."
+      }
+    },
+    {
+      "key": "TIM HORTONS #1234 MISSISSAUGA ON|-3.45|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Dining out",
+        "categoryId": "c2",
+        "merchantKey": "TIM HORTONS",
+        "merchant": "Tim Hortons",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Tim Hortons is usually dining out."
+      }
+    },
+    {
+      "key": "UBER EATS TORONTO ON|-24.5|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Dining out",
+        "categoryId": "c2",
+        "merchantKey": "UBER EATS",
+        "merchant": "Uber Eats",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Uber Eats is usually dining out."
+      }
+    },
+    {
+      "key": "UBER TRIP HELP.UBER.COM|-18|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Transport",
+        "categoryId": "c3",
+        "merchantKey": "UBER",
+        "merchant": "Uber",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Uber is usually transport."
+      }
+    },
+    {
+      "key": "JIM'S NO FRILLS #3771 AURORA ON|-55.2|chequing|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Groceries",
+        "categoryId": "c1",
+        "merchantKey": "NO FRILLS",
+        "merchant": "No Frills",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "No Frills is usually groceries."
+      }
+    },
+    {
+      "key": "COSTCO GAS BAR VAUGHAN ON|-70|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Transport",
+        "categoryId": "c3",
+        "merchantKey": "COSTCO GAS",
+        "merchant": "Costco Gas",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Costco Gas is usually transport."
+      }
+    },
+    {
+      "key": "AMAZON.CA MKTPLACE|30|credit|",
+      "result": {
+        "kind": "refund",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": "Shopping",
+        "categoryId": "c10",
+        "merchantKey": "AMAZON",
+        "merchant": "Amazon",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "A refund from Amazon."
+      }
+    },
+    {
+      "key": "NETFLIX.COM|-20.99|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Subscriptions",
+        "categoryId": "c19",
+        "merchantKey": "NETFLIX",
+        "merchant": "Netflix",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Netflix is usually subscriptions."
+      }
+    },
+    {
+      "key": "AIR CANADA TORONTO|-640|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Travel",
+        "categoryId": "c18",
+        "merchantKey": "AIR",
+        "merchant": "Air",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Air is usually travel."
+      }
+    },
+    {
+      "key": "SOMETHING 557.97 TRY @ 0.031202|-18.4|credit|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": "Travel",
+        "categoryId": "c18",
+        "merchantKey": "SOMETHING TRY",
+        "merchant": "Something Try",
+        "counterparty": null,
+        "source": "merchant",
+        "reason": "Spent in TRY — probably while travelling."
+      }
+    },
+    {
+      "key": "XYZZY 42|-10|chequing|",
+      "result": {
+        "kind": "purchase",
+        "type": "expense",
+        "isTransfer": false,
+        "categoryName": null,
+        "categoryId": null,
+        "merchantKey": "XYZZY",
+        "merchant": "Xyzzy",
+        "counterparty": null,
+        "source": "none",
+        "reason": "Nothing recognised it — pick a category."
+      }
+    },
+    {
+      "key": "MYSTERY DEPOSIT|75|chequing|",
+      "result": {
+        "kind": "income",
+        "type": "earning",
+        "isTransfer": false,
+        "categoryName": null,
+        "categoryId": null,
+        "merchantKey": "MYSTERY DEPOSIT",
+        "merchant": "Mystery Deposit",
+        "counterparty": null,
+        "source": "none",
+        "reason": "Money in from somewhere unrecognised — pick a category."
+      }
+    }
+  ],
+  "rule": {
+    "kind": "etransfer_out",
+    "type": "expense",
+    "isTransfer": false,
+    "categoryName": "Rent",
+    "categoryId": "c9",
+    "merchantKey": "ETRANSFER JOHN DOE",
+    "merchant": "e-Transfer to John Doe",
+    "counterparty": "JOHN DOE",
+    "source": "rule",
+    "reason": "Your rule for “ETRANSFER JOHN DOE”."
+  },
+  "history": {
+    "kind": "purchase",
+    "type": "expense",
+    "isTransfer": false,
+    "categoryName": "Groceries",
+    "categoryId": "c1",
+    "merchantKey": "CORNER",
+    "merchant": "Corner",
+    "counterparty": null,
+    "source": "history",
+    "reason": "You filed Corner under Groceries before."
+  },
+  "normalise": [
+    {
+      "d": "IDP PURCHASE - 1234 LOBLAWS #1089 TORONTO ON",
+      "r": {
+        "key": "LOBLAWS",
+        "display": "Loblaws"
+      }
+    },
+    {
+      "d": "TIM HORTONS #1234 MISSISSAUGA ON",
+      "r": {
+        "key": "TIM HORTONS",
+        "display": "Tim Hortons"
+      }
+    },
+    {
+      "d": "Point of Sale - Interac RETAIL PURCHASE 000001 FRESHCO RICHMOND HILL ON",
+      "r": {
+        "key": "FRESHCO",
+        "display": "FreshCo"
+      }
+    },
+    {
+      "d": "Internet Banking INTERNET TRANSFER 000000123456",
+      "r": {
+        "key": "INTERNET BANKING",
+        "display": "Internet Banking Transfer"
+      }
+    },
+    {
+      "d": "ELECTRONIC FUNDS TRANSFER PAY ACME CORP",
+      "r": {
+        "key": "ACME",
+        "display": "Acme"
+      }
+    },
+    {
+      "d": "JIM'S NO FRILLS #3771",
+      "r": {
+        "key": "NO FRILLS",
+        "display": "No Frills"
+      }
+    },
+    {
+      "d": "FOREVER 21 #123 NORTH YORK ON",
+      "r": {
+        "key": "FOREVER 21",
+        "display": "Forever 21"
+      }
+    },
+    {
+      "d": "AUTOMATED BANKING MACHINE WITHDRAWAL",
+      "r": {
+        "key": "WITHDRAWAL",
+        "display": "Withdrawal"
+      }
+    }
+  ],
+  "strip": [
+    {
+      "d": "IDP PURCHASE - 1234 LOBLAWS #1089 TORONTO ON",
+      "r": {
+        "channel": null,
+        "rest": "IDP PURCHASE - 1234 LOBLAWS #1089 TORONTO ON"
+      }
+    },
+    {
+      "d": "TIM HORTONS #1234 MISSISSAUGA ON",
+      "r": {
+        "channel": null,
+        "rest": "TIM HORTONS #1234 MISSISSAUGA ON"
+      }
+    },
+    {
+      "d": "Point of Sale - Interac RETAIL PURCHASE 000001 FRESHCO RICHMOND HILL ON",
+      "r": {
+        "channel": "pos",
+        "rest": "FRESHCO RICHMOND HILL ON"
+      }
+    },
+    {
+      "d": "Internet Banking INTERNET TRANSFER 000000123456",
+      "r": {
+        "channel": "online",
+        "rest": ""
+      }
+    },
+    {
+      "d": "ELECTRONIC FUNDS TRANSFER PAY ACME CORP",
+      "r": {
+        "channel": "eft",
+        "rest": "ACME CORP"
+      }
+    },
+    {
+      "d": "JIM'S NO FRILLS #3771",
+      "r": {
+        "channel": null,
+        "rest": "JIM'S NO FRILLS #3771"
+      }
+    },
+    {
+      "d": "FOREVER 21 #123 NORTH YORK ON",
+      "r": {
+        "channel": null,
+        "rest": "FOREVER 21 #123 NORTH YORK ON"
+      }
+    },
+    {
+      "d": "AUTOMATED BANKING MACHINE WITHDRAWAL",
+      "r": {
+        "channel": "atm",
+        "rest": "WITHDRAWAL"
+      }
+    }
+  ],
+  "historyFrom": [
+    [
+      "CORNER",
+      "c3"
+    ]
+  ]
+}

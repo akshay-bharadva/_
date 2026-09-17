@@ -16,7 +16,6 @@ export * from "./admin/blogAdminApi";
 export * from "./admin/notesApi";
 export * from "./admin/whiteboardApi";
 export * from "./admin/tasksApi";
-export * from "./admin/financeApi";
 export * from "./admin/learningApi";
 export * from "./admin/siteApi";
 export * from "./admin/portfolioApi";
@@ -26,13 +25,10 @@ export * from "./admin/inventoryApi";
 export * from "./admin/lifeUpdatesApi";
 export * from "./admin/inboxApi";
 export * from "./admin/analyticsApi";
-export * from "./admin/financeSetupApi";
 export * from "./admin/calendarSetupApi";
 export * from "./admin/discoverApi";
 export * from "./admin/libraryApi";
-export * from "./admin/loansApi";
-export * from "./admin/importApi";
-// Finance v2 (migrations 025–030). Runs beside the three v1 finance slices
-// above until 029 has been run, on its own tags so neither cache invalidates
-// the other mid-transition.
+// Finance (migrations 025–031). The only finance slice: the four v1 ones —
+// financeApi, financeSetupApi, loansApi and importApi — were deleted when the
+// rebuilt module took over `/admin/finance`.
 export * from "./admin/financeV2Api";

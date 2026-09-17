@@ -16,7 +16,7 @@ import {
   useGetIntegrationSettingsQuery,
   useSaveDiscoverPlaceMutation,
   useSaveDiscoverTopicMutation,
-  useGetFinanceSettingsQuery,
+  useGetFinSettingsQuery,
 } from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +84,7 @@ type Lane = (typeof LANES)[number]["id"];
 export default function DiscoverPage() {
   const { data: places = [] } = useGetDiscoverPlacesQuery();
   const { data: topics = [] } = useGetDiscoverTopicsQuery();
-  const { data: finance } = useGetFinanceSettingsQuery();
+  const { data: finance } = useGetFinSettingsQuery();
   const { data: integrations } = useGetIntegrationSettingsQuery();
 
   const [lane, setLane] = useState<Lane>("money");

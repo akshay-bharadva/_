@@ -16,7 +16,7 @@ import type { DashboardData } from "@/types";
 import {
   useGetCalendarSettingsQuery,
   useGetDashboardDataQuery,
-  useGetFinanceSettingsQuery,
+  useGetFinSettingsQuery,
 } from "@/store/api/adminApi";
 import { LoadingState } from "@/components/admin/shared";
 import { formatMoney } from "@/lib/money";
@@ -56,7 +56,7 @@ import { SetupChecklist } from "./setup-checklist-card";
  */
 export default function DashboardPage() {
   const { data, isLoading } = useGetDashboardDataQuery();
-  const { data: financeSettings } = useGetFinanceSettingsQuery();
+  const { data: financeSettings } = useGetFinSettingsQuery();
   const { data: calendarSettings } = useGetCalendarSettingsQuery();
 
   const currency = financeSettings?.base_currency ?? "CAD";

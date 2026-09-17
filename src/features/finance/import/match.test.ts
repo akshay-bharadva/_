@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
 import type { FinPosting, FinTransaction } from "@/types";
-// v1's implementation, imported deliberately: the compatibility claim below is
-// worth nothing asserted and everything demonstrated. It goes when v1 does.
-import { importHashes as v1ImportHashes } from "../import-match";
-import type { StatementRow as V1StatementRow } from "../import-formats";
 import { importHashes, rowStatuses, transferPartners } from "./match";
 import type { StatementRow } from "./statement";
 
@@ -71,27 +67,27 @@ describe("importHashes", () => {
   });
 
   /**
-   * **The compatibility constraint, demonstrated rather than asserted.**
+   * **The compatibility constraint, against v1's actual output.**
    *
    * Migration 028 carries every existing `import_hash` across verbatim. If v2
    * hashed anything differently — minor units instead of the decimal, a changed
    * prefix, a different seed — every row already imported would read as new, and
    * re-importing an overlapping statement would silently duplicate a year of
-   * transactions. So this compares against v1's own implementation while it is
-   * still here to compare against.
+   * transactions.
+   *
+   * These values were produced by **running v1's `importHashes` on exactly the
+   * rows above**, on the commit that deleted it. Until then this test called v1
+   * directly and compared; that is better while both exist and impossible once
+   * one does not, so the output was frozen rather than the claim dropped. It is
+   * the same evidence, kept after its source was removed — and a literal is the
+   * only form it can take once there is nothing left to call.
    */
-  it("matches v1 byte for byte", () => {
-    const v1Rows: V1StatementRow[] = rows.map((entry) => ({
-      line: entry.line,
-      date: entry.date,
-      description: entry.description,
-      detail: entry.detail,
-      amount: entry.amount,
-      accountRef: entry.accountRef,
-      currency: entry.currency,
-    }));
-
-    expect(importHashes(rows)).toEqual(v1ImportHashes(v1Rows));
+  it("matches what v1 produced for the same rows", () => {
+    expect(importHashes(rows)).toEqual([
+      "v1eeac04cc68d09b0e",
+      "v1efac065f69d09ca1",
+      "v1be3401aac93e5fd8",
+    ]);
   });
 
   it("keeps the v1 prefix, which is the escape hatch for ever changing this", () => {

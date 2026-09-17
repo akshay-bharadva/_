@@ -29,11 +29,6 @@ const root = resolve(__dirname, "../../../..");
  * being on it is an oversight.
  */
 const DELIBERATELY_UNUSED: Record<string, string> = {
-  // Accounts archive rather than delete, so history and past transactions
-  // survive. The endpoint is kept for a genuine purge that does not exist yet.
-  useDeleteFinanceAccountMutation:
-    "accounts archive instead; see account-form.tsx",
-
   // The dashboard was rebuilt around the day and reads getDashboardData;
   // Analytics fetches its own series. This aggregate is what is left of the
   // v2 dashboard and is called by nothing.

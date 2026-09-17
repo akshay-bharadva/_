@@ -45,15 +45,6 @@ const EXPECTED_HOOKS = [
   "useUpdateSubTaskMutation",
   "useDeleteSubTaskMutation",
   // finance
-  "useGetFinancialDataQuery",
-  "useSaveTransactionMutation",
-  "useDeleteTransactionMutation",
-  "useSaveRecurringMutation",
-  "useDeleteRecurringMutation",
-  "useSaveGoalMutation",
-  "useRecordGoalContributionMutation",
-  "useGetGoalContributionsQuery",
-  "useDeleteGoalMutation",
   // learning
   "useGetLearningDataQuery",
   "useAddLearningSessionMutation",
@@ -125,18 +116,7 @@ const EXPECTED_HOOKS = [
   "useSaveLibraryHighlightMutation",
   "useDeleteLibraryHighlightMutation",
   // loans
-  "useGetFinanceLoansQuery",
-  "useSaveFinanceLoanMutation",
-  "useDeleteFinanceLoanMutation",
-  "useSaveLoanEventMutation",
-  "useDeleteLoanEventMutation",
   // statement import
-  "useGetImportBatchesQuery",
-  "useGetCategoryRulesQuery",
-  "useImportTransactionsMutation",
-  "useUndoImportMutation",
-  "useDeleteCategoryRuleMutation",
-  "useRecategoriseTransactionsMutation",
   // finance v2 (migrations 025–030)
   "useGetFinCurrenciesQuery",
   "useGetFinSettingsQuery",
