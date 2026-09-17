@@ -7,13 +7,7 @@ import {
   TASK_RECURRENCE,
   TASK_MINUTES_MAX,
   TASK_RECURRENCE_INTERVAL_MAX,
-  TRANSACTION_TYPE,
-  FREQUENCY,
   LEARNING_STATUS,
-  DAY_OF_WEEK_MIN,
-  DAY_OF_WEEK_MAX,
-  DAY_OF_MONTH_MIN,
-  DAY_OF_MONTH_MAX,
   HABIT_VALUE_MAX,
   HABIT_NOTE_MAX,
 } from "./constants";
@@ -44,22 +38,17 @@ export const LIMITS = {
 } as const;
 
 /**
- * Money ceilings mirror the DB column widths exactly. NUMERIC(10,2) tops out at
- * 99,999,999.99 and NUMERIC(12,2) at 9,999,999,999.99; anything larger is a
- * Postgres `numeric field overflow`, which surfaces to the user as an opaque
- * failure after the form has already told them the value was fine.
+ * The money ceiling mirrors its DB column width exactly. NUMERIC(10,2) tops out
+ * at 99,999,999.99; anything larger is a Postgres `numeric field overflow`,
+ * which surfaces to the user as an opaque failure after the form has already
+ * told them the value was fine.
+ *
+ * There were three of these. `MONEY_MAX_12_2` and `MONEY_MAX_18_4` mirrored v1
+ * finance columns and went with them — finance v2 stores integer minor units
+ * and has its own ceiling, `FIN_MINOR_MAX`, set by what a JavaScript number can
+ * hold exactly rather than by a NUMERIC width.
  */
 export const MONEY_MAX_10_2 = 99_999_999.99;
-export const MONEY_MAX_12_2 = 9_999_999_999.99;
-/**
- * NUMERIC(18,4) — account opening balances and budget amounts.
- *
- * Fourteen digits before the point. Far past anything a person will type on
- * purpose, which is the point: it catches a slipped keyboard rather than
- * constraining a real figure, and it does so in the form instead of as a
- * Postgres overflow the user cannot act on.
- */
-export const MONEY_MAX_18_4 = 99_999_999_999_999.9999;
 
 // =============================================================================
 // REUSABLE SCHEMA FRAGMENTS
@@ -257,17 +246,9 @@ export const subTaskSchema = z.object({
 export type SubTaskFormValues = z.infer<typeof subTaskSchema>;
 
 // =============================================================================
-// TRANSACTION SCHEMAS
+// FINANCE TEXT BOUNDS
 // =============================================================================
 
-/**
- * Bounds taken from the `transactions` CHECK constraints.
- *
- * The finance rebuild added these columns without extending the schema, and
- * the form validated only "description is not empty" and "amount is a positive
- * number" — so an amount past NUMERIC(10,2) reached Postgres as a `numeric
- * field overflow`, which the user sees as a save that simply failed.
- */
 /** Bounds on the finance tables' own text columns, from their CHECKs. */
 export const FINANCE_LIMITS = {
   /** `char_length(name) BETWEEN 1 AND 120` on finance_accounts. */
@@ -283,181 +264,6 @@ export const FINANCE_LIMITS = {
   /** `char_length(description) <= 2000` on finance_scenarios. */
   SCENARIO_DESCRIPTION: 2_000,
 } as const;
-
-/**
- * A saved forecast scenario. `adjustments` is unconstrained JSONB, so its
- * shape is checked here rather than by the column.
- */
-export const financeScenarioSchema = z.object({
-  name: boundedRequiredString(FINANCE_LIMITS.SCENARIO_NAME, "Scenario name"),
-  description: boundedOptionalString(
-    FINANCE_LIMITS.SCENARIO_DESCRIPTION,
-    "Description",
-  ),
-  adjustments: z.array(
-    z.discriminatedUnion("kind", [
-      z.object({
-        kind: z.literal("category_delta"),
-        category_id: z.string(),
-        percent: z.number().finite(),
-      }),
-      z.object({
-        kind: z.literal("recurring_delta"),
-        recurring_id: z.string(),
-        amount: z.number().finite(),
-      }),
-      z.object({
-        kind: z.literal("one_off"),
-        label: z.string().max(LIMITS.TITLE),
-        amount: z.number().finite(),
-        date: z.string(),
-      }),
-      z.object({
-        kind: z.literal("income_delta"),
-        percent: z.number().finite(),
-      }),
-    ]),
-  ),
-  is_active: z.boolean().optional(),
-});
-
-export type FinanceScenarioFormValues = z.infer<typeof financeScenarioSchema>;
-
-export const TRANSACTION_LIMITS = {
-  /** `char_length(notes) <= 2000` */
-  NOTES: 2_000,
-  /** `char_length(merchant) <= 200` */
-  MERCHANT: 200,
-} as const;
-
-export const transactionSchema = z.object({
-  date: requiredDateString,
-  description: boundedRequiredString(LIMITS.TITLE, "Description"),
-  amount: money(MONEY_MAX_10_2),
-  type: z.enum([TRANSACTION_TYPE.EARNING, TRANSACTION_TYPE.EXPENSE]),
-  category: z
-    .string()
-    .trim()
-    .max(LIMITS.TITLE, "Category is too long")
-    .optional(),
-  account_id: z.string().uuid().optional().nullable(),
-  category_id: z.string().uuid().optional().nullable(),
-  // CHAR(3): an ISO 4217 code, not a symbol. A longer value is silently
-  // truncated by Postgres rather than rejected, which is worse than an error.
-  currency: z
-    .string()
-    .trim()
-    .regex(/^[A-Za-z]{3}$/, "Currency must be a three-letter code")
-    .optional()
-    .nullable(),
-  merchant: boundedOptionalString(TRANSACTION_LIMITS.MERCHANT, "Merchant"),
-  notes: boundedOptionalString(TRANSACTION_LIMITS.NOTES, "Notes"),
-  is_pending: z.boolean().optional(),
-});
-
-export type TransactionFormValues = z.infer<typeof transactionSchema>;
-
-export const recurringTransactionSchema = z
-  .object({
-    description: boundedRequiredString(LIMITS.TITLE, "Description"),
-    amount: money(MONEY_MAX_10_2),
-    type: z.enum([TRANSACTION_TYPE.EXPENSE, TRANSACTION_TYPE.EARNING]),
-    category: z
-      .string()
-      .trim()
-      .max(LIMITS.TITLE, "Category is too long")
-      .optional(),
-    frequency: z.enum([
-      FREQUENCY.DAILY,
-      FREQUENCY.WEEKLY,
-      FREQUENCY.BI_WEEKLY,
-      FREQUENCY.MONTHLY,
-      FREQUENCY.YEARLY,
-    ]),
-    start_date: requiredDateString,
-    end_date: optionalString,
-    /**
-     * Overloaded by frequency: day-of-week (0–6, Sunday first) for weekly and
-     * bi-weekly rules, day-of-month (1–31) for monthly ones, unused otherwise.
-     * The column is a plain INT with no CHECK, so this is the only place the
-     * distinction is enforced — see the refinement below for the real bound.
-     */
-    occurrence_day: optionalInt(0, 31, "Occurrence day"),
-    /** Which account the money moves through; null leaves it unassigned. */
-    account_id: z.string().uuid().nullish(),
-    category_id: z.string().uuid().nullish(),
-    currency: z.string().length(3).nullish(),
-    /**
-     * Off by default, and that default carries the module's whole automation
-     * stance: a biweekly salary is 1,000 until two days of unpaid leave make it
-     * 800, so an occurrence is proposed for confirmation rather than posted.
-     */
-    auto_post: z.boolean().default(false),
-    /** The amount is typical rather than fixed — the forecast draws a band. */
-    is_estimate: z.boolean().default(false),
-  })
-  // A rule that ends before it starts projects zero occurrences and silently
-  // does nothing — better to reject it at the form than to save dead config.
-  .refine((v) => !v.end_date || v.end_date >= v.start_date, {
-    message: "End date must be on or after the start date",
-    path: ["end_date"],
-  })
-  .refine(
-    (v) => {
-      if (v.occurrence_day == null) return true;
-      if (
-        v.frequency === FREQUENCY.WEEKLY ||
-        v.frequency === FREQUENCY.BI_WEEKLY
-      )
-        return (
-          v.occurrence_day >= DAY_OF_WEEK_MIN &&
-          v.occurrence_day <= DAY_OF_WEEK_MAX
-        );
-      if (v.frequency === FREQUENCY.MONTHLY)
-        return (
-          v.occurrence_day >= DAY_OF_MONTH_MIN &&
-          v.occurrence_day <= DAY_OF_MONTH_MAX
-        );
-      // Daily and yearly rules don't use the field at all.
-      return true;
-    },
-    {
-      message: "Occurrence day is outside the range for the chosen frequency",
-      path: ["occurrence_day"],
-    },
-  );
-
-export type RecurringTransactionFormValues = z.infer<
-  typeof recurringTransactionSchema
->;
-
-export const financialGoalSchema = z.object({
-  name: boundedRequiredString(LIMITS.TITLE, "Goal name"),
-  description: boundedOptionalString(LIMITS.SUMMARY, "Description"),
-  target_amount: money(MONEY_MAX_12_2, "Target amount"),
-  current_amount: z.coerce
-    .number()
-    .min(0, "Current amount cannot be negative")
-    .max(MONEY_MAX_12_2, "Current amount is too large")
-    .default(0),
-  target_date: optionalString,
-  /** Where the goal's money is kept; moving money defaults to it. */
-  account_id: z.string().uuid().nullish(),
-});
-
-export type FinancialGoalFormValues = z.infer<typeof financialGoalSchema>;
-
-/**
- * Money moved into or out of a goal. The amount is always positive here; the
- * direction decides the sign sent to `record_goal_contribution`. The note is
- * bounded to the column's CHECK (300).
- */
-export const goalMovementSchema = z.object({
-  direction: z.enum(["in", "out"]),
-  amount: money(MONEY_MAX_12_2),
-  account_id: z.string().uuid().nullish(),
-  note: boundedOptionalString(300, "Note"),
-});
 
 // =============================================================================
 // HABIT SCHEMAS
@@ -1209,10 +1015,7 @@ export type LibrarySourceFormValues = z.infer<typeof librarySourceSchema>;
 export const libraryHighlightSchema = z.object({
   source_id: z.string().nullable().optional(),
   text: boundedRequiredString(LIBRARY_LIMITS.TEXT, "The line"),
-  attribution: boundedOptionalString(
-    LIBRARY_LIMITS.ATTRIBUTION,
-    "Attribution",
-  ),
+  attribution: boundedOptionalString(LIBRARY_LIMITS.ATTRIBUTION, "Attribution"),
   location: boundedOptionalString(LIBRARY_LIMITS.LOCATION, "Where"),
   note: boundedOptionalString(LIBRARY_LIMITS.NOTES, "Note"),
   is_public: z.boolean(),
@@ -1220,129 +1023,6 @@ export const libraryHighlightSchema = z.object({
 });
 
 export type LibraryHighlightFormValues = z.infer<typeof libraryHighlightSchema>;
-
-// ─── Loans ───────────────────────────────────────────────────────────────────
-
-/** Mirrors the CHECK constraints in db/migrations/020-finance-loans.sql. */
-export const LOAN_LIMITS = {
-  NAME: 120,
-  LENDER: 120,
-  NOTES: 2_000,
-  EVENT_NOTE: 300,
-  /** NUMERIC(16,2). */
-  AMOUNT_MAX: 99_999_999_999_999.99,
-  RATE_MAX: 100,
-  TENURE_MIN: 1,
-  TENURE_MAX: 600,
-} as const;
-
-const loanEffect = z.enum(["tenure", "emi"]);
-
-export const financeLoanSchema = z.object({
-  name: boundedRequiredString(LOAN_LIMITS.NAME, "Name"),
-  lender: boundedOptionalString(LOAN_LIMITS.LENDER, "Lender"),
-  // CHAR(3) with an upper-case CHECK: an ISO code, never a symbol.
-  currency: z
-    .string()
-    .trim()
-    .regex(/^[A-Z]{3}$/, "Currency must be a three-letter code, like INR"),
-  principal: z.coerce
-    .number({ invalid_type_error: "Amount must be a number" })
-    .positive("Amount must be more than zero")
-    .max(LOAN_LIMITS.AMOUNT_MAX, "Amount is too large"),
-  annual_rate: z.coerce
-    .number({ invalid_type_error: "Rate must be a number" })
-    .min(0, "Rate cannot be negative")
-    .max(LOAN_LIMITS.RATE_MAX, "Rate must be 100% or less"),
-  tenure_months: z.coerce
-    .number({ invalid_type_error: "Tenure must be a number" })
-    .int("Tenure must be whole months")
-    .min(LOAN_LIMITS.TENURE_MIN, "Tenure must be at least a month")
-    .max(LOAN_LIMITS.TENURE_MAX, "Tenure must be 50 years or less"),
-  first_emi_date: requiredDateString,
-  rate_type: z.enum(["fixed", "floating"]),
-  on_rate_change: loanEffect,
-  pay_from_account_id: z.string().uuid().nullish(),
-  category_id: z.string().uuid().nullish(),
-  notes: boundedOptionalString(LOAN_LIMITS.NOTES, "Notes"),
-});
-
-export type FinanceLoanFormValues = z.infer<typeof financeLoanSchema>;
-
-export const financeLoanEventSchema = z
-  .object({
-    kind: z.enum(["rate_change", "prepayment"]),
-    effective_date: requiredDateString,
-    rate: z.coerce
-      .number({ invalid_type_error: "Rate must be a number" })
-      .min(0, "Rate cannot be negative")
-      .max(LOAN_LIMITS.RATE_MAX, "Rate must be 100% or less")
-      .nullish(),
-    amount: z.coerce
-      .number({ invalid_type_error: "Amount must be a number" })
-      .positive("Amount must be more than zero")
-      .max(LOAN_LIMITS.AMOUNT_MAX, "Amount is too large")
-      .nullish(),
-    effect: loanEffect.nullish(),
-    note: boundedOptionalString(LOAN_LIMITS.EVENT_NOTE, "Note"),
-  })
-  // Mirrors `finance_loan_events_complete`: each kind needs its own figure.
-  .superRefine((value, ctx) => {
-    if (value.kind === "rate_change" && value.rate == null) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["rate"], message: "Enter the new rate" });
-    }
-    if (value.kind === "prepayment" && value.amount == null) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["amount"], message: "Enter the amount prepaid" });
-    }
-  });
-
-export type FinanceLoanEventFormValues = z.infer<typeof financeLoanEventSchema>;
-
-// ─── Statement import ────────────────────────────────────────────────────────
-
-/**
- * One row as `import_transactions` receives it. Mirrors the columns: the
- * description is capped at 200 by the RPC, the bank's wording at 500, the
- * merchant at 200, and the amount is NUMERIC(10,2).
- */
-export const importRowSchema = z.object({
-  date: dateString,
-  description: boundedRequiredString(LIMITS.TITLE, "Description"),
-  raw_description: z.string().max(500).nullable(),
-  merchant: z.string().max(200).nullable(),
-  amount: money(MONEY_MAX_10_2),
-  type: z.enum([TRANSACTION_TYPE.EXPENSE, TRANSACTION_TYPE.EARNING]),
-  category_id: z.string().uuid().nullable(),
-  import_hash: z.string().min(1).max(64),
-  pair_with: z.string().uuid().nullable(),
-});
-
-export type ImportRowValues = z.infer<typeof importRowSchema>;
-
-/**
- * A finance category. Mirrors `finance_categories`: the name is 1–80
- * characters and unique per owner, the bucket is the `category_bucket` enum.
- */
-export const financeCategorySchema = z.object({
-  name: boundedRequiredString(FINANCE_LIMITS.CATEGORY_NAME, "Category name"),
-  bucket: z.enum(["income", "need", "want", "save", "transfer"]),
-  is_essential: z.boolean().default(false),
-});
-
-export type FinanceCategoryValues = z.infer<typeof financeCategorySchema>;
-
-/**
- * Re-anchoring an account from what it holds today. `opening_balance` is
- * NUMERIC(18,4) and may be negative (a card or loan is stored as owed).
- */
-export const accountReconcileSchema = z.object({
-  opening_balance: z
-    .number({ invalid_type_error: "Balance must be a number" })
-    .finite("Balance must be a number")
-    .min(-MONEY_MAX_18_4, "Balance is too large")
-    .max(MONEY_MAX_18_4, "Balance is too large"),
-  opening_date: dateString,
-});
 
 // ─── Finance v2 ──────────────────────────────────────────────────────────────
 
@@ -1833,9 +1513,7 @@ export type FinCommitmentFormInput = z.infer<typeof finCommitmentFormSchema>;
  */
 export const finBudgetFormSchema = z.object({
   category_id: z.string().uuid("Pick a category"),
-  period: z
-    .string()
-    .regex(/^\d{4}-\d{2}-01$/, "A budget covers a whole month"),
+  period: z.string().regex(/^\d{4}-\d{2}-01$/, "A budget covers a whole month"),
   amount: decimalText("Budget"),
   currency: finCurrency,
   rollover: z.boolean(),

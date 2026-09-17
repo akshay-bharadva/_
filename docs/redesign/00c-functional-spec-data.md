@@ -113,8 +113,7 @@ HABIT_LOGS_LOOKBACK_DAYS 30, LEARNING_SESSIONS_LIMIT 100, NOTE_COLORS, HABIT_COL
 CHART_COLORS, enum OPTIONS, TYPOGRAPHY_PRESETS ×8, THEME_PRESETS ×30);
 themes.ts (VALID_THEMES, DEFAULT_THEME, applyTheme, applyCustomThemeColors, hexToHsl map);
 config.ts (mfa issuer/appName, site, supabase, isSupabaseConfigured);
-fallback-data.ts (mocks from portfolio.config.ts); finance-utils
-(projectRecurringOccurrences, buildForecastData); habit-utils (calculateHabitStats);
+fallback-data.ts (mocks from portfolio.config.ts); habit-utils (calculateHabitStats);
 color/date/storage utils; utils (cn, getErrorMessage).
 
 ## 6. Build / CI (preserved)
@@ -123,7 +122,7 @@ color/date/storage utils; utils (cn, getErrorMessage).
 - Deploy workflow: Node 18, vitest gate, next build w/ env from secrets, deploy-pages.
 - Heartbeat workflow: daily `ping` RPC (skips in static mode), Discord broadcast.
 - vitest: jsdom, globals, src/test/setup.ts (matchMedia/RO/IO/localStorage polyfills),
-  include src/\*_/_.test.{ts,tsx}. 11 existing test files (schemas, finance-utils, themes,
+  include src/\*_/_.test.{ts,tsx}. 11 existing test files (schemas, themes,
   theme-contrast, utils, query-helpers, adminApi, SectionRenderer, LoadingSpinner,
   blog post-list, post-settings-sheet).
 - Env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY/BUCKET_NAME/SITE_URL (+ optional

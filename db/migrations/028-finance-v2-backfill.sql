@@ -1,5 +1,11 @@
 -- 028: finance v2 — the backfill. v1 rows become v2 rows.
 --
+-- HISTORICAL. This reads v1 tables, and `db/schema.sql` no longer creates
+-- them — they were removed when the rebuilt module took over. So this file
+-- only applies to a database that predates the cutover, and it can no longer
+-- be verified against a fresh schema. That is the intended end state: there
+-- is nothing for it to do on an install that never had v1.
+--
 -- Requires 025, 026 and 027. Additive: it reads v1 and writes v2, and touches
 -- nothing in v1. Re-runnable — every insert is keyed on the v1 id and skips
 -- what is already there — so a partial run can simply be run again.

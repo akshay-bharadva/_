@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   taskSchema,
-  transactionSchema,
   urlOrEmpty,
   dateString,
   hexColor,
@@ -10,14 +9,12 @@ import {
   habitSchema,
   learningTopicSchema,
   inventoryItemSchema,
-  recurringTransactionSchema,
   eventSchema,
   blogPostSchema,
   portfolioSectionSchema,
   navLinkSchema,
   siteSettingsDefaultValues,
   LIMITS,
-  MONEY_MAX_10_2,
 } from "./schemas";
 import { DEFAULT_THEME, VALID_THEMES } from "./themes";
 
@@ -48,32 +45,6 @@ describe("taskSchema", () => {
       priority: "medium",
     });
     expect(result.success).toBe(false);
-  });
-});
-
-describe("transactionSchema", () => {
-  const base = {
-    date: "2026-07-10",
-    description: "Coffee",
-    type: "expense",
-    category: "food",
-  };
-
-  it("coerces string amounts to numbers", () => {
-    const result = transactionSchema.safeParse({ ...base, amount: "4.50" });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.amount).toBe(4.5);
-    }
-  });
-
-  it("rejects zero and negative amounts", () => {
-    expect(transactionSchema.safeParse({ ...base, amount: 0 }).success).toBe(
-      false,
-    );
-    expect(transactionSchema.safeParse({ ...base, amount: -5 }).success).toBe(
-      false,
-    );
   });
 });
 
@@ -113,34 +84,6 @@ describe("shared fragments", () => {
         .success,
     ).toBe(false);
     expect(tagList.safeParse(["x".repeat(LIMITS.TAG + 1)]).success).toBe(false);
-  });
-});
-
-describe("money bounds match the database column widths", () => {
-  const base = {
-    date: "2026-07-10",
-    description: "Coffee",
-    type: "expense" as const,
-  };
-
-  it("rejects an amount wider than NUMERIC(10,2)", () => {
-    // Would reach Postgres as `numeric field overflow`.
-    expect(
-      transactionSchema.safeParse({ ...base, amount: MONEY_MAX_10_2 + 1 })
-        .success,
-    ).toBe(false);
-    expect(
-      transactionSchema.safeParse({ ...base, amount: MONEY_MAX_10_2 }).success,
-    ).toBe(true);
-  });
-
-  it("rejects more than two decimal places", () => {
-    expect(
-      transactionSchema.safeParse({ ...base, amount: 10.999 }).success,
-    ).toBe(false);
-    expect(
-      transactionSchema.safeParse({ ...base, amount: 10.99 }).success,
-    ).toBe(true);
   });
 });
 
@@ -226,56 +169,6 @@ describe("habitSchema", () => {
 });
 
 describe("date-range refinements", () => {
-  it("rejects a recurring rule that ends before it starts", () => {
-    const base = {
-      description: "Rent",
-      amount: 1000,
-      type: "expense" as const,
-      frequency: "monthly" as const,
-      start_date: "2026-06-01",
-    };
-    expect(
-      recurringTransactionSchema.safeParse({ ...base, end_date: "2026-05-01" })
-        .success,
-    ).toBe(false);
-    expect(
-      recurringTransactionSchema.safeParse({ ...base, end_date: "2026-07-01" })
-        .success,
-    ).toBe(true);
-    expect(
-      recurringTransactionSchema.safeParse({ ...base, end_date: null }).success,
-    ).toBe(true);
-  });
-
-  it("scopes occurrence_day to the chosen frequency", () => {
-    const base = {
-      description: "Rent",
-      amount: 1000,
-      type: "expense" as const,
-      start_date: "2026-06-01",
-    };
-    const parse = (frequency: string, occurrence_day: number) =>
-      recurringTransactionSchema.safeParse({
-        ...base,
-        frequency,
-        occurrence_day,
-      }).success;
-
-    // Weekly rules store a day-of-week, Sunday === 0.
-    expect(parse("weekly", 0)).toBe(true);
-    expect(parse("weekly", 6)).toBe(true);
-    expect(parse("weekly", 7)).toBe(false);
-
-    // Monthly rules store a day-of-month, which starts at 1.
-    expect(parse("monthly", 1)).toBe(true);
-    expect(parse("monthly", 31)).toBe(true);
-    expect(parse("monthly", 0)).toBe(false);
-    expect(parse("monthly", 32)).toBe(false);
-
-    // Daily and yearly rules ignore the field entirely.
-    expect(parse("daily", 25)).toBe(true);
-  });
-
   it("rejects an event that ends before it starts", () => {
     const base = { title: "Standup", start_time: "2026-06-01T10:00:00Z" };
     expect(

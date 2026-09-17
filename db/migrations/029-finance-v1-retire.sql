@@ -1,5 +1,14 @@
 -- =============================================================================
 -- 029: retire finance v1 — DESTRUCTIVE. Read all of this before running it.
+--
+-- HISTORICAL, for a database that predates the cutover. `db/schema.sql` no
+-- longer creates the v1 tables this drops, so a fresh install has nothing
+-- here to retire.
+--
+-- NOTE: `DROP TABLE transactions CASCADE` below removes the foreign key on
+-- `inventory_items.transaction_id` and leaves the column behind, unconstrained.
+-- Migration 032 repoints it at `fin_transaction`, where 028 preserved the ids,
+-- so the inventory→purchase link survives. Run 032 after this.
 -- =============================================================================
 --
 --   THIS DELETES EVERY v1 FINANCE TABLE: transactions, recurring_transactions,

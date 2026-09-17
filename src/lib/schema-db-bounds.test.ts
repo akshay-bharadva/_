@@ -7,10 +7,6 @@ import {
   eventSchema,
   EVENT_LIMITS,
   MONEY_MAX_10_2,
-  MONEY_MAX_12_2,
-  MONEY_MAX_18_4,
-  transactionSchema,
-  TRANSACTION_LIMITS,
 } from "./schemas";
 
 /**
@@ -150,91 +146,6 @@ describe("bounds track the database", () => {
   });
 });
 
-describe("transactionSchema", () => {
-  const valid = {
-    date: "2026-08-15",
-    description: "Groceries",
-    amount: 42.5,
-    type: "expense" as const,
-  };
-
-  it("accepts a normal transaction", () => {
-    expect(transactionSchema.safeParse(valid).success).toBe(true);
-  });
-
-  /**
-   * The column is NUMERIC(10,2). Past its ceiling Postgres raises `numeric
-   * field overflow`, which the user sees as a save that simply failed — the
-   * form had already told them the amount was fine.
-   */
-  it("rejects an amount past the column's ceiling", () => {
-    expect(
-      transactionSchema.safeParse({ ...valid, amount: MONEY_MAX_10_2 }).success,
-    ).toBe(true);
-    expect(
-      transactionSchema.safeParse({ ...valid, amount: MONEY_MAX_10_2 + 1 })
-        .success,
-    ).toBe(false);
-  });
-
-  it("rejects a zero or negative amount", () => {
-    expect(transactionSchema.safeParse({ ...valid, amount: 0 }).success).toBe(
-      false,
-    );
-    expect(transactionSchema.safeParse({ ...valid, amount: -5 }).success).toBe(
-      false,
-    );
-  });
-
-  it("bounds notes at the column's limit", () => {
-    const max = TRANSACTION_LIMITS.NOTES;
-    expect(
-      transactionSchema.safeParse({ ...valid, notes: "x".repeat(max) }).success,
-    ).toBe(true);
-    expect(
-      transactionSchema.safeParse({ ...valid, notes: "x".repeat(max + 1) })
-        .success,
-    ).toBe(false);
-  });
-
-  /**
-   * CHAR(3) truncates rather than rejecting, so a longer value would be stored
-   * silently mangled — worse than an error.
-   */
-  it("requires a three-letter currency code", () => {
-    expect(
-      transactionSchema.safeParse({ ...valid, currency: "CAD" }).success,
-    ).toBe(true);
-    expect(
-      transactionSchema.safeParse({ ...valid, currency: "CANADA" }).success,
-    ).toBe(false);
-    expect(
-      transactionSchema.safeParse({ ...valid, currency: null }).success,
-    ).toBe(true);
-  });
-
-  it("matches the CHECK constraints in the schema", () => {
-    const schema = readFileSync(
-      resolve(__dirname, "../../db/schema.sql"),
-      "utf-8",
-    );
-    for (const [column, limit] of [
-      ["notes", TRANSACTION_LIMITS.NOTES],
-      ["merchant", TRANSACTION_LIMITS.MERCHANT],
-    ] as const) {
-      const match = schema.match(
-        new RegExp(
-          String.raw`char_length\(coalesce\(` +
-            column +
-            String.raw`,''\)\) <= (\d+)`,
-        ),
-      );
-      expect(match, `no CHECK found for ${column}`).not.toBeNull();
-      expect(Number(match![1])).toBe(limit);
-    }
-  });
-});
-
 describe("money ceilings mirror the column widths", () => {
   /**
    * Each constant must be the largest value its NUMERIC(p,s) can hold. Getting
@@ -242,25 +153,26 @@ describe("money ceilings mirror the column widths", () => {
    * figure and Postgres raises `numeric field overflow`, which reaches the user
    * as a save that simply failed.
    */
-  it.each([
-    [MONEY_MAX_10_2, 10, 2],
-    [MONEY_MAX_12_2, 12, 2],
-    [MONEY_MAX_18_4, 18, 4],
-  ])("%s fits NUMERIC(%i,%i)", (max, precision, scale) => {
-    const whole = 10 ** (precision - scale) - 1;
-    const fraction = (10 ** scale - 1) / 10 ** scale;
-    expect(max).toBeCloseTo(whole + fraction, scale);
-  });
+  it.each([[MONEY_MAX_10_2, 10, 2]])(
+    "%s fits NUMERIC(%i,%i)",
+    (max, precision, scale) => {
+      const whole = 10 ** (precision - scale) - 1;
+      const fraction = (10 ** scale - 1) / 10 ** scale;
+      expect(max).toBeCloseTo(whole + fraction, scale);
+    },
+  );
 
   it("finds those widths in the schema", () => {
     const schema = readFileSync(
       resolve(__dirname, "../../db/schema.sql"),
       "utf-8",
     );
-    // Guards the constants above against a schema that no longer uses them.
+    // Guards the constant above against a schema that no longer uses it —
+    // which is exactly what happened to the other two. `NUMERIC(12,2)` and
+    // `NUMERIC(18,4)` were v1 finance columns, and when those tables went this
+    // assertion is what said so, rather than leaving two ceilings mirroring
+    // nothing.
     expect(schema).toMatch(/NUMERIC\(10, ?2\)/);
-    expect(schema).toMatch(/NUMERIC\(12, ?2\)/);
-    expect(schema).toMatch(/NUMERIC\(18, ?4\)/);
   });
 });
 

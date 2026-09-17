@@ -81,7 +81,7 @@ describe("schema.sql runs in order", () => {
     // Guards the parser: empty maps would pass every assertion below.
     expect(CREATED.size).toBeGreaterThan(40);
     expect(SITES.length).toBeGreaterThan(40);
-    expect(CREATED.has("finance_accounts")).toBe(true);
+    expect(CREATED.has("fin_account")).toBe(true);
     expect(CREATED.has("fin_posting")).toBe(true);
   });
 

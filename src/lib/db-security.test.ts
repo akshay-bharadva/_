@@ -15,11 +15,29 @@ const schema = readFileSync(resolve(__dirname, "../../db/schema.sql"), "utf-8");
 /**
  * Every function in the schema, as (name, full text).
  *
- * Split on the *next* CREATE rather than on a `$$` terminator: the schema uses
- * `AS $$ ... $$;`, `AS $$ ... $$ LANGUAGE plpgsql;` and plain SQL bodies, and a
- * parser keyed on one of those silently returns a two-character body for the
- * others — which then matches nothing and passes every check for the wrong
- * reason. This test earned that comment the hard way.
+ * Each function ends at **its own** dollar-quoted body, not at the next
+ * `CREATE`. An earlier version sliced to the next CREATE, on the reasoning that
+ * the schema mixes `AS $$ ... $$;`, `AS $$ ... $$ LANGUAGE plpgsql;` and plain
+ * SQL bodies, so a parser keyed on one terminator returns a two-character body
+ * for the others and passes every check for the wrong reason.
+ *
+ * That reasoning was right and the fix was wrong. Slicing to the next CREATE
+ * makes every function's text include the *following* function's header — so a
+ * plain function sitting above a definer was classified as a definer, and then
+ * satisfied the `SET search_path` check using its neighbour's clause. Both
+ * checks were reading the wrong function.
+ *
+ * `update_asset_usage` was exactly that: a plain plpgsql function that appeared
+ * in this file's definer list, and in its allowlist, purely because
+ * `rename_transaction_category` used to follow it. Deleting the v1 finance
+ * functions moved something else into that slot and the illusion broke. The
+ * same bug could as easily have *hidden* a definer with no `search_path` by
+ * lending it a neighbour's.
+ *
+ * So: find the body's dollar-quote tag after `AS`, find its matching close, and
+ * run to the statement's `;`. Every function in this schema is dollar-quoted;
+ * one that is not falls back to the old behaviour rather than returning a stub,
+ * and the guard below still fails loudly if a body comes out empty.
  */
 function parseFunctions(source: string): { name: string; text: string }[] {
   const pattern = /CREATE (?:OR REPLACE )?FUNCTION\s+([\w.]+)/g;
@@ -30,13 +48,24 @@ function parseFunctions(source: string): { name: string; text: string }[] {
     starts.push({ name: match[1], index: match.index });
   }
 
-  return starts.map((entry, i) => ({
-    name: entry.name,
-    text: source.slice(
-      entry.index,
-      i + 1 < starts.length ? starts[i + 1].index : source.length,
-    ),
-  }));
+  return starts.map((entry, i) => {
+    const nextCreate =
+      i + 1 < starts.length ? starts[i + 1].index : source.length;
+    const head = source.slice(entry.index, nextCreate);
+
+    // The opening dollar-quote of this function's own body.
+    const opened = /\bAS\s+(\$\w*\$)/.exec(head);
+    if (!opened) return { name: entry.name, text: head };
+
+    const tag = opened[1];
+    const bodyStart = opened.index + opened[0].length;
+    const closed = head.indexOf(tag, bodyStart);
+    if (closed === -1) return { name: entry.name, text: head };
+
+    const semicolon = head.indexOf(";", closed + tag.length);
+    const end = semicolon === -1 ? head.length : semicolon + 1;
+    return { name: entry.name, text: head.slice(0, end) };
+  });
 }
 
 const functions = parseFunctions(schema);
@@ -86,13 +115,9 @@ describe("SECURITY DEFINER functions", () => {
     "public.enrich_site_visit": "trigger on a public visit insert",
     "public.limit_site_visits": "trigger on a public visit insert",
     "public.notify_site_visit": "trigger on a public visit insert",
-    "public.fill_transaction_money":
-      "trigger inside a transaction write RLS has already authorised",
     increment_blog_post_view: "public view counter on a published post",
     "public.get_random_public_highlight":
       "the public quote widget; returns only rows marked is_public",
-    update_asset_usage:
-      "maintenance sweep over storage paths; touches no user rows",
   };
 
   const touchingData = definers.filter((fn) =>
