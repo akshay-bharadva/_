@@ -8,8 +8,8 @@ import { ReportsSection } from "./reports-section";
  * section is pure props and no hooks, so there is nothing to mock and nothing
  * standing between the fixtures and the arithmetic on screen.
  *
- * Fixtures sit in the current year so the default "Since {year − 3}" range
- * always contains them, rather than pinning a date that would rot.
+ * Fixtures sit in the current year so the default "All time" range always
+ * contains them, rather than pinning a date that would rot.
  */
 
 const YEAR = new Date().getFullYear();
@@ -169,15 +169,25 @@ describe("the range", () => {
    */
   it("warns when the ledger starts after the range does", () => {
     reports();
+    // "All time" begins at the first transaction, so by construction there is
+    // no gap to warn about — that is the default precisely because it cannot
+    // mislead. The warning is for a range the reader chose that reaches back
+    // further than their records do.
+    expect(screen.queryByText(/Your ledger starts on/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Last 12 months" }));
     expect(screen.getByText(/Your ledger starts on/)).toBeInTheDocument();
   });
 
   it("offers the importer only when there is somewhere to send you", () => {
+    // The offer lives in the gap notice, so the range has to reach back past
+    // the ledger for either case to be visible at all.
     reports();
+    fireEvent.click(screen.getByRole("tab", { name: "Last 12 months" }));
     expect(screen.queryByRole("button", { name: /Import/ })).toBeNull();
 
-    // The import screen is not rebuilt yet, so the workspace passes nothing.
     reports(ALL, () => {});
+    fireEvent.click(screen.getAllByRole("tab", { name: "Last 12 months" })[1]);
     expect(screen.getAllByRole("button", { name: /Import/ })).toHaveLength(1);
   });
 
@@ -242,5 +252,123 @@ describe("switching range", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Custom" }));
     expect(screen.getByLabelText("From")).toBeInTheDocument();
     expect(screen.getByLabelText("To")).toBeInTheDocument();
+  });
+});
+
+/**
+ * Reading the report without an exchange rate.
+ *
+ * The base view converts everything and needs a cached rate to do it; the rupee
+ * spending below has none, so that view is genuinely short. Converting it at
+ * today's rate would be worse than leaving it out — so the screen leaves it out,
+ * says so, and offers the view that needs no rate at all.
+ */
+describe("irrespective of currency", () => {
+  const RUPEES = txn({
+    id: "t-inr",
+    date: `${YEAR}-03-21`,
+    description: "Rent, back home",
+    fin_posting: [
+      posting({
+        id: "p-inr",
+        category_id: "c-groceries",
+        amount_minor: -6_000_000,
+        currency: "INR",
+        // No rate was cached for that day.
+        base_amount_minor: null,
+      }),
+    ],
+  });
+
+  const MIXED = [...ALL, RUPEES];
+
+  it("says nothing about currency when there is only one", () => {
+    reports();
+    expect(screen.queryByRole("tablist", { name: "Currency" })).toBeNull();
+  });
+
+  it("offers each currency the range actually contains", () => {
+    reports(MIXED);
+    const picker = within(screen.getByRole("tablist", { name: "Currency" }));
+
+    expect(picker.getByRole("tab", { name: /CAD, converted/ })).toBeTruthy();
+    expect(picker.getByRole("tab", { name: /INR only/ })).toBeTruthy();
+  });
+
+  /** The state the base view cannot describe: money with no rate to price it. */
+  it("leaves the unpriced rupees out of the dollar view, and points a way out", () => {
+    reports(MIXED);
+    expect(screen.getByText(/had no exchange rate/)).toBeInTheDocument();
+    expect(screen.getByText(/needs no rate/)).toBeInTheDocument();
+  });
+
+  it("reports the rupees in rupees, exactly, with no rate involved", () => {
+    reports(MIXED);
+    fireEvent.click(screen.getByRole("tab", { name: /INR only/ }));
+
+    // ₹60,000 spent — the whole of it, though not one rupee could be converted.
+    // Twice on screen: the headline total, and the category line behind it. Both
+    // matter, because a native report has to break down like any other.
+    expect(screen.getAllByText("₹60,000").length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText(/had no exchange rate/)).toBeNull();
+  });
+
+  /** Narrower, not converted — and the screen must not let that be misread. */
+  it("says the other currencies are absent rather than included", () => {
+    reports(MIXED);
+    fireEvent.click(screen.getByRole("tab", { name: /INR only/ }));
+
+    expect(
+      screen.getByText(/not shown here rather than converted/),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("any stretch of years", () => {
+  /**
+   * The range used to offer a single hard-coded "Since {year − 3}" — the right
+   * question asked of the wrong year, and nothing at all for someone whose
+   * records start further back.
+   */
+  it("offers a start year for each year the ledger covers", () => {
+    const older = txn({
+      id: "t-old",
+      date: `${YEAR - 2}-06-01`,
+      fin_posting: [posting({ id: "p-old" })],
+    });
+
+    reports([...ALL, older]);
+    expect(
+      screen.getByRole("button", { name: String(YEAR - 1) }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: String(YEAR - 2) }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers no start year older than the ledger itself", () => {
+    reports();
+    expect(screen.queryByRole("button", { name: String(YEAR - 5) })).toBeNull();
+  });
+
+  it("reports from the year chosen", () => {
+    const older = txn({
+      id: "t-old",
+      date: `${YEAR - 2}-06-01`,
+      description: "Older thing",
+      fin_posting: [
+        posting({
+          id: "p-old",
+          amount_minor: -111_11,
+          base_amount_minor: -111_11,
+        }),
+      ],
+    });
+
+    reports([...ALL, older]);
+    fireEvent.click(screen.getByRole("button", { name: String(YEAR - 1) }));
+
+    // The older row is before the chosen start, so it drops out of the total.
+    expect(screen.queryByText("$193.25")).toBeNull();
   });
 });

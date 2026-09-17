@@ -329,3 +329,165 @@ describe("what is left out", () => {
     expect(result.count).toBe(1);
   });
 });
+
+/**
+ * Reading a report without an exchange rate.
+ *
+ * The base-currency view is the one you want when rates exist: it adds a year of
+ * rupee and dollar spending into one figure. It is also the view that goes
+ * *quiet* when they do not — a posting with no rate for its date is left out,
+ * and a report can end up describing a fraction of a year while looking whole.
+ *
+ * The native view is the answer to that. It counts only what is already in the
+ * currency asked for, at its own amount, so no rate is involved and nothing is
+ * dropped for want of one. It is narrower, not converted — and the difference is
+ * the point.
+ */
+describe("valued in a currency of its own", () => {
+  // Its own range: the shared one above stops at 2024.
+  const range: ReportRange = { from: "2026-01-01", to: "2026-12-31" };
+
+  const mixed = [
+    row("2026-03-01", -20_000, "food"),
+    row("2026-03-02", 500_000, "salary"),
+    // Rupees, and no rate was ever cached for that day.
+    row(
+      "2026-03-03",
+      -900_000,
+      "food",
+      {},
+      {
+        currency: "INR",
+        base_amount_minor: null,
+      },
+    ),
+    row(
+      "2026-03-04",
+      -150_000,
+      "fun",
+      {},
+      {
+        currency: "INR",
+        base_amount_minor: null,
+      },
+    ),
+  ];
+
+  it("leaves the unpriced rupees out of the dollar report, and says so", () => {
+    const result = buildReport(mixed, categories, range, "CAD");
+
+    expect(result.spent.minor).toBe(20_000);
+    expect(result.spent.currency).toBe("CAD");
+    expect(result.unpriced).toBe(2);
+  });
+
+  /** Exact, with no rates cached at all — because none are needed. */
+  it("reports the rupees in rupees, dropping nothing", () => {
+    const result = buildReport(mixed, categories, range, {
+      mode: "native",
+      code: "INR",
+    });
+
+    expect(result.spent).toEqual({ minor: 1_050_000, currency: "INR" });
+    expect(result.earned.minor).toBe(0);
+    // Nothing was converted, so nothing could be missing a rate.
+    expect(result.unpriced).toBe(0);
+  });
+
+  it("splits the rupee spending by category, as any other report would", () => {
+    const result = buildReport(mixed, categories, range, {
+      mode: "native",
+      code: "INR",
+    });
+
+    expect(
+      result.spending.map((line) => [line.name, line.amount.minor]),
+    ).toEqual([
+      ["Groceries", 900_000],
+      ["Dining out", 150_000],
+    ]);
+  });
+
+  /**
+   * The guard against a total that is quietly missing a currency. Whichever view
+   * is on screen, the report knows what else the range contains.
+   */
+  it("names every currency in the range, in both modes", () => {
+    const inBase = buildReport(mixed, categories, range, "CAD");
+    const inNative = buildReport(mixed, categories, range, {
+      mode: "native",
+      code: "INR",
+    });
+
+    const census = [inBase, inNative].map((result) =>
+      result.currencies.map((entry) => [
+        entry.code,
+        entry.postings,
+        entry.unpriced,
+      ]),
+    );
+
+    // Identical either way: the census describes the range, not the view.
+    // Two apiece here, so this fixture says nothing about the ordering — the
+    // case below does that.
+    expect(census[0]).toEqual([
+      ["CAD", 2, 0],
+      ["INR", 2, 2],
+    ]);
+    expect(census[1]).toEqual(census[0]);
+  });
+
+  /** Busiest first: the currency worth offering is the one with most in it. */
+  it("puts the currency with the most postings first", () => {
+    const lopsided = [
+      row("2026-03-01", -20_000, "food"),
+      ...[1, 2, 3].map((n) =>
+        row(`2026-03-0${n + 3}`, -50_000, "food", {}, { currency: "INR" }),
+      ),
+    ];
+
+    expect(
+      buildReport(lopsided, categories, range, "CAD").currencies.map(
+        (entry) => entry.code,
+      ),
+    ).toEqual(["INR", "CAD"]);
+  });
+
+  it("says how it was valued, so a figure cannot be read as the other thing", () => {
+    expect(buildReport(mixed, categories, range, "CAD").valuation).toEqual({
+      mode: "base",
+      code: "CAD",
+    });
+    expect(
+      buildReport(mixed, categories, range, { mode: "native", code: "INR" })
+        .valuation,
+    ).toEqual({ mode: "native", code: "INR" });
+  });
+
+  /**
+   * A native report counts the currency's own postings whether or not they were
+   * ever priced — the rate is irrelevant to it. This fixture has rupee rows that
+   * *do* carry a base amount, which the native view must ignore rather than
+   * prefer.
+   */
+  it("uses the posting's own amount, never its converted one", () => {
+    const priced = [
+      row(
+        "2026-03-05",
+        -60_000,
+        "food",
+        {},
+        {
+          currency: "INR",
+          base_amount_minor: -1_000,
+        },
+      ),
+    ];
+
+    const result = buildReport(priced, categories, range, {
+      mode: "native",
+      code: "INR",
+    });
+    expect(result.spent.minor).toBe(60_000);
+  });
+});

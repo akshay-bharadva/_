@@ -30,7 +30,7 @@ import { buildReport, type ReportLine } from "../reports/report";
  * charts do not justify pulling a charting library into a route's first load.
  */
 
-type PresetId = "ytd" | "last" | "12m" | "3y" | "all" | "custom";
+type PresetId = "ytd" | "last" | "12m" | "all" | "since" | "custom";
 
 export function ReportsSection({
   transactions,
@@ -78,12 +78,6 @@ export function ReportsSection({
       to: today,
     },
     {
-      id: "3y",
-      label: `Since ${year - 3}`,
-      from: `${year - 3}-01-01`,
-      to: today,
-    },
-    {
       id: "all",
       label: "All time",
       from: earliest ?? `${year}-01-01`,
@@ -91,7 +85,27 @@ export function ReportsSection({
     },
   ];
 
-  const [preset, setPreset] = useState<PresetId>("3y");
+  /*
+    "Since 2023", for whichever years the ledger actually covers.
+
+    This used to be a single hard-coded `Since ${year - 3}`, which is the right
+    question asked of the wrong year: three years back is 2023 today and 2024
+    next year, and it offers nothing at all to someone whose records start in
+    2019. Derived from the earliest transaction instead, newest first, and
+    capped so a long history does not become a wall of buttons.
+  */
+  const sinceYears = useMemo(() => {
+    if (!earliest) return [];
+    const first = Number(earliest.slice(0, 4));
+    const list: number[] = [];
+    for (let y = year - 1; y >= first && list.length < 8; y -= 1) list.push(y);
+    return list;
+  }, [earliest, year]);
+
+  const [preset, setPreset] = useState<PresetId>("all");
+  const [sinceYear, setSinceYear] = useState<number | null>(null);
+  /** null means the base currency, converted. A code means that currency's own. */
+  const [nativeCode, setNativeCode] = useState<string | null>(null);
   const [customFrom, setCustomFrom] = useState(`${year - 3}-01-01`);
   const [customTo, setCustomTo] = useState(today);
   const [allCategories, setAllCategories] = useState(false);
@@ -99,7 +113,9 @@ export function ReportsSection({
   const range =
     preset === "custom"
       ? { from: customFrom || "1900-01-01", to: customTo || today }
-      : presets.find((entry) => entry.id === preset)!;
+      : preset === "since" && sinceYear
+        ? { from: `${sinceYear}-01-01`, to: today }
+        : (presets.find((entry) => entry.id === preset) ?? presets[0]);
 
   const report = useMemo(
     () =>
@@ -107,9 +123,11 @@ export function ReportsSection({
         transactions,
         categories,
         { from: range.from, to: range.to },
-        base,
+        nativeCode
+          ? { mode: "native" as const, code: nativeCode }
+          : { mode: "base" as const, code: base },
       ),
-    [transactions, categories, range.from, range.to, base],
+    [transactions, categories, range.from, range.to, base, nativeCode],
   );
 
   const whole = (amount: Money) => formatMoney(amount, { whole: true });
@@ -176,6 +194,31 @@ export function ReportsSection({
           )}
         </div>
 
+        {sinceYears.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-xs text-muted-foreground">Since</span>
+            {sinceYears.map((y) => (
+              <button
+                key={y}
+                type="button"
+                aria-pressed={preset === "since" && sinceYear === y}
+                onClick={() => {
+                  setSinceYear(y);
+                  setPreset("since");
+                }}
+                className={cn(
+                  "rounded-control px-2 py-1 text-xs tabular-nums transition-[box-shadow,color]",
+                  preset === "since" && sinceYear === y
+                    ? "bg-card font-medium text-foreground shadow-e1"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
+
         {preset === "custom" && (
           <div className="flex items-center gap-2">
             <Input
@@ -196,6 +239,73 @@ export function ReportsSection({
           </div>
         )}
       </div>
+
+      {/*
+        Which money the figures are made of.
+
+        The base view converts everything and is what you want when rates are
+        cached; it is also the view that quietly shrinks when they are not. A
+        currency's own view counts only what is already in it, at its own
+        amount — no rate, nothing dropped. It is narrower rather than converted,
+        and the label says so, because "₹ only" and "everything, in ₹" are very
+        different claims about the same screen.
+
+        Offered only when the range actually holds more than one currency:
+        a single-currency ledger has no question to answer here.
+      */}
+      {report.currencies.length > 1 && (
+        <div
+          role="tablist"
+          aria-label="Currency"
+          className="flex flex-wrap items-center gap-2"
+        >
+          <span className="text-xs text-muted-foreground">Shown in</span>
+          <div className="inline-flex flex-wrap rounded-control bg-secondary p-0.5">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={nativeCode === null}
+              onClick={() => setNativeCode(null)}
+              className={cn(
+                "rounded-control px-2.5 py-1 text-xs font-medium transition-[box-shadow,color]",
+                nativeCode === null
+                  ? "bg-card text-foreground shadow-e1"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {base}, converted
+            </button>
+            {report.currencies
+              .filter((entry) => entry.code !== base)
+              .map((entry) => (
+                <button
+                  key={entry.code}
+                  type="button"
+                  role="tab"
+                  aria-selected={nativeCode === entry.code}
+                  onClick={() => setNativeCode(entry.code)}
+                  className={cn(
+                    "rounded-control px-2.5 py-1 text-xs font-medium transition-[box-shadow,color]",
+                    nativeCode === entry.code
+                      ? "bg-card text-foreground shadow-e1"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {entry.code} only
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {nativeCode && (
+        <p className="rounded-surface bg-secondary/50 p-3 text-xs text-muted-foreground">
+          Only what was spent and earned in {nativeCode}, at its own amounts —
+          no exchange rate is involved, so nothing is missing for want of one.
+          Money in other currencies is not shown here rather than converted into
+          it.
+        </p>
+      )}
 
       {gap && (
         <div className="flex flex-wrap items-center gap-3 rounded-surface bg-chart-3/10 p-4 text-sm">
@@ -438,13 +548,21 @@ export function ReportsSection({
           </div>
 
           {report.unpriced > 0 && (
-            // Postings, not transactions: v2 counts the legs, because one
-            // transaction can have an unpriced leg and a priced one.
+            /*
+              Postings, not transactions: v2 counts the legs, because one
+              transaction can have an unpriced leg and a priced one.
+
+              This used to end at "fetch rates and they will be", which is true
+              and useless to someone with no rates and a year of rupee spending
+              to read. Reading that currency on its own needs no rate at all, so
+              the notice offers it.
+            */
             <p className="text-xs text-muted-foreground">
               {report.unpriced} posting{report.unpriced === 1 ? "" : "s"} in
               another currency had no exchange rate for their date and{" "}
-              {report.unpriced === 1 ? "is" : "are"} not counted. Fetch rates
-              under Exchange and they will be.
+              {report.unpriced === 1 ? "is" : "are"} not counted here. Fetch
+              rates under Exchange, or read a currency on its own above — that
+              needs no rate.
             </p>
           )}
         </>

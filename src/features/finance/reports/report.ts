@@ -9,9 +9,16 @@ import { normaliseMerchant } from "../import/classify";
 /**
  * What came in, what went out, and where — over any range.
  *
- * Everything is in the base currency, from each posting's frozen
- * `base_amount_minor`, so a year of rupee and dollar spending adds up without
- * being re-priced at today's rate.
+ * Valued one of two ways, chosen by the caller. **In the base currency**, from
+ * each posting's frozen `base_amount_minor`, so a year of rupee and dollar
+ * spending adds up without being re-priced at today's rate — complete only where
+ * a rate was cached. Or **in a currency's own units**, counting only the postings
+ * already in it, which needs no rate at all and therefore drops nothing. See
+ * `ReportValuation`.
+ *
+ * Either way the report says what it left out: `unpriced` for what had no rate,
+ * and `currencies` for everything transacted in over the range, so a total can
+ * never quietly be missing a currency.
  *
  * **Three kinds of money, kept apart, because conflating them is how a report
  * lies:**
@@ -24,8 +31,7 @@ import { normaliseMerchant } from "../import/classify";
  *   withdrawal from it is *less saved* rather than a windfall.
  *
  * Transfers between your own accounts are none of the three and are left out,
- * as are pending rows. A posting with no rate for its date is counted in
- * `unpriced` rather than added at parity.
+ * as are pending rows.
  *
  * Two differences from v1 worth naming:
  *
@@ -42,6 +48,35 @@ export interface ReportRange {
   /** Inclusive, YYYY-MM-DD. */
   from: string;
   to: string;
+}
+
+/**
+ * Which money the report is made of.
+ *
+ * **base** — every posting's frozen `base_amount_minor`, so a year of rupee and
+ * dollar spending adds up. Complete only where a rate was cached for the day;
+ * what was not is counted in `unpriced` rather than added at parity.
+ *
+ * **native** — only the postings already in that currency, at their own
+ * `amount_minor`. Nothing is converted, so nothing needs a rate and nothing is
+ * dropped for want of one: a rupee report is exact even with no rates cached at
+ * all. It is a *narrower* report, not a converted one — the other currencies are
+ * absent rather than misstated, which is the honest way to be currency-agnostic.
+ * Adding them would require the rate this mode exists to do without.
+ *
+ * A bare string means base, which is what every caller meant before this
+ * existed.
+ */
+export type ReportValuation =
+  | { mode: "base"; code: string }
+  | { mode: "native"; code: string };
+
+export interface CurrencyPresence {
+  code: string;
+  /** Postings in the range, whether or not they could be priced. */
+  postings: number;
+  /** How many of those have no rate for their date. */
+  unpriced: number;
 }
 
 export interface ReportLine {
@@ -76,6 +111,16 @@ export interface Report {
    * every figure above is short by whatever this covers.
    */
   unpriced: number;
+  /** How the figures above were valued. */
+  valuation: ReportValuation;
+  /**
+   * Every currency transacted in over the range, priced or not.
+   *
+   * Computed whatever the mode, so the screen can say what a given view leaves
+   * out and offer the view that would include it. Without this a report in
+   * dollars can be silently missing a year of rupee spending and look complete.
+   */
+  currencies: CurrencyPresence[];
   count: number;
   firstDate: string | null;
   lastDate: string | null;
@@ -139,9 +184,16 @@ export function buildReport(
   transactions: FinTransaction[],
   categories: FinCategory[],
   { from, to }: ReportRange,
-  base: string,
+  valuedIn: string | ReportValuation,
 ): Report {
+  const valuation: ReportValuation =
+    typeof valuedIn === "string" ? { mode: "base", code: valuedIn } : valuedIn;
+  // Every `Money` this returns is in this currency, in both modes.
+  const base = valuation.code;
+  const native = valuation.mode === "native";
+
   const byId = new Map(categories.map((category) => [category.id, category]));
+  const seen = new Map<string, CurrencyPresence>();
   const years = new Map<string, Totals>();
   const months = new Map<string, Totals>();
   const spending = new Map<string, WorkingLine>();
@@ -198,12 +250,43 @@ export function buildReport(
         : undefined;
       if (category?.bucket === "transfer") continue;
 
+      /*
+        The census, before any filtering: what currencies does this range
+        actually contain, and how much of it has no rate? Counted in both modes
+        so a screen can always say what the current view leaves out.
+      */
+      const code = posting.currency;
+      const presence = seen.get(code) ?? { code, postings: 0, unpriced: 0 };
+      presence.postings += 1;
       if (
         posting.base_amount_minor === null ||
         posting.base_amount_minor === undefined
       ) {
-        unpriced += 1;
-        continue;
+        presence.unpriced += 1;
+      }
+      seen.set(code, presence);
+
+      /*
+        What this posting is worth, in the currency the report is being made in.
+
+        In native mode that is the posting's own `amount_minor` and only for
+        postings already in that currency — no rate, nothing to be missing. In
+        base mode it is the frozen `base_amount_minor`, and a posting without
+        one is counted as unpriced rather than added at parity.
+      */
+      let signed: number;
+      if (native) {
+        if (code !== base) continue;
+        signed = posting.amount_minor;
+      } else {
+        if (
+          posting.base_amount_minor === null ||
+          posting.base_amount_minor === undefined
+        ) {
+          unpriced += 1;
+          continue;
+        }
+        signed = posting.base_amount_minor;
       }
 
       if (!counted) {
@@ -217,14 +300,14 @@ export function buildReport(
         }
       }
 
-      const value = Math.abs(posting.base_amount_minor);
+      const value = Math.abs(signed);
       const year = totals(years, transaction.date.slice(0, 4));
       const month = totals(months, transaction.date.slice(0, 7));
       const bucket = category?.bucket ?? null;
       const key = category?.id ?? "__none";
       const name = category?.name ?? "Uncategorised";
 
-      if (posting.base_amount_minor > 0) {
+      if (signed > 0) {
         if (bucket === "save") {
           // Taking money back out of savings: less saved, not income.
           saved -= value;
@@ -318,6 +401,12 @@ export function buildReport(
     kept: money(earned - spent, base),
     keptRate: earned > 0 ? ((earned - spent) / earned) * 100 : null,
     unpriced,
+    valuation,
+    // Busiest first: the currency worth offering next is the one with the most
+    // in it, not the alphabetically first.
+    currencies: Array.from(seen.values()).sort(
+      (a, b) => b.postings - a.postings,
+    ),
     count,
     firstDate,
     lastDate,
