@@ -4,12 +4,14 @@ import type {
   FinAccountBalance,
   FinBudget,
   FinCategory,
+  FinCategoryRule,
   FinCommitment,
   FinCommitmentEvent,
   FinCommitmentSkip,
   FinCurrency,
   FinGoal,
   FinGoalContribution,
+  FinImportBatch,
   FinPosting,
   FinRate,
   FinScenario,
@@ -476,6 +478,67 @@ export const financeV2Api = adminApi.injectEndpoints({
       queryFn: deleteQueryFn("fin_scenario"),
       invalidatesTags: ["FinV2Scenarios"],
     }),
+
+    /* ── Import ───────────────────────────────────────────────────────── */
+
+    getFinCategoryRules: builder.query<FinCategoryRule[], void>({
+      queryFn: getAllQueryFn<FinCategoryRule>("fin_category_rule", [
+        { column: "pattern" },
+      ]),
+      providesTags: ["FinV2Setup"],
+    }),
+
+    /**
+     * A category learned from a correction during an import.
+     *
+     * Upserted on `(user_id, pattern)` rather than inserted: correcting the same
+     * merchant twice is re-teaching it, not an error. Without `onConflict` the
+     * second correction would fail against the unique index and the interface
+     * would report a write failure for something the owner is entitled to do.
+     */
+    saveFinCategoryRule: builder.mutation<null, Partial<FinCategoryRule>>({
+      queryFn: async (rule) => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        const { data: auth } = await supabase.auth.getUser();
+        if (!auth.user) return { error: { message: "Not signed in" } };
+        const { error } = await supabase
+          .from("fin_category_rule")
+          .upsert(
+            { user_id: auth.user.id, ...rule },
+            { onConflict: "user_id,pattern" },
+          );
+        if (error) return { error };
+        return { data: null };
+      },
+      invalidatesTags: ["FinV2Setup"],
+    }),
+
+    deleteFinCategoryRule: builder.mutation<{ id: string }, string>({
+      queryFn: deleteQueryFn("fin_category_rule"),
+      invalidatesTags: ["FinV2Setup"],
+    }),
+
+    /**
+     * The batch a set of imported rows belongs to.
+     *
+     * Created before the rows so each one can carry `import_batch_id`, which is
+     * what makes "undo that import" answerable later — the rows know which file
+     * they came from. The FK is ON DELETE SET NULL, so forgetting an import does
+     * not delete what it brought in; those are different decisions.
+     */
+    createFinImportBatch: builder.mutation<string, Partial<FinImportBatch>>({
+      queryFn: async (batch) => {
+        if (!supabase) return { error: NO_DB_ERROR };
+        const { data, error } = await supabase
+          .from("fin_import_batch")
+          .insert(batch)
+          .select("id")
+          .single();
+        if (error) return { error };
+        return { data: (data as { id: string }).id };
+      },
+      invalidatesTags: ["FinV2Setup"],
+    }),
   }),
 });
 
@@ -516,4 +579,8 @@ export const {
   useGetFinScenariosQuery,
   useSaveFinScenarioMutation,
   useDeleteFinScenarioMutation,
+  useGetFinCategoryRulesQuery,
+  useSaveFinCategoryRuleMutation,
+  useDeleteFinCategoryRuleMutation,
+  useCreateFinImportBatchMutation,
 } = financeV2Api;

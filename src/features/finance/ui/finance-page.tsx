@@ -58,6 +58,8 @@ import { ActivitySection } from "./activity-section";
 import { CommitmentForm } from "./commitment-form";
 import { CommitmentsSection } from "./commitments-section";
 import { ExchangeSection } from "./exchange-section";
+import { GuideSection } from "./guide-section";
+import { ImportSection } from "./import-section";
 import { LoansSection } from "./loans-section";
 import { OverviewSection } from "./overview-section";
 import { PlanSection } from "./plan-section";
@@ -85,38 +87,29 @@ const ForecastSection = dynamic(
  * "convert every balance to base" loop — so two screens could disagree about the
  * same figure and nothing would fail. One fetch, one rate table, one conversion.
  *
- * Not yet routed at `/admin/finance`, which still renders v1. `/admin/finance-v2`
- * previews this while it is unfinished; the route swaps once `BUILT` covers the
- * nav. A half-rebuilt module behind the live route is the outcome worth refusing.
+ * Still served at `/admin/finance-v2`, with `/admin/finance` on v1 — but no
+ * longer because anything here is unfinished. Every section in the nav is built.
+ * What remains before the swap is the cutover: the dashboard and the calendar's
+ * `get_calendar_data` still read v1's `transactions`, and moving the route while
+ * they do would leave two live modules writing to two different ledgers. That is
+ * phase 8, and it is a data question rather than a UI one.
  */
-
-/** Sections with v2 content. Grows until it covers the nav. */
-const BUILT = new Set([
-  "overview",
-  "accounts",
-  "activity",
-  "reports",
-  "loans",
-  "forecast",
-  "plan",
-  "exchange",
-]);
 
 /**
  * Where the module opens.
  *
- * Stated, not derived. This was "the first built section in nav order", and
- * adding Reports to `BUILT` silently moved the landing screen off Accounts. The
- * screen you open on is a decision, not a side effect of which sections happen
- * to be finished — so adding Overview here changes nothing until it is changed
- * on purpose.
+ * Stated, not derived. While the rebuild was in progress this was "the first
+ * built section in nav order", and adding Reports to that set silently moved the
+ * landing screen off Accounts. The screen you open on is a decision, not a side
+ * effect of which sections happen to be finished.
+ *
+ * The `BUILT` set it used to be checked against is gone: every section in
+ * `FINANCE_SECTIONS` now has v2 content, so a set listing them all, a "soon"
+ * badge that never showed, and a "not rebuilt yet" panel that could never render
+ * were three ways of saying nothing. They were scaffolding, and the module is
+ * past needing it.
  */
 const DEFAULT_V2_SECTION = "accounts";
-
-const FIRST_BUILT = BUILT.has(DEFAULT_V2_SECTION)
-  ? DEFAULT_V2_SECTION
-  : (FINANCE_SECTIONS.find((section) => BUILT.has(section.id))?.id ??
-    FINANCE_SECTIONS[0].id);
 
 export default function FinanceV2Page() {
   const { data: settings, isLoading: loadingSettings } =
@@ -146,7 +139,7 @@ export default function FinanceV2Page() {
    */
   const rates = useMemo(() => tableFrom(rateRows, base), [rateRows, base]);
 
-  const [sectionId, setSectionId] = useState(FIRST_BUILT);
+  const [sectionId, setSectionId] = useState(DEFAULT_V2_SECTION);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<FinTransaction | null>(null);
   const [transferring, setTransferring] = useState(false);
@@ -200,11 +193,6 @@ export default function FinanceV2Page() {
           >
             <Icon className="size-4 shrink-0" aria-hidden />
             <span className="min-w-0 flex-1 truncate">{entry.label}</span>
-            {!BUILT.has(entry.id) && (
-              <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-                soon
-              </span>
-            )}
           </button>
         );
       })}
@@ -427,17 +415,35 @@ export default function FinanceV2Page() {
             />
           )}
 
-          {!BUILT.has(sectionId) && (
-            <div className="rounded-surface bg-card p-6 shadow-e1">
-              <h2 className="text-sm font-semibold text-foreground">
-                Not rebuilt yet
-              </h2>
-              <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-                {section.label} still runs on the previous finance module. It is
-                being rebuilt onto the new ledger, and this screen will answer “
-                {section.description.toLowerCase()}” when it is.
-              </p>
-            </div>
+          {/*
+            The one section whose content depends on the state of every other,
+            which is why it takes five lists: the setup steps answer themselves
+            from real data rather than telling someone with six accounts to add
+            an account.
+          */}
+          {sectionId === "guide" && (
+            <GuideSection
+              accounts={accounts}
+              categories={categories}
+              commitments={commitments}
+              transactions={transactions}
+              budgets={budgets}
+              onGo={setSectionId}
+            />
+          )}
+
+          {sectionId === "import" && (
+            <ImportSection
+              accounts={accounts}
+              categories={categories}
+              // The existing ledger, for the three questions an import has to
+              // answer before writing: is this row already here, is it the
+              // other half of a transfer, and what did you call this merchant
+              // last time.
+              transactions={transactions}
+              rates={rates}
+              base={base}
+            />
           )}
         </div>
       </div>

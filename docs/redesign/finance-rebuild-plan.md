@@ -1128,6 +1128,65 @@ and **guide**.
 
 ---
 
+## 7q. Guide and import — phase 7 is done
+
+**Guide** reuses `finance-guide.ts` unchanged. It is writing rather than code,
+and it was already written for this module — it names the Exchange section, the
+reconciliation anchor, EMI on a floating rate. What the screen adds is that the
+setup steps **answer themselves from real data**: a guide that tells someone with
+six accounts to add an account is one nobody opens twice, so each step checks its
+own `doneWhen` and only the first unfinished one is expanded.
+
+**Import** is the largest screen in the module, and the four things it has to get
+right before writing a single row are each a place where a silent mistake would
+poison every figure downstream:
+
+1. **The format** — detected, then shown, because a wrong column guess is obvious
+   to a person and invisible to a parser.
+2. **The signs** — a reversed file turns a year of groceries into a year of
+   income. `suggestFlip` names the suspicion; nothing flips itself.
+3. **What is already here** — re-importing an overlapping range is the normal
+   case. Already-imported rows are recognised by hash and excluded; a row that
+   merely *looks* like something entered by hand is flagged and left selected,
+   because the import cannot know and the owner can.
+4. **The other half of a transfer** — a row matching a transaction in another
+   account is money already recorded. Excluded by default with the match named,
+   rather than merged automatically: writing it would record one movement twice,
+   and auto-merging would edit a transaction the owner did not ask to touch.
+
+Corrections become **rules**, not history — the classifier deliberately never
+learns from previously imported rows, which is how one wrong guess used to become
+permanent. And because a rule is a standing instruction, the rules are listed with
+a way to forget one; something learned silently must be visible and removable, or
+the feature is only safe while it is never wrong.
+
+Four endpoints were added and all four are reached: category rules (read, teach,
+forget) and the import batch. The batch is created **before** the rows, so each
+carries `import_batch_id` and "undo that import" stays answerable; its FK is
+`ON DELETE SET NULL`, because forgetting an import is a different decision from
+deleting what it brought in. One failed row does not abandon the rest — the hash
+makes a re-run skip everything that landed.
+
+**The scaffolding is gone.** With import built, `BUILT` covered all ten sections,
+the "soon" badge could never render and the "Not rebuilt yet" panel was
+unreachable. All three were removed. Two tests were retired with them — and their
+retirement was written into them a slice earlier: both derived their subject from
+the nav rather than naming a section, which is why neither rotted as the rebuild
+advanced, and why the second failed on its own message, *"every section is built —
+retire this test"*. What replaces them asserts every section renders with no
+placeholder anywhere.
+
+**Phase 7 is complete.** Every section in `FINANCE_SECTIONS` has v2 content, and
+the reachability allowlist holds nothing from finance v2.
+
+What is left is **phase 8, the cutover** — and it is a data question, not a UI
+one. `/admin/finance` still serves v1 because the dashboard and the calendar's
+`get_calendar_data` still read v1's `transactions`. Swapping the route first would
+leave two live modules writing to two different ledgers, which is worse than
+either one alone.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification

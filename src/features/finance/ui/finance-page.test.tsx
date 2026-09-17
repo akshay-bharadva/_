@@ -4,25 +4,6 @@ import FinanceV2Page from "./finance-page";
 import { FINANCE_SECTIONS } from "../finance-nav";
 
 /**
- * The sections the workspace has rebuilt, restated here on purpose.
- *
- * `BUILT` is private to the component, and exporting it so a test could import
- * it would let the test agree with the implementation by construction — it
- * would pass even if the nav rendered nothing at all. Two independent lists
- * that must agree is the point.
- */
-const BUILT_SECTIONS = new Set([
-  "overview",
-  "accounts",
-  "activity",
-  "reports",
-  "loans",
-  "forecast",
-  "plan",
-  "exchange",
-]);
-
-/**
  * What this page is for, and therefore what is worth testing: it is the only
  * place the module talks to the database, and it converts once for everything
  * below it. So the test that matters is that a rate reaches a figure — feed it a
@@ -138,6 +119,11 @@ vi.mock("@/store/api/adminApi", () => ({
   useDeleteFinGoalContributionMutation: () => [vi.fn(), { isLoading: false }],
   useCacheFinRatesMutation: () => [vi.fn(), { isLoading: false }],
   useSaveFinSettingsMutation: () => [vi.fn(), { isLoading: false }],
+  // Import owns the rules it teaches and the batch its rows belong to.
+  useGetFinCategoryRulesQuery: () => ({ data: [] }),
+  useSaveFinCategoryRuleMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinCategoryRuleMutation: () => [vi.fn(), { isLoading: false }],
+  useCreateFinImportBatchMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
@@ -177,55 +163,46 @@ describe("the finance workspace", () => {
   });
 
   /**
-   * The nav lists every section from `finance-nav.ts`, built or not, so it cannot
-   * drift from what the module claims to have. The ones still on v1 say so.
+   * The nav lists every section from `finance-nav.ts`, so it cannot drift from
+   * what the module claims to have.
    */
-  it("lists every section and marks the ones not yet rebuilt", () => {
+  it("lists every section", () => {
     render(<FinanceV2Page />);
 
-    expect(
-      screen.getByRole("button", { name: /Accounts/ }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Forecast/ }),
-    ).toBeInTheDocument();
-    // Derived, not a hard-coded threshold. This was `> 5`, written when three
-    // sections were built; the fifth section made it false, and nudging the
-    // number would only push the same rot one section further out. What the
-    // test actually means is "every unbuilt section is marked, and no built one
-    // is" — so it counts the unbuilt ones.
-    const unbuilt = FINANCE_SECTIONS.filter(
-      (section) => !BUILT_SECTIONS.has(section.id),
-    ).length;
-
-    expect(screen.getAllByText("soon")).toHaveLength(unbuilt);
-    expect(unbuilt).toBeGreaterThan(0);
+    for (const section of FINANCE_SECTIONS) {
+      expect(
+        screen.getByRole("button", { name: new RegExp(section.label) }),
+      ).toBeInTheDocument();
+    }
   });
 
   /**
-   * The section it clicks is derived, not named.
+   * Two tests were retired here, and their retirement was written into them:
+   * one counted the sections marked "soon" and the other clicked whichever
+   * section was still on v1, asserting it said so. Both derived their subject
+   * from the list rather than naming one, which is why neither rotted while the
+   * rebuild advanced — and why, when the last section landed, the second failed
+   * on its own message: "every section is built — retire this test".
    *
-   * This used to click "Forecast" — correct until Forecast was rebuilt, at
-   * which point the test failed for a reason that had nothing to do with the
-   * behaviour it describes. Naming another unbuilt section would buy a week and
-   * rot the same way. What it means is "any section without v2 content says so",
-   * so it asks the list which one that is.
+   * What replaces them is the claim that now matters: **every section renders
+   * v2 content**. The badge, the `BUILT` set and the "not rebuilt yet" panel are
+   * gone from the component, so a section that quietly rendered nothing would no
+   * longer announce itself.
    */
-  it("says plainly that a section is not rebuilt, rather than showing nothing", () => {
-    const notRebuilt = FINANCE_SECTIONS.find(
-      (section) => !BUILT_SECTIONS.has(section.id),
-    );
-    expect(
-      notRebuilt,
-      "every section is built — retire this test",
-    ).toBeDefined();
-
+  it("renders every section, with no placeholder left anywhere", () => {
     render(<FinanceV2Page />);
-    fireEvent.click(
-      screen.getByRole("button", { name: new RegExp(notRebuilt!.label) }),
-    );
 
-    expect(screen.getByText("Not rebuilt yet")).toBeInTheDocument();
-    expect(screen.queryByText("Net worth")).toBeNull();
+    for (const section of FINANCE_SECTIONS) {
+      fireEvent.click(
+        screen.getByRole("button", { name: new RegExp(section.label) }),
+      );
+
+      // The heading is the section's own, so this also proves the click landed.
+      expect(
+        screen.getByRole("heading", { level: 1, name: section.label }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Not rebuilt yet")).toBeNull();
+      expect(screen.queryByText("soon")).toBeNull();
+    }
   });
 });
