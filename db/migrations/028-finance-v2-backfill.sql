@@ -498,13 +498,42 @@ UNION ALL SELECT 'budgets',
 
 -- Balance, per account, old against new, to the minor unit.
 --
--- The v2 side is summed inline rather than through `fin_account_balance`.
--- That function requires `auth.uid()` and AAL2 and fails closed — correctly —
--- but a migration run from the SQL editor has neither, so it returns NULL for
--- every account and this gate would report DIFFERS across the board on a
--- perfectly good migration. A cutover gate that always fails is worse than no
--- gate, because the first thing anyone does with it is stop reading it.
-WITH v2 AS (
+-- BOTH sides are summed inline rather than through `fin_account_balance` and
+-- `account_balance`. Those functions require `auth.uid()` and AAL2 and fail
+-- closed — correctly — but a migration run from the SQL editor has neither, so
+-- they return NULL for every account and this gate would report DIFFERS across
+-- the board on a perfectly good migration. A cutover gate that always fails is
+-- worse than no gate, because the first thing anyone does with it is stop
+-- reading it.
+--
+-- That reasoning was written here from the start and applied to the v2 side
+-- only: the v1 side went on calling `public.account_balance(...)` and so
+-- reported DIFFERS for every account, always. Found by running this file
+-- against a real export in a clean database, where eight accounts that agree to
+-- the cent all read DIFFERS with an empty v1 column. An empty column and a
+-- disagreement are not the same finding, and a gate that cannot tell them apart
+-- is the kind of plausible-looking wrong answer this rebuild exists to remove.
+--
+-- The arithmetic below mirrors `account_balance` exactly: opening balance, plus
+-- earnings, minus expenses, minus fees, from the opening date to today,
+-- excluding pending rows.
+WITH v1 AS (
+  SELECT a.id,
+         coalesce(a.opening_balance, 0)
+           + coalesce((
+               SELECT sum(
+                        CASE WHEN t.type = 'earning' THEN t.amount ELSE -t.amount END
+                        - coalesce(t.fee_amount, 0)
+                      )
+                 FROM transactions t
+                WHERE t.account_id = a.id
+                  AND t.date >= a.opening_date
+                  AND t.date <= CURRENT_DATE
+                  AND NOT t.is_pending
+             ), 0) AS balance
+    FROM finance_accounts a
+),
+v2 AS (
   SELECT fa.id,
          fa.opening_balance_minor
            + coalesce((
@@ -520,13 +549,14 @@ WITH v2 AS (
 )
 SELECT a.name,
        a.currency,
-       round(public.account_balance(a.id, CURRENT_DATE, false) * power(10, c.exponent))::BIGINT AS v1_minor,
+       round(v1.balance * power(10, c.exponent))::BIGINT AS v1_minor,
        v2.balance_minor AS v2_minor,
-       CASE WHEN round(public.account_balance(a.id, CURRENT_DATE, false) * power(10, c.exponent))::BIGINT
+       CASE WHEN round(v1.balance * power(10, c.exponent))::BIGINT
                  IS NOT DISTINCT FROM v2.balance_minor
             THEN 'match' ELSE 'DIFFERS' END AS verdict
   FROM finance_accounts a
   JOIN fin_currency c ON c.code = a.currency
+  JOIN v1 ON v1.id = a.id
   JOIN v2 ON v2.id = a.id
  WHERE a.archived_at IS NULL
  ORDER BY verdict DESC, a.name;
