@@ -1078,6 +1078,56 @@ contributions.
 
 ---
 
+## 7p. The plan slice — and the allowlist reaching zero
+
+Budgets, goals and categories together: the same subject at three scales. A
+category is what a thing is, a budget is how much of it you meant to spend this
+month, and a goal is what you are not spending at all.
+
+**Budgets lead with the pace.** Being 60% through the grocery money is fine on
+the 20th and alarming on the 8th, so every line states where you should be by
+now, and the bar carries a tick at the elapsed point — a bar at 60% says nothing
+alone and says everything next to a mark at 25%. Two admissions carried up from
+`budgets/period.ts`, both places v1 quietly understated spending: postings with
+no exchange rate are **named as excluded** rather than counted as zero, and a
+budget set in another currency is **named, never converted** — re-pricing a limit
+set in March at September's rate makes it not a limit.
+
+**Goals say the money has not moved.** v1's own table comment said an earmark is
+not a transfer and its RPC wrote a ledger row anyway, counting the same money
+twice. The screen states it in the header, because a progress bar that looks like
+a savings account is precisely how someone comes to believe the money left. The
+balance is derived from the contributions, so deleting one corrects it by itself;
+a withdrawal larger than the balance is refused before the round trip, with the
+constraint trigger from 027 still the authority.
+
+`finBudgetFormSchema`, `finGoalFormSchema` and `finContributionFormSchema` are
+new in `schemas.ts` — every admin form that persists has to validate against one.
+The budget schema pins `period` to the first of a month, mirroring
+`fin_budget_period_is_a_month`: a row dated the 14th would be written happily and
+then never matched by `buildBudgetPeriod`, whose lookup is by exact key.
+
+**Deleting an account** now has a home, and a rule: offered only for an account
+the ledger has never touched — the escape hatch for one added by mistake, where
+archiving leaves a permanent tombstone for something that never existed. One
+posting in, and the offer disappears; archiving is the only route, because
+deleting would orphan history and silently change every past total.
+
+A fixture caught by the schema rather than by a test: category ids like `"c1"`
+passed every domain function and failed `finBudgetFormSchema`'s `uuid()`. The
+column is UUID, so those rows were ones Postgres would refuse — the schema was
+right and the fixture was wrong.
+
+**The gate: 2 entries, 0 finance v2.** Both survivors predate this rebuild —
+v1's `useDeleteFinanceAccountMutation` and the superseded
+`useGetAnalyticsDataQuery`. The finance v2 allowlist, which §7's own rule says
+must be emptied before the rebuild can be called finished, is empty.
+
+What remains of phase 7 is two sections with no data layer of their own: **import**
+and **guide**.
+
+---
+
 ## 8. Risks
 
 - **Data loss.** Mitigated by: backup first, additive migrations, verification

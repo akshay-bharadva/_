@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import type { FinAccount, FinAccountBalance } from "@/types";
+import { fireEvent, render, screen } from "@testing-library/react";
+import type { FinAccount, FinAccountBalance, FinTransaction } from "@/types";
 import { accountViews, utilisation } from "../ledger/balance";
 import { AccountCard } from "./account-card";
 import { AccountsSection } from "./accounts-section";
@@ -13,6 +13,7 @@ import { AccountsSection } from "./accounts-section";
  */
 vi.mock("@/store/api/adminApi", () => ({
   useSaveFinAccountMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinAccountMutation: () => [vi.fn(), { isLoading: false }],
 }));
 
 vi.mock("@/components/providers/ConfirmDialogProvider", () => ({
@@ -83,15 +84,39 @@ const RATES = { USD: 0.73 };
  * coincide cannot be told apart: a bug that returned `liquid` where `total`
  * belonged would have passed.
  */
-const section = (accounts = ALL) =>
+const section = (accounts = ALL, transactions: FinTransaction[] = []) =>
   render(
     <AccountsSection
       accounts={accounts}
       balances={BALANCES}
+      transactions={transactions}
       rates={RATES}
       base="CAD"
     />,
   );
+
+/** A transaction touching one account, to make it un-deletable. */
+const touching = (accountId: string): FinTransaction =>
+  ({
+    id: "t1",
+    date: "2026-09-05",
+    description: "Something",
+    kind: "spend",
+    is_pending: false,
+    fin_posting: [
+      {
+        id: "p1",
+        transaction_id: "t1",
+        account_id: accountId,
+        amount_minor: -4_200,
+        currency: "CAD",
+        fee_minor: 0,
+        fx_rate: 1,
+        base_amount_minor: -4_200,
+        category_id: null,
+      },
+    ],
+  }) as FinTransaction;
 
 describe("AccountsSection", () => {
   it("totals only what it can convert", () => {
@@ -156,6 +181,29 @@ describe("AccountsSection", () => {
     // the current layout rather than to the behaviour.
     expect(screen.getByText("Net worth")).toBeInTheDocument();
     expect(screen.queryByText("Car loan")).not.toBeInTheDocument();
+  });
+
+  /**
+   * Deleting is offered only for an account nothing has ever touched — the
+   * escape hatch for one added by mistake, where archiving would leave a
+   * permanent tombstone for something that never existed. The moment a posting
+   * references it, deleting would orphan history and silently change every past
+   * total, so the offer disappears rather than being made and refused.
+   */
+  it("offers to delete an account with no history", () => {
+    section([CHEQUING], []);
+    fireEvent.click(screen.getByRole("button", { name: /Everyday chequing/ }));
+
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
+  });
+
+  it("offers only archiving once something touches it", () => {
+    section([CHEQUING], [touching("a1")]);
+    fireEvent.click(screen.getByRole("button", { name: /Everyday chequing/ }));
+
+    expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeInTheDocument();
   });
 });
 

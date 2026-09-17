@@ -57,7 +57,9 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   // ui/finance-page.tsx reads settings, accounts, balances and rates, and
   // ui/account-form.tsx writes an account. The rebuild is not finished until
   // the rest follow.
-  useDeleteFinAccountMutation: "finance v2 data layer; UI lands in phase 7",
+  // Deleting an account is offered by ui/account-form.tsx, but only for one the
+  // ledger has never touched — the escape hatch for an account added by
+  // mistake. Anything with history can only be archived.
   // The three category hooks have gone too: ui/categories-section.tsx manages
   // them and the workspace reads them for the plan section.
   // Every ledger hook is reached now: the workspace reads the ledger and
@@ -74,17 +76,9 @@ const DELIBERATELY_UNUSED: Record<string, string> = {
   // plus these, so recording one rebuilds every figure on that screen.
   // Skip and unskip are reached by ui/confirm-queue.tsx — the Undo on a skip
   // being the reason both exist rather than just the one.
-  useGetFinBudgetsQuery: "finance v2 data layer; UI lands in phase 7",
-  useSaveFinBudgetMutation: "finance v2 data layer; UI lands in phase 7",
-  useDeleteFinBudgetMutation: "finance v2 data layer; UI lands in phase 7",
-  useGetFinGoalsQuery: "finance v2 data layer; UI lands in phase 7",
-  useSaveFinGoalMutation: "finance v2 data layer; UI lands in phase 7",
-  useDeleteFinGoalMutation: "finance v2 data layer; UI lands in phase 7",
-  useGetFinGoalContributionsQuery: "finance v2 data layer; UI lands in phase 7",
-  useRecordFinGoalContributionMutation:
-    "finance v2 data layer; UI lands in phase 7",
-  useDeleteFinGoalContributionMutation:
-    "finance v2 data layer; UI lands in phase 7",
+  // Budgets and goals are reached by ui/budgets-section.tsx,
+  // ui/goals-section.tsx and ui/goal-form.tsx, composed by ui/plan-section.tsx.
+  // The workspace reads all three lists; the sections own their writes.
   // Scenarios are reached by ui/forecast-section.tsx, which owns its saved
   // what-ifs the way the forms own their mutations.
 };

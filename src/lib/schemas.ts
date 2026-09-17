@@ -1816,3 +1816,90 @@ export const finCommitmentFormSchema = z
   });
 
 export type FinCommitmentFormInput = z.infer<typeof finCommitmentFormSchema>;
+
+/**
+ * A monthly cap on one category.
+ *
+ * `period` is the first of a month, mirroring
+ * `fin_budget_period_is_a_month CHECK (date_trunc('month', period) = period)`.
+ * The form never lets anyone type it — it comes from the month being viewed —
+ * but a schema that accepts the 14th would let a bad caller write a row that
+ * `buildBudgetPeriod` then silently never matches, because the lookup is by
+ * exact key.
+ *
+ * The amount may be zero. `amount_minor >= 0` on the column, and "budget nothing
+ * for this" is a real intention — distinct from having no budget at all, which
+ * is the absence of the row.
+ */
+export const finBudgetFormSchema = z.object({
+  category_id: z.string().uuid("Pick a category"),
+  period: z
+    .string()
+    .regex(/^\d{4}-\d{2}-01$/, "A budget covers a whole month"),
+  amount: decimalText("Budget"),
+  currency: finCurrency,
+  rollover: z.boolean(),
+});
+
+export type FinBudgetFormInput = z.infer<typeof finBudgetFormSchema>;
+
+export const FIN_GOAL_KINDS = ["save", "payoff", "buffer"] as const;
+
+/**
+ * Something you are saving towards.
+ *
+ * The target is **strictly positive**, matching `target_minor > 0`. v1 had no
+ * such check, and a zero target produced "NaN%" on screen and a goal that
+ * claimed to be complete while holding nothing. The amount arrives as decimal
+ * text and is converted by the money layer, so the positivity is asserted on the
+ * text here and again on the minor units at the call site.
+ */
+export const finGoalFormSchema = z
+  .object({
+    name: boundedRequiredString(FIN_LIMITS.GOAL_NAME, "Name"),
+    description: boundedOptionalString(
+      FIN_LIMITS.GOAL_DESCRIPTION,
+      "Description",
+    ),
+    target: decimalText("Target"),
+    currency: finCurrency,
+    // Same shape the commitment form uses for an optional date: an empty input
+    // is `null`, not the string "", which the DATE column would reject.
+    target_date: z.preprocess(blankToNull, dateString.nullable()),
+    account_id: z.string().uuid().nullable(),
+    kind: z.enum(FIN_GOAL_KINDS).nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (Number(value.target) <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["target"],
+        message: "A goal of nothing is not a goal",
+      });
+    }
+  });
+
+export type FinGoalFormInput = z.infer<typeof finGoalFormSchema>;
+
+/**
+ * Money set aside, or taken back out.
+ *
+ * Signed, and **never zero** — `amount_minor <> 0` on the column. A zero
+ * contribution is a row that records nothing having happened, which is noise in
+ * a history whose whole purpose is to explain a balance.
+ *
+ * Whether a withdrawal is *allowed* is not decided here: it depends on the
+ * goal's balance, which a form-level schema cannot see. `canWithdraw` answers it
+ * before the write and the constraint trigger from migration 027 is the
+ * authority.
+ */
+export const finContributionFormSchema = z.object({
+  amount: decimalText("Amount"),
+  occurred_on: dateString,
+  account_id: z.string().uuid().nullable(),
+  note: boundedOptionalString(FIN_LIMITS.CONTRIBUTION_NOTE, "Note"),
+});
+
+export type FinContributionFormInput = z.infer<
+  typeof finContributionFormSchema
+>;

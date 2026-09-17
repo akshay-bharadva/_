@@ -5,7 +5,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { FinAccount, FinAccountKind } from "@/types";
-import { useSaveFinAccountMutation } from "@/store/api/adminApi";
+import {
+  useDeleteFinAccountMutation,
+  useSaveFinAccountMutation,
+} from "@/store/api/adminApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -66,15 +69,24 @@ export function AccountForm({
   account,
   initial,
   baseCurrency,
+  hasHistory = true,
   onDone,
 }: {
   account?: FinAccount;
   /** Pre-filled values for a new account — "add the investments you hold". */
   initial?: Partial<FinAccount>;
   baseCurrency: string;
+  /**
+   * Whether anything in the ledger touches this account.
+   *
+   * Defaults to `true`, which is the safe assumption: a caller that has not
+   * checked gets the archive-only behaviour rather than an offer to delete.
+   */
+  hasHistory?: boolean;
   onDone: () => void;
 }) {
   const [saveAccount, { isLoading }] = useSaveFinAccountMutation();
+  const [deleteAccount] = useDeleteFinAccountMutation();
   const confirm = useConfirm();
 
   const openingMinor =
@@ -194,6 +206,39 @@ export function AccountForm({
       onDone();
     } catch (error) {
       toast.error("Could not archive it", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  /**
+   * Delete, but only an account nothing has ever touched.
+   *
+   * The escape hatch for an account added by mistake — archiving one of those
+   * leaves a permanent tombstone for something that never existed. The moment a
+   * single posting references it, deleting would orphan history and silently
+   * change past totals, so the offer disappears and archiving is the only route.
+   * The database would refuse it anyway; this decides what to *offer*, and the
+   * offer is the honest part.
+   */
+  const destroy = async () => {
+    if (!account || hasHistory) return;
+
+    const ok = await confirm({
+      title: `Delete ${account.name}?`,
+      description:
+        "Nothing in the ledger touches this account, so there is no history to lose. It goes permanently.",
+      confirmText: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    try {
+      await deleteAccount(account.id).unwrap();
+      toast.success("Account deleted");
+      onDone();
+    } catch (error) {
+      toast.error("Could not delete it", {
         description: getErrorMessage(error),
       });
     }
@@ -406,6 +451,21 @@ export function AccountForm({
               className="mr-auto text-muted-foreground hover:text-destructive"
             >
               {account.archived_at ? "Restore" : "Archive"}
+            </Button>
+          )}
+          {/*
+            Only for an account with nothing behind it. Once anything references
+            it, archiving is the only route and this is not offered at all —
+            better than offering a delete that would be refused.
+          */}
+          {account && !hasHistory && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => void destroy()}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              Delete
             </Button>
           )}
           <Button type="button" variant="ghost" onClick={onDone}>

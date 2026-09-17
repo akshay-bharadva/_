@@ -17,8 +17,11 @@ import {
   useGetFinAccountBalancesQuery,
   useGetFinAccountsQuery,
   useGetFinCategoriesQuery,
+  useGetFinBudgetsQuery,
   useGetFinCommitmentSkipsQuery,
   useGetFinCommitmentsQuery,
+  useGetFinGoalContributionsQuery,
+  useGetFinGoalsQuery,
   useGetFinLedgerQuery,
   useGetFinRatesQuery,
   useGetFinSettingsQuery,
@@ -124,6 +127,9 @@ export default function FinanceV2Page() {
   const { data: transactions = [] } = useGetFinLedgerQuery();
   const { data: commitments = [] } = useGetFinCommitmentsQuery();
   const { data: skips = [] } = useGetFinCommitmentSkipsQuery();
+  const { data: budgets = [] } = useGetFinBudgetsQuery();
+  const { data: goals = [] } = useGetFinGoalsQuery();
+  const { data: contributions = [] } = useGetFinGoalContributionsQuery();
   const [deleteTransaction] = useDeleteFinTransactionMutation();
   const confirm = useConfirm();
 
@@ -308,6 +314,9 @@ export default function FinanceV2Page() {
             <AccountsSection
               accounts={accounts}
               balances={balances}
+              // Read only to tell an account with history from one added by
+              // mistake: the first can only be archived, the second deleted.
+              transactions={transactions}
               rates={rates}
               base={base}
             />
@@ -390,7 +399,17 @@ export default function FinanceV2Page() {
             />
           )}
 
-          {sectionId === "plan" && <PlanSection categories={categories} />}
+          {sectionId === "plan" && (
+            <PlanSection
+              budgets={budgets}
+              goals={goals}
+              contributions={contributions}
+              categories={categories}
+              accounts={accounts}
+              transactions={transactions}
+              base={base}
+            />
+          )}
 
           {/*
             The raw rate rows, not the table. Everywhere else in the module wants

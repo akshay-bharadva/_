@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Landmark, Plus } from "lucide-react";
-import type { FinAccount, FinAccountBalance } from "@/types";
+import type { FinAccount, FinAccountBalance, FinTransaction } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,6 +14,7 @@ import { EmptyState, StatCard } from "@/components/admin/shared";
 import { formatMoney } from "../money/format";
 import type { RateTable } from "../money/rates";
 import { accountViews, netWorth, utilisation } from "../ledger/balance";
+import { accountsTouched } from "../ledger/filter";
 import { AccountCard } from "./account-card";
 import { AccountForm } from "./account-form";
 
@@ -33,11 +34,19 @@ import { AccountForm } from "./account-form";
 export function AccountsSection({
   accounts,
   balances,
+  transactions,
   rates,
   base,
 }: {
   accounts: FinAccount[];
   balances: FinAccountBalance[];
+  /**
+   * The ledger, read only to answer one question: has anything ever touched
+   * this account? An account with no history can be deleted outright; one with
+   * history can only be archived, because deleting it would orphan postings and
+   * silently change every past total.
+   */
+  transactions: FinTransaction[];
   /** Quoted against `base`, built once by the caller with `tableFrom`. */
   rates: RateTable;
   base: string;
@@ -61,6 +70,16 @@ export function AccountsSection({
     () => new Map(balances.map((row) => [row.account_id, row])),
     [balances],
   );
+
+  const touched = useMemo(() => {
+    const seen = new Set<string>();
+    for (const transaction of transactions) {
+      for (const id of accountsTouched(transaction)) {
+        if (id) seen.add(id);
+      }
+    }
+    return seen;
+  }, [transactions]);
 
   const active = accounts.filter((account) => !account.archived_at);
 
@@ -168,6 +187,7 @@ export function AccountsSection({
               // rather than a stale account's figures persisting into the next.
               key={editing?.id ?? (draft ? "draft" : "new")}
               account={editing ?? undefined}
+              hasHistory={editing ? touched.has(editing.id) : true}
               initial={draft ?? undefined}
               baseCurrency={base}
               onDone={() => {

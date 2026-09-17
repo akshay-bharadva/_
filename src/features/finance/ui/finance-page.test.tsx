@@ -126,6 +126,16 @@ vi.mock("@/store/api/adminApi", () => ({
   // Exchange owns the currency list and the two writes that belong to it —
   // caching fetched rates, and which currencies the module works in.
   useGetFinCurrenciesQuery: () => ({ data: [] }),
+  // Plan: budgets, goals and what has been set aside towards them.
+  useGetFinBudgetsQuery: () => ({ data: [] }),
+  useSaveFinBudgetMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinBudgetMutation: () => [vi.fn(), { isLoading: false }],
+  useGetFinGoalsQuery: () => ({ data: [] }),
+  useSaveFinGoalMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinGoalMutation: () => [vi.fn(), { isLoading: false }],
+  useGetFinGoalContributionsQuery: () => ({ data: [] }),
+  useRecordFinGoalContributionMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteFinGoalContributionMutation: () => [vi.fn(), { isLoading: false }],
   useCacheFinRatesMutation: () => [vi.fn(), { isLoading: false }],
   useSaveFinSettingsMutation: () => [vi.fn(), { isLoading: false }],
 }));
