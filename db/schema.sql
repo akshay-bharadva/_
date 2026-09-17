@@ -2351,25 +2351,26 @@ BEGIN
 
   UNION ALL
 
+  -- Money, from the v2 ledger. `fin_day_money` is defined further down, with
+  -- the finance v2 tables it reads; a plpgsql body is not resolved until it
+  -- runs, so the forward reference is fine here.
+  --
+  -- The transfer rule that used to live here as `transfer_group IS NULL` now
+  -- lives in that function, where the dashboard gets it too — the two used to
+  -- disagree about the same day.
   SELECT
-    'finance-' || tr.date::text,
+    'finance-' || m.day::text,
     'Money',
-    tr.date::timestamptz,
+    m.day::timestamptz,
     NULL,
     'transaction_summary',
     true,
     jsonb_build_object(
-      'count', count(*),
-      'earned', coalesce(sum(CASE WHEN tr.type = 'earning' THEN tr.base_amount ELSE 0 END), 0),
-      'spent',  coalesce(sum(CASE WHEN tr.type = 'expense' THEN tr.base_amount ELSE 0 END), 0)
+      'count', m.entries,
+      'earned', m.earned,
+      'spent', m.spent
     )
-  FROM transactions tr
-  WHERE tr.user_id = uid
-    AND tr.date BETWEEN start_date_param AND end_date_param
-    -- Both legs of a transfer would otherwise show as income and spending on
-    -- the same day, which is money moving, not money earned or spent.
-    AND tr.transfer_group IS NULL
-  GROUP BY tr.date;
+  FROM public.fin_day_money(start_date_param, end_date_param) m;
 END;
 $$;
 
@@ -4649,3 +4650,79 @@ $$;
 
 REVOKE ALL ON FUNCTION public.fin_update_transaction(UUID, JSONB, JSONB) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.fin_update_transaction(UUID, JSONB, JSONB) TO authenticated;
+
+
+-- ── Per-day money, from the v2 ledger ───────────────────────────────────────
+--
+-- WHAT COUNTS, and why:
+--
+-- * **Direction comes from the sign of the posting**, never from
+--   `fin_transaction.kind`. Kind is intent, for display; a row mislabelled at
+--   entry still behaves correctly here, which is the same rule the TypeScript
+--   domain layer follows.
+-- * **Self-transfers are excluded.** Money moving between two accounts you own
+--   is not earned or spent, and counting both legs would report it as both. A
+--   transfer is recognised from its postings — two or more distinct accounts on
+--   one transaction — rather than from its `kind`, for the reason above.
+-- * **Pending rows are excluded**, matching "what do I actually have".
+-- * **Unpriced postings are excluded.** A posting with no `base_amount_minor`
+--   has no exchange rate for its date and cannot be added to a base-currency
+--   total. It is left out rather than counted as zero — the same choice the
+--   budgets and the forecast make.
+--
+-- RETURNS MAJOR UNITS, deliberately, unlike everything else in finance v2.
+-- Both callers are read-only summaries whose consumers format a base-currency
+-- amount with the shared `formatMoney({ amount, currency })` helper, and those
+-- consumers are not part of the finance module. Converting here means the
+-- division happens in exactly one place instead of at each call site. The
+-- exponent comes from `fin_currency`, never from a hard-coded 100 — the yen has
+-- no minor unit and the Kuwaiti dinar has three.
+CREATE OR REPLACE FUNCTION public.fin_day_money(p_from DATE, p_to DATE)
+RETURNS TABLE (day DATE, earned NUMERIC, spent NUMERIC, entries BIGINT)
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path = public
+AS $$
+  WITH base AS (
+    SELECT coalesce(
+             (SELECT c.exponent
+                FROM fin_settings s
+                JOIN fin_currency c ON c.code = s.base_currency
+               WHERE s.user_id = auth.uid()),
+             2
+           ) AS exponent
+  ),
+  counted AS (
+    SELECT t.date, p.base_amount_minor
+      FROM fin_transaction t
+      JOIN fin_posting p ON p.transaction_id = t.id
+     WHERE t.user_id = auth.uid()
+       AND t.date BETWEEN p_from AND p_to
+       AND t.is_pending = false
+       AND p.base_amount_minor IS NOT NULL
+       -- Not a self-transfer: fewer than two distinct accounts on the
+       -- transaction. Read from the postings, so a row whose `kind` is wrong
+       -- still behaves.
+       AND (
+         SELECT count(DISTINCT q.account_id)
+           FROM fin_posting q
+          WHERE q.transaction_id = t.id
+            AND q.account_id IS NOT NULL
+       ) < 2
+  )
+  SELECT
+    counted.date AS day,
+    coalesce(sum(CASE WHEN counted.base_amount_minor > 0
+                      THEN counted.base_amount_minor ELSE 0 END), 0)
+      / power(10, (SELECT exponent FROM base))::NUMERIC AS earned,
+    coalesce(sum(CASE WHEN counted.base_amount_minor < 0
+                      THEN -counted.base_amount_minor ELSE 0 END), 0)
+      / power(10, (SELECT exponent FROM base))::NUMERIC AS spent,
+    count(*) AS entries
+  FROM counted
+  GROUP BY counted.date;
+$$;
+
+REVOKE ALL ON FUNCTION public.fin_day_money(DATE, DATE) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fin_day_money(DATE, DATE) TO authenticated;

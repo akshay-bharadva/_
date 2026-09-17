@@ -189,20 +189,26 @@ describe("the finance workspace", () => {
    * gone from the component, so a section that quietly rendered nothing would no
    * longer announce itself.
    */
-  it("renders every section, with no placeholder left anywhere", () => {
-    render(<FinanceV2Page />);
+  /*
+    One case per section rather than one loop over all ten.
 
-    for (const section of FINANCE_SECTIONS) {
-      fireEvent.click(
-        screen.getByRole("button", { name: new RegExp(section.label) }),
-      );
+    As a single test this rendered the whole workspace ten times inside one 5s
+    budget — fine alone, and a timeout under the full suite's parallel load. It
+    also reported only "renders every section" on failure, without saying which.
+    Per-section cases each get their own budget and name themselves.
+  */
+  it.each(FINANCE_SECTIONS.map((section) => [section.label, section.id]))(
+    "renders %s with no placeholder",
+    (label) => {
+      render(<FinanceV2Page />);
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(label) }));
 
       // The heading is the section's own, so this also proves the click landed.
       expect(
-        screen.getByRole("heading", { level: 1, name: section.label }),
+        screen.getByRole("heading", { level: 1, name: label }),
       ).toBeInTheDocument();
       expect(screen.queryByText("Not rebuilt yet")).toBeNull();
       expect(screen.queryByText("soon")).toBeNull();
-    }
-  });
+    },
+  );
 });

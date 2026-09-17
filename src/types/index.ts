@@ -763,10 +763,18 @@ export interface DashboardData {
   overdueTasks: Pick<Task, "id" | "title">[];
   tasksDueToday: Pick<Task, "id" | "title">[];
   tasksDueSoon: Pick<Task, "id" | "title" | "due_date">[];
+  /**
+   * Money in and out per day, in the base currency, from `fin_day_money`.
+   *
+   * Major units, unlike the rest of finance v2: the RPC divides by the base
+   * currency's exponent so the one division happens in one place, and the
+   * dashboard formats them with the shared `formatMoney({ amount, currency })`.
+   *
+   * `recurring` and `primaryGoal` used to sit here. Both were fetched from v1's
+   * tables on every dashboard load, typed, and rendered by nothing.
+   */
   dailyExpenses: { day: string; total: number }[];
   dailyEarnings: { day: string; total: number }[];
-  recurring: RecurringTransaction[];
-  primaryGoal: FinancialGoal | null;
   /** Active habits with their logs, so "done today" is derived, not stored. */
   habits: Habit[];
   todaysEvents: Pick<

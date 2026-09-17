@@ -1,6 +1,6 @@
 import { format, subDays, addDays } from "date-fns";
 import { supabase } from "@/supabase/client";
-import type { AnalyticsData, DashboardData, FinancialGoal } from "@/types";
+import type { AnalyticsData, DashboardData } from "@/types";
 import { adminApi } from "./baseApi";
 import { NO_DB_ERROR } from "./query-helpers";
 
@@ -64,29 +64,32 @@ export const dashboardApi = adminApi.injectEndpoints({
             .select("id, title, updated_at, slug, published")
             .order("updated_at", { ascending: false })
             .limit(3),
-          supabase
-            .from("transactions")
-            .select("type, amount")
-            .gte("date", firstDayOfMonth),
-          supabase
-            .from("transactions")
-            .select("date, amount")
-            .eq("type", "expense")
-            .gte("date", sevenDaysAgoISO),
-          supabase
-            .from("transactions")
-            .select("date, amount")
-            .eq("type", "earning")
-            .gte("date", sevenDaysAgoISO),
-          supabase
-            .from("recurring_transactions")
-            .select("*")
-            .order("start_date"),
-          supabase
-            .from("financial_goals")
-            .select("*")
-            .order("target_date")
-            .limit(1),
+          /*
+            One call where there were five.
+
+            Three of those read v1's `transactions` — the month's totals and two
+            seven-day series — and did the same summing three times with three
+            different filters. `fin_day_money` answers all of it per day from the
+            v2 ledger, over the wider of the two windows, and the dashboard slices
+            what it needs out of the result.
+
+            It is also the *same* function the calendar's `get_calendar_data`
+            calls, which is the point: the two used to disagree. The calendar
+            excluded transfers and the dashboard did not, so $2,000 moved between
+            two of your own accounts read as $2,000 earned and $2,000 spent here,
+            and as nothing there.
+
+            The other two — `recurring_transactions` and `financial_goals` — are
+            simply gone. Both were fetched, typed into `DashboardData`, and
+            rendered by nothing.
+          */
+          supabase.rpc("fin_day_money", {
+            p_from:
+              firstDayOfMonth < sevenDaysAgoISO
+                ? firstDayOfMonth
+                : sevenDaysAgoISO,
+            p_to: todayISO,
+          }),
           // The workbench answers "what needs me now", so it needs the four
           // modules that can be *behind*: habits not yet done, events already
           // starting, messages nobody has read, and reviews coming due.
@@ -139,11 +142,7 @@ export const dashboardApi = adminApi.injectEndpoints({
           { data: tasksDueSoonData },
           { data: pinnedNotesData },
           { data: recentPostsData },
-          { data: monthlyTransactionsData },
-          { data: dailyExpensesDataRaw },
-          { data: dailyEarningsDataRaw },
-          { data: recurringData },
-          { data: primaryGoalData },
+          { data: dayMoneyData },
           { data: habitsData },
           { data: todaysEventsData },
           { count: unreadMessages },
@@ -154,36 +153,49 @@ export const dashboardApi = adminApi.injectEndpoints({
           error?: unknown;
         }[];
 
-        let monthlyEarnings = 0,
-          monthlyExpenses = 0;
-        (
-          monthlyTransactionsData as
-            | { type: string; amount: number }[]
-            | undefined
-        )?.forEach((t) => {
-          if (t.type === "earning") monthlyEarnings += t.amount;
-          else if (t.type === "expense") monthlyExpenses += t.amount;
-        });
-
-        type DailyRecord = { date: string; amount: number };
-        const createDailySummary = (rawData: DailyRecord[]) => {
-          return (rawData || []).reduce(
-            (acc: Record<string, { day: string; total: number }>, t) => {
-              const day = t.date.split("T")[0];
-              if (!acc[day]) acc[day] = { day, total: 0 };
-              acc[day].total += t.amount;
-              return acc;
-            },
-            {},
-          );
+        /**
+         * One row per day that had any money on it, already summed and already
+         * in the base currency — the RPC leaves out transfers between your own
+         * accounts, pending rows, and anything with no exchange rate for its
+         * date.
+         *
+         * `earned` and `spent` arrive as NUMERIC, which PostgREST renders as a
+         * string to preserve precision, so both are coerced here rather than at
+         * each use.
+         */
+        type DayMoney = {
+          day: string;
+          earned: number | string;
+          spent: number | string;
         };
 
-        const dailyExpenses = Object.values(
-          createDailySummary((dailyExpensesDataRaw || []) as DailyRecord[]),
+        const dayMoney = ((dayMoneyData ?? []) as DayMoney[]).map((row) => ({
+          day: row.day,
+          earned: Number(row.earned) || 0,
+          spent: Number(row.spent) || 0,
+        }));
+
+        let monthlyEarnings = 0,
+          monthlyExpenses = 0;
+        for (const row of dayMoney) {
+          if (row.day < firstDayOfMonth) continue;
+          monthlyEarnings += row.earned;
+          monthlyExpenses += row.spent;
+        }
+
+        // The series are the last seven days only; the query's window is the
+        // wider of the two, so the month's earlier days are filtered out here.
+        const inLastSeven = dayMoney.filter(
+          (row) => row.day >= sevenDaysAgoISO,
         );
-        const dailyEarnings = Object.values(
-          createDailySummary((dailyEarningsDataRaw || []) as DailyRecord[]),
-        );
+        const dailyEarnings = inLastSeven.map((row) => ({
+          day: row.day,
+          total: row.earned,
+        }));
+        const dailyExpenses = inLastSeven.map((row) => ({
+          day: row.day,
+          total: row.spent,
+        }));
 
         const data: DashboardData = {
           stats: {
@@ -200,9 +212,6 @@ export const dashboardApi = adminApi.injectEndpoints({
             (tasksDueSoonData as DashboardData["tasksDueSoon"]) || [],
           dailyExpenses,
           dailyEarnings,
-          recurring: (recurringData as DashboardData["recurring"]) || [],
-          primaryGoal:
-            (primaryGoalData as FinancialGoal[] | undefined)?.[0] ?? null,
           habits: (habitsData as DashboardData["habits"]) || [],
           todaysEvents:
             (todaysEventsData as DashboardData["todaysEvents"]) || [],
