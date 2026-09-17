@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Banknote,
   BookText,
-  Check,
   Menu,
   ExternalLink,
   ListTodo,
@@ -21,11 +20,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppLauncher } from "./app-launcher";
-import { cn } from "@/lib/cn";
 import { LearningPill } from "./learning-pill";
 import { SHELL_LAYOUTS, type ShellLayout } from "./use-shell-layout";
 import { activeNavItem, NAV_ITEMS } from "./nav-config";
@@ -173,27 +173,45 @@ export function AdminTopbar({
             <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
               Navigation
             </DropdownMenuLabel>
-            {SHELL_LAYOUTS.map((option) => (
-              <DropdownMenuItem
-                key={option.id}
-                onClick={() => onChooseLayout(option.id)}
-                className="gap-2"
-              >
-                <Check
-                  className={cn(
-                    "size-4 shrink-0",
-                    option.id === layout ? "opacity-100" : "opacity-0",
-                  )}
-                  aria-hidden
-                />
-                <span className="min-w-0">
-                  <span className="block">{option.label}</span>
-                  <span className="block text-[11px] text-muted-foreground">
-                    {option.hint}
+            {/*
+              A radio group, not menu items with a tick drawn on.
+
+              These were `DropdownMenuItem`s whose only mark of the current
+              choice was a `Check` toggled between `opacity-0` and
+              `opacity-100` — a 16px glyph beside a two-line row, carrying no
+              state anyone could hear. To a screen reader both options read
+              identically: two commands, neither of them chosen. To everyone
+              else the mark was easy to miss, which is how this was reported.
+
+              `DropdownMenuRadioItem` is what a mutually-exclusive choice is:
+              it renders `role="menuitemradio"` with `aria-checked`, so the
+              state is spoken as well as drawn. Its own indicator is an 8px
+              dot, which is smaller than the tick it replaces — so the label
+              carries the weight, in the accent and in bold. Three signals,
+              none of which depends on a background that a hover could
+              out-shout.
+            */}
+            <DropdownMenuRadioGroup
+              value={layout}
+              onValueChange={(value) => onChooseLayout(value as ShellLayout)}
+            >
+              {SHELL_LAYOUTS.map((option) => (
+                <DropdownMenuRadioItem
+                  key={option.id}
+                  value={option.id}
+                  className="items-start data-[state=checked]:font-medium data-[state=checked]:text-primary"
+                >
+                  <span className="min-w-0">
+                    <span className="block">{option.label}</span>
+                    {/* Normal weight regardless: the emphasis belongs to the
+                        label, and a bolded hint would blunt it. */}
+                    <span className="block text-[11px] font-normal text-muted-foreground">
+                      {option.hint}
+                    </span>
                   </span>
-                </span>
-              </DropdownMenuItem>
-            ))}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
 
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

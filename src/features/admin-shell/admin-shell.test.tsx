@@ -124,3 +124,74 @@ describe("AdminShell", () => {
     expect(screen.getByText("body")).toBeInTheDocument();
   });
 });
+
+/**
+ * The picker that chooses between them.
+ *
+ * It was two plain menu items with a tick drawn on the current one — no
+ * `aria-checked`, no role saying these are alternatives, so a screen reader
+ * heard two commands and no state at all, and the tick itself was easy to miss
+ * beside a two-line row. Marking the choice is the whole job of this control.
+ */
+describe("the layout picker", () => {
+  /*
+    Radix's dropdown opens on `pointerdown`, and its trigger calls pointer
+    capture APIs jsdom does not implement. `fireEvent.click` alone leaves the
+    menu shut, and every assertion below would then fail for the wrong reason.
+  */
+  const openAccountMenu = () => {
+    Object.assign(window.HTMLElement.prototype, {
+      hasPointerCapture: () => false,
+      setPointerCapture: () => {},
+      releasePointerCapture: () => {},
+      scrollIntoView: () => {},
+    });
+    fireEvent.pointerDown(
+      screen.getByLabelText("Account menu"),
+      new MouseEvent("pointerdown", { bubbles: true, button: 0 }),
+    );
+  };
+
+  const shell = () =>
+    render(
+      <AdminShell>
+        <p>body</p>
+      </AdminShell>,
+    );
+
+  it("says which arrangement is in use", () => {
+    shell();
+    openAccountMenu();
+
+    expect(
+      screen.getByRole("menuitemradio", { name: /App launcher/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByRole("menuitemradio", { name: /Sidebar rail/ }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("follows the stored choice", () => {
+    localStorage.setItem(SHELL_LAYOUT_KEY, "sidebar");
+    shell();
+    openAccountMenu();
+
+    expect(
+      screen.getByRole("menuitemradio", { name: /Sidebar rail/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      screen.getByRole("menuitemradio", { name: /App launcher/ }),
+    ).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("switches the shell when another is chosen", () => {
+    shell();
+    openAccountMenu();
+    fireEvent.click(
+      screen.getByRole("menuitemradio", { name: /Sidebar rail/ }),
+    );
+
+    expect(rail()).not.toBeNull();
+    expect(localStorage.getItem(SHELL_LAYOUT_KEY)).toBe("sidebar");
+  });
+});
