@@ -69,6 +69,8 @@ export interface FcCalendarProps {
   onPick: (start: Date, allDay: boolean) => void;
   /** A task dragged in from the rail and dropped on a time. */
   onDropTask: (taskId: string, start: Date) => void;
+  /** A date named in the month grid, which opens that day. */
+  onPickDay: (day: Date) => void;
 }
 
 const HOUR = (value: number) => `${String(value).padStart(2, "0")}:00:00`;
@@ -86,6 +88,7 @@ export function FcCalendar({
   onMove,
   onPick,
   onDropTask,
+  onPickDay,
 }: FcCalendarProps) {
   const ref = useRef<FullCalendar | null>(null);
 
@@ -159,6 +162,19 @@ export function FcCalendar({
         selectable
         selectMirror
         select={(info) => onPick(info.start, info.allDay)}
+        /*
+          `select` only fires after a drag. Clicking an empty slot — which is
+          how most things get added — needs `dateClick` as well, or the gesture
+          silently does nothing.
+        */
+        dateClick={(info) => onPick(info.date, info.allDay)}
+        /*
+          The date in a month cell is a link to that day. FullCalendar would
+          navigate itself, which would leave the page's anchor and fetch window
+          behind; the page is told instead and drives the grid back.
+        */
+        navLinks
+        navLinkDayClick={(date) => onPickDay(date)}
         /*
           Tasks dragged in from the rail. FullCalendar handles the drop
           geometry; the task's id rides on the element because the drag payload

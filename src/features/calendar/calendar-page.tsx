@@ -586,6 +586,10 @@ export default function CalendarPage() {
                   })
                 }
                 onDropTask={(taskId, start) => void scheduleTask(taskId, start)}
+                onPickDay={(day) => {
+                  setAnchor(day);
+                  setView("day");
+                }}
                 onPick={(start, allDay) =>
                   setDraftStart(
                     allDay
