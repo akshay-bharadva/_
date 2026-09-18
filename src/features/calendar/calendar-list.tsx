@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -59,7 +58,6 @@ export function CalendarList({
 }) {
   const [saveCalendar] = useSaveCalendarMutation();
   const [deleteCalendar] = useDeleteCalendarMutation();
-  const [saveSettings] = useSaveCalendarSettingsMutation();
   const confirm = useConfirm();
   const [seedDefaults, { isLoading: isSeeding }] =
     useSeedCalendarDefaultsMutation();
@@ -300,26 +298,12 @@ export function CalendarList({
         </Button>
       </div>
 
-      <div className="space-y-1 border-t border-border pt-3">
-        <p className="px-1.5 text-xs font-medium text-muted-foreground">
-          Also show
-        </p>
-        <OverlayToggle
-          label="Tasks due"
-          checked={settings.show_tasks}
-          onChange={(next) => void saveSettings({ show_tasks: next })}
-        />
-        <OverlayToggle
-          label="Habits done"
-          checked={settings.show_habits}
-          onChange={(next) => void saveSettings({ show_habits: next })}
-        />
-        <OverlayToggle
-          label="Money"
-          checked={settings.show_finance}
-          onChange={(next) => void saveSettings({ show_finance: next })}
-        />
-      </div>
+      {/*
+        The "Also show" toggles moved to the header as chips. They lived here,
+        at the bottom of a panel hidden below 1280px, while two of the three
+        ship off — so the overlays were unreachable on a laptop. One place owns
+        them now; two would be two things to keep in step. See overlay-chips.tsx.
+      */}
     </section>
   );
 }
@@ -417,23 +401,6 @@ function CalendarRowEditor({
         </Button>
       </div>
     </div>
-  );
-}
-
-function OverlayToggle({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (next: boolean) => void;
-}) {
-  return (
-    <label className="flex items-center justify-between gap-2 px-1.5 py-1 text-sm text-foreground">
-      {label}
-      <Switch checked={checked} onCheckedChange={onChange} aria-label={label} />
-    </label>
   );
 }
 

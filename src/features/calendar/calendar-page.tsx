@@ -19,6 +19,7 @@ import {
   useUpdateEventMutation,
   useGetCalendarDataQuery,
   useGetCalendarSettingsQuery,
+  useSaveCalendarSettingsMutation,
   useGetCalendarsQuery,
   useGetEventExceptionsQuery,
   useGetTasksQuery,
@@ -42,6 +43,7 @@ import { WeekGrid } from "./week-grid";
 import { AgendaView } from "./agenda-view";
 import { MonthView } from "./month-view";
 import { CalendarList } from "./calendar-list";
+import { OverlayChips } from "./overlay-chips";
 import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
@@ -67,6 +69,7 @@ const VIEWS: { id: View; label: string }[] = [
  */
 export default function CalendarPage() {
   const { data: settings } = useGetCalendarSettingsQuery();
+  const [saveSettings] = useSaveCalendarSettingsMutation();
   const { data: calendars = [] } = useGetCalendarsQuery();
   const { data: exceptions = [] } = useGetEventExceptionsQuery();
   const { data: tasks = [] } = useGetTasksQuery();
@@ -354,9 +357,7 @@ export default function CalendarPage() {
 
       {hasHours && (
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">
-            Hour size
-          </p>
+          <p className="text-xs font-medium text-muted-foreground">Hour size</p>
           <div
             role="radiogroup"
             aria-label="Density"
@@ -425,6 +426,16 @@ export default function CalendarPage() {
             <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">
               {heading}
             </h1>
+
+            {/*
+              The overlays, in the header rather than at the bottom of a panel
+              that is hidden below 1280px. Two of the three ship off, so buried
+              they were features that could not be found. See overlay-chips.tsx.
+            */}
+            <OverlayChips
+              settings={settings}
+              onChange={(patch) => void saveSettings(patch)}
+            />
 
             <div
               role="tablist"
