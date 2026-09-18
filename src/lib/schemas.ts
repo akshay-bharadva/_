@@ -1208,6 +1208,33 @@ export const optionalDecimalText = (label = "Amount") =>
     );
 
 /**
+ * An amount that is a magnitude, not a direction.
+ *
+ * `looksLikeDecimal` accepts a leading sign, which is right for a balance — a
+ * credit card's is negative and typing it that way is how you say so. It is
+ * wrong for every field that means "how much moved": direction there comes from
+ * which accounts the movement names, never from a minus sign.
+ *
+ * Left unguarded, "-100" in a transfer's amount produced two postings on the
+ * *same* side, and the database rejected the whole write with "a transfer needs
+ * money leaving one account and arriving in another" — a P0001 that reached the
+ * screen as raw JSON. The constraint was right; the form should never have been
+ * able to ask that question.
+ */
+export const positiveDecimalText = (label = "Amount") =>
+  decimalText(label).refine(
+    (value) => Number(value.replace(/[\s,_]/g, "")) > 0,
+    `${label} must be more than zero`,
+  );
+
+/** The optional form of the same rule. */
+export const optionalPositiveDecimalText = (label = "Amount") =>
+  optionalDecimalText(label).refine(
+    (value) => value === "" || Number(value.replace(/[\s,_]/g, "")) > 0,
+    `${label} must be more than zero`,
+  );
+
+/**
  * What the account form collects, before the money layer converts it.
  *
  * `finAccountSchema` above is the *column* contract and speaks in minor units;
@@ -1289,11 +1316,11 @@ export const finTransferFormSchema = z
     from_account_id: z.string().uuid("Choose the account the money leaves"),
     to_account_id: z.string().uuid("Choose the account it arrives in"),
     /** In the sending account's currency. */
-    amount_out: decimalText("Amount sent"),
+    amount_out: positiveDecimalText("Amount sent"),
     /** What actually arrived, from the confirmation. Blank when same-currency. */
-    amount_in: optionalDecimalText("Amount received"),
+    amount_in: optionalPositiveDecimalText("Amount received"),
     /** Charged by the provider, in the sending currency. Blank means none. */
-    fee: optionalDecimalText("Fee"),
+    fee: optionalPositiveDecimalText("Fee"),
     date: dateString,
     description: boundedOptionalString(
       FIN_LIMITS.TRANSACTION_DESCRIPTION,

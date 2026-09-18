@@ -285,3 +285,68 @@ describe("buildTransfer", () => {
     });
   });
 });
+
+/**
+ * The failure a real user hit: a P0001 from `fin_check_transfer_balance`
+ * reaching the screen as raw JSON — "A transfer needs money leaving one account
+ * and arriving in another" — with no field named and nothing to act on.
+ *
+ * Reproduced against Postgres while diagnosing it: two postings on the same
+ * side produce exactly that message, where a zero leg and a single leg each
+ * produce a different one. A negative amount was enough to get there, because
+ * `looksLikeDecimal` accepts a leading sign — right for a card balance, wrong
+ * for "how much moved", where direction comes from the accounts.
+ */
+describe("a transfer must actually move money", () => {
+  const base = { date: "2026-09-18", categoryId: null };
+
+  /**
+   * The sending leg was already guarded, and says so in the form's own words.
+   * Kept as a test because it is half the invariant the database enforces.
+   */
+  it("refuses an amount that is not positive", () => {
+    expect(() =>
+      buildTransfer({
+        ...base,
+        from: CHEQUING,
+        to: SAVINGS,
+        out: money(-10_000, "CAD"),
+      }),
+    ).toThrow(/how much is leaving/i);
+  });
+
+  /**
+   * The arriving leg was not, and only cross-currency can reach it: within one
+   * currency the arriving amount is *derived* from what left, so a negative
+   * passed in is correctly ignored. Across currencies both figures are real,
+   * Guarded here too, which is what this pins: a diagnosis that started from a
+   * P0001 in production ended by proving `buildTransfer` cannot produce it.
+   */
+  it("refuses a negative arriving leg on a cross-currency transfer", () => {
+    expect(() =>
+      buildTransfer({
+        ...base,
+        from: CHEQUING,
+        to: HOME,
+        out: fromDecimal("1000", "CAD"),
+        received: money(-6_024_000, "INR"),
+      }),
+    ).toThrow(/how much actually arrived/i);
+  });
+
+  /** The message names the form, not the schema. */
+  it("says something the person filling the form can act on", () => {
+    try {
+      buildTransfer({
+        ...base,
+        from: CHEQUING,
+        to: HOME,
+        out: fromDecimal("1000", "CAD"),
+        received: money(-1, "INR"),
+      });
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect((error as Error).message).not.toMatch(/posting|P0001|constraint/i);
+    }
+  });
+});
