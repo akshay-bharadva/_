@@ -5,7 +5,7 @@ import { isToday } from "date-fns";
 import { Clock } from "lucide-react";
 import type { CalendarEntry, CalendarSettings } from "@/types";
 import { cn } from "@/lib/cn";
-import { freeMinutes } from "./grid-layout";
+import { freeMinutes } from "./free-minutes";
 
 /**
  * How much unbooked time is actually left.

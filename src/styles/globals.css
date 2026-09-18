@@ -458,7 +458,11 @@
     @apply min-w-0 flex-1;
   }
 
-  .novel-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  .novel-editor
+    .ProseMirror
+    ul[data-type="taskList"]
+    li[data-checked="true"]
+    > div {
     @apply text-muted-foreground line-through;
   }
 
@@ -790,4 +794,195 @@
   ::-webkit-scrollbar-thumb {
     @apply bg-border/60 hover:bg-border rounded-full transition-colors;
   }
+}
+
+/* ===========================================================================
+   FullCalendar, wearing this app's theme
+   ===========================================================================
+
+   FullCalendar ships its own palette and its own idea of a border. Left alone
+   it looks like a third-party widget dropped into the page — light grey on
+   white, fixed blue events — and on 55 of the 56 presets it is simply wrong.
+
+   Every value it draws is remapped onto a token here, so the calendar follows
+   the theme like everything else and a preset switch moves it too. This is the
+   one place colour may be written for the grid, because these are variable
+   *assignments*, not literals: no hex value appears below.
+
+   Kept out of a Tailwind layer deliberately — FullCalendar's own rules are
+   injected at runtime with a specificity these have to answer, and a layer
+   would put ours behind theirs.
+   =========================================================================== */
+
+.fc {
+  --fc-border-color: hsl(var(--border) / 0.6);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: hsl(var(--secondary) / 0.5);
+  --fc-neutral-text-color: hsl(var(--muted-foreground));
+
+  /* Today is a wash rather than a block: it marks the column without
+     competing with anything actually on it. */
+  --fc-today-bg-color: hsl(var(--primary) / 0.06);
+
+  --fc-now-indicator-color: hsl(var(--destructive));
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-event-selected-overlay-color: hsl(var(--primary) / 0.15);
+  --fc-highlight-color: hsl(var(--primary) / 0.1);
+  --fc-non-business-color: hsl(var(--secondary) / 0.35);
+  --fc-small-font-size: 0.6875rem;
+
+  font-family: inherit;
+  color: hsl(var(--foreground));
+}
+
+/* The frame. FullCalendar draws a full border box; the card around it already
+   provides one, and two is a seam. */
+.fc .fc-scrollgrid {
+  border-left-width: 0;
+  border-top-width: 0;
+}
+.fc .fc-scrollgrid-section > * {
+  border-right-width: 0;
+}
+.fc .fc-scrollgrid-section-liquid > td {
+  border-bottom-width: 0;
+}
+
+/* Column and day headers: quiet, uppercase, and not shouting the date. */
+.fc .fc-col-header-cell {
+  padding: 0.5rem 0.25rem;
+  font-weight: 500;
+  background: transparent;
+}
+.fc .fc-col-header-cell-cushion {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0;
+}
+
+/* The date number in a month cell. */
+.fc .fc-daygrid-day-number {
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  padding: 0.35rem 0.45rem;
+}
+.fc .fc-day-other .fc-daygrid-day-number {
+  color: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* Today's number is the accent, not a filled pill — the column wash already
+   says which day it is. */
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+/* Hour labels down the side. */
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The half-hour rule is implied, not drawn: a dotted line every 30 minutes is
+   noise behind every event on the grid. */
+.fc .fc-timegrid-slot-minor {
+  border-top-style: none;
+}
+
+/* Events. The real styling comes from `eventClassNames`, which returns theme
+   utilities per entry kind; this only strips FullCalendar's own chrome so
+   those are not fighting a blue background. */
+.fc .fc-event,
+.fc .fc-event:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.fc .fc-event-main {
+  padding: 0;
+  color: inherit;
+}
+.fc .fc-daygrid-event {
+  margin-top: 1px;
+  border-radius: var(--r-control);
+}
+.fc .fc-daygrid-event-harness + .fc-daygrid-event-harness {
+  margin-top: 1px;
+}
+
+/* "+2 more" reads as a control, because it is one. */
+.fc .fc-daygrid-more-link {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+  font-weight: 500;
+  padding: 0 0.25rem;
+}
+.fc .fc-daygrid-more-link:hover {
+  color: hsl(var(--foreground));
+}
+
+/* The popover that opens from it, and the list view's day headings. */
+.fc .fc-popover {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--r-surface);
+  box-shadow: var(--e-3);
+}
+.fc .fc-popover-header {
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 0.625rem;
+}
+.fc .fc-list {
+  border: 0;
+}
+.fc .fc-list-day-cushion {
+  background: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+  font-size: 0.75rem;
+}
+.fc .fc-list-event:hover td {
+  background: hsl(var(--secondary) / 0.6);
+}
+.fc .fc-list-event-dot {
+  border-color: hsl(var(--primary));
+}
+.fc .fc-list-empty {
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+
+/* The now-indicator: a hairline with a dot, the way every calendar draws it. */
+.fc .fc-timegrid-now-indicator-line {
+  border-width: 1px 0 0;
+}
+.fc .fc-timegrid-now-indicator-arrow {
+  border-width: 4px;
+  margin-top: -4px;
+}
+
+/* Dragging. FullCalendar's mirror is a copy of the event, which with
+   transparent events would be invisible. */
+.fc .fc-event-dragging:not(.fc-event-selected) {
+  opacity: 0.65;
+}
+.fc .fc-highlight {
+  background: hsl(var(--primary) / 0.1);
+  border-radius: var(--r-control);
+}
+
+/* A fixed density sets the slot height; "Fit" leaves `expandRows` to share the
+   available height between the visible hours instead. */
+.fc-host[data-density="fixed"] .fc .fc-timegrid-slot {
+  height: var(--fc-slot-height);
 }

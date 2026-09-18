@@ -71,6 +71,12 @@ export function TaskRail({
             <li key={task.id}>
               <div
                 draggable
+                /*
+                  Read by FullCalendar's external `drop`: the browser's own
+                  drag payload is not available there, so the id travels on the
+                  element itself.
+                */
+                data-task-id={task.id}
                 onDragStart={(event) => {
                   event.dataTransfer.setData("application/x-task-id", task.id);
                   event.dataTransfer.effectAllowed = "move";

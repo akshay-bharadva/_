@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { addDays, addMonths, format } from "date-fns";
 import { ChevronLeft, ChevronRight, PanelRight, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -31,16 +32,27 @@ import { getErrorMessage } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import { buildEntries, filterEntries } from "./build-entries";
 import { withCalendarColors } from "./entry-color";
-import { isNoOp, moveToDay, moveToTime, snapMinutes } from "./drag-move";
+import { isNoOp } from "./drag-move";
 import { useConfirm } from "@/components/providers/ConfirmDialogProvider";
-import { WeekGrid } from "./week-grid";
-import { AgendaView } from "./agenda-view";
-import { MonthView } from "./month-view";
 import { CalendarList } from "./calendar-list";
 import { OverlayChips } from "./overlay-chips";
 import { GridStatus } from "./grid-status";
 import { useBelowBreakpoint } from "@/hooks/use-media-query";
+import { DENSITY_OPTIONS, HOUR_HEIGHT, useDensity } from "./density";
 import { stepDays, viewWindow } from "./view-window";
+
+/*
+  Behind a dynamic boundary: FullCalendar and its four plugins are a large
+  client-only dependency, and the admin shell loads on every admin route. This
+  keeps it in the calendar's own chunk rather than in anyone else's first load.
+*/
+const FcCalendar = dynamic(
+  () => import("./fc-calendar").then((mod) => mod.FcCalendar),
+  {
+    ssr: false,
+    loading: () => <LoadingState variant="section" label="Loading" />,
+  },
+);
 import {
   expectedMoneyDays,
   majorUnits,
@@ -49,7 +61,6 @@ import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
 import { FreeTimeBar } from "./free-time-bar";
-import { DENSITY_OPTIONS, HOUR_HEIGHT, useDensity } from "./density";
 
 type View = "day" | "week" | "month" | "agenda";
 
@@ -352,22 +363,6 @@ export default function CalendarPage() {
   };
 
   /** Week and day: the pointer landed on a time. */
-  const moveEntry = (entryId: string, dropAt: Date, grabMinutes: number) => {
-    const entry = entries.find((item) => item.id === entryId);
-    if (!entry) return;
-    // Snapped after the grab offset is subtracted, so the block lands on the
-    // grid rather than at whatever fraction of a minute the pointer was at.
-    const moved = moveToTime(entry, dropAt, snapMinutes(grabMinutes));
-    void commitMove(entryId, moved);
-  };
-
-  /** Month: the pointer landed on a date, so the clock time is preserved. */
-  const moveEntryToDay = (entryId: string, day: Date) => {
-    const entry = entries.find((item) => item.id === entryId);
-    if (!entry) return;
-    void commitMove(entryId, moveToDay(entry, day));
-  };
-
   if (!settings)
     return <LoadingState variant="page" label="Loading calendar" />;
 
@@ -563,38 +558,43 @@ export default function CalendarPage() {
 
             {isLoading && rows.length === 0 ? (
               <LoadingState variant="section" label="Loading" />
-            ) : view === "agenda" ? (
-              <AgendaView entries={entries} onSelect={setSelected} />
-            ) : view === "month" ? (
-              <MonthView
-                days={days}
-                anchor={anchor}
-                entries={entries}
-                onSelect={setSelected}
-                onMoveEntryToDay={moveEntryToDay}
-                onCreateOnDay={(day) => {
-                  // A new event on a day picked from the month starts at nine.
-                  const start = new Date(day);
-                  start.setHours(9, 0, 0, 0);
-                  setDraftStart(start);
-                }}
-                onPickDay={(day) => {
-                  setAnchor(day);
-                  setView("day");
-                }}
-              />
             ) : (
-              <WeekGrid
+              <FcCalendar
+                view={view}
+                anchor={anchor}
                 days={days}
                 entries={entries}
-                settings={settings}
-                homeTimezone={settings.home_timezone ?? null}
-                onSelect={setSelected}
-                onCreate={setDraftStart}
-                onDropTask={(taskId, start) => void scheduleTask(taskId, start)}
-                onMoveEntry={moveEntry}
-                onMoveEntryToDay={moveEntryToDay}
+                weekStartsOn={weekStartsOn}
+                dayStartHour={settings.day_start_hour ?? 7}
+                dayEndHour={settings.day_end_hour ?? 22}
                 hourHeight={HOUR_HEIGHT[density]}
+                onSelect={setSelected}
+                /*
+                  Straight into `commitMove`, which already knows the hard part:
+                  that moving one occurrence of a repeating event is a different
+                  act from moving the series, and asks which was meant.
+                */
+                onMove={(entry, start, end) =>
+                  void commitMove(entry.id, {
+                    start,
+                    end:
+                      end ??
+                      new Date(
+                        start.getTime() +
+                          (entry.end.getTime() - entry.start.getTime()),
+                      ),
+                  })
+                }
+                onDropTask={(taskId, start) => void scheduleTask(taskId, start)}
+                onPick={(start, allDay) =>
+                  setDraftStart(
+                    allDay
+                      ? // A day picked in the month grid has no clock time, so
+                        // the sheet opens at nine rather than at midnight.
+                        new Date(new Date(start).setHours(9, 0, 0, 0))
+                      : start,
+                  )
+                }
               />
             )}
           </div>
