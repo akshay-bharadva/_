@@ -105,3 +105,61 @@ describe("AllDayRow", () => {
     expect(screen.getByText("Spring forward")).toBeInTheDocument();
   });
 });
+
+/**
+ * Money is the one kind that arrives twice: what a day actually cost, from the
+ * ledger, and what it is expected to cost, from the recurring rules. On the
+ * grid they were the same chip, in the same colour, showing the same figure.
+ *
+ * A forecast that is indistinguishable from a record is the one thing a
+ * forecast must never be, so it is drawn outlined rather than filled.
+ */
+describe("a forecast is not drawn as a record", () => {
+  const moneyDay = (expected: boolean) =>
+    ({
+      id: expected ? "forecast" : "actual",
+      sourceId: "m1",
+      kind: "transaction_summary" as const,
+      title: "Rent",
+      start: new Date(2026, 8, 18),
+      end: new Date(2026, 8, 19),
+      isAllDay: true,
+      colorToken: "chart-3" as const,
+      calendarId: null,
+      location: null,
+      meetingUrl: null,
+      description: null,
+      status: "confirmed" as const,
+      rrule: null,
+      taskId: null,
+      data: expected ? { expected: true } : {},
+    }) as CalendarEntry;
+
+  const render_ = (entry: CalendarEntry) =>
+    render(
+      <AllDayRow
+        days={[new Date(2026, 8, 18)]}
+        entries={[entry]}
+        onSelect={() => {}}
+        onMoveEntryToDay={() => {}}
+        gutter={null}
+      />,
+    );
+
+  it("fills a day that actually happened", () => {
+    render_(moneyDay(false));
+    const chip = screen.getByRole("button", { name: "Rent" });
+
+    expect(chip.className).toContain("bg-chart-3/15");
+    expect(chip.className).not.toContain("border-dashed");
+  });
+
+  it("outlines a day that is only expected", () => {
+    render_(moneyDay(true));
+    const chip = screen.getByRole("button", { name: "Rent" });
+
+    expect(chip.className).toContain("border-dashed");
+    expect(chip.className).toContain("bg-transparent");
+    expect(chip.className).not.toContain("bg-chart-3/15");
+  });
+});

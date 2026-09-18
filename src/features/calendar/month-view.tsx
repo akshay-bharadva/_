@@ -12,7 +12,7 @@ import {
 } from "./drag-move";
 import type { CalendarEntry } from "@/types";
 import { cn } from "@/lib/cn";
-import { entryClasses } from "./entry-block";
+import { entryClasses, isExpected } from "./entry-block";
 import {
   Popover,
   PopoverContent,
@@ -101,7 +101,9 @@ export function MonthView({
             key={day.toISOString()}
             className={cn(
               "px-1.5 text-xs font-medium",
-              isWeekend(day) ? "text-muted-foreground/70" : "text-muted-foreground",
+              isWeekend(day)
+                ? "text-muted-foreground/70"
+                : "text-muted-foreground",
             )}
           >
             {format(day, "EEE")}
@@ -129,8 +131,11 @@ export function MonthView({
                 key={day.toISOString()}
                 className={cn(
                   "group flex min-h-0 flex-col overflow-hidden rounded-control p-1 transition-colors duration-150",
-                  outside ? "bg-transparent" : "bg-secondary/40 hover:bg-secondary/70",
-                  today && "bg-primary/[0.06] ring-1 ring-inset ring-primary/40",
+                  outside
+                    ? "bg-transparent"
+                    : "bg-secondary/40 hover:bg-secondary/70",
+                  today &&
+                    "bg-primary/[0.06] ring-1 ring-inset ring-primary/40",
                   over && "bg-primary/10 ring-2 ring-inset ring-primary/60",
                 )}
                 onDragOver={(event) => {
@@ -218,12 +223,13 @@ function Chip({
 }) {
   const colors = entryClasses(entry.colorToken);
   const movable = isMovable(entry);
+  const expected = isExpected(entry);
 
   return (
     <button
       type="button"
       onClick={() => onSelect(entry)}
-      title={entry.title}
+      title={expected ? `${entry.title} (expected)` : entry.title}
       draggable={movable}
       onDragStart={(event) => {
         if (!movable) return;
@@ -236,7 +242,13 @@ function Chip({
       }}
       className={cn(
         "flex h-[18px] w-full min-w-0 items-center gap-1.5 rounded-[4px] px-1.5 text-left text-[11px] leading-[18px] text-foreground transition-colors",
-        entry.isAllDay ? colors.bg : "hover:bg-card",
+        // Outlined, not filled: a forecast sits on the grid without claiming
+        // to have happened. See `isExpected`.
+        expected
+          ? cn("border border-dashed bg-transparent", colors.ring)
+          : entry.isAllDay
+            ? colors.bg
+            : "hover:bg-card",
         movable && "cursor-grab active:cursor-grabbing",
         entry.status === "tentative" && "opacity-70",
       )}

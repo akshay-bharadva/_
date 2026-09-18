@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import { addDays, startOfDay } from "date-fns";
 import type { CalendarEntry } from "@/types";
 import { cn } from "@/lib/cn";
-import { entryClasses } from "./entry-block";
+import { entryClasses, isExpected } from "./entry-block";
 import {
   decodeMove,
   ENTRY_MOVE_TYPE,
@@ -121,10 +121,20 @@ export function AllDayRow({
                   event.dataTransfer.effectAllowed = "move";
                 }}
                 className={cn(
-                  "block w-full truncate rounded-control border-l-[3px] px-2 py-1 text-left text-xs font-medium text-foreground",
+                  "block w-full truncate rounded-control px-2 py-1 text-left text-xs font-medium text-foreground",
                   isMovable(entry) && "cursor-grab active:cursor-grabbing",
-                  entryClasses(entry.colorToken).bg,
-                  entryClasses(entry.colorToken).border,
+                  // A forecast is outlined; a record is filled with a bar down
+                  // its edge. Same rule as the month chip — see `isExpected`.
+                  isExpected(entry)
+                    ? cn(
+                        "border border-dashed bg-transparent",
+                        entryClasses(entry.colorToken).ring,
+                      )
+                    : cn(
+                        "border-l-[3px]",
+                        entryClasses(entry.colorToken).bg,
+                        entryClasses(entry.colorToken).border,
+                      ),
                 )}
               >
                 {entry.title}

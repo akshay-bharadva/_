@@ -1,5 +1,6 @@
 import type { FinCommitment, FinCommitmentSkip } from "@/types";
 import { toLocalISODate } from "@/lib/date-utils";
+import { exponentOf } from "./money/minor-units";
 import { occurrencesBetween } from "./commitments/schedule";
 
 /**
@@ -136,4 +137,18 @@ export function expectedMoneyDays({
   return Array.from(byDate.values()).sort((a, b) =>
     a.date.localeCompare(b.date),
   );
+}
+
+/**
+ * Minor units as the major-unit number the calendar's money summary carries.
+ *
+ * Exported alongside `expectedMoneyDays` because the two are one contract: the
+ * calendar renders `data.earned` and `data.spent` as plain numbers in a
+ * currency, and it should not have to learn that the yen has no minor unit and
+ * the Kuwaiti dinar has three to do it. The exponent comes from the currency
+ * table, never from a hard-coded 100 — which is exactly the mistake this
+ * function exists to stop a caller making.
+ */
+export function majorUnits(minor: number, currency: string): number {
+  return minor / 10 ** exponentOf(currency);
 }

@@ -47,7 +47,10 @@ import { MonthView } from "./month-view";
 import { CalendarList } from "./calendar-list";
 import { OverlayChips } from "./overlay-chips";
 import { GridStatus } from "./grid-status";
-import { expectedMoneyDays } from "@/features/finance/calendar-feed";
+import {
+  expectedMoneyDays,
+  majorUnits,
+} from "@/features/finance/calendar-feed";
 import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
@@ -187,7 +190,14 @@ export default function CalendarPage() {
       until: rangeEnd,
     }).map((day) => ({
       item_id: `money-forecast-${day.date}`,
-      title: "Expected",
+      /*
+        Named by what is due, not by the word "Expected". A chip reading
+        "Rent, Insurance" tells you what the day holds; one reading "Expected"
+        makes you open it to find out. The figures are in the sheet, which is
+        where a number belongs when the cell has room for about twenty
+        characters.
+      */
+      title: day.items.map((item) => item.name).join(", "),
       // Midnight UTC, matching what the RPC sends for a date-only row, so
       // `buildEntries` applies the same calendar-date rule to both.
       start_time: `${day.date}T00:00:00+00:00`,
@@ -196,8 +206,10 @@ export default function CalendarPage() {
       is_all_day: true,
       data: {
         expected: true,
-        earned: day.inMinor / 100,
-        spent: day.outMinor / 100,
+        // Through `majorUnits`, not `/ 100`: the yen has no minor unit and the
+        // Kuwaiti dinar has three, and the currency table is what knows.
+        earned: majorUnits(day.inMinor, day.currency),
+        spent: majorUnits(day.outMinor, day.currency),
         count: day.items.length,
         currency: day.currency,
         items: day.items,
