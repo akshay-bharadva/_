@@ -2208,7 +2208,7 @@ count of it was wrong.
 
 **Where it stands.** `/admin/finance` serves the rebuilt module; v1's UI, its
 four API slices and 64 files are deleted. Nothing in `src/` reads a v1 finance
-table. **Migrations 025–031 must be applied**; until they are, the screens render
+table. **Migrations 025–032 must be applied**; until they are, the screens render
 their empty states and the dashboard's money card degrades — by design, since the
 dashboard degrades rather than blanks. Migration **029 drops the v1 tables and is
 deliberately not run yet**: its own advice is to wait weeks of real use, and a

@@ -1223,7 +1223,7 @@ endpoints unreachable and the suite said so, endpoint by endpoint — which is
 exactly how the slices came to be deleted rather than left behind. The allowlist
 now holds **one** entry, `useGetAnalyticsDataQuery`, which predates all of this.
 
-**What is left is not code.** Migrations 025–031 have to be applied. Migration
+**What is left is not code.** Migrations 025–032 have to be applied. Migration
 029 — which drops the v1 tables — is deliberately not run: its code-side
 prerequisites are now met, and its own advice is to wait weeks of real use with a
 backup someone has actually restored. Its stale note claiming the dashboard still

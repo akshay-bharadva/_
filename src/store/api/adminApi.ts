@@ -28,7 +28,7 @@ export * from "./admin/analyticsApi";
 export * from "./admin/calendarSetupApi";
 export * from "./admin/discoverApi";
 export * from "./admin/libraryApi";
-// Finance (migrations 025–031). The only finance slice: the four v1 ones —
+// Finance (migrations 025–032). The only finance slice: the four v1 ones —
 // financeApi, financeSetupApi, loansApi and importApi — were deleted when the
 // rebuilt module took over `/admin/finance`.
 export * from "./admin/financeV2Api";

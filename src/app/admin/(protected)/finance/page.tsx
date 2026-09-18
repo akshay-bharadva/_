@@ -10,7 +10,7 @@ import FinancePage from "@/features/finance/ui/finance-page";
  * module missing half its sections would have taken working screens away from
  * the owner to no purpose. The preview route is gone; there is one module again.
  *
- * **Requires migrations 025–031.** The screens read `fin_*` tables and the
+ * **Requires migrations 025–032.** The screens read `fin_*` tables and the
  * dashboard and calendar now read `fin_day_money`. Until those have been run the
  * screens render their empty states, which is the honest outcome rather than a
  * bug to chase.
