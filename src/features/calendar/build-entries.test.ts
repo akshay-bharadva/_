@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { CalendarRow, EventException } from "@/types";
+import type { CalendarEntry, CalendarRow, EventException } from "@/types";
 import { buildEntries, filterEntries, splitByAllDay } from "./build-entries";
 
 const at = (y: number, m: number, d: number, h = 9, min = 0) =>
@@ -254,5 +254,94 @@ describe("filterEntries", () => {
   it("hides a cancelled event", () => {
     const entries = build([row({ data: { status: "cancelled" } })]);
     expect(filterEntries(entries, options)).toEqual([]);
+  });
+});
+
+/**
+ * The day a date-only row lands on.
+ *
+ * `get_calendar_data` casts DATE columns with `::timestamptz`, so on a UTC
+ * server a task due the 18th arrives as `2026-09-18T00:00:00Z`. Every view then
+ * buckets by `startOfDay()`, which is local — so west of UTC the 18th was drawn
+ * on the 17th, and at a view's edge the shift pushed the row out of the window
+ * and it was not drawn at all.
+ *
+ * The suite could not see this: every fixture above builds its rows from local
+ * `Date`s, which is not the shape the database sends. These use the wire format
+ * instead, which is the only way this class of bug is visible from a test.
+ */
+describe("a date-only row lands on the date the database meant", () => {
+  const dateOnly = (kind: string, isoDate: string): CalendarRow =>
+    ({
+      item_id: `${kind}-1`,
+      title: kind,
+      // Exactly what `::timestamptz` produces on a UTC server.
+      start_time: `${isoDate}T00:00:00+00:00`,
+      end_time: null,
+      item_type: kind,
+      is_all_day: true,
+      data: {},
+    }) as unknown as CalendarRow;
+
+  const dayOf = (entry: CalendarEntry) =>
+    `${entry.start.getFullYear()}-${String(entry.start.getMonth() + 1).padStart(2, "0")}-${String(entry.start.getDate()).padStart(2, "0")}`;
+
+  it.each(["task", "habit_summary", "transaction_summary"])(
+    "puts a %s on its own date, not the day before",
+    (kind) => {
+      const [entry] = buildEntries({
+        rows: [dateOnly(kind, "2026-09-18")],
+        exceptions: [],
+        windowStart: new Date(2026, 8, 1),
+        windowEnd: new Date(2026, 9, 1),
+      });
+
+      expect(dayOf(entry)).toBe("2026-09-18");
+    },
+  );
+
+  /**
+   * The failure that reads as missing data rather than as misplaced data. A
+   * task due on the first of the month shifted to the last of the previous one,
+   * which is outside a month view's window — so it simply was not there.
+   */
+  it("keeps the first day of a window inside it", () => {
+    const entries = buildEntries({
+      rows: [dateOnly("task", "2026-09-01")],
+      exceptions: [],
+      windowStart: new Date(2026, 8, 1),
+      windowEnd: new Date(2026, 9, 1),
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(dayOf(entries[0])).toBe("2026-09-01");
+  });
+
+  /**
+   * Events are the exception, and must stay one. The sheet writes an all-day
+   * event as `new Date(localInput).toISOString()`, so its instant already
+   * carries the author's local date — reading it as UTC would move the one kind
+   * that was never wrong.
+   */
+  it("leaves an all-day event on its local date", () => {
+    const localMidnight = new Date(2026, 8, 18);
+    const [entry] = buildEntries({
+      rows: [
+        {
+          item_id: "event-1",
+          title: "Conference",
+          start_time: localMidnight.toISOString(),
+          end_time: null,
+          item_type: "event",
+          is_all_day: true,
+          data: {},
+        } as unknown as CalendarRow,
+      ],
+      exceptions: [],
+      windowStart: new Date(2026, 8, 1),
+      windowEnd: new Date(2026, 9, 1),
+    });
+
+    expect(dayOf(entry)).toBe("2026-09-18");
   });
 });

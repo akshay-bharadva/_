@@ -13,6 +13,51 @@ import { expandOccurrences } from "./recurrence";
 
 const DEFAULT_DURATION_MINUTES = 60;
 
+/**
+ * Rows whose `start_time` is a **calendar date**, not an instant.
+ *
+ * `get_calendar_data` builds these from DATE columns — `t.due_date`,
+ * `hl.completed_date`, a day of money — and casts them with `::timestamptz`.
+ * On a UTC server that yields midnight UTC, so a task due the 18th arrives as
+ * `2026-09-18T00:00:00Z`.
+ *
+ * Every view then buckets by `startOfDay()`, which is **local**. West of UTC
+ * that lands the 18th on the 17th: a task due Friday drawn on Thursday, and a
+ * day's habits and spending drawn against the wrong day. Worse at a view's
+ * edge, where the shift pushes the row outside the window and it is not drawn
+ * at all — which is what "some things just don't load" turns out to be.
+ *
+ * Events are deliberately *not* in this set. An all-day event is written by
+ * the sheet as `new Date(localInput).toISOString()`, so its instant already
+ * carries the author's local date; reading it as UTC would break the kind that
+ * currently works. The two sources genuinely mean different things by the same
+ * column, and the only honest fix is to say so here.
+ */
+const DATE_ONLY_KINDS = new Set([
+  "task",
+  "habit_summary",
+  "transaction_summary",
+]);
+
+/**
+ * The day a row belongs on, as a local `Date` at midnight.
+ *
+ * Exported for its own test: this is one line of arithmetic that decides
+ * whether three of the four entry kinds appear on the right day.
+ */
+export function resolveStart(startIso: string, kind: string): Date {
+  const instant = new Date(startIso);
+  if (!DATE_ONLY_KINDS.has(kind)) return instant;
+
+  // The UTC parts are the calendar date the database meant; rebuilding them in
+  // local time puts the row on that date for a viewer in any zone.
+  return new Date(
+    instant.getUTCFullYear(),
+    instant.getUTCMonth(),
+    instant.getUTCDate(),
+  );
+}
+
 /** A duration to use when a row has no end. */
 function resolveEnd(start: Date, endIso: string | null, allDay: boolean): Date {
   if (endIso) return new Date(endIso);
@@ -57,7 +102,7 @@ export function buildEntries({
   const entries: CalendarEntry[] = [];
 
   for (const row of rows) {
-    const start = new Date(row.start_time);
+    const start = resolveStart(row.start_time, row.item_type);
     const end = resolveEnd(start, row.end_time, row.is_all_day);
     const durationMs = end.getTime() - start.getTime();
 
