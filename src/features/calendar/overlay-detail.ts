@@ -113,6 +113,14 @@ export function moneyFrom(entry: CalendarEntry): {
   earned: number;
   spent: number;
   net: number;
+  /**
+   * A projection from recurring rules rather than money that moved.
+   *
+   * The two must never be read as the same thing: one is a record and the
+   * other is a guess about a day that has not happened. The flag is set by
+   * `expectedMoneyDays`, and the sheet says which it is showing.
+   */
+  expected: boolean;
 } | null {
   if (entry.kind !== "transaction_summary") return null;
 
@@ -122,6 +130,7 @@ export function moneyFrom(entry: CalendarEntry): {
 
   return {
     count: num(data.count) ?? 0,
+    expected: data.expected === true,
     earned,
     spent,
     // Signed deliberately: a day that spent more than it earned should read as

@@ -12,7 +12,7 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight, PanelRight, Plus } from "lucide-react";
 import { toast } from "sonner";
-import type { CalendarEntry, Task } from "@/types";
+import type { CalendarEntry, CalendarRow, Task } from "@/types";
 import {
   useAddEventMutation,
   useSaveEventExceptionMutation,
@@ -20,6 +20,8 @@ import {
   useGetCalendarDataQuery,
   useGetCalendarSettingsQuery,
   useSaveCalendarSettingsMutation,
+  useGetFinCommitmentsQuery,
+  useGetFinCommitmentSkipsQuery,
   useGetCalendarsQuery,
   useGetEventExceptionsQuery,
   useGetTasksQuery,
@@ -45,6 +47,7 @@ import { MonthView } from "./month-view";
 import { CalendarList } from "./calendar-list";
 import { OverlayChips } from "./overlay-chips";
 import { GridStatus } from "./grid-status";
+import { expectedMoneyDays } from "@/features/finance/calendar-feed";
 import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
@@ -71,6 +74,17 @@ const VIEWS: { id: View; label: string }[] = [
 export default function CalendarPage() {
   const { data: settings } = useGetCalendarSettingsQuery();
   const [saveSettings] = useSaveCalendarSettingsMutation();
+  /*
+    The forecast half of the money overlay. `get_calendar_data` summarises money
+    that has already happened, so without these a calendar could show
+    yesterday's spending and say nothing about the rent due on Thursday.
+
+    Projected through `expectedMoneyDays`, finance's one documented contract
+    with this feature — what a commitment means, and when it is due, belongs to
+    that module rather than to this one.
+  */
+  const { data: commitments = [] } = useGetFinCommitmentsQuery();
+  const { data: commitmentSkips = [] } = useGetFinCommitmentSkipsQuery();
   const { data: calendars = [] } = useGetCalendarsQuery();
   const { data: exceptions = [] } = useGetEventExceptionsQuery();
   const { data: tasks = [] } = useGetTasksQuery();
@@ -153,9 +167,47 @@ export default function CalendarPage() {
     [calendars],
   );
 
+  /*
+    Expected money, as rows in the same shape the RPC returns.
+
+    Modelled as `transaction_summary` rather than a fifth kind on purpose: it is
+    a day's money either way, so the money chip governs it, the colour is
+    already resolved and every view draws it without learning anything new.
+    `data.expected` is what keeps it honest — a forecast and a fact must never
+    be mistaken for one another, and the detail view reads that flag to say
+    which it is showing.
+  */
+  const forecastRows = useMemo<CalendarRow[]>(() => {
+    if (commitments.length === 0) return [];
+
+    return expectedMoneyDays({
+      commitments,
+      skips: commitmentSkips,
+      from: rangeStart,
+      until: rangeEnd,
+    }).map((day) => ({
+      item_id: `money-forecast-${day.date}`,
+      title: "Expected",
+      // Midnight UTC, matching what the RPC sends for a date-only row, so
+      // `buildEntries` applies the same calendar-date rule to both.
+      start_time: `${day.date}T00:00:00+00:00`,
+      end_time: null,
+      item_type: "transaction_summary" as const,
+      is_all_day: true,
+      data: {
+        expected: true,
+        earned: day.inMinor / 100,
+        spent: day.outMinor / 100,
+        count: day.items.length,
+        currency: day.currency,
+        items: day.items,
+      },
+    }));
+  }, [commitments, commitmentSkips, rangeStart, rangeEnd]);
+
   const entries = useMemo(() => {
     const built = buildEntries({
-      rows,
+      rows: [...rows, ...forecastRows],
       exceptions,
       windowStart: rangeStart,
       windowEnd: addDays(rangeEnd, 1),
@@ -171,6 +223,7 @@ export default function CalendarPage() {
     return withCalendarColors(visible, calendars);
   }, [
     rows,
+    forecastRows,
     exceptions,
     rangeStart,
     rangeEnd,

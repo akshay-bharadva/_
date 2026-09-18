@@ -147,7 +147,13 @@ describe("moneyFrom", () => {
       moneyFrom(
         entry("transaction_summary", { count: 4, earned: 1000, spent: 250 }),
       ),
-    ).toEqual({ count: 4, earned: 1000, spent: 250, net: 750 });
+    ).toEqual({
+      count: 4,
+      earned: 1000,
+      spent: 250,
+      net: 750,
+      expected: false,
+    });
   });
 
   /**
@@ -167,6 +173,20 @@ describe("moneyFrom", () => {
       earned: 0,
       spent: 0,
       net: 0,
+      expected: false,
     });
+  });
+
+  /**
+   * A projection from recurring rules, not money that moved. The flag is the
+   * only thing separating a record from a guess about a day that has not
+   * happened, and the sheet reads it to say which it is showing.
+   */
+  it("marks a forecast as expected", () => {
+    expect(
+      moneyFrom(
+        entry("transaction_summary", { expected: true, earned: 0, spent: 760 }),
+      ),
+    ).toMatchObject({ expected: true, spent: 760 });
   });
 });
