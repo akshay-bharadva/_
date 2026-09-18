@@ -1,15 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  addDays,
-  addMonths,
-  addWeeks,
-  endOfMonth,
-  format,
-  startOfMonth,
-  startOfWeek,
-} from "date-fns";
+import { addDays, addMonths, format } from "date-fns";
 import { ChevronLeft, ChevronRight, PanelRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { CalendarEntry, CalendarRow, Task } from "@/types";
@@ -47,6 +39,8 @@ import { MonthView } from "./month-view";
 import { CalendarList } from "./calendar-list";
 import { OverlayChips } from "./overlay-chips";
 import { GridStatus } from "./grid-status";
+import { useBelowBreakpoint } from "@/hooks/use-media-query";
+import { stepDays, viewWindow } from "./view-window";
 import {
   expectedMoneyDays,
   majorUnits,
@@ -111,39 +105,34 @@ export default function CalendarPage() {
     | 5
     | 6;
 
-  /** The days on screen, and the range to fetch. */
-  const { days, rangeStart, rangeEnd } = useMemo(() => {
-    if (view === "day") {
-      return { days: [anchor], rangeStart: anchor, rangeEnd: anchor };
-    }
-    if (view === "month") {
-      const first = startOfWeek(startOfMonth(anchor), { weekStartsOn });
-      const last = addDays(
-        startOfWeek(endOfMonth(anchor), { weekStartsOn }),
-        6,
-      );
-      const count =
-        Math.round((last.getTime() - first.getTime()) / 86_400_000) + 1;
-      return {
-        days: Array.from({ length: count }, (_, i) => addDays(first, i)),
-        rangeStart: first,
-        rangeEnd: last,
-      };
-    }
-    if (view === "agenda") {
-      return {
-        days: [],
-        rangeStart: anchor,
-        rangeEnd: addDays(anchor, 30),
-      };
-    }
-    const first = startOfWeek(anchor, { weekStartsOn });
-    return {
-      days: Array.from({ length: 7 }, (_, i) => addDays(first, i)),
-      rangeStart: first,
-      rangeEnd: addDays(first, 6),
-    };
-  }, [view, anchor, weekStartsOn]);
+  /*
+    A week is seven days on a screen with room for seven.
+
+    Below `md` it was still seven, inside an `overflow-hidden` grid — about
+    50px a day on a phone, which is narrower than the time labels in it. Three
+    days is a week view that can actually be read, and it still answers the
+    question the view is for: what is happening around now.
+
+    Anchored to the start of the week on a wide screen and to the anchor day
+    itself on a narrow one — a three-day window that always began on Monday
+    would often not contain today, which is the one day it must.
+  */
+  const narrow = useBelowBreakpoint("md");
+  const weekLength = narrow ? 3 : 7;
+
+  /**
+   * The days on screen, and the range to fetch — one definition, in
+   * `view-window.ts`, because the grid, the query, `buildEntries` and the
+   * heading all have to agree about it.
+   */
+  const {
+    days,
+    from: rangeStart,
+    to: rangeEnd,
+  } = useMemo(
+    () => viewWindow({ view, anchor, weekStartsOn, weekLength }),
+    [view, anchor, weekStartsOn, weekLength],
+  );
 
   const iso = (date: Date) => format(date, "yyyy-MM-dd");
 
@@ -262,11 +251,7 @@ export default function CalendarPage() {
     setAnchor((current) =>
       view === "month"
         ? addMonths(current, direction)
-        : view === "day"
-          ? addDays(current, direction)
-          : view === "agenda"
-            ? addDays(current, direction * 30)
-            : addWeeks(current, direction),
+        : addDays(current, direction * stepDays(view, weekLength)),
     );
   };
 
@@ -393,7 +378,10 @@ export default function CalendarPage() {
         ? format(anchor, "EEEE d MMMM")
         : view === "agenda"
           ? "Next 30 days"
-          : `${format(days[0], "d MMM")} – ${format(days[6], "d MMM yyyy")}`;
+          : // The last day of the window, not the seventh: a narrow screen shows
+            // three, and `days[6]` there is `undefined` — which `format` turns
+            // into "Invalid Date" in the one place the heading names the range.
+            `${format(days[0], "d MMM")} – ${format(days[days.length - 1], "d MMM yyyy")}`;
 
   const hasHours = view === "week" || view === "day";
 
