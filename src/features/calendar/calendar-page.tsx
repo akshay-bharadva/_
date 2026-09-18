@@ -44,6 +44,7 @@ import { AgendaView } from "./agenda-view";
 import { MonthView } from "./month-view";
 import { CalendarList } from "./calendar-list";
 import { OverlayChips } from "./overlay-chips";
+import { GridStatus } from "./grid-status";
 import { TaskRail, DEFAULT_BLOCK_MINUTES } from "./task-rail";
 import { QuickAddBar } from "./quick-add-bar";
 import { EventSheet } from "./event-sheet";
@@ -129,7 +130,17 @@ export default function CalendarPage() {
 
   const iso = (date: Date) => format(date, "yyyy-MM-dd");
 
-  const { data: rows = [], isLoading } = useGetCalendarDataQuery({
+  /*
+    `error` is read, not dropped. It used to be destructured away, so a raising
+    RPC fell back to an empty array and drew a blank grid in silence — a hard
+    failure and a quiet week looked exactly alike. `GridStatus` tells them
+    apart.
+  */
+  const {
+    data: rows = [],
+    isLoading,
+    error: calendarError,
+  } = useGetCalendarDataQuery({
     start: iso(rangeStart),
     end: iso(rangeEnd),
   });
@@ -482,7 +493,21 @@ export default function CalendarPage() {
             </Sheet>
           </header>
 
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            {!isLoading && (
+              <GridStatus
+                error={calendarError}
+                rows={rows}
+                entries={entries}
+                hiddenCalendarCount={hiddenCalendars.size}
+                overlays={{
+                  tasks: settings?.show_tasks ?? true,
+                  habits: settings?.show_habits ?? false,
+                  finance: settings?.show_finance ?? false,
+                }}
+              />
+            )}
+
             {isLoading && rows.length === 0 ? (
               <LoadingState variant="section" label="Loading" />
             ) : view === "agenda" ? (
