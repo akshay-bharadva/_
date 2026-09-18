@@ -87,6 +87,25 @@ export function TransactionForm({
   const usable = accounts.filter((account) => !account.archived_at);
   const existing = transaction ? postingsOf(transaction)[0] : undefined;
 
+  /*
+    A transfer cannot be edited here, and must not be silently flattened.
+
+    This form writes exactly one posting and a kind of spend-or-earn. Handed a
+    transfer, `fin_update_transaction` would replace both legs with that single
+    posting and set the kind to match — so the money that arrived in the other
+    account would simply leave the ledger, the other balance would move, and
+    nothing would raise: the balance trigger only inspects transactions whose
+    kind is still `transfer`, and this edit is what stops it being one.
+
+    Verified against Postgres rather than reasoned about: the edit was accepted
+    and the two-leg transfer came back as a one-leg spend.
+
+    Refusing is the honest stop-gap. Editing a transfer properly means editing
+    both legs at once, which is the transfer sheet's job and not this one's.
+  */
+  const legs = transaction ? postingsOf(transaction).length : 0;
+  const isTransfer = transaction?.kind === "transfer" || legs > 1;
+
   const defaultAccount = existing?.account_id ?? usable[0]?.id ?? null;
   const defaultCurrency =
     existing?.currency ??
@@ -202,6 +221,26 @@ export function TransactionForm({
       toast.error("Could not save it", { description: getErrorMessage(error) });
     }
   };
+
+  if (isTransfer) {
+    return (
+      <div className="space-y-4 pt-4">
+        <p className="rounded-surface bg-secondary/50 p-4 text-sm text-foreground">
+          This is a transfer between two of your own accounts, so it has two
+          sides. Editing it here would keep one and discard the other, which
+          would move a balance without anything recording why.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Delete it from the list and record it again if the figures were wrong.
+        </p>
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" onClick={onDone}>
+            Close
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
